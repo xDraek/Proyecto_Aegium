@@ -1,12 +1,13 @@
 import { play } from '../audio.js';
 import { clock, universe } from '../config.js';
-import { BUILDINGS, BUILDING_KEYS, FEATS, ISLAND_TYPES, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCES, RESOURCE_KEYS, UNITS, VISITORS } from '../game/data.js';
+import { BUILDINGS, BUILDING_KEYS, FEATS, FEAT_THEMES, ISLAND_TYPES, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCES, RESOURCE_KEYS, UNITS, VISITORS } from '../game/data.js';
 import { HOUR_MS, canAfford, multiplyCost, upcomingWorldEvents } from '../game/rules.js';
+import { featAt, featCycle } from '../game/feats.js';
 import { api } from '../net/api.js';
 import { armyHtml, armySummary, featWait } from './army.js';
 import { buildingPanel } from './buildingPanel.js';
 import { bag, costItems, escapeHtml, fmtNum, fmtTime, unitList } from './format.js';
-import { fleetFor, islandPanel, readFleet, readPayload, readOpts } from './islandPanel.js';
+import { featSimPreset, fleetFor, islandPanel, readFleet, readPayload, readOpts } from './islandPanel.js';
 import { questsHtml, rankingHtml } from './modals.js';
 import { openGuide } from './guide.js';
 import { Tutorial } from './tutorial.js';
@@ -133,7 +134,14 @@ export class Hud {
       if (claim && !claim.disabled) return this.#run(claim, () => game.claimQuest(claim.dataset.id), null, 'coins');
       const share = e.target.closest('[data-action="share-report"]');
       if (share) {
-        const channel = this.game.alliance && confirm('¿Compartirlo solo con tu alianza? (Cancelar = en el chat general)') ? 'alianza' : 'global';
+        // Los informes de una gesta, primero a su chat
+        const rep = this.game.reports.find((r) => r.t === Number(share.dataset.t));
+        const channel =
+          rep?.kind === 'gesta' && this.#featChatOpen() && confirm('¿Compartirlo en el chat de la gesta? (Cancelar = en otro chat)')
+            ? 'gesta'
+            : this.game.alliance && confirm('¿Compartirlo solo con tu alianza? (Cancelar = en el chat general)')
+              ? 'alianza'
+              : 'global';
         api('POST', '/api/chat/share', { t: Number(share.dataset.t), channel })
           .then(() => {
             this.toast('📢 Informe compartido en el chat', 'success');
@@ -147,6 +155,13 @@ export class Hud {
         const report = this.modalKind === 'shared' ? this.sharedReport : this.game.reports.find((r) => r.t === Number(replay.dataset.t) && r.battle?.log);
         if (report) playReplay(replay, report);
         return;
+      }
+      const featGo = e.target.closest('[data-action="goto-feat"]');
+      if (featGo) return this.worldMap.open(featGo.dataset.site);
+      const featSite = e.target.closest('[data-action="goto-feat-site"]');
+      if (featSite) {
+        this.closeModal();
+        return this.onSelect(featSite.dataset.site);
       }
       const tab = e.target.closest('[data-action="rank-tab"]');
       if (tab) {
@@ -194,9 +209,9 @@ export class Hud {
       if (b) this.toggleChat(true, b.dataset.channel);
     });
     try {
-      this.chatRead = { global: 0, alianza: 0, ...JSON.parse(localStorage.getItem(CHAT_KEY) ?? '{}') };
+      this.chatRead = { global: 0, alianza: 0, gesta: 0, ...JSON.parse(localStorage.getItem(CHAT_KEY) ?? '{}') };
     } catch {
-      this.chatRead = { global: 0, alianza: 0 };
+      this.chatRead = { global: 0, alianza: 0, gesta: 0 };
     }
     this.#pollChat();
 
@@ -551,8 +566,30 @@ export class Hud {
         <h4>Ahora</h4>${row(cur, true)}
         <h4>Próximamente</h4>${next.map((ev) => row(ev, false)).join('')}
         <p class="muted small">Aprovecha la Fiebre del oro para guardar oro, el Festival de Poseidón para acumular favor o la Gran feria para cambiar en el mercado.</p>
+        ${this.#featCalendar(now, when)}
       </div>`,
     );
+  }
+
+  /** Las gestas en el calendario: la tuya, si estás convocado, y cuándo llegan las próximas. */
+  #featCalendar(now, when) {
+    const mine = this.game.featInfo(now);
+    const cur = featAt(now);
+    const cycles = [cur, featCycle(cur.k + 1)];
+    const rows = cycles
+      .map((c) => {
+        const t = FEAT_THEMES[c.theme];
+        const live = now >= c.omen && now < c.end;
+        const label = live ? (now < c.start ? 'presagios ahora' : 'en lucha ahora') : `presagios el ${when(c.omen)}`;
+        return `<div class="event-row ${live ? 'current' : ''}"><span class="event-icon">${t.icon}</span>
+          <div><b>${t.name}</b><div class="small muted">${live ? 'Convocados los imperios cercanos a algunos continentes.' : `${FEATS.omenHours} h de presagios y ${FEATS.hours} h de lucha.`}</div></div>
+          <span class="small">${label}</span></div>`;
+      })
+      .join('');
+    const you = mine
+      ? `<p class="hint small">${mine.icon} Estás convocado en <b>${escapeHtml(mine.name)}</b>${mine.pledged ? ' y has jurado' : ''}. <button class="link" data-action="goto-feat-site" data-site="${escapeHtml(mine.site)}">Ver el continente</button></p>`
+      : '';
+    return `<h4>🌋 Gestas de la Liga <button class="link small" data-guide="gestas">📖</button></h4>${you}${rows}`;
   }
 
   #updateFavor() {
@@ -807,6 +844,16 @@ export class Hud {
         await this.#run(btn, () => game.pledgeFeat(site), null, 'magic');
         break;
       }
+      case 'feat-forge': {
+        const bag = {};
+        for (const input of root.querySelectorAll('input[name^="fg-"]')) {
+          const n = Math.floor(Number(input.value) || 0);
+          if (n > 0) bag[input.name.slice(3)] = n;
+        }
+        const res = await this.#run(btn, () => game.featForge(btn.dataset.site, bag), null, 'coins');
+        if (res?.ok) for (const input of root.querySelectorAll('input[name^="fg-"]')) input.value = '';
+        break;
+      }
       case 'break-port':
         if (!confirm(game.state.occupied ? '¿Atacar a los invasores con todo lo que tienes en casa?' : '¿Atacar la flota que bloquea tu puerto con tus barcos de guerra?')) break;
         await this.#run(btn, () => game.breakPort(), null, 'sail');
@@ -832,7 +879,11 @@ export class Hud {
         const view = game.island(this.selected);
         const attacker = readFleet(root);
         if (!Object.keys(attacker).length) for (const id of PLAYER_UNITS) if ((UNITS[id].atk > 0 || id === 'mercante') && game.units[id] > 0) attacker[id] = game.units[id];
-        const defender = view?.type === 'jugador' ? (view.intel?.garrison ?? {}) : (view?.garrison ?? {});
+        if (view?.feat?.boss && view.feat.stage === 'lucha') {
+          this.social.openSimulator(featSimPreset(game, view, attacker));
+          break;
+        }
+        const defender = view?.type === 'jugador' ? (view.intel?.garrison ?? {}) : view?.type === 'continente' ? (view.horde?.garrison ?? {}) : (view?.garrison ?? {});
         const { atkMul, hpMul } = game.combatBonus();
         const wall = view?.type === 'jugador' ? 0.1 * (view.intel?.wall ?? 0) : (view?.wall ?? 0);
         const towers = view?.type === 'jugador' ? 10 * (view.intel?.wall ?? 0) : 0;
@@ -1065,7 +1116,7 @@ export class Hud {
   toggleChat(open = this.chatEl.hidden, channel = this.chatChannel) {
     this.chatEl.hidden = !open;
     if (!open) return;
-    this.chatChannel = channel === 'alianza' && !this.game.alliance ? 'global' : channel;
+    this.chatChannel = (channel === 'alianza' && !this.game.alliance) || (channel === 'gesta' && !this.#featChatOpen()) ? 'global' : channel;
     this.#renderChat(true);
     this.chatEl.querySelector('input').focus();
   }
@@ -1111,15 +1162,25 @@ export class Hud {
     }
   }
 
+  /** Si puedes leer y escribir en el chat de una gesta (los convocados, hasta que acaba la tregua). */
+  #featChatOpen() {
+    const f = this.game.featInfo();
+    return !!f?.convoked && (f.stage !== 'fin' || this.game.now() < (f.truceUntil ?? f.end));
+  }
+
   #renderChat(scroll = false) {
-    const ch = this.chatChannel;
     const hasAlliance = !!this.game.alliance;
+    const hasFeat = this.#featChatOpen();
+    if ((this.chatChannel === 'gesta' && !hasFeat) || (this.chatChannel === 'alianza' && !hasAlliance)) this.chatChannel = 'global';
+    const ch = this.chatChannel;
     for (const b of this.chatEl.querySelectorAll('[data-channel]')) {
       b.classList.toggle('active', b.dataset.channel === ch);
       if (b.dataset.channel === 'alianza') b.hidden = !hasAlliance;
+      if (b.dataset.channel === 'gesta') b.hidden = !hasFeat;
     }
+    const feat = hasFeat ? this.game.featInfo() : null;
     this.chatEl.querySelector('.chat-sub').textContent =
-      ch === 'alianza' ? `Solo para ${this.game.alliance?.name ?? 'tu alianza'}` : 'Todo el archipiélago lo lee';
+      ch === 'alianza' ? `Solo para ${this.game.alliance?.name ?? 'tu alianza'}` : ch === 'gesta' ? `Los convocados contra ${feat?.enemy ?? 'la bestia'} en ${feat?.name ?? 'su continente'}` : 'Todo el archipiélago lo lee';
     const log = this.chatEl.querySelector('.chat-log');
     const atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 30;
     log.innerHTML = this.chatMessages
@@ -1140,7 +1201,7 @@ export class Hud {
 
     // Mensajes sin leer de otros jugadores, por canal y en total
     let total = 0;
-    for (const channel of ['global', 'alianza']) {
+    for (const channel of ['global', 'alianza', 'gesta']) {
       const n = this.chatMessages.filter((m) => (m.channel ?? 'global') === channel && m.id > this.chatRead[channel] && !m.system && m.name !== this.game.username).length;
       const tabBadge = this.chatEl.querySelector(`[data-channel="${channel}"] .badge`);
       tabBadge.hidden = !n;

@@ -99,6 +99,7 @@ const ACTIONS = {
   plunder: (g, [id]) => (int(id) >= 0 ? g.plunder(int(id)) : bad()),
   breakPort: (g) => g.breakPort(),
   pledgeFeat: (g, [site]) => (typeof site === 'string' && site.length < 40 ? g.pledgeFeat(site) : bad()),
+  featForge: (g, [site, bag]) => (typeof site === 'string' && site.length < 40 ? g.featForge(site, resources(bag)) : bad()),
   claimQuest: (g, [id]) => (typeof id === 'string' ? g.claimQuest(id) : bad()),
   claimDaily: (g) => g.claimDaily(),
   claimTask: (g, [id]) => (typeof id === 'string' ? g.claimTask(id) : bad()),
@@ -303,7 +304,7 @@ async function api(req, res, url) {
       return send(res, 200, { result, snapshot });
     }
 
-    if (route === 'GET /api/ranking') return send(res, 200, { ...world.ranking(uid), contest: world.contestView(uid) });
+    if (route === 'GET /api/ranking') return send(res, 200, { ...world.ranking(uid), contest: world.contestView(uid), feats: world.featHallView(uid) });
     if (route === 'GET /api/map') return send(res, 200, world.worldMap(uid));
 
     if (route === 'GET /api/chat') return send(res, 200, { messages: world.chatSince(uid, int(url.searchParams.get('after')) || 0) });

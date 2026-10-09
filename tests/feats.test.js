@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { clock, universe } from '../src/config.js';
 import { combineGroups } from '../src/game/combat.js';
 import { FEATS, UNITS } from '../src/game/data.js';
-import { capByRest, effectiveEmpires, featAt, featBoss, featCoop, featCycle, featHours, featPeriod, featPower, featRewards, pledgeEmpires } from '../src/game/feats.js';
+import { capByRest, effectiveEmpires, featAt, featBoss, featCoop, featCycle, featHours, featPeriod, featPower, featRewards, forgeBonus, forgeGoal, forgeRoom, pledgeEmpires } from '../src/game/feats.js';
 import { upgradeState } from '../src/game/Game.js';
 import { makeWorld } from './world.js';
 
@@ -463,4 +463,159 @@ test('una partida guardada antigua recibe los campos de las gestas', () => {
   assert.equal(s.stats.feats, 0);
   assert.equal(s.stats.kills, 3);
   assert.ok(UNITS.sierpe.npc && UNITS.gigante.npc && UNITS.cabeza.npc);
+});
+
+// ── La fragua de Hefesto ─────────────────────────────────────────────────────
+
+test('la fragua: meta con el tope «el resto», topes por jugador y lo que da cada cuarto', () => {
+  assert.equal(forgeGoal([100, 100, 100]), FEATS.forge.hours * 300);
+  // Una ballena no infla la meta: cuenta como todos los demás juntos
+  assert.equal(forgeGoal([10000, 100, 100]), FEATS.forge.hours * 400);
+  const forge = { goal: 1000, total: 0, by: {} };
+  // El 45 % de la meta…
+  assert.equal(forgeRoom(forge, 1, 10000), FEATS.forge.capShare * 1000);
+  // …o 3 h de tu producción, lo que sea menos
+  assert.equal(forgeRoom(forge, 1, 50), FEATS.forge.capHours * 50);
+  assert.equal(forgeRoom({ goal: 1000, total: 990, by: {} }, 1, 10000), 10, 'no se pasa de la meta');
+  assert.equal(forgeRoom({ goal: 1000, total: 450, by: { 1: 450 } }, 1, 10000), 0);
+  assert.deepEqual(forgeBonus({ goal: 1000, total: 0 }), { quarters: 0, atk: 1, lava: 1 });
+  assert.equal(forgeBonus({ goal: 1000, total: 499 }).quarters, 1);
+  const full = forgeBonus({ goal: 1000, total: 1000 });
+  assert.equal(full.quarters, 4);
+  assert.ok(Math.abs(full.atk - (1 + 4 * FEATS.forge.atk)) < 1e-9);
+  assert.equal(full.lava, 0);
+});
+
+test('ofrendar en la fragua: solo juramentados, solo madera, hierro y cristal, y se cobra solo lo que cabe', async () => {
+  const { site, f, players } = await featWorld(4);
+  const [A, B, C] = players;
+  for (const g of [A, B, C]) assert.equal(g.pledgeFeat(site).ok, true);
+  const D = players[3];
+  assert.match(D.featForge(site, { madera: 100 }).reason, /Jura primero/);
+  assert.match(A.featForge(site, { piedra: 100 }).reason, /Elige/);
+  assert.ok(f.forge.goal > 0, 'la meta sale de lo jurado');
+  // Pide mucho más de lo que cabe: se recorta
+  const before = A.state.resources.madera;
+  const room = A.featInfo().forge.room;
+  assert.ok(room > 0);
+  const res = A.featForge(site, { madera: 40000 });
+  assert.equal(res.ok, true, res.reason);
+  const spent = before - A.state.resources.madera;
+  assert.ok(spent > 0 && spent < 40000, 'solo paga lo que cabe');
+  assert.ok(f.forge.by[A.userId] <= room + 1);
+  assert.ok(f.forge.by[A.userId] <= FEATS.forge.capShare * f.forge.goal + 1);
+  assert.ok(f.glory[A.userId] > 0, 'ofrendar da gloria');
+  // Ya no cabe más
+  assert.match(A.featForge(site, { madera: 10 }).reason, /todo lo que puedes|llena/);
+  // El estado público enseña la fragua sin lo de los demás
+  const seen = env().world.snapshot(B.userId).world.states[site].feat.forge;
+  assert.equal(seen.by[A.userId], undefined);
+  assert.equal(seen.total, f.forge.total);
+  function env() {
+    return { world: A.world };
+  }
+});
+
+test('quien ofrenda no es perjuro, y las ofrendas llegan como mucho a Plata', async () => {
+  const { env, site, f, players } = await featWorld(4);
+  const [A, B, C, D] = players;
+  for (const g of [A, B, C, D]) assert.equal(g.pledgeFeat(site).ok, true);
+  for (const g of [A, B, C]) assert.equal(g.sendMission('atacar', site, ARMY).ok, true);
+  // D no combate, pero ofrenda todo lo que puede
+  D.state.resources.hierro = 1e7;
+  assert.equal(D.featForge(site, { hierro: 1e7 }).ok, true);
+  env.until(f.start + featHours(FEATS.perjuryHours));
+  assert.ok(!f.perjurers.includes(D.userId), 'ofrendar libra del perjurio');
+  assert.ok(f.pledged[D.userId]);
+  // En el reparto, las ofrendas solas no llegan a Oro
+  const r = featRewards(
+    { 1: { prod: 100, f: 100, brought: 0, glory: 50, risk: 1e9, offered: 100 * 10 }, 2: { prod: 100, f: 100, brought: 100, glory: 500, risk: 1e9 }, 3: { prod: 100, f: 100, brought: 100, glory: 450, risk: 1e9 } },
+    { result: 'victoria' },
+  );
+  assert.equal(r[1].band, 1, 'Plata como mucho');
+  const bronze = featRewards({ 1: { prod: 100, f: 100, brought: 0, glory: 50, risk: 1e9, offered: 100 * FEATS.reward.offer[0] }, 2: { prod: 100, f: 100, brought: 100, glory: 500, risk: 1e9 } }, { result: 'victoria' });
+  assert.equal(bronze[1].band, 0);
+});
+
+test('la fragua llena da más ataque en las oleadas y quita la lava de las cabezas', async () => {
+  const { env, site, f, players } = await featWorld(4);
+  for (const g of players) assert.equal(g.pledgeFeat(site).ok, true);
+  // Llena la fragua entre todos
+  for (const g of players) {
+    g.state.resources.hierro = 1e7;
+    g.featForge(site, { hierro: 1e7 });
+  }
+  assert.equal(forgeBonus(f.forge).quarters, 4);
+  for (const g of players) assert.equal(g.sendMission('atacar', site, ARMY).ok, true);
+  env.until(f.start);
+  // Directos a las cabezas con furia: sin lava no hay daño extra
+  Object.assign(f.boss, { sierpe: 0, gigante: 0, phase: 2, cabeza: 40 });
+  f.boss.lava = 1e9;
+  env.until(f.nextWave);
+  const w = f.waves.at(-1);
+  assert.equal(w.players, 4);
+  // Con una lava enorme y sin fragua habrían caído todos; con la fragua llena no hay lava
+  for (const g of players) {
+    const m = fleetAt(g, site);
+    assert.ok(m && m.phase === 'vuelta' && Object.values(m.units).reduce((a, b) => a + b, 0) > 0, 'vuelven supervivientes');
+  }
+});
+
+// ── Chat, mapa, salón y estandarte ───────────────────────────────────────────
+
+test('el chat de la gesta solo lo leen y escriben los convocados', async () => {
+  const env = await makeWorld(NAMES.slice(0, 5));
+  const W = env.world;
+  const [A, B, C, D, E] = env.players;
+  for (const g of env.players) Object.assign(g.state.units, ARMY);
+  const site = [...W.islands.values()].find((i) => i.type === 'continente').id;
+  // E no está convocado
+  assert.ok(W.startFeat(site, { players: [A, B, C, D].map((g) => g.userId) }, clock.now()));
+  const msg = W.addChat(A.userId, 'Todos a la oleada de las 18', 'gesta');
+  assert.equal(msg.channel, `f:${site}`);
+  const seenB = W.chatSince(B.userId, 0).find((m) => m.id === msg.id);
+  assert.equal(seenB?.channel, 'gesta', 'B lo lee en la pestaña de la gesta');
+  assert.equal(W.chatSince(E.userId, 0).find((m) => m.id === msg.id), undefined, 'E no lo ve');
+  assert.throws(() => W.addChat(E.userId, 'hola', 'gesta'), /convocado/);
+  // Los resúmenes de las oleadas van a ese chat
+  const f = W.islandStates.get(site).feat;
+  for (const g of [A, B, C]) assert.equal(g.pledgeFeat(site).ok, true);
+  env.until(f.start);
+  env.until(f.nextWave);
+  assert.ok(W.chatSince(A.userId, msg.id).some((m) => m.system && m.channel === 'gesta' && /Oleada/.test(m.text)));
+  // Acabada la gesta y la tregua, la pestaña se cierra
+  env.until(f.end);
+  env.until(f.truceUntil);
+  assert.throws(() => W.addChat(A.userId, 'adiós', 'gesta'), /convocado/);
+});
+
+test('el mapa del mundo y el salón enseñan las gestas en marcha', async () => {
+  const { W, site, players, f, env } = await featWorld(4);
+  const [A] = players;
+  const map = W.worldMap(A.userId);
+  const mark = map.feats.find((x) => x.site === site);
+  assert.ok(mark, 'la gesta sale en el mapa');
+  assert.equal(mark.me, true);
+  assert.equal(mark.stage, 'presagio');
+  const hall = W.featHallView(A.userId);
+  assert.equal(hall.active.length, 1);
+  assert.deepEqual(hall.hall, []);
+  // Al acabar va al salón
+  env.until(f.start);
+  assert.equal(f.result, 'dormido');
+  assert.equal(W.worldMap(A.userId).feats.length, 0);
+  assert.equal(W.featHallView(A.userId).hall.length, 0, 'las que no emergen no van al salón');
+  assert.ok(site);
+});
+
+test('quien llega a Oro en una victoria gana el emblema del rayo para su estandarte', async () => {
+  const env = await makeWorld(['Lucio']);
+  const [A] = env.players;
+  assert.match(A.setBanner('#d94f4f', '⚡').reason, /no existe/);
+  A.receiveFeatReward({ bag: {}, theme: 'tifon', won: true, emblem: '⚡', report: { t: clock.now(), kind: 'gesta', title: 'x', outcome: 'victoria' } }, clock.now());
+  assert.deepEqual(A.state.emblems, ['⚡']);
+  assert.equal(A.setBanner('#d94f4f', '⚡').ok, true);
+  // No se repite
+  A.receiveFeatReward({ bag: {}, theme: 'tifon', won: true, emblem: '⚡', report: { t: clock.now(), kind: 'gesta', title: 'x', outcome: 'victoria' } }, clock.now());
+  assert.deepEqual(A.state.emblems, ['⚡']);
 });

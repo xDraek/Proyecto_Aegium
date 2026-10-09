@@ -1084,8 +1084,20 @@ export const FEATS = {
     relicChance: [0.05, 0.12, 0.25],
     topBonus: 1.25, // botín del que más gloria gana
     phasePot: [0.1, 0.15], // parte del bote que se gana al vencer cada fase (si al final se pierde)
+    offer: [1, 2], // horas de tu producción ofrendadas en la fragua para Bronce y Plata (Oro solo combatiendo)
   },
   perjury: { ash: 0.1, hours: 24, days: 14 },
+  // La fragua de Hefesto: el papel económico. Se ofrendan recursos y el enemigo se debilita
+  forge: {
+    hours: 2, // meta: horas de la producción de todos los juramentados (con el tope «el resto»)
+    capShare: 0.45, // nadie llena más que esto de la meta
+    capHours: 3, // ni más de estas horas de su propia producción
+    resources: ['madera', 'hierro', 'cristal'],
+    step: 0.25, // cada cuarto de la meta…
+    atk: 0.025, // …da +2,5 % de ataque a todas las oleadas
+    lava: 0.25, // …y quita un 25 % de la lava
+    glory: 150, // gloria de toda la fragua (la del combate ronda los 1.000)
+  },
 };
 
 /** Temas de gesta: el enemigo, sus fases y lo que da. */
@@ -1103,5 +1115,6 @@ export const FEAT_THEMES = {
     // Cuántos hijos echa según el poder jurado (ver featBoss)
     tune: { sierpes: 2.2, gigantes: 2.0, headHp: 6, headAtk: 0.045, heads: 100, furyAt: 50, fury: 1.3, lava: 0.015 },
     relics: ['rayozeus', 'escama'],
+    emblem: '⚡', // emblema del estandarte para quien llega al tramo Oro en una victoria
   },
 };

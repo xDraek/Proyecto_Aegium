@@ -44,7 +44,7 @@ import {
   WONDER_RESOURCES,
   WORK,
 } from './data.js';
-import { featHours, featPower, featProd } from './feats.js';
+import { featHours, featPower, featProd, forgeRoom, forgeValue } from './feats.js';
 import { assault, attackOf, battle, combineGroups, count, hasCombat, keepAboard, seatsOf, shareSurvivors, splitBag, splitForces } from './combat.js';
 import {
   HOUR_MS,
@@ -150,6 +150,8 @@ export function newState({ now = clock.now(), home, name }) {
     // Gesta a la que te han convocado ({ k, site, theme, pledgedAt, result }) y hasta cuándo no puedes jurar por perjuro
     feat: null,
     perjuryUntil: 0,
+    // Emblemas del estandarte ganados (además de los de siempre)
+    emblems: [],
     startedAt: now,
     seq: 1,
     lastUpdate: now,
@@ -774,7 +776,7 @@ export class Game extends EventTarget {
 
   setBanner(color, emblem, now = this.now()) {
     this.#advance(now);
-    if (!BANNER_COLORS.includes(color) || !BANNER_EMBLEMS.includes(emblem)) return this.#fail('Ese estandarte no existe.');
+    if (!BANNER_COLORS.includes(color) || !(BANNER_EMBLEMS.includes(emblem) || (this.state.emblems ?? []).includes(emblem))) return this.#fail('Ese estandarte no existe.');
     this.state.banner = { color, emblem };
     return this.#done();
   }
@@ -1441,6 +1443,8 @@ export class Game extends EventTarget {
       waves: f.waves ?? [],
       waiting: f.waiting ?? null,
       truceUntil: f.truceUntil ?? null,
+      forge: f.forge ? { goal: f.forge.goal ?? 0, total: f.forge.total ?? 0, mine: f.forge.by?.[this.userId] ?? 0, room: me ? Math.floor(forgeRoom(f.forge, this.userId, me.prod)) : 0, givers: f.forge.givers ?? Object.keys(f.forge.by ?? {}).length } : null,
+      myProd: me?.prod ?? 0,
       top,
     };
   }
@@ -1459,6 +1463,39 @@ export class Game extends EventTarget {
     if (!res?.ok) return this.#fail(res?.reason ?? 'No se puede jurar ahora.');
     s.feat = { ...(s.feat ?? {}), k: res.k, site, theme: res.theme, pledgedAt: now };
     this.#note(`${FEAT_THEMES[res.theme].icon} Has jurado combatir a ${FEAT_THEMES[res.theme].enemy}`, 'success');
+    return this.#done();
+  }
+
+  /**
+   * Ofrendas recursos en la fragua de Hefesto de la gesta que juraste. Solo madera, hierro y
+   * cristal; si no cabe todo (topes por jugador y meta), se ofrenda lo que quepa.
+   */
+  featForge(site, bag, now = this.now()) {
+    this.#advance(now);
+    const s = this.state;
+    if (s.vacation) return this.#fail('De vacaciones no puedes ofrendar.');
+    const gift = {};
+    for (const r of FEATS.forge.resources) {
+      const n = Math.floor(Number(bag?.[r]) || 0);
+      if (n > 0) gift[r] = n;
+    }
+    const value = forgeValue(gift);
+    if (!value) return this.#fail(`Elige cuánta ${FEATS.forge.resources.map((r) => RESOURCES[r].name.toLowerCase()).join(', ')} ofrendas.`);
+    if (!canAfford(s.resources, gift)) return this.#fail('No tienes tantos recursos.');
+    const room = this.world.featForgeRoom?.(this.userId, site, now);
+    if (!room?.ok) return this.#fail(room?.reason ?? 'La fragua no está abierta.');
+    if (room.room < 1) return this.#fail(room.full ? 'La fragua ya está llena.' : 'Ya has ofrendado todo lo que puedes en esta gesta.');
+    // Si no cabe todo, se recorta cada recurso en la misma proporción (redondeando hacia arriba,
+    // para que la última ofrenda pueda llenar la fragua del todo)
+    if (value > room.room) {
+      const k = room.room / value;
+      for (const r of Object.keys(gift)) gift[r] = Math.min(gift[r], Math.ceil(gift[r] * k));
+    }
+    const paid = forgeValue(gift);
+    if (!paid) return this.#fail('Ya has ofrendado todo lo que puedes en esta gesta.');
+    this.#pay(gift);
+    this.world.featForge(this.userId, site, paid, now);
+    this.#note(`🔥 Ofrendas ${fmtBag(gift)} en la fragua de Hefesto`, 'success');
     return this.#done();
   }
 
@@ -1519,14 +1556,19 @@ export class Game extends EventTarget {
     const P = FEATS.perjury;
     this.state.buffs.ceniza = Math.max(this.state.buffs.ceniza ?? 0, t + featHours(P.hours));
     this.state.perjuryUntil = t + featHours(P.days * 24);
-    this.#report({ t, kind: 'gesta', outcome: 'derrota', islandName: siteName, title: 'Perjuro', text: `Juraste combatir en ${themeName} y no has llevado ni un barco. Los dioses cubren tu isla de ceniza: −${Math.round(P.ash * 100)} % de producción durante ${P.hours} h, y no podrás jurar otra gesta en ${P.days} días.` });
+    this.#report({ t, kind: 'gesta', outcome: 'derrota', islandName: siteName, title: 'Perjuro', text: `Juraste combatir en ${themeName} y no has llevado ni un barco ni ofrendado en la fragua. Los dioses cubren tu isla de ceniza: −${Math.round(P.ash * 100)} % de producción durante ${P.hours} h, y no podrás jurar otra gesta en ${P.days} días.` });
     this.#note(`🌫️ Perjuro: −${Math.round(P.ash * 100)} % de producción durante ${P.hours} h`, 'error');
     this.#dirty = true;
   }
 
   /** Lo que ganas (o recuperas) al acabar una gesta. */
-  receiveFeatReward({ bag, blessingHours = 0, wounded, relic, theme, top, heart, won, report }, t) {
+  receiveFeatReward({ bag, blessingHours = 0, wounded, relic, theme, top, heart, won, report, emblem }, t) {
     const s = this.state;
+    // Un emblema nuevo para el estandarte (tramo Oro en una victoria)
+    if (emblem && !(s.emblems ?? []).includes(emblem)) {
+      s.emblems = [...(s.emblems ?? []), emblem];
+      this.#note(`${emblem} Nuevo emblema para tu estandarte: cámbialo desde tu perfil`, 'success');
+    }
     this.#gain(bag);
     if (blessingHours > 0) s.buffs.olimpo = Math.max(s.buffs.olimpo ?? 0, t + featHours(blessingHours));
     for (const [id, n] of Object.entries(wounded ?? {})) if (n > 0 && s.units[id] != null) s.units[id] += n;

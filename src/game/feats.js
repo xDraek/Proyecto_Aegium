@@ -152,6 +152,50 @@ export function pledgeEmpires(powers) {
   return effectiveEmpires(powers.map((p) => Math.min(p.f, total - p.f)));
 }
 
+// ── La fragua de Hefesto ─────────────────────────────────────────────────────
+
+/** Valores con el tope «el resto»: nadie cuenta más que todos los demás juntos. */
+export function capRest(values) {
+  const total = values.reduce((a, v) => a + (v > 0 ? v : 0), 0);
+  return values.map((v) => (v > 0 ? Math.min(v, total - v) : 0));
+}
+
+/** Meta de la fragua: horas de la producción de todos los juramentados (con el tope «el resto»). */
+export function forgeGoal(prods) {
+  return Math.round(FEATS.forge.hours * capRest(prods).reduce((a, b) => a + b, 0));
+}
+
+/** Cuánto valor puede ofrendar aún un jugador (`prod`: su producción por hora al jurar). */
+export function forgeRoom(forge, uid, prod) {
+  if (!forge?.goal) return 0;
+  const F = FEATS.forge;
+  const mine = forge.by?.[uid] ?? 0;
+  return Math.max(0, Math.min(F.capShare * forge.goal - mine, F.capHours * (prod ?? 0) - mine, forge.goal - (forge.total ?? 0)));
+}
+
+/** Cuartos llenos de la fragua (de 0 a 4). */
+export function forgeQuarters(forge) {
+  if (!forge?.goal) return 0;
+  const F = FEATS.forge;
+  return Math.min(Math.round(1 / F.step), Math.floor((forge.total ?? 0) / forge.goal / F.step + 1e-9));
+}
+
+/** Lo que da la fragua en cada oleada: multiplicador del ataque y de la lava. */
+export function forgeBonus(forge) {
+  const q = forgeQuarters(forge);
+  return { quarters: q, atk: 1 + FEATS.forge.atk * q, lava: Math.max(0, 1 - FEATS.forge.lava * q) };
+}
+
+/** Lo que vale una bolsa de recursos de la fragua (solo los que admite). */
+export function forgeValue(bag) {
+  let v = 0;
+  for (const res of FEATS.forge.resources) {
+    const n = Math.floor(Number(bag?.[res]) || 0);
+    if (n > 0) v += n * RESOURCES[res].value;
+  }
+  return v;
+}
+
 // ── El enemigo ───────────────────────────────────────────────────────────────
 
 /**
@@ -193,7 +237,7 @@ export function bossLeft(themeId, boss) {
 // ── Premios ──────────────────────────────────────────────────────────────────
 
 /**
- * Lo que se lleva cada juramentado al acabar. `players`: { uid: { prod, f, brought, glory, risk } };
+ * Lo que se lleva cada juramentado al acabar. `players`: { uid: { prod, f, brought, glory, risk, offered } };
  * `result`: 'victoria', 'media' o 'derrota'; `phasesWon`: fases vencidas; `tier`: nivel del sitio.
  * Devuelve { uid: { band (-1 nada, 0 bronce, 1 plata, 2 oro), effort, share, personal, pot, value,
  * blessing, top, heart, relic } } con los premios en valor (se pagan con `rewardBag`).
@@ -209,9 +253,14 @@ export function featRewards(players, { result, phasesWon = 0, tier = 0 }) {
     const p = players[id];
     const effort = p.f > 0 ? (p.brought ?? 0) / p.f : 0;
     const share = totalGlory ? (p.glory ?? 0) / totalGlory : 0;
+    // Lo ofrendado en la fragua, en horas de tu producción: llega como mucho a Plata
+    const offer = p.prod > 0 ? (p.offered ?? 0) / p.prod : 0;
     let band = -1;
-    if (share >= R.minGlory) for (let b = 0; b < R.effort.length; b++) if (effort >= R.effort[b]) band = b;
-    out[id] = { band, effort, share, personal: 0, pot: 0, value: 0, blessing: 0, top: false, heart: false, relic: null };
+    if (share >= R.minGlory) {
+      for (let b = 0; b < R.effort.length; b++) if (effort >= R.effort[b]) band = b;
+      for (let b = 0; b < R.offer.length; b++) if (offer >= R.offer[b] - 1e-9) band = Math.max(band, b);
+    }
+    out[id] = { band, effort, offer, share, personal: 0, pot: 0, value: 0, blessing: 0, top: false, heart: false, relic: null };
   }
   // Distinciones: más gloria y mayor esfuerzo (con un mínimo de gloria)
   const byGlory = ids.filter((id) => out[id].band >= 0).sort((a, b) => out[b].share - out[a].share);

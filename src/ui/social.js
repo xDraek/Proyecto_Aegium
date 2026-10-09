@@ -336,6 +336,7 @@ export class Social {
         <div class="info-row"><span>🤝 Alianza</span><b>${p.alliance ? escapeHtml(p.alliance.name) : 'Ninguna'}</b></div>
         ${p.colonies.length ? `<div class="info-row"><span>🚩 Colonias</span><span>${p.colonies.map(escapeHtml).join(', ')}</span></div>` : ''}
         ${p.coloso ? `<div class="info-row"><span>🗽 Coloso</span><b>Nivel ${p.coloso}</b></div>` : ''}
+        ${p.feats?.won || p.feats?.top || p.feats?.heart ? `<div class="info-row"><span>🌋 Gestas de la Liga</span><b>${p.feats.won} ${p.feats.won === 1 ? 'ganada' : 'ganadas'}${p.feats.top ? ` · ⚡ Azote ×${p.feats.top}` : ''}${p.feats.heart ? ` · 🦁 Corazón de león ×${p.feats.heart}` : ''}</b></div>` : ''}
         ${historyChart(p.history)}
         ${me ? this.#bannerHtml(p) : ''}
         <h4>Logros (${earned.size}/${ACHIEVEMENTS.length})</h4>
@@ -367,7 +368,7 @@ export class Social {
     const colors = BANNER_COLORS.map(
       (c) => `<button class="swatch ${c === cur.color ? 'on' : ''}" style="--c:${c}" data-action="banner" data-color="${c}" data-emblem="${escapeHtml(cur.emblem)}" title="Color"></button>`,
     ).join('');
-    const emblems = BANNER_EMBLEMS.map(
+    const emblems = [...BANNER_EMBLEMS, ...(this.game.state.emblems ?? [])].map(
       (e) => `<button class="emblem ${e === cur.emblem ? 'on' : ''}" data-action="banner" data-color="${cur.color}" data-emblem="${e}">${e}</button>`,
     ).join('');
     return `<div class="section banner-edit">
