@@ -1,6 +1,7 @@
 import * as THREE from 'three';
-import { BLOCKADE, COLONY, FEATS, ISLAND_TYPES, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, RESOURCES, RESOURCE_KEYS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
-import { colonyUpgrade, colonyYield } from '../game/rules.js';
+import { BLOCKADE, COLONY, FEATS, FEAT_THEMES, ISLAND_TYPES, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, RESOURCES, RESOURCE_KEYS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
+import { colonyUpgrade, colonyYield, playerCombat } from '../game/rules.js';
+import { featCoop, forceOf, forgeBonus } from '../game/feats.js';
 import { NEWBIE_POINTS } from '../game/Game.js';
 import { createIslandBase, createIslandFeature, islandLook } from '../scene/islands.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
@@ -185,6 +186,8 @@ function featSection(game, view) {
       ? `<p class="hint small ${wt.coop > 0 ? '' : 'warn'}">🛡️ Esperan la oleada ${wt.fleets} ${wt.fleets === 1 ? 'flota' : 'flotas'} de ${wt.players} ${wt.players === 1 ? 'imperio' : 'imperios'}: cuentan como ${String(wt.N).replace('.', ',')} imperios efectivos y su coraza deja pasar el ${pct(wt.coop)} del daño.${wt.coop > 0 ? '' : ` Hacen falta más de ${String(FEATS.coop[0][0]).replace('.', ',')}.`}</p>`
       : `<p class="hint small warn">🛡️ Aún no espera ninguna flota la próxima oleada. Su coraza solo cede si combaten varios imperios a la vez.</p>`;
   }
+  // Tu parte ideal: cuánto subiría la coraza con lo que tienes en casa
+  if (f.pledged && wt && (f.stage === 'lucha' || f.stage === 'presagio') && !game.state.missions.some((m) => m.target === view.id && m.phase !== 'vuelta')) armor += idealHint(game, wt);
   // Tu juramento y tu flota
   let mine = '';
   if (f.pledged) {
@@ -197,13 +200,113 @@ function featSection(game, view) {
         : '<p class="hint ok small">⚓ Tu flota espera frente a la costa: combatirá en la próxima oleada.</p>';
     mine = `<p class="hint ok small">⚔️ Has jurado esta gesta${f.stage === 'lucha' ? ` · tu gloria: ${pct(f.myGlory)} · trajiste el ${pct(f.myEffort)} de tu fuerza` : ''}.</p>${fleet}`;
   } else if (f.convoked && f.pledgeOpen) {
-    mine = `<p class="desc small">Estás convocado. Al jurar se anota tu poder (el enemigo crece con el de todos) y te comprometes a combatir: quien jura y no trae ni un barco en ${FEATS.perjuryHours} h es perjuro.</p>
+    mine = `<p class="desc small">Estás convocado. Al jurar se anota tu poder (el enemigo crece con el de todos) y te comprometes a combatir (o a ofrendar en la fragua): quien jura y no hace ninguna de las dos en ${FEATS.perjuryHours} h es perjuro.</p>
       <button class="primary wide" data-action="pledge-feat" data-site="${escapeHtml(view.id)}">${f.icon} Jurar la gesta</button>`;
   } else if (f.convoked) mine = '<p class="muted small">El juramento ya está cerrado.</p>';
   else mine = '<p class="muted small">No estás convocado a esta gesta: solo los imperios cercanos al continente.</p>';
+  const forge = f.pledged && f.forge ? forgeSection(view, f) : '';
+  const estimate = f.pledged && f.stage === 'lucha' ? estimateHint(f) : '';
   const top = f.top.length ? `<h5>Más gloria</h5><ol class="mini-rank contest-list">${f.top.map((x) => `<li class="${x.me ? 'me' : ''}"><span>${escapeHtml(x.name)}</span><b>${pct(x.share)}</b></li>`).join('')}</ol>` : '';
   const intro = f.stage === 'presagio' ? `<p class="desc small">${escapeHtml(FEAT_INTRO)}</p>` : '';
-  return `<div class="feat-box">${head}${intro}${rows.join('')}${phases}${armor}${mine}${top}${more}</div>`;
+  return `<div class="feat-box">${head}${intro}${rows.join('')}${phases}${armor}${mine}${estimate}${forge}${top}${more}</div>`;
+}
+
+const num = (x) => String(Math.round(x * 100) / 100).replace('.', ',');
+
+/** Imperios efectivos de la oleada si a las flotas que ya esperan se suma una de fuerza `x`. */
+function predictedN(wt, x) {
+  const S = wt?.othersSum ?? 0;
+  const Q = wt?.othersSq ?? 0;
+  return x > 0 ? (S + x) ** 2 / (Q + x * x) : Q ? (S * S) / Q : 0;
+}
+
+/**
+ * El simulador ante la fase actual de la gesta: tu flota contra todos los hijos que quedan,
+ * con la coraza que habría si se sumara a las que ya esperan y lo que da la fragua.
+ */
+export function featSimPreset(game, view, attacker) {
+  const f = view.feat;
+  const theme = f.phases[f.boss.phase] ?? f.phases.at(-1);
+  const unit = theme.unit;
+  const c = playerCombat(game.state);
+  const forge = forgeBonus(f.forge);
+  const coop = featCoop(predictedN(f.waiting, forceOf(attacker, c.atkMul, c.hpMul)));
+  const head = unit === 'cabeza';
+  const T = FEAT_THEMES[f.theme].tune;
+  const fury = head && (f.boss.cabeza ?? 0) <= T.furyAt;
+  const hp = (head ? f.boss.headHp : 1) / Math.max(0.01, coop);
+  return {
+    attacker,
+    atkMul: c.atkMul * forge.atk,
+    hpMul: c.hpMul,
+    defender: { [unit]: f.boss[unit] ?? 0 },
+    defAtkMul: head ? f.boss.headAtk * (fury ? T.fury : 1) : 1,
+    defHpMul: hp,
+    towers: fury ? Math.round(f.boss.lava * forge.lava) : 0,
+    title: `${f.icon} ${theme.name}: tu flota sola contra lo que queda`,
+    note: coop > 0
+      ? `Con tu flota y las que ya esperan, la coraza dejaría pasar el ${Math.round(coop * 100)} % del daño (va en la vida del defensor). En la oleada combatís todos juntos: esto es lo que haría tu flota sola.`
+      : 'Con las flotas que esperan ahora, la coraza no dejaría pasar nada: hacen falta más imperios en la oleada.',
+  };
+}
+
+/** Con las fuerzas que ya esperan, cuánto subiría la coraza si mandas todo lo que tienes en casa, y la fuerza que más la abre. */
+function idealHint(game, wt) {
+  const c = playerCombat(game.state);
+  const x = forceOf(game.units, c.atkMul, c.hpMul);
+  if (!(x > 0)) return '';
+  const S = wt.othersSum ?? 0;
+  const Q = wt.othersSq ?? 0;
+  const N = predictedN(wt, x);
+  const ideal = S > 0 ? Q / S : 0;
+  const yours = `Si mandas todo lo que tienes en casa (fuerza ${fmtNum(x)}), contaríais como ${num(N)} imperios efectivos: la coraza dejaría pasar el ${Math.round(featCoop(N) * 100)} % del daño.`;
+  const best = S > 0 && x > ideal * 1.5 ? ` Lo que más la abre es una flota parecida a las demás: una fuerza de unos ${fmtNum(ideal)}.` : '';
+  return `<p class="hint small">⚖️ ${yours}${best}</p>`;
+}
+
+/** Lo que te llevarías si la gesta acabara ahora en victoria. */
+function estimateHint(f) {
+  const R = FEATS.reward;
+  const offer = f.myProd > 0 ? (f.forge?.mine ?? 0) / f.myProd : 0;
+  let band = -1;
+  if (f.myGlory >= R.minGlory) {
+    for (let b = 0; b < R.effort.length; b++) if (f.myEffort >= R.effort[b]) band = b;
+    for (let b = 0; b < R.offer.length; b++) if (offer >= R.offer[b] - 1e-9) band = Math.max(band, b);
+  }
+  const names = ['🥉 Bronce', '🥈 Plata', '🥇 Oro'];
+  if (band < 0) {
+    const need = `trae al menos el ${Math.round(R.effort[0] * 100)} % de tu fuerza (sumando oleadas) u ofrenda ${R.offer[0]} h de tu producción en la fragua`;
+    return `<p class="hint small warn">🏅 Aún no llegas a ningún tramo de premio: ${need}.</p>`;
+  }
+  const next = band < R.effort.length - 1 ? ` Para ${names[band + 1]}: el ${Math.round(R.effort[band + 1] * 100)} % de tu fuerza${band + 1 < R.offer.length ? ` u ${R.offer[band + 1]} h ofrendadas` : ''}.` : '';
+  return `<p class="hint ok small">🏅 Si cae ahora: tramo ${names[band]}, ${R.hours[band]} h de tu producción, tu parte del bote común${band >= 1 ? ' y la bendición del Olimpo' : ''}.${next}</p>`;
+}
+
+/** La fragua de Hefesto: cuánto lleva, qué da y el formulario para ofrendar. */
+function forgeSection(view, f) {
+  const F = FEATS.forge;
+  const fg = f.forge;
+  if (!fg.goal) return '';
+  const pct = Math.min(100, Math.round((fg.total / fg.goal) * 100));
+  const bonus = forgeBonus({ goal: fg.goal, total: fg.total });
+  const now = bonus.quarters ? `Ahora: +${num(bonus.atk * 100 - 100)} % de ataque y ${bonus.lava <= 0 ? 'nada de lava' : `un ${Math.round((1 - bonus.lava) * 100)} % menos de lava`}.` : 'Aún no da nada: llenad el primer cuarto.';
+  const open = f.stage === 'presagio' || f.stage === 'lucha';
+  const room = fg.room ?? 0;
+  const canGive = open && room >= 1;
+  const options = F.resources.map((r) => `${RESOURCES[r].icon} ${fmtNum(room / RESOURCES[r].value)}`).join(' · ');
+  const form = canGive
+    ? `<p class="muted small">Aún puedes ofrendar hasta ${options} (o una mezcla).</p>
+      <div class="payload">${F.resources.map((r) => `<label title="${RESOURCES[r].name}">${RESOURCES[r].icon}<input type="number" name="fg-${r}" min="0" placeholder="0" inputmode="numeric" /></label>`).join('')}</div>
+      <button class="primary wide" data-action="feat-forge" data-site="${escapeHtml(view.id)}">🔥 Ofrendar en la fragua</button>`
+    : open
+      ? `<p class="muted small">${fg.total >= fg.goal ? 'La fragua está llena.' : 'Ya has ofrendado todo lo que puedes en esta gesta.'}</p>`
+      : '';
+  return `<div class="section feat-forge">
+    <h5>🔥 Fragua de Hefesto · ${pct} %</h5>
+    <div class="progress"><i style="width:${pct}%"></i></div>
+    <p class="muted small">${fmtNum(fg.total)} / ${fmtNum(fg.goal)} en valor · ${fg.givers} ${fg.givers === 1 ? 'imperio ha' : 'imperios han'} ofrendado · tú, ${fmtNum(fg.mine)}. Cada cuarto da +${num(F.atk * 100)} % de ataque y quita un ${Math.round(F.lava * 100)} % de la lava. ${now}</p>
+    ${form}
+  </div>`;
 }
 
 const FEAT_INTRO = 'Un enemigo de leyenda despierta. Solo cae si varios imperios combaten juntos: lucha por oleadas cada pocas horas, en el mar y en tierra. Si cae, todos los que combatieron se reparten un botín a la medida de lo que producen.';
@@ -411,7 +514,7 @@ function fleetForm(hud, game, view) {
     <div class="mission-buttons">${buttons}</div>
     ${warHint}
     ${feat ? `<p class="hint small">${feat.icon} Manda barcos de guerra para la primera fase (en el mar) y tropas de tierra para las siguientes. Tu flota espera frente a la costa y combate en la siguiente oleada junto a las de los demás.</p>` : ''}
-    ${hostile && !feat ? '<button class="ghost wide sim-btn" data-action="simulate">🎲 Simular el combate</button>' : ''}
+    ${hostile && (!feat || feat.boss) ? `<button class="ghost wide sim-btn" data-action="simulate">🎲 ${feat ? 'Simular contra la fase actual' : 'Simular el combate'}</button>` : ''}
     <div class="hint warn" data-fleet-reason></div>
   </div>`;
 }

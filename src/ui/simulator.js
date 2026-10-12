@@ -21,7 +21,7 @@ function inputs(prefix, ids, values) {
 }
 
 /**
- * @param {{ attacker?: object, defender?: object, wall?: number, atkMul?: number, hpMul?: number, title?: string }} preset
+ * @param {{ attacker?: object, defender?: object, wall?: number, atkMul?: number, hpMul?: number, defAtkMul?: number, defHpMul?: number, towers?: number, title?: string, note?: string }} preset
  */
 export function simulatorHtml(preset = {}) {
   return `<div class="modal-card wide">
@@ -34,10 +34,13 @@ export function simulatorHtml(preset = {}) {
         <label><span>❤️ Bono de vida %</span><input type="number" name="a-hp" value="${Math.round(((preset.hpMul ?? 1) - 1) * 100)}" /></label>
       </fieldset>
       <fieldset><legend>Defensor</legend>${inputs('d', DEFENDERS, preset.defender ?? {})}
+        <label><span>⚔️ Bono de ataque %</span><input type="number" name="d-atk" value="${Math.round(((preset.defAtkMul ?? 1) - 1) * 100)}" /></label>
+        <label><span>❤️ Bono de vida % (y coraza)</span><input type="number" name="d-hp" value="${Math.round(((preset.defHpMul ?? 1) - 1) * 100)}" /></label>
         <label><span>🏰 Muralla / fortificación % (en tierra)</span><input type="number" name="d-wall" value="${Math.round((preset.wall ?? 0) * 100)}" /></label>
         <label><span>🏹 Daño de las torres (en tierra)</span><input type="number" name="d-towers" value="${preset.towers ?? 0}" /></label>
         <label><span>🗼 Faro: vida de sus barcos %</span><input type="number" name="d-naval" value="${Math.round((preset.naval ?? 0) * 100)}" /></label>
       </fieldset>
+      ${preset.note ? `<p class="hint small">${preset.note}</p>` : ''}
       <button class="primary">Simular ${RUNS} combates</button>
     </form>
     <div class="sim-result" data-sim-result></div>
@@ -71,6 +74,8 @@ export function runSimulation(form) {
   const att = { units: attacker, atkMul: 1 + (Number(data['a-atk']) || 0) / 100, hpMul: 1 + (Number(data['a-hp']) || 0) / 100 };
   const def = {
     units: defender,
+    atkMul: Math.max(0.01, 1 + (Number(data['d-atk']) || 0) / 100),
+    hpMul: Math.max(0.01, 1 + (Number(data['d-hp']) || 0) / 100),
     wallHp: (Number(data['d-wall']) || 0) / 100,
     extraAtk: Number(data['d-towers']) || 0,
     navalHpMul: (Number(data['d-naval']) || 0) / 100,

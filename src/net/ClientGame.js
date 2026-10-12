@@ -210,6 +210,10 @@ export class ClientGame extends Game {
     return this.#act('pledgeFeat', site);
   }
 
+  featForge(site, bag) {
+    return this.#act('featForge', site, bag);
+  }
+
   claimQuest(id) {
     return this.#act('claimQuest', id);
   }

@@ -553,6 +553,7 @@ const TOPICS = {
       const th = Object.values(FEAT_THEMES)[0];
       const T = th.tune;
       const bands = ['🥉 Bronce', '🥈 Plata', '🥇 Oro'];
+      const F = FEATS.forge;
       return `<p>Cada ${FEATS.periodDays} días de juego, más o menos, despierta un enemigo de leyenda en algunos continentes: <b>${th.name}</b> ${th.icon}. Ningún imperio puede vencerlo solo, ni siquiera el más grande: hay que combatir <b>juntos</b>. No es para ganar la partida: es una hazaña con un buen botín para todos los que luchan.</p>
       <h5>1. Convocatoria y juramento</h5>
       ${list([
@@ -574,16 +575,23 @@ const TOPICS = {
       <h5>3. La coraza 🛡️</h5>
       <p>El daño que le hacéis depende de cuántos <b>imperios efectivos</b> combaten en la oleada: (suma de fuerzas)² ÷ suma de los cuadrados. Cuatro imperios iguales son 4; uno muy grande con tres pequeños, poco más de 1. Así lo que cuenta es que combatan muchos a la vez, no uno solo enorme.</p>
       ${featCoopTable()}
-      ${tip('En el panel del continente ves cuántas flotas esperan ya la próxima oleada y cuánto dejaría pasar la coraza. Poneos de acuerdo en el chat para llegar a la misma oleada.')}
+      ${tip('En el panel del continente ves cuántas flotas esperan ya la próxima oleada, cuánto dejaría pasar la coraza si mandas tu flota y la fuerza que más la abre. Los convocados tenéis una pestaña 🌋 Gesta en el chat para poneros de acuerdo, y allí sale el resumen de cada oleada.')}
+      <h5>La fragua de Hefesto 🔥</h5>
+      ${list([
+        `Los juramentados pueden <b>ofrendar</b> ${F.resources.map((r) => RESOURCES[r].name.toLowerCase()).join(', ')} desde el panel del continente, en presagios o en plena lucha. La meta son ${F.hours} h de la producción de todos los juramentados.`,
+        `Cada cuarto de la meta da <b>+${String(F.atk * 100).replace('.', ',')} % de ataque</b> a todas las oleadas y quita un <b>${pct(F.lava)} de la lava</b> de las cabezas (con la fragua llena, ni una gota).`,
+        `Nadie llena más del ${pct(F.capShare)} de la meta ni más de ${F.capHours} h de su propia producción: si ofreces de más, solo se cobra lo que cabe.`,
+        `La fragua vale ${fmtNum(F.glory)} de gloria, repartida según lo que ofrenda cada uno, y quien ofrenda <b>no es perjuro</b> aunque no combata.`,
+      ])}
       <h5>4. Gloria y premios</h5>
       ${list([
         `La <b>gloria</b> se gana por los hijos que abate cada oleada (cada fase vale lo que dice la tabla), repartida según la fuerza que pone cada uno.`,
-        `<b>Tramos</b>: según la parte de tu fuerza que hayas llevado (contando todas tus oleadas) y con al menos el ${pct1(R.minGlory)} de la gloria: ${bands.map((b, i) => `${b} (${pct(R.effort[i])} → <b>${R.hours[i]} h</b> de tu producción)`).join(', ')}. Nunca más de ${R.riskCap} veces lo que arriesgaste en barcos y tropas.`,
+        `<b>Tramos</b>: según la parte de tu fuerza que hayas llevado (contando todas tus oleadas) y con al menos el ${pct1(R.minGlory)} de la gloria: ${bands.map((b, i) => `${b} (${pct(R.effort[i])} → <b>${R.hours[i]} h</b> de tu producción)`).join(', ')}. Ofrendar en la fragua también cuenta, pero solo hasta Plata: ${R.offer.map((h, i) => `${h} h ofrendadas → ${bands[i]}`).join(', ')}. Nunca más de ${R.riskCap} veces lo que arriesgaste en barcos, tropas y ofrendas.`,
         `<b>Bote común</b>: ${R.pot} h de la producción de todos los juramentados, repartido por gloria (nadie se lleva más del ${pct(R.potCap)}).`,
         `<b>Bendición del Olimpo</b> (Plata y Oro): +${pct(R.blessing)} de producción durante ${R.blessingHours} h.`,
         `<b>Heridos</b>: al acabar vuelven a casa el ${pct(R.wounded[0])} de tus caídos si se gana y el ${pct(R.wounded[1])} si se pierde.`,
         `⚡ <b>Azote de ${th.enemy}</b> (más gloria): +${pct(R.topBonus - 1)} de botín personal y una reliquia legendaria. 🦁 <b>Corazón de león</b> (quien más esfuerzo ha puesto, con al menos el ${pct1(R.heartMinGlory)} de la gloria): otra legendaria. El 2.º y el 3.º en gloria se llevan una épica o legendaria; los demás, una probabilidad (${R.relicChance.map(pct).join(' / ')} según su tramo).`,
-        `Hay reliquias que solo salen en esta gesta: ${th.relics.map((id) => `${RELICS[id].icon} ${RELICS[id].name}`).join(' y ')}.`,
+        `Hay reliquias que solo salen en esta gesta: ${th.relics.map((id) => `${RELICS[id].icon} ${RELICS[id].name}`).join(' y ')}. Quien llega a 🥇 Oro en una victoria gana además el emblema ${th.emblem} para su estandarte.`,
         'Los premios se pagan en lo que produces (y algo de oro y cristal), así que valen lo mismo para un imperio pequeño que para uno grande.',
       ])}
       <h5>5. Resultados</h5>
@@ -595,8 +603,15 @@ const TOPICS = {
       ])}
       <h5>Juramento y tregua</h5>
       ${list([
-        `🌫️ <b>Perjuro</b>: si juras y a las ${FEATS.perjuryHours} h de lucha no has combatido ni tienes flota en camino, los dioses cubren tu isla de ceniza (−${pct(P.ash)} de producción durante ${P.hours} h) y no podrás jurar otra gesta en ${P.days} días.`,
+        `🌫️ <b>Perjuro</b>: si juras y a las ${FEATS.perjuryHours} h de lucha no has combatido, ni ofrendado, ni tienes flota en camino, los dioses cubren tu isla de ceniza (−${pct(P.ash)} de producción durante ${P.hours} h) y no podrás jurar otra gesta en ${P.days} días.`,
         `🕊️ <b>Tregua sagrada</b>: los que juran la misma gesta no se pueden atacar, espiar, sabotear, bloquear ni invadir desde que emerge el enemigo hasta ${FEATS.truceAfterHours} h después de acabar, salvo si sus alianzas están en guerra.`,
+      ])}
+      <h5>Dónde seguirlas</h5>
+      ${list([
+        'El <b>calendario</b> 📅 enseña la gesta en curso y cuándo llegan las próximas.',
+        'En el <b>mapa del mundo</b> 🌍 los continentes con gesta laten con un anillo de lava.',
+        'La <b>clasificación</b> 🏆 tiene una pestaña 🌋 Gestas con las que están en marcha, el salón de las últimas y los héroes de la Liga.',
+        'Con el enemigo fuera, el simulador 🎲 del panel prueba tu flota contra la fase actual, con la coraza que habría y lo que da la fragua.',
       ])}`;
     },
   },

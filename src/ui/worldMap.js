@@ -33,6 +33,11 @@ function portText(c) {
   return c.port.kind === 'invadir' ? ` · 🦅 ocupada por ${c.port.name}` : ` · ⛓️ bloqueada por ${c.port.name}`;
 }
 
+/** «🌋 Tifón en X · lucha · 3/5 juramentos» (texto plano). */
+function featText(f) {
+  return `${f.icon} ${f.enemy} en ${f.name} · ${f.stage === 'presagio' ? 'presagios' : 'en lucha'} · ${f.pledged}/${f.convoked} han jurado${f.me ? ' · estás convocado' : ''}`;
+}
+
 export class WorldMap {
   constructor(hud) {
     this.hud = hud;
@@ -80,7 +85,7 @@ export class WorldMap {
           <button class="ghost small" data-wm="out" title="Alejar">－</button>
         </div>
         <div class="wm-wrap"><canvas></canvas><div class="wm-tip" hidden></div></div>
-        <div class="wm-legend">${legend}<span><i style="background:#5f9a4a"></i>Continente</span><span><i style="background:#d0663e"></i>Ciudad bárbara</span><span><i class="ring"></i>Lo que ves desde tu ciudad</span><span>🏖️ De vacaciones</span><span>💤 Inactivo</span><span>⛓️ Puerto bloqueado</span><span>🦅 Ocupada</span></div>
+        <div class="wm-legend">${legend}<span><i style="background:#5f9a4a"></i>Continente</span>${this.data.feats?.length ? '<span>🌋 Gesta en marcha</span>' : ''}<span><i style="background:#d0663e"></i>Ciudad bárbara</span><span><i class="ring"></i>Lo que ves desde tu ciudad</span><span>🏖️ De vacaciones</span><span>💤 Inactivo</span><span>⛓️ Puerto bloqueado</span><span>🦅 Ocupada</span></div>
         <div class="wm-info"><p class="muted small">Arrastra para moverte, usa la rueda para acercarte y pulsa una ciudad para ver quién vive en ella.</p></div>
       </div>`,
     );
@@ -112,8 +117,16 @@ export class WorldMap {
     });
     ro.observe(this.canvas.parentElement);
     this.#resize();
-    const focus = focusId && cities.find((c) => c.id === focusId);
+    const focus = focusId && (cities.find((c) => c.id === focusId) ?? this.data.feats?.find((f) => f.site === focusId));
     if (focus) this.#focus(focus, true);
+    // Las gestas laten en el mapa mientras está abierto
+    if (this.data.feats?.length) this.#pulse();
+  }
+
+  #pulse() {
+    if (!this.canvas?.isConnected || this.hud.modalKind !== 'worldmap') return;
+    this.#draw();
+    setTimeout(() => requestAnimationFrame(() => this.#pulse()), 120);
   }
 
   #resize() {
@@ -158,6 +171,7 @@ export class WorldMap {
     this.cz = target.z;
     this.scale = Math.max(this.scale, this.#clampScale(this.w / 1400));
     if (select && target.uid != null) this.#select({ kind: 'city', item: target });
+    else if (select && target.site) this.#select({ kind: 'feat', item: target });
     this.#draw();
   }
 
@@ -235,7 +249,7 @@ export class WorldMap {
     );
   }
 
-  /** Lo que hay bajo el puntero: una ciudad (con preferencia) o una isla. */
+  /** Lo que hay bajo el puntero: una ciudad (con preferencia), una gesta o una isla. */
   #hit(px, py) {
     let best = null;
     let bestD = 14;
@@ -248,6 +262,11 @@ export class WorldMap {
       }
     }
     if (best) return best;
+    for (const feat of this.data.feats ?? []) {
+      const [x, y] = this.#toScreen(feat.x, feat.z);
+      const d = Math.hypot(x - px, y - py);
+      if (d < Math.max(14, feat.size * this.scale * 1.4)) return { kind: 'feat', item: feat };
+    }
     bestD = 8;
     for (const isl of this.data.islands) {
       if (isl[2] === 'continente') continue;
@@ -272,6 +291,8 @@ export class WorldMap {
     if (hit.kind === 'city') {
       const c = hit.item;
       text = `${c.emblem ?? '🏰'} ${c.tag ? `[${c.tag}] ` : ''}${c.name} · ${c.city} · ${fmtNum(c.points)} pts${c.vacation ? ' · 🏖️' : c.inactive ? ' · 💤' : ''}${portText(c)}`;
+    } else if (hit.kind === 'feat') {
+      text = featText(hit.item);
     } else {
       const [, , type, colonist] = hit.item;
       const t = ISLAND_TYPES[type];
@@ -292,7 +313,7 @@ export class WorldMap {
       this.info.innerHTML = '<p class="muted small">Pulsa una ciudad para ver quién vive en ella.</p>';
       return;
     }
-    const pos = hit.kind === 'city' ? hit.item : { x: hit.item[0], z: hit.item[1] };
+    const pos = hit.kind === 'city' || hit.kind === 'feat' ? hit.item : { x: hit.item[0], z: hit.item[1] };
     const dist = Math.round(Math.hypot(pos.x - this.home.x, pos.z - this.home.z));
     const trip = fmtTime(travelSeconds(this.game.state, dist, UNITS.trirreme.speed));
     const far = `<span class="muted small">a ${fmtNum(dist)} leguas · ⛵ ${trip} en trirreme</span>`;
@@ -309,6 +330,15 @@ export class WorldMap {
           ${me ? '' : `<button class="ghost small" data-action="profile" data-name="${escapeHtml(c.name)}">👤 Perfil</button><button class="ghost small" data-action="mail-to" data-name="${escapeHtml(c.name)}">✉️</button>`}
           ${visible ? `<button class="primary small" data-action="goto" data-island="${escapeHtml(c.id)}">${me ? '⚜ Ir a casa' : '⚓ Ir'}</button>` : '<span class="muted small">Fuera del alcance de tus barcos</span>'}
         </div></div>`;
+    } else if (hit.kind === 'feat') {
+      const f = hit.item;
+      const visible = !!this.game.world.island(f.site);
+      this.info.innerHTML = `<div class="wm-card">
+        <div><b>${f.icon} ${escapeHtml(f.enemy)} en ${escapeHtml(f.name)}</b>
+          <div class="small">${f.stage === 'presagio' ? 'Presagios: emerge pronto' : 'En plena lucha'} · ${f.pledged} de ${f.convoked} convocados han jurado${f.me ? ' · <b>estás convocado</b>' : ''}</div>
+          ${far}</div>
+        <div class="row-actions">${visible ? `<button class="primary small" data-action="goto" data-island="${escapeHtml(f.site)}">⚓ Ver la gesta</button>` : '<span class="muted small">Solo los imperios cercanos están convocados</span>'}</div>
+      </div>`;
     } else {
       const [, , type, colonist] = hit.item;
       const t = ISLAND_TYPES[type];
@@ -372,6 +402,21 @@ export class WorldMap {
       ctx.beginPath();
       ctx.arc(sx, sy, cr, 0, Math.PI * 2);
       ctx.fill();
+    }
+
+    // Gestas en marcha: anillos de lava que laten sobre su continente
+    const beat = (Math.sin(performance.now() / 400) + 1) / 2;
+    for (const f of this.data.feats ?? []) {
+      const [sx, sy] = this.#toScreen(f.x, f.z);
+      const fr = Math.max(8, f.size * scale);
+      if (!inView(sx, sy, fr * 2 + 20)) continue;
+      ctx.strokeStyle = f.stage === 'lucha' ? `rgba(255, 110, 40, ${0.55 + 0.4 * beat})` : `rgba(255, 190, 90, ${0.4 + 0.3 * beat})`;
+      ctx.lineWidth = 3;
+      ctx.setLineDash(f.stage === 'lucha' ? [] : [5, 4]);
+      ctx.beginPath();
+      ctx.arc(sx, sy, fr * (1.25 + 0.15 * beat), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
     }
 
     // Islas de los sectores
@@ -459,6 +504,26 @@ export class WorldMap {
         ctx.fillStyle = rel === 'otro' ? '#f3ead8' : color;
         ctx.fillText(text, sx, sy - cr - 6);
       }
+    }
+
+    // El icono de cada gesta, encima de todo (junto al borde de su anillo)
+    for (const f of this.data.feats ?? []) {
+      const [sx, sy] = this.#toScreen(f.x, f.z);
+      const fr = Math.max(8, f.size * scale);
+      if (!inView(sx, sy, fr * 2 + 20)) continue;
+      const by = sy - fr * 1.3;
+      ctx.fillStyle = 'rgba(12, 18, 26, 0.9)';
+      ctx.strokeStyle = f.stage === 'lucha' ? '#ff6e28' : '#ffbe5a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(sx, by, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.font = '15px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(f.icon, sx, by + 1);
+      ctx.textBaseline = 'alphabetic';
     }
 
     // Escala

@@ -1,7 +1,7 @@
 import { clock, universe } from '../src/config.js';
 import { RESOURCES } from '../src/game/data.js';
 import { assault, battle, combineGroups, count, hasCombat, shareSurvivors, splitForces } from '../src/game/combat.js';
-import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, pledgeEmpires, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
+import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, forgeBonus, forgeGoal, forgeRoom, pledgeEmpires, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
 import { Game, newState } from '../src/game/Game.js';
 import { ACHIEVEMENTS, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, WONDERS } from '../src/game/data.js';
 import { playerCombat, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
@@ -740,6 +740,7 @@ export class WorldServer {
       perjuryDone: false,
       result: null,
       truceUntil: end,
+      forge: { goal: 0, total: 0, by: {} },
     };
     rt.feat.nextWave = Math.round(rt.feat.nextWave);
     if (rt.nextHorde) rt.nextHorde = Math.max(rt.nextHorde, end + this.#hoursMs(24));
@@ -793,11 +794,50 @@ export class WorldServer {
     const { AM, HM, AL, HL, f: force } = snap.power;
     f.pledged[uid] = { name: snap.name, at: t, P: { AM, HM, AL, HL }, f: force, prod: snap.prod, mix: snap.mix };
     f.names[uid] = snap.name;
+    this.#forgeGoal(f);
     // Jurar con la lucha empezada endurece al enemigo
     if (f.boss) this.#rebaseFeat(f);
     this.touch(site);
     for (const id of Object.keys(f.pledged)) this.pendingPush.add(Number(id));
     return { ok: true, k: f.k, theme: f.theme };
+  }
+
+  /** La meta de la fragua sale de la producción de los que siguen jurados. */
+  #forgeGoal(f) {
+    f.forge ??= { goal: 0, total: 0, by: {} };
+    f.forge.goal = forgeGoal(Object.values(f.pledged).map((p) => p.prod ?? 0));
+  }
+
+  /** Cuánto puede ofrendar aún un jugador en la fragua de `site`. */
+  featForgeRoom(uid, site, t) {
+    const f = this.islandStates.get(site)?.feat;
+    if (!f || f.stage === 'fin' || t >= f.end) return { ok: false, reason: 'No hay ninguna gesta en marcha en ese continente.' };
+    const me = f.pledged[uid];
+    if (!me) return { ok: false, reason: 'Jura primero la gesta para poder ofrendar en su fragua.' };
+    f.forge ??= { goal: 0, total: 0, by: {} };
+    return { ok: true, room: Math.floor(forgeRoom(f.forge, uid, me.prod)), full: f.forge.total >= f.forge.goal };
+  }
+
+  /** Apunta una ofrenda (ya pagada) en la fragua: suma a la meta y da gloria. */
+  featForge(uid, site, value, t) {
+    const f = this.islandStates.get(site)?.feat;
+    if (!f?.pledged[uid] || !(value > 0)) return;
+    const F = FEATS.forge;
+    const forge = (f.forge ??= { goal: 0, total: 0, by: {} });
+    const before = forgeBonus(forge).quarters;
+    forge.by[uid] = (forge.by[uid] ?? 0) + value;
+    forge.total += value;
+    if (forge.goal) f.glory[uid] = (f.glory[uid] ?? 0) + (F.glory * value) / forge.goal;
+    const after = forgeBonus(forge).quarters;
+    if (after > before) {
+      const theme = FEAT_THEMES[f.theme];
+      const name = this.islands.get(site)?.name ?? '';
+      for (const id of Object.keys(f.pledged)) {
+        this.games.get(Number(id))?.receiveNews(null, `🔥 La fragua de Hefesto en ${name} llega al ${after * 25} %: +${Math.round(after * F.atk * 1000) / 10} % de ataque contra ${theme.enemy}${after * F.lava >= 1 ? ' y ya no os alcanza su lava' : ` y un ${Math.round(after * F.lava * 100)} % menos de lava`}`, 'success');
+        this.pendingPush.add(Number(id));
+      }
+    }
+    this.touch(site);
   }
 
   /** Llega una flota a la gesta: puede esperar a la oleada si su dueño la juró y aún no ha acabado. */
@@ -947,12 +987,16 @@ export class WorldServer {
         g.game.receiveNews(null, `${theme.icon} La coraza de ${theme.enemy} no cede: en la oleada solo había ${fmtN} imperios efectivos. Hacen falta más (tu flota sigue esperando).`, 'error');
         this.pendingPush.add(g.uid);
       }
+      this.announce(`${theme.icon} Oleada sin combate: ${groups.length ? `solo ${fmtN} imperios efectivos esperaban` : 'no esperaba ninguna flota'} y ${theme.enemy} se rehace un ${Math.round(FEATS.regrow * 100)} %.`, `f:${id}`);
       f.waves = [...f.waves, wave].slice(-16);
       this.touch(id);
       return;
     }
 
     const army = combineGroups(groups);
+    // La fragua de Hefesto: más ataque y menos lava
+    const forge = forgeBonus(f.forge);
+    army.atkMul *= forge.atk;
     let units = army.units;
     const glory = groups.map(() => 0);
     const kills = groups.map(() => 0);
@@ -990,7 +1034,7 @@ export class WorldServer {
       const fury = unit === 'cabeza' && boss.cabeza <= T.furyAt;
       const def =
         unit === 'cabeza'
-          ? { units: { cabeza: boss.cabeza }, atkMul: boss.headAtk * (fury ? T.fury : 1), hpMul: boss.headHp / coop, extraAtk: fury ? boss.lava : 0, extraOnlyAlive: true }
+          ? { units: { cabeza: boss.cabeza }, atkMul: boss.headAtk * (fury ? T.fury : 1), hpMul: boss.headHp / coop, extraAtk: fury ? boss.lava * forge.lava : 0, extraOnlyAlive: true }
           : { units: { [unit]: boss[unit] }, atkMul: 1, hpMul: 1 / coop };
       const r = assault({ units, atkMul: army.atkMul, hpMul: army.hpMul }, def);
       const killed = boss[unit] - (r.def.left[unit] ?? 0);
@@ -1042,6 +1086,8 @@ export class WorldServer {
     });
     f.waves = [...f.waves, wave].slice(-16);
     this.touch(id);
+    // Resumen de la oleada en el chat de la gesta, para coordinarse
+    this.announce(`${theme.icon} Oleada: ${Object.keys(byPlayer).length} imperios (${fmtN} efectivos, coraza ${Math.round(coop * 100)} %). ${lines.join(' ')}`, `f:${id}`);
     if (boss.phase >= phases.length) this.#finishFeat(id, tw, 'victoria');
     else if (wave.phase !== boss.phase) this.announce(`${theme.icon} ${name}: cae la fase «${phases[wave.phase].name}» de ${theme.enemy}. Empieza «${phases[boss.phase].name}».`);
   }
@@ -1074,7 +1120,7 @@ export class WorldServer {
     const theme = FEAT_THEMES[f.theme];
     const siteName = this.islands.get(id)?.name ?? '';
     const out = Object.keys(f.pledged).filter((uid) => {
-      if ((f.brought[uid] ?? 0) > 0 || f.present?.[uid]) return false;
+      if ((f.brought[uid] ?? 0) > 0 || f.present?.[uid] || (f.forge?.by?.[uid] ?? 0) > 0) return false;
       const g = this.games.get(Number(uid));
       return !g?.state.missions.some((m) => m.target === id && m.phase !== 'vuelta');
     });
@@ -1088,7 +1134,8 @@ export class WorldServer {
       g.featPerjury({ themeName: theme.name, siteName }, t);
       this.pendingPush.add(Number(uid));
     }
-    // Sin ellos el enemigo es más pequeño
+    // Sin ellos el enemigo es más pequeño (y la fragua pide menos)
+    this.#forgeGoal(f);
     this.#rebaseFeat(f);
     this.touch(id);
   }
@@ -1124,7 +1171,10 @@ export class WorldServer {
 
     const won = result !== 'derrota';
     const players = {};
-    for (const [uid, p] of Object.entries(f.pledged)) players[uid] = { prod: p.prod, f: p.f, brought: f.brought[uid] ?? 0, glory: f.glory[uid] ?? 0, risk: f.risk[uid] ?? 0 };
+    for (const [uid, p] of Object.entries(f.pledged)) {
+      const offered = f.forge?.by?.[uid] ?? 0;
+      players[uid] = { prod: p.prod, f: p.f, brought: f.brought[uid] ?? 0, glory: f.glory[uid] ?? 0, risk: (f.risk[uid] ?? 0) + offered, offered };
+    }
     const rewards = featRewards(players, { result, phasesWon: Math.min(f.boss?.phase ?? 0, theme.phases.length - 1), tier: f.tier });
     const bands = ['Bronce', 'Plata', 'Oro'];
     let topName = null;
@@ -1140,7 +1190,9 @@ export class WorldServer {
       if (r.heart) heartName = f.pledged[uid].name;
       const title = { victoria: `¡${theme.enemy} ha caído!`, media: `${theme.enemy} huye malherido`, derrota: `${theme.enemy} resiste` }[result];
       const parts = [
-        r.band >= 0 ? `Tramo ${bands[r.band]}: trajiste el ${Math.round(r.effort * 100)} % de tu fuerza y ganaste el ${Math.round(r.share * 100)} % de la gloria.` : 'No llegaste a ningún tramo de premio: hace falta combatir más.',
+        r.band >= 0
+          ? `Tramo ${bands[r.band]}: trajiste el ${Math.round(r.effort * 100)} % de tu fuerza${r.offer > 0 ? `, ofrendaste ${String(Math.round(r.offer * 10) / 10).replace('.', ',')} h de tu producción` : ''} y ganaste el ${Math.round(r.share * 100)} % de la gloria.`
+          : 'No llegaste a ningún tramo de premio: hace falta combatir (o ofrendar) más.',
         r.top ? `⚡ Eres el Azote de ${theme.enemy}: quien más gloria ha ganado.` : '',
         r.heart ? '🦁 Corazón de león: nadie se ha esforzado más que tú.' : '',
         r.blessing ? `La bendición del Olimpo te da +${Math.round(R.blessing * 100)} % de producción durante ${r.blessing} h.` : '',
@@ -1156,6 +1208,7 @@ export class WorldServer {
           top: r.top,
           heart: r.heart,
           won,
+          emblem: result === 'victoria' && r.band >= 2 ? theme.emblem : null,
           report: { t, kind: 'gesta', island: id, islandName: name, outcome: won ? 'victoria' : 'derrota', enemy: theme.enemy, title, text: parts.filter(Boolean).join(' '), loot: bag },
         },
         t,
@@ -1545,13 +1598,42 @@ export class WorldServer {
     return msg;
   }
 
-  /** Qué mensajes puede leer un jugador (el canal global y el de su alianza), ya preparados para él. */
+  /** Qué mensajes puede leer un jugador (el canal global, el de su alianza y el de su gesta), ya preparados para él. */
   #visibleChat(userId, messages) {
     const a = this.allianceOf(userId);
     const mine = a ? `a:${a.id}` : null;
+    const site = this.#featChat(userId);
+    const feat = site ? `f:${site}` : null;
     return messages
-      .filter((m) => !m.channel || m.channel === 'global' || m.channel === mine)
-      .map((m) => ({ ...m, channel: m.channel && m.channel !== 'global' ? 'alianza' : 'global' }));
+      .filter((m) => !m.channel || m.channel === 'global' || m.channel === mine || m.channel === feat)
+      .map((m) => ({ ...m, channel: !m.channel || m.channel === 'global' ? 'global' : m.channel.startsWith('f:') ? 'gesta' : 'alianza' }));
+  }
+
+  /**
+   * El continente de la gesta en cuyo chat puede escribir un jugador: los convocados, desde los
+   * presagios hasta que acaba la tregua (o null).
+   */
+  #featChat(userId) {
+    const site = this.games.get(userId)?.state.feat?.site;
+    const f = site ? this.islandStates.get(site)?.feat : null;
+    if (!f || f.k !== this.games.get(userId).state.feat.k || !f.convoked.includes(userId)) return null;
+    if (f.stage === 'fin' && clock.now() >= (f.truceUntil ?? f.end)) return null;
+    return site;
+  }
+
+  /** El canal interno de un mensaje: 'global', el de tu alianza o el de tu gesta. */
+  #chatChannel(userId, channel) {
+    if (channel === 'alianza') {
+      const a = this.allianceOf(userId);
+      if (!a) throw new UserError('No estás en ninguna alianza.');
+      return `a:${a.id}`;
+    }
+    if (channel === 'gesta') {
+      const site = this.#featChat(userId);
+      if (!site) throw new UserError('No estás convocado a ninguna gesta en marcha.');
+      return `f:${site}`;
+    }
+    return 'global';
   }
 
   // ── Bucle y guardado ───────────────────────────────────────────────────────
@@ -1668,9 +1750,17 @@ export class WorldServer {
   #publicFeat(f, userId, site) {
     const mine = f.pledged[userId];
     const pledged = Object.fromEntries(Object.entries(f.pledged).map(([uid, p]) => [uid, { name: p.name }]));
-    if (mine) pledged[userId] = { name: mine.name, f: mine.f };
-    const { risk, fallen, brought, ...rest } = f;
-    return { ...rest, pledged, brought: brought[userId] != null ? { [userId]: brought[userId] } : {}, waiting: f.stage === 'lucha' ? this.#featWaiting(site) : null };
+    if (mine) pledged[userId] = { name: mine.name, f: mine.f, prod: mine.prod };
+    const { risk, fallen, brought, forge, ...rest } = f;
+    const by = forge?.by ?? {};
+    return {
+      ...rest,
+      pledged,
+      brought: brought[userId] != null ? { [userId]: brought[userId] } : {},
+      // De la fragua, solo lo de todos y lo tuyo
+      forge: { goal: forge?.goal ?? 0, total: forge?.total ?? 0, by: by[userId] ? { [userId]: by[userId] } : {}, givers: Object.keys(by).length },
+      waiting: f.stage === 'lucha' || f.stage === 'presagio' ? this.#featWaitingFor(site, userId) : null,
+    };
   }
 
   /** Quién espera ya la próxima oleada y cuánto dejaría pasar la coraza (se calcula como mucho cada pocos segundos). */
@@ -1686,9 +1776,25 @@ export class WorldServer {
       fleets++;
     }
     const N = effectiveEmpires(Object.values(byPlayer));
-    const value = { fleets, players: Object.keys(byPlayer).length, N: Math.round(N * 100) / 100, coop: Math.round(featCoop(N) * 100) / 100 };
+    const value = { fleets, players: Object.keys(byPlayer).length, N: Math.round(N * 100) / 100, coop: Math.round(featCoop(N) * 100) / 100, byPlayer };
     this.featWaitCache.set(site, { at: Date.now(), value });
     return value;
+  }
+
+  /**
+   * Lo que espera la próxima oleada visto por un jugador: el total y, de los demás, solo la suma
+   * de sus fuerzas y de sus cuadrados (para que calcule cuánto subiría la coraza con su flota).
+   */
+  #featWaitingFor(site, userId) {
+    const { byPlayer, ...rest } = this.#featWaiting(site);
+    let S = 0;
+    let Q = 0;
+    for (const [uid, f] of Object.entries(byPlayer)) {
+      if (Number(uid) === userId) continue;
+      S += f;
+      Q += f * f;
+    }
+    return { ...rest, mine: Math.round(byPlayer[userId] ?? 0), othersSum: Math.round(S), othersSq: Math.round(Q) };
   }
 
   /** Tributo apartado en cada ciudad que ocupa este jugador (id de la misión → recursos). */
@@ -1809,12 +1915,7 @@ export class WorldServer {
     if (!text) throw new UserError('Escribe algo.');
     const muted = this.meta.mod[userId]?.mutedUntil ?? 0;
     if (muted > Date.now()) throw new UserError(`Estás silenciado en el chat hasta las ${new Date(muted).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}.`);
-    let ch = 'global';
-    if (channel === 'alianza') {
-      const a = this.allianceOf(userId);
-      if (!a) throw new UserError('No estás en ninguna alianza.');
-      ch = `a:${a.id}`;
-    }
+    const ch = this.#chatChannel(userId, channel);
     return this.#pushChat({ name: user.username, title: this.#titleOf(userId), text, channel: ch });
   }
 
@@ -1831,12 +1932,7 @@ export class WorldServer {
     if (!r) throw new UserError('Ese informe ya no existe.');
     const muted = this.meta.mod[userId]?.mutedUntil ?? 0;
     if (muted > Date.now()) throw new UserError('Estás silenciado en el chat.');
-    let ch = 'global';
-    if (channel === 'alianza') {
-      const a = this.allianceOf(userId);
-      if (!a) throw new UserError('No estás en ninguna alianza.');
-      ch = `a:${a.id}`;
-    }
+    const ch = this.#chatChannel(userId, channel);
     const icon = { victoria: '🏆', derrota: '💀', empate: '🏳️' }[r.outcome] ?? '📜';
     // Solo lo necesario para verlo y repetir el combate
     const report = { t: r.t, kind: r.kind, outcome: r.outcome, title: r.title, islandName: r.islandName, enemy: r.enemy, defending: r.defending, battle: r.battle, loot: r.loot, wall: r.wall, towers: r.towers };
@@ -2402,7 +2498,44 @@ export class WorldServer {
       }
     }
     const { cities, islands } = this.mapCache;
-    return { cities, islands, relations, viewRadius: VIEW_RADIUS };
+    return { cities, islands, relations, viewRadius: VIEW_RADIUS, feats: this.#mapFeats(userId) };
+  }
+
+  /** Salón de las gestas: las que están en marcha, las últimas que acabaron y los que más han vencido. */
+  featHallView(userId) {
+    const heroes = [...this.games.values()]
+      .filter((g) => (g.state.stats.feats ?? 0) > 0)
+      .map((g) => ({ name: g.name, feats: g.state.stats.feats ?? 0, top: g.state.stats.featTop ?? 0, heart: g.state.stats.featHeart ?? 0, me: g.userId === userId }))
+      .sort((a, b) => b.feats - a.feats || b.top - a.top || b.heart - a.heart)
+      .slice(0, 10);
+    return { active: this.#mapFeats(userId), hall: (this.meta.featHall ?? []).slice(0, 12), heroes };
+  }
+
+  /** Las gestas en marcha, para el mapa del mundo (sin caché: son pocas y cambian de etapa). */
+  #mapFeats(userId) {
+    const out = [];
+    for (const id of this.meta.featSites ?? []) {
+      const f = this.islandStates.get(id)?.feat;
+      const isl = this.islands.get(id);
+      if (!f || !isl || (f.stage !== 'presagio' && f.stage !== 'lucha')) continue;
+      const theme = FEAT_THEMES[f.theme];
+      out.push({
+        site: id,
+        x: Math.round(isl.x),
+        z: Math.round(isl.z),
+        size: Math.round(isl.size * 2.4),
+        name: isl.name,
+        icon: theme.icon,
+        enemy: theme.enemy,
+        stage: f.stage,
+        start: f.start,
+        end: f.end,
+        pledged: Object.keys(f.pledged).length,
+        convoked: f.convoked.length,
+        me: f.convoked.includes(userId),
+      });
+    }
+    return out;
   }
 
   // ── Conexiones en vivo (WebSocket) ─────────────────────────────────────────
@@ -2504,6 +2637,7 @@ export class WorldServer {
       victories: game.stats.victories,
       kills: game.stats.kills ?? 0,
       loot: game.stats.loot ?? 0,
+      feats: { won: game.stats.feats ?? 0, top: game.stats.featTop ?? 0, heart: game.stats.featHeart ?? 0 },
       achievements: game.achievements(),
       hero: game.state.hero ? { name: game.state.hero.name, level: game.state.hero.level } : null,
       banner: game.state.banner ?? null,
