@@ -417,11 +417,6 @@ export class WorldMap {
       ctx.arc(sx, sy, fr * (1.25 + 0.15 * beat), 0, Math.PI * 2);
       ctx.stroke();
       ctx.setLineDash([]);
-      ctx.font = `${Math.round(14 + 6 * Math.min(1, scale * 4))}px system-ui, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(f.icon, sx, sy);
-      ctx.textBaseline = 'alphabetic';
     }
 
     // Islas de los sectores
@@ -509,6 +504,26 @@ export class WorldMap {
         ctx.fillStyle = rel === 'otro' ? '#f3ead8' : color;
         ctx.fillText(text, sx, sy - cr - 6);
       }
+    }
+
+    // El icono de cada gesta, encima de todo (junto al borde de su anillo)
+    for (const f of this.data.feats ?? []) {
+      const [sx, sy] = this.#toScreen(f.x, f.z);
+      const fr = Math.max(8, f.size * scale);
+      if (!inView(sx, sy, fr * 2 + 20)) continue;
+      const by = sy - fr * 1.3;
+      ctx.fillStyle = 'rgba(12, 18, 26, 0.9)';
+      ctx.strokeStyle = f.stage === 'lucha' ? '#ff6e28' : '#ffbe5a';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(sx, by, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.font = '15px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(f.icon, sx, by + 1);
+      ctx.textBaseline = 'alphabetic';
     }
 
     // Escala
