@@ -261,7 +261,7 @@ function startGame(game) {
   game.addEventListener('notify', (e) => {
     const { text, kind } = e.detail;
     // Con la pestaña en segundo plano, lo importante también como aviso del navegador
-    const important = kind === 'error' || /⚔️|🏴‍☠️|🛡️|✉️/.test(text);
+    const important = kind === 'error' || /⚔️|🏴‍☠️|🛡️|✉️|🌋/.test(text);
     if (document.hidden && important && notifyOn()) {
       try {
         new Notification('Imperium', { body: text, tag: 'imperium' });

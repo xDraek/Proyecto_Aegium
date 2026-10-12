@@ -2275,10 +2275,13 @@ export class World {
           entry.group.remove(entry.feature);
           disposeTree(entry.feature);
         }
-        entry.feature = createIslandFeature({ ...entry.isl, colonizedBy: view.colonizedBy, bannerColor }, look);
+        // En un continente, la gesta busca sitio entre sus asentamientos
+        const siteAngles = entry.isl.type === 'continente' ? this.#siteAngles(entry.isl) : undefined;
+        entry.feature = createIslandFeature({ ...entry.isl, colonizedBy: view.colonizedBy, bannerColor, siteAngles }, look);
         entry.group.add(entry.feature);
       }
       this.#syncIslandSiege(entry, port);
+      if (entry.isl.type === 'continente') this.#syncFeatFleet(entry, view.feat);
       const t = ISLAND_TYPES[entry.isl.type];
       let status = !view.explored ? '❔ Inexplorada' : `${t.icon} ${view.typeName}`;
       const ally = view.alliance && view.alliance.id === this.game.alliance?.id;
@@ -2289,7 +2292,7 @@ export class World {
       else if (view.colonizedBy != null) status = `🚩 Colonia de ${view.colonistName}`;
       else if (view.explored && view.tier) status += ` · Nv ${view.tier}`;
       const feat = view.type === 'continente' && (view.feat?.stage === 'presagio' || view.feat?.stage === 'lucha') ? view.feat : null;
-      if (feat) status = feat.stage === 'lucha' ? `${feat.icon} ¡${feat.enemy}! ${feat.pledgedCount} imperios en lucha` : `${feat.icon} Presagios de ${feat.enemy}`;
+      if (feat) status = featStatus(feat);
       else if (view.type === 'continente') status = view.horde ? `🔥 ¡Horda! ${view.horde.left} bárbaros` : `🗺️ Continente · maravilla nivel ${view.wonder?.level ?? 0}`;
       if (port) status += port.kind === 'invadir' ? ` · 🦅 Ocupada${port.by === this.game.userId ? ' por ti' : ''}` : ` · ⛓️ Bloqueada${port.by === this.game.userId ? ' por ti' : ''}`;
       else if (view.shield) status += ' · 🛡️ Recién liberada';
@@ -2305,6 +2308,38 @@ export class World {
       entry.el.classList.toggle('player', view.type === 'jugador');
       entry.el.classList.toggle('unknown', !view.explored);
     }
+  }
+
+  /** Hacia dónde quedan los asentamientos de un continente (en grados, como `polar`). */
+  #siteAngles(isl) {
+    return this.game.world
+      .islands()
+      .filter((i) => i.land === isl.id)
+      .map((i) => THREE.MathUtils.radToDeg(Math.atan2(i.x - isl.x, i.z - isl.z)));
+  }
+
+  /** Las flotas que esperan la próxima oleada de una gesta, fondeadas frente al continente. */
+  #syncFeatFleet(entry, feat) {
+    const active = feat && (feat.stage === 'presagio' || feat.stage === 'lucha');
+    const n = active ? Math.min(8, feat.waiting?.fleets ?? 0) : 0;
+    if (entry.featFleetKey === n) return;
+    entry.featFleetKey = n;
+    if (entry.featFleet) {
+      entry.group.remove(entry.featFleet);
+      disposeTree(entry.featFleet);
+      entry.featFleet = null;
+    }
+    if (!n) return;
+    const g = new THREE.Group();
+    const toward = Math.atan2(-entry.pos.x, -entry.pos.z);
+    const r = islandExtent(entry.isl) + 4;
+    const types = ['dromon', 'trirreme', 'galeon', 'trirreme', 'dromon', 'mercante', 'trirreme', 'galeon'];
+    for (let i = 0; i < n; i++) {
+      const a = toward + (i - (n - 1) / 2) * 0.22;
+      g.add(anchoredShip(types[i], new THREE.Vector3(Math.sin(a) * r, 0, Math.cos(a) * r), 3.2, i));
+    }
+    entry.group.add(g);
+    entry.featFleet = g;
   }
 
   /** Barcos anclados junto a una ciudad del mapa que está bloqueada u ocupada (del lado que mira hacia ti). */
@@ -3218,6 +3253,16 @@ function cart() {
 
 /** Las banderas (las que ondean con el color principal) toman el color del estandarte del jugador. */
 /** Un barco fondeado en `p` (en el agua), de costado respecto a la isla, que se mece con las olas. */
+/** Etiqueta de un continente con gesta: «🌋 ¡Tifón! Las cien cabezas · 63/100». */
+function featStatus(feat) {
+  if (feat.stage === 'presagio' || !feat.boss) return `${feat.icon} Presagios de ${feat.enemy} · ${feat.pledgedCount} juramentos`;
+  const i = Math.min(feat.boss.phase, feat.phases.length - 1);
+  const p = feat.phases[i];
+  const left = feat.boss[p.unit] ?? 0;
+  const full = feat.boss.full?.[p.unit] ?? left;
+  return `${feat.icon} ¡${feat.enemy}! ${p.name} · ${left}/${full}`;
+}
+
 function anchoredShip(type, p, scale, i) {
   const ship = createShip(type);
   ship.position.set(p.x, WATER_Y, p.z);

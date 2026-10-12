@@ -1,4 +1,4 @@
-import { CONTEST_CATEGORIES, DAILY_TASK_BONUS, QUESTS } from '../game/data.js';
+import { CONTEST_CATEGORIES, DAILY_TASK_BONUS, FEAT_THEMES, QUESTS } from '../game/data.js';
 import { bag, escapeHtml, fmtNum } from './format.js';
 
 // Ventanas de misiones y de clasificación.
@@ -69,7 +69,38 @@ const RANK_TABS = {
   military: { name: '⚔️ Militar', sub: 'enemigos abatidos en combate (atacando y defendiendo)', key: 'kills', col: 'Bajas' },
   raiders: { name: '💰 Saqueo', sub: 'recursos saqueados a piratas, bárbaros y otros jugadores', key: 'loot', col: 'Botín' },
   alliances: { name: '🤝 Alianzas', sub: 'la suma de los puntos de sus miembros' },
+  gestas: { name: '🌋 Gestas', sub: 'las gestas de la Liga: enemigos que solo caen si se lucha juntos' },
 };
+
+const FEAT_RESULT = { victoria: '🏆 Cayó', media: '⚔️ Huyó malherido', derrota: '💀 Resistió', dormido: '💤 Volvió a dormirse' };
+
+/** Salón de las gestas: las que están en marcha, las últimas y los grandes héroes de la Liga. */
+function featsHtml(feats) {
+  if (!feats) return '<p class="muted">Cargando…</p>';
+  const date = (t) => new Date(t).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  const active = feats.active
+    .map(
+      (f) => `<li><span>${f.icon} <b>${escapeHtml(f.enemy)}</b> en ${escapeHtml(f.name)}${f.me ? ' · <b>estás convocado</b>' : ''}</span>
+        <span class="muted small">${f.stage === 'presagio' ? 'presagios' : 'en lucha'} · ${f.pledged}/${f.convoked} juramentos</span>
+        <button class="ghost small" data-action="goto-feat" data-site="${escapeHtml(f.site)}" title="Ver en el mapa del mundo">🗺️</button></li>`,
+    )
+    .join('');
+  const hall = feats.hall
+    .map((h) => {
+      const t = FEAT_THEMES[h.theme];
+      const best = [h.top ? `⚡ ${escapeHtml(h.top)}` : '', h.heart ? `🦁 ${escapeHtml(h.heart)}` : ''].filter(Boolean).join(' · ');
+      return `<li><span>${t?.icon ?? '🌋'} ${escapeHtml(t?.enemy ?? '')} en ${escapeHtml(h.siteName)} <span class="muted small">· ${date(h.t)} · ${h.players} imperios</span></span>
+        <span class="small">${FEAT_RESULT[h.result] ?? ''}${best ? ` · ${best}` : ''}</span></li>`;
+    })
+    .join('');
+  const heroes = feats.heroes
+    .map((r, i) => `<li class="${r.me ? 'me' : ''}"><span>${medal(i + 1)} <button class="link" data-action="profile" data-name="${escapeHtml(r.name)}">${escapeHtml(r.name)}</button></span><b>${r.feats} ${r.feats === 1 ? 'gesta' : 'gestas'}${r.top ? ` · ⚡${r.top}` : ''}${r.heart ? ` · 🦁${r.heart}` : ''}</b></li>`)
+    .join('');
+  return `${active ? `<h4>En marcha</h4><ul class="mini-list hall">${active}</ul>` : '<p class="muted small">Ahora no hay ninguna gesta en marcha. Mira cuándo llega la próxima en el calendario 📅.</p>'}
+    ${hall ? `<h4>🏛️ Salón de las gestas</h4><ul class="mini-list hall">${hall}</ul>` : ''}
+    ${heroes ? `<h4>Héroes de la Liga</h4><ol class="mini-rank contest-list">${heroes}</ol>` : ''}
+    <p class="muted small">⚡ Azote: quien más gloria ganó · 🦁 Corazón de león: quien más se esforzó. <button class="link" data-guide="gestas">📖 Cómo funcionan las gestas</button></p>`;
+}
 
 function contestHtml(contest) {
   if (!contest) return '<p class="muted">La competición empieza enseguida.</p>';
@@ -107,7 +138,7 @@ function contestHtml(contest) {
     ${hall ? `<h4>🏛️ Salón de la fama</h4><ul class="mini-list hall">${hall}</ul>` : ''}`;
 }
 
-export function rankingHtml({ top, military = [], raiders = [], me, total, alliances = [], contest = null }, tab = 'players') {
+export function rankingHtml({ top, military = [], raiders = [], me, total, alliances = [], contest = null, feats = null }, tab = 'players') {
   const tabs = `<div class="tabs small-tabs">${Object.entries(RANK_TABS)
     .map(([id, t]) => `<button data-action="rank-tab" data-tab="${id}" class="${tab === id ? 'active' : ''}">${t.name}</button>`)
     .join('')}</div>`;
@@ -115,6 +146,8 @@ export function rankingHtml({ top, military = [], raiders = [], me, total, allia
   let table;
   if (tab === 'semana') {
     table = contestHtml(contest);
+  } else if (tab === 'gestas') {
+    table = featsHtml(feats);
   } else if (tab === 'alliances') {
     const rows = alliances
       .map((a) => `<tr><td>${medal(a.rank)}</td><td>${escapeHtml(a.name)} <span class="tag">[${escapeHtml(a.tag)}]</span><div class="muted small">${a.members} miembros</div></td><td>${fmtNum(a.points)}</td></tr>`)

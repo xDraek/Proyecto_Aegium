@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { C, box, colonnade, createShip, createSoldier, cyl, dome, gableRoof, hipRoof, mat, mediterraneanTree, mesh, palmTree, smokeColumn, stylobate } from './models.js';
+import { C, box, colonnade, createShip, createSoldier, cyl, dome, figure, gableRoof, hipRoof, mat, mediterraneanTree, mesh, palmTree, smokeColumn, stylobate } from './models.js';
 import { wonderLevel, wonderOf } from '../game/rules.js';
+import { FEAT_THEMES } from '../game/data.js';
 import { Batch, bakeStatic, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng } from './util.js';
 import { coastFactor, coastMax, islandCoast, shapeGeometry } from './coast.js';
 
@@ -309,7 +310,7 @@ function tree(color, palm) {
 /** Estado visual de la isla según lo que sabe el jugador. */
 export function islandLook(view) {
   if (view.type === 'brumas') return 'brumas';
-  if (view.type === 'continente') return `maravilla-${view.wonder?.level ?? 0}${view.horde ? '-h' : ''}`;
+  if (view.type === 'continente') return `maravilla-${view.wonder?.level ?? 0}${view.horde ? '-h' : ''}${featLook(view.feat)}`;
   if (view.type === 'jugador') return `ciudad-${view.townLevel >= 6 ? 3 : view.townLevel >= 3 ? 2 : 1}`;
   if (view.type === 'ciudadela' && view.colonizedBy != null) return view.colonized ? 'ciudadela-propia' : 'ciudadela-otro';
   if (view.colonized) return 'colonia';
@@ -317,6 +318,19 @@ export function islandLook(view) {
   if (!view.explored) return 'niebla';
   if (view.type === 'ruinas') return view.looted ? 'ruinas-saqueadas' : 'ruinas';
   return view.type;
+}
+
+/**
+ * Cómo se ve una gesta en su continente: «-tp» en presagios y «-t0», «-t1», «-t2» según la fase
+ * de la lucha («-t2f» con las cabezas en furia). Nada si no hay gesta en marcha.
+ */
+function featLook(feat) {
+  if (!feat || (feat.stage !== 'presagio' && feat.stage !== 'lucha')) return '';
+  if (feat.stage === 'presagio' || !feat.boss) return '-tp';
+  const phase = Math.min(feat.boss.phase, feat.phases.length - 1);
+  const unit = feat.phases[phase]?.unit;
+  const fury = unit === 'cabeza' && (feat.boss.cabeza ?? 0) <= (FEAT_THEMES[feat.theme]?.tune.furyAt ?? 0);
+  return `-t${phase}${fury ? 'f' : ''}`;
 }
 
 export function createIslandFeature(isl, fullLook) {
@@ -345,8 +359,11 @@ export function createIslandFeature(isl, fullLook) {
     brumas: () => fogBank(g, R, rand),
   };
   if (look.startsWith('maravilla-')) {
-    wonderModel(g, wonderOf(isl), Number(look.slice(10).split('-')[0]));
-    if (look.endsWith('-h')) hordeCamp(g, R, rand);
+    const parts = look.slice(10).split('-');
+    wonderModel(g, wonderOf(isl), Number(parts[0]));
+    if (parts.includes('h')) hordeCamp(g, R, rand);
+    const feat = parts.find((x) => x.startsWith('t'));
+    if (feat) typhonRise(g, isl, R, rand, feat.slice(1));
   }
   else builders[look]?.();
   return bakeStatic(g);
@@ -904,5 +921,207 @@ function tentacle(rand) {
     parent.add(seg);
     parent = seg;
   }
+  return root;
+}
+
+// ── Gestas: Tifón ────────────────────────────────────────────────────────────
+
+const BASALT = '#3d3532';
+const BASALT_DARK = '#2a2422';
+const LAVA = { emissive: '#ff4500', emissiveIntensity: 2.2 };
+const SERPENT = '#2f6b5a';
+const SERPENT_BELLY = '#c9b36a';
+
+/** Hacia dónde sale el volcán: en el mayor hueco entre los asentamientos del continente. */
+function volcanoAngle(siteAngles, rand) {
+  const a = [...siteAngles].map((x) => ((x % 360) + 360) % 360).sort((x, y) => x - y);
+  if (!a.length) return rand() * 360;
+  let best = 0;
+  let at = a[0] + 180;
+  for (let i = 0; i < a.length; i++) {
+    const next = i + 1 < a.length ? a[i + 1] : a[0] + 360;
+    if (next - a[i] > best) {
+      best = next - a[i];
+      at = (a[i] + next) / 2;
+    }
+  }
+  return at;
+}
+
+/**
+ * Tifón despierta junto al continente (`code`): «p» presagios (el volcán humea y se agrieta),
+ * «0» sierpes en el mar, «1» gigantes en la orilla, «2» las cien cabezas («2f», en furia).
+ * Lo estático se funde con el resto; la lava, el humo y lo que se mueve queda aparte.
+ */
+function typhonRise(g, isl, R, rand, code) {
+  const deg = volcanoAngle(isl.siteAngles ?? [], rand);
+  const f = coastFactor(islandCoast(isl), THREE.MathUtils.degToRad(deg));
+  const coastR = R * 1.08 * f;
+  const vr = R * 0.17;
+  const c = polar(coastR - vr * 1.05, deg);
+  const top = R * 0.3;
+  const out = (r, da = 0, y = 0) => polar(r, deg + da, y);
+
+  // El volcán: un cono de basalto con hombros y rocas sueltas
+  const cone = mesh(new THREE.ConeGeometry(vr, top, 9, 2), BASALT);
+  cone.position.set(c.x, top / 2 - 0.3, c.z);
+  g.add(cone);
+  for (let i = 0; i < 4; i++) {
+    const p = polar(vr * (0.75 + rand() * 0.3), i * 90 + rand() * 40, 0);
+    const shoulder = mesh(new THREE.ConeGeometry(vr * 0.45, top * (0.4 + rand() * 0.2), 7), i % 2 ? BASALT : BASALT_DARK);
+    shoulder.position.set(c.x + p.x, top * 0.18, c.z + p.z);
+    g.add(shoulder);
+  }
+  for (let i = 0; i < 10; i++) {
+    const p = polar(vr * (1.05 + rand() * 0.6), rand() * 360, 0);
+    const rock = mesh(new THREE.DodecahedronGeometry(0.4 + rand() * 0.6, 0), BASALT_DARK);
+    rock.position.set(c.x + p.x, 0.2, c.z + p.z);
+    g.add(rock);
+  }
+  // Cráter con lava que late
+  g.add(cyl(vr * 0.24, vr * 0.32, top * 0.08, 9, BASALT_DARK, c.x, top * 0.9 - 0.3, c.z));
+  const pool = cyl(vr * 0.2, vr * 0.2, 0.15, 9, '#ff6a1a', c.x, top * 0.97 - 0.3, c.z, LAVA);
+  pool.userData.flicker = true;
+  g.add(pool);
+  // Ríos de lava por las laderas (una sola pieza)
+  const rivers = [];
+  const n = code === 'p' ? 2 : 4;
+  for (let i = 0; i < n; i++) {
+    const a = THREE.MathUtils.degToRad(rand() * 360);
+    const len = Math.hypot(top, vr) * 0.9;
+    const geo = new THREE.BoxGeometry(0.5, 0.45, len);
+    // Algo levantada sobre la ladera para que asome
+    geo.translate(0, 0.18, len / 2);
+    geo.rotateX(Math.atan2(top, vr));
+    geo.rotateY(a);
+    geo.translate(c.x, top * 0.9 - 0.3, c.z);
+    rivers.push(geo);
+  }
+  const lava = new THREE.Mesh(mergeGeometries(rivers), mat('#ff5a1a', { ...LAVA, emissiveIntensity: code.endsWith('f') ? 3 : 1.6 }));
+  for (const geo of rivers) geo.dispose();
+  g.add(lava);
+  // Humo
+  for (let i = 0; i < (code === 'p' ? 2 : 3); i++) {
+    const smoke = smokeColumn(c.x + (i - 1) * vr * 0.12, top * 0.95 - 0.3, c.z, i * 1.7);
+    smoke.scale.setScalar(2.2 + i * 0.4);
+    g.add(smoke);
+  }
+  if (code === 'p') return;
+
+  if (code === '0') {
+    // El mar hierve: sierpes que asoman entre las olas frente al volcán
+    for (let i = 0; i < 5; i++) {
+      const s = serpent(rand);
+      const p = out(coastR + R * (0.12 + rand() * 0.22), (i - 2) * 9 + rand() * 4);
+      s.position.set(p.x, SEA - 0.15, p.z);
+      s.rotation.y = rand() * Math.PI * 2;
+      s.userData.bob = { amp: 0.25, speed: 0.8 + rand() * 0.5, base: SEA - 0.15 };
+      g.add(s);
+    }
+    return;
+  }
+  if (code === '1') {
+    // Los hijos de Gea: gigantes de piedra en la orilla, con rocas en las manos
+    for (let i = 0; i < 4; i++) {
+      const giant = figure({ skin: '#b5a690', hair: '#4a4038', color: '#7d6f5e', beard: true, arms: i % 2 ? ['arriba', 'abajo'] : ['adelante', 'arriba'] });
+      const p = polar(vr * (1.25 + rand() * 0.35), (i - 1.5) * 38 + deg + 180, 0);
+      giant.position.set(c.x + p.x, 0, c.z + p.z);
+      giant.rotation.y = THREE.MathUtils.degToRad(deg + 180 + (rand() - 0.5) * 60);
+      giant.scale.setScalar(9 + rand() * 2);
+      g.add(giant);
+      const boulder = mesh(new THREE.DodecahedronGeometry(0.5 + rand() * 0.4, 0), '#6e6458');
+      const q = polar(vr * 1.1, (i - 1.5) * 38 + deg + 200, 0.4);
+      boulder.position.set(c.x + q.x, 0.4, c.z + q.z);
+      g.add(boulder);
+    }
+    return;
+  }
+  // Las cien cabezas: cuellos de serpiente que salen del cráter y se mecen
+  const necks = code.endsWith('f') ? 9 : 7;
+  for (let i = 0; i < necks; i++) {
+    const neck = typhonNeck(rand, code.endsWith('f'));
+    const p = polar(vr * 0.22, (i / necks) * 360 + rand() * 20, 0);
+    neck.position.set(c.x + p.x, top * 0.85 - 0.3, c.z + p.z);
+    neck.rotation.y = THREE.MathUtils.degToRad((i / necks) * 360);
+    g.add(neck);
+  }
+  if (code.endsWith('f')) {
+    // Furia: chispas de lava que saltan del cráter
+    const sparks = new THREE.Group();
+    sparks.position.set(c.x, top - 0.3, c.z);
+    sparks.scale.setScalar(8);
+    for (let k = 0; k < 10; k++) {
+      const s = mesh(new THREE.TetrahedronGeometry(0.06, 0), '#ffb03a', { emissive: '#ff7a00', emissiveIntensity: 2.5 });
+      const a = (k / 10) * Math.PI * 2;
+      s.userData.dir = [Math.cos(a), Math.sin(a)];
+      sparks.add(s);
+    }
+    sparks.userData.sparks = { speed: 2.4 };
+    g.add(sparks);
+  }
+}
+
+/** Una sierpe marina: tres jorobas que asoman del agua y la cabeza con ojos que brillan. */
+function serpent(rand) {
+  const s = new THREE.Group();
+  for (let k = 0; k < 3; k++) {
+    const hump = mesh(new THREE.TorusGeometry(0.7 - k * 0.12, 0.22 - k * 0.03, 6, 10, Math.PI), k % 2 ? SERPENT : '#3a7d68');
+    hump.position.set(0, 0, -k * 1.5);
+    hump.rotation.y = Math.PI / 2;
+    s.add(hump);
+  }
+  const head = mesh(new THREE.ConeGeometry(0.32, 1.1, 6), SERPENT);
+  head.rotation.x = Math.PI / 2.6;
+  head.position.set(0, 0.9, 1.0);
+  s.add(head);
+  const jaw = mesh(new THREE.ConeGeometry(0.22, 0.7, 6), SERPENT_BELLY);
+  jaw.rotation.x = Math.PI / 2.2;
+  jaw.position.set(0, 0.7, 1.15);
+  s.add(jaw);
+  for (const x of [-0.14, 0.14]) {
+    const eye = mesh(new THREE.SphereGeometry(0.07, 6, 4), '#ffe14a', { emissive: '#ffcc00', emissiveIntensity: 2 });
+    eye.position.set(x, 1.05, 1.2);
+    s.add(eye);
+  }
+  s.scale.setScalar(1.4 + rand() * 0.5);
+  return s;
+}
+
+/** Un cuello de Tifón: segmentos encadenados que se mecen y una cabeza de dragón. */
+function typhonNeck(rand, fury) {
+  const root = new THREE.Group();
+  let parent = root;
+  const segments = 6;
+  for (let i = 0; i < segments; i++) {
+    const r = 0.6 * (1 - i / segments) + 0.22;
+    const seg = new THREE.Group();
+    seg.add(cyl(r * 0.85, r, 1.4, 7, i % 2 ? SERPENT : '#3a7d68'));
+    seg.position.y = i === 0 ? 0 : 1.3;
+    seg.userData.wiggle = { base: i === 0 ? -0.35 : -0.12, amp: fury ? 0.22 : 0.14, speed: (fury ? 1.6 : 0.9) + rand() * 0.4, phase: i * 0.6 + rand() * 3 };
+    parent.add(seg);
+    parent = seg;
+  }
+  const head = new THREE.Group();
+  head.position.y = 1.4;
+  const skull = mesh(new THREE.ConeGeometry(0.45, 1.3, 6), SERPENT);
+  skull.rotation.x = Math.PI / 2;
+  skull.position.z = 0.4;
+  head.add(skull);
+  const jaw = mesh(new THREE.ConeGeometry(0.3, 0.9, 6), SERPENT_BELLY);
+  jaw.rotation.x = Math.PI / 2.2;
+  jaw.position.set(0, -0.25, 0.45);
+  head.add(jaw);
+  for (const x of [-0.18, 0.18]) {
+    const eye = mesh(new THREE.SphereGeometry(0.09, 6, 4), fury ? '#ff5a1a' : '#ffe14a', { emissive: fury ? '#ff2a00' : '#ffcc00', emissiveIntensity: 2.2 });
+    eye.position.set(x, 0.18, 0.55);
+    head.add(eye);
+  }
+  for (const x of [-0.22, 0.22]) {
+    const horn = mesh(new THREE.ConeGeometry(0.08, 0.5, 5), '#d8cdb5');
+    horn.position.set(x, 0.35, -0.1);
+    horn.rotation.x = -0.6;
+    head.add(horn);
+  }
+  parent.add(head);
   return root;
 }
