@@ -168,7 +168,7 @@ export const BUILDINGS = {
   torre: {
     name: 'Torre de vigía',
     icon: '👁️',
-    description: 'Vigila el horizonte. Cada nivel da un 4 % más de probabilidad de hundir botes espía y sus arqueros añaden 8 de daño por asalto cuando defiendes la isla.',
+    description: 'Vigila el horizonte: distingue qué tropas trae una flota enemiga desde 40 leguas, y 30 más por nivel (antes solo se sabe que viene). Cada nivel da también un 4 % más de probabilidad de hundir botes espía y sus arqueros añaden 8 de daño por asalto cuando defiendes la isla.',
     baseCost: { madera: 120, piedra: 220 },
     costFactor: 1.65,
     baseTime: 80,

@@ -5,7 +5,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { BUILDINGS, BUILDING_KEYS, ISLAND_TYPES, LAND_UNITS, SHIP_UNITS } from '../game/data.js';
+import { BUILDINGS, BUILDING_KEYS, ISLAND_TYPES, LAND_UNITS, MISSION_TYPES, SHIP_UNITS } from '../game/data.js';
 import {
   C,
   box,
@@ -36,7 +36,7 @@ import {
   windowMaterial,
 } from './models.js';
 import { createIslandBase, createIslandFeature, islandExtent, islandLook, islandRadius, ownerColor, shoreRadius } from './islands.js';
-import { escapeHtml } from '../ui/format.js';
+import { escapeHtml, fmtTime } from '../ui/format.js';
 import { Batch, bakeStatic, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng, surfaceDetail } from './util.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createWater, setShores } from './water.js';
@@ -2525,6 +2525,7 @@ export class World {
     const alive = new Set([...missions.map((m) => m.id), ...incoming.map((m) => `in-${m.id}`), ...traffic.map((m) => `tr-${m.id}`)]);
     for (const [id, f] of this.fleets) {
       if (alive.has(id)) continue;
+      f.label?.removeFromParent();
       for (const o of [f.group, f.line]) {
         this.scene.remove(o);
         disposeTree(o);
@@ -2551,7 +2552,7 @@ export class World {
       const line = new THREE.Line(lineGeo, new THREE.LineDashedMaterial({ color: hostile ? '#ff9a8a' : m.type === 'tributo' ? '#ffd27a' : '#ffffff', dashSize: 3, gapSize: 2.5, transparent: true, opacity: 0.7 }));
       line.computeLineDistances();
       this.scene.add(line);
-      this.fleets.set(m.id, { group, line, route });
+      this.fleets.set(m.id, { group, line, route, ...this.#fleetLabel(group, 'mine') });
     }
     // Flotas de otros jugadores que pasan cerca: solo el barco, sin ruta ni detalles
     const home = this.game.homeIsland;
@@ -2568,7 +2569,11 @@ export class World {
       group.add(createShip(m.ship));
       this.scene.add(group);
       const line = new THREE.Group(); // sin línea: no se sabe adónde va
-      this.fleets.set(key, { group, line, route, traffic: m });
+      // Se ve de quién es, pero no adónde va ni qué lleva
+      const tag = this.#fleetLabel(group, m.ally ? 'ally' : 'other');
+      tag.el.innerHTML = `<span class="fl-name">${m.ally ? '🤝' : '⛵'} ${escapeHtml(m.owner ?? 'Desconocido')}</span>`;
+      if (m.banner) tag.el.style.setProperty('--flag', m.banner);
+      this.fleets.set(key, { group, line, route, traffic: m, ...tag });
     }
     for (const m of incoming) {
       const key = `in-${m.id}`;
@@ -2591,7 +2596,50 @@ export class World {
       const line = new THREE.Line(lineGeo, new THREE.LineDashedMaterial({ color: '#ff5a4a', dashSize: 4, gapSize: 3, transparent: true, opacity: 0.85 }));
       line.computeLineDistances();
       this.scene.add(line);
-      this.fleets.set(key, { group, line, route, incoming: m });
+      this.fleets.set(key, { group, line, route, incoming: m, ...this.#fleetLabel(group, 'enemy') });
+    }
+  }
+
+  /**
+   * Etiqueta que acompaña a un barco por el mapa del mundo: `mine` (tus flotas, con su destino y
+   * lo que les falta), `enemy` (las que te atacan), `ally` u `other` (las de otros que pasan cerca).
+   */
+  #fleetLabel(group, kind) {
+    const el = document.createElement('div');
+    el.className = `label fleet ${kind}`;
+    const label = new CSS2DObject(el);
+    label.position.set(0, 2.4, 0);
+    label.visible = this.view === 'mapa';
+    group.add(label);
+    return { label, el, labelText: '' };
+  }
+
+  /** El texto de las etiquetas de las flotas (destino y tiempo), que cambia cada segundo. */
+  #updateFleetLabels(now) {
+    const onMap = this.view === 'mapa';
+    const time = (until) => `<span class="fl-time">⏳ ${fmtTime((until - now) / 1000)}</span>`;
+    for (const [id, f] of this.fleets) {
+      if (!f.label) continue;
+      f.label.visible = onMap;
+      if (!onMap || f.traffic) continue;
+      let html;
+      if (f.incoming) {
+        const m = f.incoming;
+        const what = { invadir: '🦅', bloquear: '⛓️' }[m.type] ?? '⚔️';
+        html = `<span class="fl-name">${what} ${escapeHtml(m.from)}</span>${time(m.arrive)}`;
+      } else {
+        const m = this.game.missions.find((x) => x.id === id);
+        if (!m) continue;
+        const dest = escapeHtml(m.targetName ?? this.game.world.island(m.target)?.name ?? '');
+        const icon = MISSION_TYPES[m.type]?.icon ?? '⛵';
+        if (m.phase === 'estacionada') html = `<span class="fl-name">${icon} ${dest}</span>`;
+        else if (m.phase === 'ida') html = `<span class="fl-name">${icon} ${dest}</span>${time(m.arrive)}`;
+        else html = `<span class="fl-name">⚓ Vuelve de ${dest}</span>${time(m.back)}`;
+      }
+      if (html !== f.labelText) {
+        f.labelText = html;
+        f.el.innerHTML = html;
+      }
     }
   }
 
@@ -2721,6 +2769,13 @@ export class World {
           puff.scale.setScalar(0.5 + f * 1.1);
         });
       }
+    }
+
+    // Etiquetas de las flotas en el mapa del mundo
+    this.fleetLabelClock = (this.fleetLabelClock ?? 0) + dt;
+    if (this.fleetLabelClock > 0.5) {
+      this.fleetLabelClock = 0;
+      this.#updateFleetLabels(now);
     }
 
     // Flotas en el mar (más grandes en el mapa para que se distingan)

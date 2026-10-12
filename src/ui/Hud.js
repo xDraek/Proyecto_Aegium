@@ -6,7 +6,7 @@ import { featAt, featCycle } from '../game/feats.js';
 import { api } from '../net/api.js';
 import { armyHtml, armySummary, featWait } from './army.js';
 import { buildingPanel } from './buildingPanel.js';
-import { bag, costItems, escapeHtml, fmtNum, fmtTime, unitList } from './format.js';
+import { bag, costItems, escapeHtml, fmtNum, fmtShort, fmtTime, unitList } from './format.js';
 import { featSimPreset, fleetFor, islandPanel, readFleet, readPayload, readOpts } from './islandPanel.js';
 import { questsHtml, rankingHtml } from './modals.js';
 import { openGuide } from './guide.js';
@@ -17,6 +17,26 @@ import { Social } from './social.js';
 
 const $ = (sel) => document.querySelector(sel);
 const CHAT_KEY = 'imperium.chatRead2';
+const DOCK_KEY = 'imperium.dockCollapsed';
+const NARROW = matchMedia('(max-width: 800px)');
+
+/** Una preferencia de sí o no guardada en el navegador (con su valor si no hay nada guardado). */
+function readFlag(key, fallback) {
+  try {
+    const v = localStorage.getItem(key);
+    return v === null ? fallback : v === '1';
+  } catch {
+    return fallback;
+  }
+}
+
+function writeFlag(key, on) {
+  try {
+    localStorage.setItem(key, on ? '1' : '0');
+  } catch {
+    // sin almacenamiento: solo esta sesión
+  }
+}
 
 /**
  * Interfaz HTML sobre la escena 3D. Cada parte se regenera solo cuando cambia
@@ -294,6 +314,20 @@ export class Hud {
     new ResizeObserver(() => {
       document.documentElement.style.setProperty('--top', `${topbar.getBoundingClientRect().bottom + 30}px`);
     }).observe(topbar);
+    // …y lo de abajo (el cuadro de lo que está en marcha, la cámara, el menú) queda encima de la barra
+    const actionbar = $('#actionbar');
+    const fitBottom = () => document.documentElement.style.setProperty('--bottom', `${Math.max(0, innerHeight - actionbar.getBoundingClientRect().top) + 10}px`);
+    new ResizeObserver(fitBottom).observe(actionbar);
+    addEventListener('resize', fitBottom);
+
+    // El cuadro de lo que está en marcha se pliega; se recuerda (en el móvil empieza plegado)
+    this.dockHead = $('#dock > .dock-head');
+    this.dockCollapsed = readFlag(DOCK_KEY, innerWidth < 800);
+    this.dockHead.addEventListener('click', () => {
+      this.dockCollapsed = !this.dockCollapsed;
+      writeFlag(DOCK_KEY, this.dockCollapsed);
+      this.#renderDock();
+    });
 
     this.render();
     if (!game.showcase) this.tutorial = new Tutorial(this);
@@ -438,6 +472,7 @@ export class Hud {
     this.#updateEvent();
     this.#refreshLive(this.panel);
     this.#refreshLive(this.dock);
+    this.#refreshLive(this.dockHead);
     this.#refreshLive(this.alert);
     this.#refreshLive(this.visitorEl);
     this.#refreshLive(this.vacationEl);
@@ -506,8 +541,10 @@ export class Hud {
       const full = amount >= cap;
       const paused = !!game.state.vacation;
       const rate = paused ? 0 : prod[key];
-      els.amount.textContent = fmtNum(amount);
-      let rateText = `${rate < 0 ? '−' : '+'}${fmtNum(Math.abs(rate))}/h`;
+      // En el móvil, cifras cortas para que quepan los seis recursos
+      const narrow = NARROW.matches;
+      els.amount.textContent = narrow ? fmtShort(amount) : fmtNum(amount);
+      let rateText = narrow ? `${rate < 0 ? '−' : '+'}${fmtShort(Math.abs(rate))}` : `${rate < 0 ? '−' : '+'}${fmtNum(Math.abs(rate))}/h`;
       if (paused) rateText = '⏸️ vacaciones';
       else if (key === 'comida' && starving) rateText = '¡Hambruna!';
       else if (full && rate > 0) rateText = 'Lleno';
@@ -909,7 +946,9 @@ export class Hud {
   #renderDock() {
     const game = this.game;
     const rows = [];
+    const ends = [];
     const row = ({ icon, title, start, end, select, buttons = '' }) =>
+      ends.push(end) &&
       `<div class="dock-row" ${select ? `data-select="${select}"` : ''}>
         <div class="q-title"><span>${icon} ${title}</span><span class="q-time" data-until="${end}"></span></div>
         <div class="q-bar"><i data-bar data-start="${start}" data-end="${end}"></i></div>
@@ -994,6 +1033,16 @@ export class Hud {
     }
     this.#setHtml(this.dock, 'dock', rows.join(''));
     this.dockBox.hidden = !rows.length;
+    // Cabecera: cuántas cosas hay en marcha y cuánto falta para la primera que acaba
+    const soonest = Math.min(...ends.filter((t) => t > game.now()));
+    this.dockBox.classList.toggle('collapsed', this.dockCollapsed);
+    this.dockHead.setAttribute('aria-expanded', String(!this.dockCollapsed));
+    this.#setHtml(
+      this.dockHead,
+      'dockHead',
+      `<span>⏳ En marcha <b>${rows.length}</b></span>${Number.isFinite(soonest) ? `<span class="muted small">la próxima en <span class="q-time" data-until="${soonest}"></span></span>` : ''}<span class="dock-chevron">${this.dockCollapsed ? '▴' : '▾'}</span>`,
+    );
+    this.#refreshLive(this.dockHead);
   }
 
   async #onDockClick(e) {
@@ -1053,7 +1102,11 @@ export class Hud {
     if (raid) lines.push(`<div><b>¡Piratas a la vista!</b> Llegan en <span data-until="${raid.arrival}"></span> · ${unitList(raid.army)}</div>`);
     for (const m of incoming.slice(0, 3)) {
       const what = { invadir: 'Invasión', bloquear: 'Bloqueo' }[m.type] ?? 'Ataque';
-      lines.push(`<div><b>¡${what} de ${escapeHtml(m.from)}!</b> ${fmtNum(m.size)} unidades desde ${escapeHtml(m.fromIsland ?? '')} · llegan en <span data-until="${m.arrive}"></span></div>`);
+      // Qué traen solo se sabe cuando la torre de vigía los distingue
+      const force = m.units
+        ? unitList(m.units)
+        : `fuerza desconocida (la torre de vigía la verá en <span data-until="${m.revealAt}"></span>)`;
+      lines.push(`<div><b>¡${what} de ${escapeHtml(m.from)}!</b> Desde ${escapeHtml(m.fromIsland ?? '')} · llegan en <span data-until="${m.arrive}"></span><br>${force}</div>`);
     }
     const tip = port
       ? 'Pulsa para ver tu puerto y echarlos, o pide tropas de apoyo a tu alianza'
