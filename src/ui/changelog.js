@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-13c',
+    date: '2026-10-13',
+    title: 'Lista de la izquierda plegable',
+    items: ['La lista de edificios (y la de islas en el mapa) se <b>pliega</b> desde su cabecera para ver más de la isla. Se recuerda cómo la dejaste, y plegada sigue avisando con 🔨 si hay una obra en marcha.'],
+  },
+  {
     id: '2026-10-13b',
     date: '2026-10-13',
     title: 'La Edad del Bronce',

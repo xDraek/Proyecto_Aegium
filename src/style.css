@@ -5325,3 +5325,79 @@ kbd {
   height: 22px;
   vertical-align: middle;
 }
+
+/* ── La lista de la izquierda se pliega ──────────────────────────────────── */
+
+#sidebar > .side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 2px 10px 6px;
+  border: none;
+  background: none;
+  color: var(--gold);
+  font-family: var(--font-title);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-align: left;
+  cursor: pointer;
+}
+
+#sidebar > .side-head:hover .side-chevron {
+  color: var(--text);
+}
+
+.side-chevron {
+  font-size: 15px;
+}
+
+.side-busy {
+  margin-left: 4px;
+  font-size: 12px;
+}
+
+/* Plegada: solo la cabecera, estrecha, sin la lista */
+#sidebar.collapsed {
+  width: auto;
+  max-height: none;
+}
+
+#sidebar.collapsed > .scroll {
+  display: none;
+}
+
+#sidebar.collapsed > .side-head {
+  padding-bottom: 2px;
+}
+
+@media (max-width: 800px) {
+  #sidebar > .side-head {
+    padding: 0 6px 4px;
+    font-size: 12px;
+  }
+
+  /* En el móvil la lista va abajo: plegada deja más sitio al cuadro de lo que está en marcha */
+  #sidebar.collapsed {
+    left: 12px;
+    right: auto;
+  }
+
+  /* Encima de la lista (que ahora lleva su cabecera), desplegada o plegada */
+  #sidebar ~ #dock {
+    bottom: calc(var(--bottom) + 104px);
+  }
+
+  #sidebar ~ #panel {
+    bottom: calc(var(--bottom) + 96px);
+  }
+
+  #sidebar.collapsed ~ #dock {
+    bottom: calc(var(--bottom) + 62px);
+  }
+
+  #sidebar.collapsed ~ #panel {
+    bottom: calc(var(--bottom) + 56px);
+  }
+}

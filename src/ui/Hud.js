@@ -19,6 +19,7 @@ import { Social } from './social.js';
 const $ = (sel) => document.querySelector(sel);
 const CHAT_KEY = 'imperium.chatRead2';
 const DOCK_KEY = 'imperium.dockCollapsed';
+const SIDE_KEY = 'imperium.sideCollapsed';
 /** Qué botón de la barra de abajo abre cada ventana (para resaltarlo mientras está abierta). */
 const ACTIVE_BUTTON = {
   army: 'army-btn',
@@ -362,6 +363,15 @@ export class Hud {
     const fitBottom = () => document.documentElement.style.setProperty('--bottom', `${Math.max(0, innerHeight - actionbar.getBoundingClientRect().top) + 10}px`);
     new ResizeObserver(fitBottom).observe(actionbar);
     addEventListener('resize', fitBottom);
+
+    // La lista de la izquierda (edificios o islas) también se pliega, y se recuerda
+    this.sideHead = $('#sidebar > .side-head');
+    this.sideCollapsed = readFlag(SIDE_KEY, false);
+    this.sideHead.addEventListener('click', () => {
+      this.sideCollapsed = !this.sideCollapsed;
+      writeFlag(SIDE_KEY, this.sideCollapsed);
+      this.#renderSidebar();
+    });
 
     // El cuadro de lo que está en marcha se pliega; se recuerda (en el móvil empieza plegado)
     this.dockHead = $('#dock > .dock-head');
@@ -720,7 +730,7 @@ export class Hud {
       const heroLine = status
         ? `<p class="hero-line" data-select="ayuntamiento">🎖️ ${escapeHtml(game.hero.name)} · Nv ${game.hero.level}${game.hero.points ? ' · ⭐' : ''}<span class="muted small">${{ casa: 'en casa', mision: 'en el mar', herido: 'herido' }[status]}</span></p>`
         : '';
-      html = `${armySummary(game)}${heroLine}<h2>Edificios</h2><ul class="list">${items}</ul>`;
+      html = `${armySummary(game)}${heroLine}<ul class="list">${items}</ul>`;
     } else {
       // Las islas que ves, de la más cercana a la más lejana
       const home = game.state.home;
@@ -743,12 +753,20 @@ export class Hud {
           return `<li data-id="${v.id}" class="${cls}" title="${escapeHtml(name)}"><span class="b-icon">${icon}</span><span class="b-name">${escapeHtml(name)}</span><span class="b-lvl">${tag || '·'}</span></li>`;
         })
         .join('');
-      html = `${armySummary(game)}<h2>Archipiélago</h2><ul class="list">${items}</ul>
+      html = `${armySummary(game)}<ul class="list">${items}</ul>
         <div class="army-block">
           <p class="muted small">⛵ Flotas: ${game.missions.length}/${game.fleetSlots()} · 🚩 Colonias: ${game.colonies().length}/${game.maxColonies()}</p>
         </div>`;
     }
     this.#setHtml(this.sidebar, 'sidebar', html);
+    // Cabecera que pliega y despliega la lista (con lo que se está construyendo, a la vista)
+    const box = this.sidebar.parentElement;
+    box.classList.toggle('collapsed', this.sideCollapsed);
+    this.sideHead.setAttribute('aria-expanded', String(!this.sideCollapsed));
+    const title = this.view === 'isla' ? '🏛️ Edificios' : '🗺️ Archipiélago';
+    const busy = this.view === 'isla' && game.queue ? ` <span class="side-busy" title="En obras: ${escapeHtml(BUILDINGS[game.queue.id].name)}">🔨</span>` : '';
+    this.#setHtml(this.sideHead, 'sideHead', `<span>${title}${busy}</span><span class="side-chevron">${this.sideCollapsed ? '▸' : '▾'}</span>`);
+    this.sideHead.title = this.sideCollapsed ? 'Desplegar la lista' : 'Plegar la lista';
   }
 
   // ── Panel de detalle ──────────────────────────────────────────────────────
