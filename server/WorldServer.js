@@ -831,7 +831,7 @@ export class WorldServer {
     const me = f.pledged[uid];
     if (!me) return { ok: false, reason: 'Jura primero la gesta para poder ofrendar en su fragua.' };
     f.forge ??= { goal: 0, total: 0, by: {} };
-    return { ok: true, room: Math.floor(forgeRoom(f.forge, uid, me.prod)), full: f.forge.total >= f.forge.goal };
+    return { ok: true, room: Math.floor(forgeRoom(f.forge, uid, me.prod)), full: f.forge.total - (f.forge.used ?? 0) >= f.forge.goal };
   }
 
   /** Apunta una ofrenda (ya pagada) en la fragua: suma a la meta y da gloria. */
@@ -1125,16 +1125,17 @@ export class WorldServer {
     const now = shareSurvivors(groups.map((g) => g.units), ctx.units);
     const heads = boss.hidra;
     const r = assault({ units: ctx.units, atkMul: army.atkMul, hpMul: army.hpMul }, { units: { hidra: heads }, atkMul: boss.headAtk, hpMul: boss.headHp / coop });
-    const killed = heads - (r.def.left.hidra ?? 0);
+    let killed = heads - (r.def.left.hidra ?? 0);
     // Cauterizar con la brea que haya en la fragua
     const forge = (f.forge ??= { goal: 0, total: 0, by: {} });
     const avail = Math.max(0, (forge.total ?? 0) - (forge.used ?? 0));
-    const burnt = Math.min(killed, Math.floor(avail / boss.brea));
+    const can = Math.floor(avail / boss.brea);
+    // La cabeza inmortal: si caerían todas, la última solo cae cauterizada y con la coraza abierta
+    const immortal = killed === heads && !(coop >= T.finalCoop && can >= killed);
+    if (immortal) killed -= 1;
+    const burnt = Math.min(killed, can);
     forge.used = (forge.used ?? 0) + burnt * boss.brea;
-    let next = Math.min(T.maxHeads, heads - killed + 2 * (killed - burnt));
-    // La cabeza inmortal: no cae sin brea o con la coraza entera
-    const immortal = next === 0 && !(coop >= T.finalCoop && burnt === killed);
-    if (immortal) next = 1;
+    const next = Math.min(T.maxHeads, heads - killed + 2 * (killed - burnt));
     boss.hidra = next;
     boss.cut = (boss.cut ?? 0) + killed;
     this.#featCredit(ctx, (killed / T.heads) * theme.phases[0].glory, killed, this.#landWeights(ctx, now));
@@ -2030,7 +2031,7 @@ export class WorldServer {
       pledged,
       brought: brought[userId] != null ? { [userId]: brought[userId] } : {},
       // De la fragua, solo lo de todos y lo tuyo
-      forge: { goal: forge?.goal ?? 0, total: forge?.total ?? 0, by: by[userId] ? { [userId]: by[userId] } : {}, givers: Object.keys(by).length },
+      forge: { goal: forge?.goal ?? 0, total: forge?.total ?? 0, used: forge?.used ?? 0, by: by[userId] ? { [userId]: by[userId] } : {}, givers: Object.keys(by).length },
       waiting: f.stage === 'lucha' || f.stage === 'presagio' ? this.#featWaitingFor(site, userId) : null,
     };
   }

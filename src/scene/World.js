@@ -35,7 +35,7 @@ import {
   wallHeight,
   windowMaterial,
 } from './models.js';
-import { createIslandBase, createIslandFeature, islandExtent, islandLook, islandRadius, ownerColor, shoreRadius } from './islands.js';
+import { createIslandBase, createIslandFeature, featStatueModel, islandExtent, islandLook, islandRadius, ownerColor, shoreRadius } from './islands.js';
 import { escapeHtml, fmtTime } from '../ui/format.js';
 import { Batch, bakeStatic, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng, surfaceDetail } from './util.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -52,6 +52,8 @@ const BEACH_Y = -0.5;
 const ROAD_R = 13.4;
 const WALL_R = 15.0;
 const GATE_ANGLE = 15;
+// Hueco junto a la plaza para la estatua de las gestas (entre las calles de la academia y el almacén)
+const STATUE_SPOT = { r: 6.2, angle: 72 };
 const RAID_FROM = 280;
 const TAU = Math.PI * 2;
 // Avenida del puerto: carriles para los carros en el centro y una acera a cada lado. Los carros dan
@@ -640,6 +642,7 @@ export class World {
     const rand = rng(7);
     const blockers = [
       { p: new THREE.Vector3(), r: 4.2 },
+      { p: polar(STATUE_SPOT.r, STATUE_SPOT.angle), r: 1.6 },
       ...Object.entries(L)
         .filter(([id]) => id !== 'ayuntamiento' && id !== 'puerto' && id !== 'muralla')
         .map(([, l]) => ({ p: polar(l.r, l.angle), r: 2.8 })),
@@ -2083,11 +2086,32 @@ export class World {
     this.#syncBuildings();
     this.#syncWall();
     this.#syncExtras();
+    this.#syncStatue();
     this.#syncIslands();
     this.#syncFleets();
     this.#syncRaid();
     this.#syncSiege();
     this.#collectAnimated();
+  }
+
+  /** La estatua de una gesta ganada, en una esquina de la plaza, mientras dure (una semana). */
+  #syncStatue() {
+    const st = this.game.state.statue;
+    const key = st && st.until > this.game.now() ? st.theme : null;
+    if (this.statueKey === key) return;
+    this.statueKey = key;
+    if (this.statue) {
+      this.scene.remove(this.statue);
+      disposeTree(this.statue);
+      this.statue = null;
+    }
+    if (!key) return;
+    const s = featStatueModel(key);
+    s.position.copy(polar(STATUE_SPOT.r, STATUE_SPOT.angle));
+    s.rotation.y = THREE.MathUtils.degToRad(STATUE_SPOT.angle + 180);
+    s.scale.setScalar(1.2);
+    this.scene.add(s);
+    this.statue = s;
   }
 
   /** Color de las banderas de tu ciudad: el tuyo o, si te han ocupado, el del invasor. */
