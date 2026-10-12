@@ -110,6 +110,14 @@ export function playerCombat(state) {
   };
 }
 
+/**
+ * Leguas desde las que la torre de vigía distingue qué tropas trae una flota enemiga (antes
+ * solo se sabe que viene): 40 sin torre y 30 más por cada nivel.
+ */
+export function watchRange(level) {
+  return 40 + 30 * level;
+}
+
 /** Vida extra de tus barcos cuando defienden tu ciudad: el faro guía a los tuyos (+4 % por nivel). */
 export function navalDefense(faroLevel) {
   return 0.04 * faroLevel;

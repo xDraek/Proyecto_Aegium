@@ -1520,6 +1520,7 @@ select:focus {
 /* ── Pantalla principal ─────────────────────────────────────────────────── */
 
 body.landing-mode #topbar,
+body.landing-mode #actionbar,
 body.landing-mode #sidebar,
 body.landing-mode #panel,
 body.landing-mode #dock,
@@ -4903,4 +4904,326 @@ kbd {
 .feat-phase.now span {
   font-weight: 600;
   color: #ffb066;
+}
+
+/* ── Arriba los recursos, abajo el resto de opciones ─────────────────────── */
+
+:root {
+  /* Alto de la barra de abajo (lo mide el juego): lo de abajo se coloca encima */
+  --bottom: 64px;
+}
+
+/* La barra de arriba: una sola fila con el nombre, los recursos y los avisos del día */
+#topbar {
+  flex-wrap: nowrap;
+}
+
+#topbar #resources {
+  order: 0;
+  flex: 1 1 auto;
+  flex-basis: auto;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+#topbar .res {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+#topbar .top-status {
+  order: 0;
+  flex: none;
+}
+
+/* La barra de abajo, con el ejército, las misiones, el chat… y las opciones */
+#actionbar {
+  position: fixed;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 16px);
+  padding: 5px 8px;
+  border-radius: 14px;
+  background: radial-gradient(ellipse at 50% 0%, var(--navy-hi), var(--navy) 70%);
+  border: 1px solid #8a6a32;
+  box-shadow:
+    inset 0 0 0 1px rgba(201, 163, 94, 0.22),
+    0 10px 26px rgba(0, 0, 0, 0.55);
+}
+
+#actionbar .icon-btn {
+  width: 36px;
+  height: 36px;
+  font-size: 17px;
+}
+
+#actionbar .tab-btn {
+  height: 36px;
+}
+
+/* Sus rótulos salen por encima */
+@media (hover: hover) {
+  #actionbar [data-tip]::after {
+    top: auto;
+    bottom: calc(100% + 8px);
+    transform: translate(-50%, 4px);
+  }
+
+  #actionbar [data-tip]:hover::after,
+  #actionbar [data-tip]:focus-visible::after {
+    transform: translate(-50%, 0);
+  }
+
+  #actionbar > [data-tip]:last-child::after {
+    left: auto;
+    right: 0;
+    transform: translateY(4px);
+  }
+
+  #actionbar > [data-tip]:last-child:hover::after {
+    transform: none;
+  }
+}
+
+/* Lo que va abajo se coloca encima de la barra */
+#dock {
+  bottom: calc(var(--bottom) + 14px);
+}
+
+#cam-controls {
+  bottom: calc(var(--bottom) + 4px);
+}
+
+/* Las opciones se abren hacia arriba, desde el botón ⚙ de la barra de abajo */
+.menu {
+  top: auto;
+  bottom: calc(var(--bottom) + 22px);
+}
+
+/* El cuadro de lo que está en marcha: una cabecera que lo pliega y despliega */
+#dock .dock-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 2px 12px 6px;
+  border: none;
+  background: none;
+  color: var(--gold);
+  font-family: var(--font-title);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+#dock .dock-head > span:first-child {
+  flex: 1;
+}
+
+#dock .dock-head b {
+  display: inline-block;
+  min-width: 20px;
+  margin-left: 4px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: rgba(242, 201, 76, 0.18);
+  text-align: center;
+}
+
+#dock .dock-head .muted {
+  font-family: var(--font-body, inherit);
+}
+
+.dock-chevron {
+  font-size: 15px;
+}
+
+#dock.collapsed > .scroll {
+  display: none;
+}
+
+#dock.collapsed .dock-head {
+  padding-bottom: 2px;
+}
+
+@media (max-width: 1366px) {
+  /* Si no cabe, el nombre del juego cede su sitio a los recursos */
+  #topbar .brand {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) and (min-width: 801px) {
+  /* Pantallas medianas: sin la producción por hora, que se ve al pasar el ratón */
+  #topbar .res-rate {
+    display: none;
+  }
+}
+
+@media (max-width: 800px) {
+  /* Arriba, los recursos en dos filas compactas y los avisos del día encima */
+  #topbar {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  #topbar .top-status {
+    order: -1;
+    flex-basis: 100%;
+    justify-content: flex-start;
+    gap: 4px;
+  }
+
+  #topbar .top-status .pill {
+    height: 26px;
+    font-size: 12px;
+  }
+
+  #topbar .top-status .icon-btn {
+    width: 26px;
+    height: 26px;
+  }
+
+  #topbar #resources {
+    flex-basis: 100%;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+  }
+
+  #topbar .res {
+    padding: 2px 5px;
+  }
+
+  #topbar .res-body {
+    grid-template-columns: 1fr auto;
+    column-gap: 3px;
+  }
+
+  #topbar .res-amount {
+    font-size: 12px;
+  }
+
+  #topbar .res-rate {
+    font-size: 9px;
+  }
+
+  #topbar .res-bar {
+    margin-top: 1px;
+    height: 2px;
+  }
+
+  /* Abajo, todos los botones repartidos a lo ancho */
+  #actionbar {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    transform: none;
+    max-width: none;
+    justify-content: space-between;
+    gap: 2px;
+    padding: 4px;
+  }
+
+  #actionbar .icon-btn,
+  #actionbar .tab-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+    max-width: 40px;
+    height: 34px;
+    padding: 0;
+    font-size: 15px;
+  }
+
+  #actionbar .badge {
+    transform: scale(0.85);
+  }
+
+  /* Los edificios, el panel y el cuadro de lo que está en marcha, encima de la barra */
+  #sidebar {
+    bottom: var(--bottom);
+  }
+
+  #panel {
+    bottom: calc(var(--bottom) + 56px);
+  }
+
+  #dock {
+    bottom: calc(var(--bottom) + 72px);
+  }
+
+  #toasts {
+    bottom: calc(var(--bottom) + 140px);
+  }
+
+  .menu {
+    left: 12px;
+    right: 12px;
+    bottom: calc(var(--bottom) + 16px);
+  }
+}
+
+/* Pantallas bajas: si el menú de opciones no cabe entre las dos barras, se desplaza */
+@media (max-height: 760px) {
+  .menu {
+    max-height: calc(100vh - var(--bottom) - 40px);
+    overflow-y: auto;
+  }
+}
+
+/* ── Etiquetas de las flotas en el mapa del mundo ────────────────────────── */
+
+.label.fleet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 2px 7px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateY(-14px);
+}
+
+.label.fleet .fl-name {
+  font-weight: 600;
+}
+
+.label.fleet .fl-time {
+  font-size: 10px;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tus flotas, con borde de oro; las que te atacan, en rojo; las de los demás, discretas */
+.label.fleet.mine {
+  border-color: rgba(242, 201, 76, 0.75);
+}
+
+.label.fleet.enemy {
+  background: rgba(70, 18, 14, 0.9);
+  border-color: rgba(255, 122, 107, 0.8);
+}
+
+.label.fleet.enemy .fl-time {
+  color: #ffb3a8;
+}
+
+.label.fleet.other,
+.label.fleet.ally {
+  opacity: 0.85;
+  font-size: 10px;
+  border-left: 3px solid var(--flag, rgba(255, 255, 255, 0.4));
+}
+
+.label.fleet.ally {
+  border-color: rgba(120, 200, 120, 0.7);
+  border-left-color: var(--flag, #6bbf59);
 }

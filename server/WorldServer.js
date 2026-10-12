@@ -4,7 +4,7 @@ import { assault, battle, combineGroups, count, hasCombat, shareSurvivors, split
 import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, forgeBonus, forgeGoal, forgeRoom, pledgeEmpires, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
 import { Game, newState } from '../src/game/Game.js';
 import { ACHIEVEMENTS, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, WONDERS } from '../src/game/data.js';
-import { playerCombat, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
+import { playerCombat, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
 import { footprint, freshIslandState, generateContinent, generateSector, homeIsland, sectorCenter, sectorVertices } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { hashPassword, newRecoveryCode, newSecret, normalizeCode, verifyPassword } from './auth.js';
@@ -1737,7 +1737,7 @@ export class WorldServer {
       friendRequests: (this.meta.friendRequests[userId] ?? []).length,
       state,
       world: { islands, states, players },
-      incoming: this.incoming(game.state.home),
+      incoming: this.incoming(game.state.home, game.level('torre'), now),
       joint: this.#jointList(userId),
       traffic: this.#traffic(userId, game.state.home),
       support: this.supportersAt(game.state.home, userId).map(({ game: g, mission }) => ({ from: g.name, units: mission.units })),
@@ -1824,7 +1824,8 @@ export class WorldServer {
         const to = this.islands.get(m.target);
         if (!to || !(near(from) || near(to))) continue;
         const ship = ['dromon', 'galeon', 'trirreme', 'brulote', 'mercante', 'bote'].find((s) => m.units[s]) ?? 'mercante';
-        out.push({ id: `${uid}-${m.id}`, fx: from.x, fz: from.z, tx: to.x, tz: to.z, depart: m.depart, arrive: m.arrive, back: m.back, phase: m.phase, ship, ally: this.sameAlliance(userId, uid) });
+        // Se ve de quién es (su nombre y su estandarte), pero no qué lleva
+        out.push({ id: `${uid}-${m.id}`, fx: from.x, fz: from.z, tx: to.x, tz: to.z, depart: m.depart, arrive: m.arrive, back: m.back, phase: m.phase, ship, ally: this.sameAlliance(userId, uid), owner: g.name, banner: g.state.banner?.color ?? null });
       }
     }
     return out.slice(0, 40);
@@ -1850,14 +1851,25 @@ export class WorldServer {
   }
 
   /** Flotas de otros jugadores que vienen a atacar esta isla. */
-  incoming(homeId) {
+  /**
+   * Flotas enemigas que vienen hacia `homeId`. Se sabe quién viene y cuándo llega, pero qué
+   * tropas trae solo se ve cuando ya está a menos de `watchRange(watch)` leguas (la torre de
+   * vigía); hasta entonces, `revealAt` dice cuándo se verán.
+   */
+  incoming(homeId, watch = 0, now = clock.now()) {
+    const home = this.islands.get(homeId);
+    const range = watchRange(watch);
     const list = [];
     for (const [uid, other] of this.games) {
       for (const m of other.state.missions) {
         if (m.target !== homeId || m.phase !== 'ida' || !HOSTILE.has(m.type)) continue;
         const from = this.islands.get(m.from ?? other.state.home);
-        const size = Object.values(m.units).reduce((a, b) => a + b, 0);
-        list.push({ id: `${uid}-${m.id}`, type: m.type, from: other.name, fromIsland: from?.name, x: from?.x, z: from?.z, depart: m.depart, arrive: m.arrive, size });
+        const dist = from && home ? Math.hypot(from.x - home.x, from.z - home.z) : 0;
+        const revealAt = Math.round(m.arrive - (m.arrive - m.depart) * Math.min(1, range / Math.max(1, dist)));
+        const seen = now >= revealAt;
+        const units = seen ? Object.fromEntries(Object.entries(m.units).filter(([, n]) => n > 0)) : null;
+        const size = units ? Object.values(units).reduce((a, b) => a + b, 0) : null;
+        list.push({ id: `${uid}-${m.id}`, type: m.type, from: other.name, fromIsland: from?.name, x: from?.x, z: from?.z, depart: m.depart, arrive: m.arrive, revealAt, size, units });
       }
     }
     return list.sort((a, b) => a.arrive - b.arrive);

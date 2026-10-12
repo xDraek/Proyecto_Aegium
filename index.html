@@ -59,23 +59,26 @@
       <header id="topbar">
         <div class="brand">⚜ Imperium</div>
         <div id="resources"></div>
-        <div class="top-actions">
+        <div class="top-actions top-status">
           <button id="event-pill" class="pill event-pill" title="Eventos del archipiélago"></button>
           <button id="favor" class="pill" title="Favor de los dioses" hidden></button>
           <button id="daily-btn" class="icon-btn gift" title="Regalo diario" hidden>🎁</button>
-          <button id="view-btn" class="tab-btn" title="Cambiar entre tu isla y el archipiélago (M)">🗺️ <span>Mapa</span></button>
-          <button id="army-btn" class="icon-btn" title="Ejército">⚔️<span class="badge" hidden></span></button>
-          <button id="quests-btn" class="icon-btn" title="Misiones">📋<span class="badge" hidden></span></button>
-          <button id="chat-btn" class="icon-btn" title="Chat del archipiélago">💬<span class="badge" hidden></span></button>
-          <button id="mail-btn" class="icon-btn" title="Correo">✉️<span class="badge" hidden></span></button>
-          <button id="alliance-btn" class="icon-btn" title="Alianza">🤝<span class="badge" hidden></span></button>
-          <button id="friends-btn" class="icon-btn" title="Amigos">👥<span class="badge" hidden></span></button>
-          <button id="rank-btn" class="icon-btn" title="Clasificación">🏆</button>
-          <button id="map-btn" class="icon-btn" title="Mapa del mundo">🌍</button>
-          <button id="reports-btn" class="icon-btn" title="Informes">📜<span class="badge" hidden></span></button>
-          <button id="menu-btn" class="icon-btn" title="Opciones">⚙</button>
         </div>
       </header>
+      <!-- Abajo, el resto de opciones: así arriba solo quedan los recursos -->
+      <nav id="actionbar" aria-label="Menú del juego">
+        <button id="view-btn" class="tab-btn" title="Cambiar entre tu isla y el archipiélago (M)">🗺️ <span>Mapa</span></button>
+        <button id="army-btn" class="icon-btn" title="Ejército">⚔️<span class="badge" hidden></span></button>
+        <button id="quests-btn" class="icon-btn" title="Misiones">📋<span class="badge" hidden></span></button>
+        <button id="chat-btn" class="icon-btn" title="Chat del archipiélago">💬<span class="badge" hidden></span></button>
+        <button id="mail-btn" class="icon-btn" title="Correo">✉️<span class="badge" hidden></span></button>
+        <button id="alliance-btn" class="icon-btn" title="Alianza">🤝<span class="badge" hidden></span></button>
+        <button id="friends-btn" class="icon-btn" title="Amigos">👥<span class="badge" hidden></span></button>
+        <button id="rank-btn" class="icon-btn" title="Clasificación">🏆</button>
+        <button id="map-btn" class="icon-btn" title="Mapa del mundo">🌍</button>
+        <button id="reports-btn" class="icon-btn" title="Informes">📜<span class="badge" hidden></span></button>
+        <button id="menu-btn" class="icon-btn" title="Opciones">⚙</button>
+      </nav>
       <div id="menu" class="menu" hidden>
         <div class="menu-user"></div>
         <div class="menu-group">
@@ -127,7 +130,7 @@
         <div class="chat-log"></div>
         <form class="chat-form"><input name="text" maxlength="300" placeholder="Escribe un mensaje…" autocomplete="off" /><button class="primary small auto">Enviar</button></form>
       </section>
-      <div id="dock" hidden><div class="scroll"></div></div>
+      <div id="dock" hidden><button type="button" class="dock-head" aria-expanded="true"></button><div class="scroll"></div></div>
       <div id="cam-controls" hidden>
         <button class="icon-btn" data-cam="rotl" title="Girar a la izquierda (Q)" aria-label="Girar a la izquierda">⟲</button>
         <button class="icon-btn" data-cam="in" title="Acercar (+)" aria-label="Acercar">＋</button>

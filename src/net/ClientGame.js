@@ -99,7 +99,9 @@ export class ClientGame extends Game {
   start() {
     this.timer = setInterval(() => {
       const since = Date.now() - this.lastSync;
-      if ((this.due && since > MIN_GAP_MS) || since > (this.live ? LIVE_SYNC_MS : SYNC_MS)) this.sync();
+      // En cuanto la torre de vigía distingue una flota enemiga, se piden sus tropas al servidor
+      const spotted = this.incoming.some((m) => !m.units && m.revealAt <= clock.now());
+      if (((this.due || spotted) && since > MIN_GAP_MS) || since > (this.live ? LIVE_SYNC_MS : SYNC_MS)) this.sync();
     }, 500);
   }
 

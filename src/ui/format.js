@@ -8,6 +8,14 @@ export function fmtNum(n) {
   return nf.format(Math.floor(n));
 }
 
+/** Cifra corta para sitios estrechos: 9.870, 48,7k, 1,2M. */
+export function fmtShort(n) {
+  const a = Math.abs(n);
+  if (a < 10_000) return fmtNum(n);
+  if (a < 1_000_000) return `${nf1.format(Math.floor(n / 100) / 10)}k`;
+  return `${nf1.format(Math.floor(n / 100_000) / 10)}M`;
+}
+
 export function fmtDec(n) {
   return nf1.format(n);
 }

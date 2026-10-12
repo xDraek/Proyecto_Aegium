@@ -229,9 +229,9 @@ function startGame(game) {
     else if (kind) world.nudgeCamera({ rotate: kind === 'rotl' ? 0.6 : kind === 'rotr' ? -0.6 : 0, zoom: kind === 'in' ? 0.7 : kind === 'out' ? 1.4 : 1 });
   });
 
-  // Atajos de la barra superior (1-7, en su orden) y rótulos que salen al momento con el ratón
+  // Atajos de la barra de abajo (1-9, en su orden) y rótulos que salen al momento con el ratón
   const SHORTCUTS = ['quests-btn', 'chat-btn', 'mail-btn', 'alliance-btn', 'rank-btn', 'map-btn', 'reports-btn', 'army-btn', 'friends-btn'];
-  for (const el of document.querySelectorAll('#topbar .top-actions .icon-btn[title], #view-btn')) {
+  for (const el of document.querySelectorAll('#actionbar .icon-btn[title], #topbar .top-status .icon-btn[title], #view-btn')) {
     const key = SHORTCUTS.indexOf(el.id) + 1;
     el.dataset.tip = key ? `${el.title} · ${key}` : el.title;
     el.setAttribute('aria-label', el.title);
@@ -286,7 +286,7 @@ function startGame(game) {
       warned.add(m.id);
       if (document.hidden && notifyOn()) {
         try {
-          new Notification('Imperium · ¡Te atacan!', { body: `${m.from} viene hacia tu isla con ${m.size} unidades`, tag: `ataque-${m.id}` });
+          new Notification('Imperium · ¡Te atacan!', { body: m.size ? `${m.from} viene hacia tu isla con ${m.size} unidades` : `Una flota de ${m.from} viene hacia tu isla`, tag: `ataque-${m.id}` });
         } catch {
           // sin avisos
         }
