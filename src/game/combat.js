@@ -20,7 +20,8 @@ export function battle(attacker, defender, rand = Math.random) {
   const def = prepare(defender);
   let rounds = 0;
   const log = []; // lo que queda de cada bando tras cada asalto (para las repeticiones)
-  while (rounds < MAX_ROUNDS && count(att.left) > 0 && (count(def.left) > 0 || def.extraAtk > 0)) {
+  // El daño fijo del defensor (torres) sigue aunque no le queden tropas, salvo si va con ellas (`extraOnlyAlive`, la lava de Tifón)
+  while (rounds < MAX_ROUNDS && count(att.left) > 0 && (count(def.left) > 0 || (def.extraAtk > 0 && !def.extraOnlyAlive))) {
     rounds++;
     const toDef = damage(att, rand);
     const toAtt = damage(def, rand);
@@ -37,7 +38,7 @@ export function battle(attacker, defender, rand = Math.random) {
 function prepare(side) {
   const start = {};
   for (const [id, n] of Object.entries(side.units)) if (n > 0) start[id] = Math.floor(n);
-  return { start, left: { ...start }, atkMul: side.atkMul ?? 1, hpMul: side.hpMul ?? 1, extraAtk: side.extraAtk ?? 0 };
+  return { start, left: { ...start }, atkMul: side.atkMul ?? 1, hpMul: side.hpMul ?? 1, extraAtk: side.extraAtk ?? 0, extraOnlyAlive: !!side.extraOnlyAlive };
 }
 
 function summary(side) {
@@ -186,7 +187,7 @@ export function assault(attacker, defender, { rand = Math.random, needLanding = 
     const support = power(seaLeft, atkMul) * NAVAL_SUPPORT;
     land = battle(
       { units: aboard, atkMul, hpMul, extraAtk: support },
-      { units: D.land, atkMul: dAtk, hpMul: dHp + (defender.wallHp ?? 0), extraAtk: defender.extraAtk ?? 0 },
+      { units: D.land, atkMul: dAtk, hpMul: dHp + (defender.wallHp ?? 0), extraAtk: defender.extraAtk ?? 0, extraOnlyAlive: defender.extraOnlyAlive },
       rand,
     );
     landLeft = land.att.left;
@@ -214,4 +215,76 @@ export function assault(attacker, defender, { rand = Math.random, needLanding = 
     seaWon,
     landed,
   };
+}
+
+// ── Ejércitos de varios jugadores ───────────────────────────────────────────
+
+/**
+ * Junta los ejércitos de varios jugadores en uno solo para un combate. Cada uno trae sus unidades
+ * con sus propios multiplicadores; el ejército común pondera los multiplicadores por el ataque y
+ * la vida que aporta cada uno (no por el número de unidades: mil lanceros de un aliado débil no
+ * rebajan el golpe de las tropas buenas del otro). `groups`: [{ units, atkMul, hpMul }].
+ */
+export function combineGroups(groups) {
+  const units = {};
+  let atkRaw = 0;
+  let hpRaw = 0;
+  let atkW = 0;
+  let hpW = 0;
+  for (const g of groups) {
+    for (const [id, n] of Object.entries(g.units ?? {})) {
+      if (!(n > 0)) continue;
+      units[id] = (units[id] ?? 0) + n;
+      atkRaw += n * UNITS[id].atk;
+      hpRaw += n * UNITS[id].hp;
+      atkW += n * UNITS[id].atk * (g.atkMul ?? 1);
+      hpW += n * UNITS[id].hp * (g.hpMul ?? 1);
+    }
+  }
+  return { units, atkMul: atkRaw ? atkW / atkRaw : 1, hpMul: hpRaw ? hpW / hpRaw : 1 };
+}
+
+/** Ataque por asalto que aporta un grupo (con sus multiplicadores): sirve para repartir el mérito. */
+export function attackOf(group) {
+  return power(group.units ?? {}, group.atkMul ?? 1);
+}
+
+/**
+ * Reparte los supervivientes de un bando formado por varios grupos: cada uno
+ * conserva la misma fracción de cada tipo; lo que sobra por redondeo, para el primero que lo tenga.
+ */
+export function shareSurvivors(groups, left) {
+  const start = {};
+  for (const g of groups) for (const [id, n] of Object.entries(g)) start[id] = (start[id] ?? 0) + n;
+  const out = groups.map(() => ({}));
+  for (const [id, total] of Object.entries(start)) {
+    const frac = total ? (left[id] ?? 0) / total : 0;
+    let given = 0;
+    groups.forEach((g, i) => {
+      const n = Math.floor((g[id] ?? 0) * frac);
+      out[i][id] = n;
+      given += n;
+    });
+    const owner = groups.findIndex((g) => (g[id] ?? 0) > 0);
+    if (owner >= 0) out[owner][id] += (left[id] ?? 0) - given;
+  }
+  return out.map((o) => Object.fromEntries(Object.entries(o).filter(([, n]) => n > 0)));
+}
+
+/** Reparte una bolsa de recursos según unos pesos. */
+export function splitBag(bagIn, weights) {
+  const total = weights.reduce((a, b) => a + b, 0);
+  const out = weights.map(() => ({}));
+  if (!total) return out;
+  for (const [res, n] of Object.entries(bagIn ?? {})) {
+    let given = 0;
+    weights.forEach((w, i) => {
+      const k = Math.floor((n * w) / total);
+      if (k) out[i][res] = k;
+      given += k;
+    });
+    const first = weights.findIndex((w) => w > 0);
+    if (n - given > 0) out[first][res] = (out[first][res] ?? 0) + n - given;
+  }
+  return out;
 }
