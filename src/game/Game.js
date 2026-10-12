@@ -1998,7 +1998,8 @@ export class Game extends EventTarget {
     } else if (m.type === 'explorar') this.#arriveExplore(m, isl, t);
     else if (m.type === 'atacar') {
       if (isl.type !== 'continente') this.#arriveAttack(m, isl, t);
-      else if (this.world.islandState(isl.id)?.feat?.stage && this.world.islandState(isl.id).feat.stage !== 'fin') this.#arriveFeat(m, isl, t);
+      // Una gesta (en marcha o ya acabada, si no ha llegado otra horda) da su propio motivo al llegar
+      else if (this.world.islandState(isl.id)?.feat && !this.world.islandState(isl.id).horde) this.#arriveFeat(m, isl, t);
       else this.#arriveHorde(m, isl, t);
     }
     else if (m.type === 'colonizar') this.#arriveColonize(m, isl, t);
@@ -2247,7 +2248,13 @@ export class Game extends EventTarget {
     const war = this.world.relation?.(this.userId, isl.owner) === 'guerra';
     const cargoMul = hero.cargo * (war ? 1 + DIPLOMACY.warLoot : 1) * (1 + relicBonus(this.state, 'botin'));
     // Los aliados que se han unido a este ataque combaten como un solo ejército
-    const allies = this.world.jointFleets?.(`${this.userId}-${m.id}`, t) ?? [];
+    let allies = this.world.jointFleets?.(`${this.userId}-${m.id}`, t) ?? [];
+    // Un aliado que juró la misma gesta que el defensor no combate contra él (tregua sagrada)
+    allies = allies.filter((a) => {
+      if (a.uid == null || !this.world.truce?.(a.uid, isl.owner, t)) return true;
+      a.settle({ left: a.mission.units, loot: {}, kills: 0, won: false, report: { t, kind: 'ataque', island: isl.id, islandName: isl.name, title: `Ataque cancelado en ${isl.name}`, text: 'Habéis jurado la misma gesta que su dueño: los dioses imponen una tregua sagrada y tu flota se da la vuelta sin combatir.' } });
+      return false;
+    });
     const groups = [
       { units: { ...m.units }, atkMul: atkMul + hero.atk, hpMul },
       ...allies.map((a) => ({ units: { ...a.mission.units }, atkMul: a.combat.atkMul, hpMul: a.combat.hpMul, ally: a })),

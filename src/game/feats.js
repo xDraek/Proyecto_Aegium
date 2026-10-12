@@ -256,7 +256,8 @@ export function featRewards(players, { result, phasesWon = 0, tier = 0 }) {
     const o = out[id];
     o.value = o.personal + o.pot;
     if (!won || o.band < 0) continue;
-    if (o.top || o.heart) o.relic = { legendaria: 100 };
+    // A medias, solo el primero se lleva la reliquia segura
+    if (o.top || (o.heart && result === 'victoria')) o.relic = { legendaria: 100 };
     else if (result === 'victoria' && byGlory.indexOf(id) > 0 && byGlory.indexOf(id) <= 2) o.relic = { epica: 70, legendaria: 30 };
     else if (result === 'victoria') o.relic = { chance: R.relicChance[o.band], weights: { rara: 60, epica: 35, legendaria: 5 } };
   }

@@ -645,7 +645,18 @@ export class WorldServer {
     if (s.vacation || game.isProtected() || game.score() < FEATS.minPoints) return false;
     if ((s.history?.length ?? 0) < FEATS.minDays) return false;
     if ((s.perjuryUntil ?? 0) > now) return false;
+    if (this.#inFeat(game.userId)) return false;
     return Date.now() - (s.lastSeen ?? 0) <= FEATS.seenHours * 3_600_000;
+  }
+
+  /** Si un jugador ya está convocado a una gesta que no ha acabado (solo se está en una a la vez). */
+  #inFeat(uid, except = null) {
+    for (const id of this.meta.featSites ?? []) {
+      if (id === except) continue;
+      const f = this.islandStates.get(id)?.feat;
+      if (f && f.stage !== 'fin' && f.convoked.includes(uid)) return true;
+    }
+    return false;
   }
 
   /**
@@ -701,6 +712,8 @@ export class WorldServer {
     omen ??= now;
     start ??= omen + Math.round(featHours(FEATS.omenHours));
     end ??= start + Math.round(featHours(FEATS.hours));
+    // Nadie está en dos gestas a la vez
+    players = players.filter((uid) => !this.#inFeat(uid, site));
     // Cada sitio tiene su propio desfase de oleadas (reparte la carga y los husos horarios)
     let h = 0;
     for (const ch of String(site)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
@@ -756,7 +769,7 @@ export class WorldServer {
     if (!cont) throw new UserError('No hay ningún continente libre para la gesta.');
     const now = clock.now();
     const players = [...this.games.values()]
-      .filter((g) => !g.state.vacation)
+      .filter((g) => !g.state.vacation && !this.#inFeat(g.userId))
       .map((g) => ({ g, d: Math.hypot(this.islands.get(g.state.home).x - cont.x, this.islands.get(g.state.home).z - cont.z) }))
       .filter((x) => x.d <= FEATS.radiusMax)
       .sort((a, b) => a.d - b.d)
@@ -801,10 +814,28 @@ export class WorldServer {
     if (a === b || this.relation(a, b) === 'guerra') return false;
     for (const id of this.meta.featSites ?? []) {
       const f = this.islandStates.get(id)?.feat;
-      if (!f?.emergedAt || t < f.emergedAt || t >= (f.truceUntil ?? f.end)) continue;
+      if (!this.#inTruce(f, t)) continue;
       if (f.pledged[a] && f.pledged[b]) return true;
     }
     return false;
+  }
+
+  /**
+   * Si en el instante `t` corre la tregua de una gesta. No depende de que el bucle ya la haya puesto
+   * al día: emerge en `start` si para entonces juraron bastantes, y mientras no acabe la tregua llega
+   * hasta el final más unas horas (así manda el orden de los hechos, como con los puertos).
+   */
+  #inTruce(f, t) {
+    if (!f) return false;
+    let from = f.emergedAt;
+    if (from == null) {
+      if (f.stage !== 'presagio' || t < f.start) return false;
+      const powers = Object.values(f.pledged).map((p) => ({ ...p.P, f: p.f }));
+      if (powers.length < FEATS.minPledges || pledgeEmpires(powers) < FEATS.minEffective) return false;
+      from = f.start;
+    }
+    const until = f.stage === 'fin' ? (f.truceUntil ?? f.end) : f.end + Math.round(featHours(FEATS.truceAfterHours));
+    return t >= from && t < until;
   }
 
   /** Con quién tiene tregua ahora un jugador (para el navegador). */
@@ -812,7 +843,7 @@ export class WorldServer {
     const out = new Set();
     for (const id of this.meta.featSites ?? []) {
       const f = this.islandStates.get(id)?.feat;
-      if (!f?.emergedAt || t < f.emergedAt || t >= (f.truceUntil ?? f.end) || !f.pledged[uid]) continue;
+      if (!this.#inTruce(f, t) || !f.pledged[uid]) continue;
       for (const other of Object.keys(f.pledged)) if (Number(other) !== uid && this.relation(uid, Number(other)) !== 'guerra') out.add(Number(other));
     }
     return [...out];
@@ -906,9 +937,12 @@ export class WorldServer {
     const fmtN = String(wave.N).replace('.', ',');
 
     if (!groups.length || coop <= 0) {
-      // Sin combate el enemigo se rehace un poco
+      // Sin combate el enemigo se rehace un poco (las cabezas no: no se curan)
       const unit = phases[boss.phase].unit;
-      boss[unit] = Math.min(boss.full[unit], boss[unit] + Math.ceil(FEATS.regrow * boss.full[unit]));
+      if (unit !== 'cabeza') boss[unit] = Math.min(boss.full[unit], boss[unit] + Math.ceil(FEATS.regrow * boss.full[unit]));
+      // Quien trajo su flota cumplió su juramento aunque la coraza no cediera
+      f.present ??= {};
+      for (const g of groups) f.present[g.uid] = true;
       for (const g of groups) {
         g.game.receiveNews(null, `${theme.icon} La coraza de ${theme.enemy} no cede: en la oleada solo había ${fmtN} imperios efectivos. Hacen falta más (tu flota sigue esperando).`, 'error');
         this.pendingPush.add(g.uid);
@@ -956,7 +990,7 @@ export class WorldServer {
       const fury = unit === 'cabeza' && boss.cabeza <= T.furyAt;
       const def =
         unit === 'cabeza'
-          ? { units: { cabeza: boss.cabeza }, atkMul: boss.headAtk * (fury ? T.fury : 1), hpMul: boss.headHp / coop, extraAtk: fury ? boss.lava : 0 }
+          ? { units: { cabeza: boss.cabeza }, atkMul: boss.headAtk * (fury ? T.fury : 1), hpMul: boss.headHp / coop, extraAtk: fury ? boss.lava : 0, extraOnlyAlive: true }
           : { units: { [unit]: boss[unit] }, atkMul: 1, hpMul: 1 / coop };
       const r = assault({ units, atkMul: army.atkMul, hpMul: army.hpMul }, def);
       const killed = boss[unit] - (r.def.left[unit] ?? 0);
@@ -982,8 +1016,15 @@ export class WorldServer {
       f.glory[uid] = (f.glory[uid] ?? 0) + glory[i];
       f.brought[uid] = (f.brought[uid] ?? 0) + forces[i];
       f.risk[uid] = (f.risk[uid] ?? 0) + unitsValue(splitWar(g.units).sea) + unitsValue(splitWar(g.units).land);
+      // Los mercenarios caen primero y no vuelven heridos: solo cuentan las bajas propias
+      const mercs = {};
+      for (const c of g.game.state.mercs ?? []) mercs[c.unit] = (mercs[c.unit] ?? 0) + c.count;
       const fallen = (f.fallen[uid] ??= {});
-      for (const [u, n] of Object.entries(lost)) fallen[u] = (fallen[u] ?? 0) + n;
+      for (const [u, n] of Object.entries(lost)) {
+        const own = n - Math.min(n, mercs[u] ?? 0);
+        if (own > 0) fallen[u] = (fallen[u] ?? 0) + own;
+      }
+      (f.present ??= {})[uid] = true;
       const phaseName = phases[Math.min(wave.phase, phases.length - 1)].name;
       const report = {
         t: tw,
@@ -1022,14 +1063,18 @@ export class WorldServer {
     f.boss.lava = nb.lava;
   }
 
-  /** A las tantas horas de lucha, quien juró y no ha combatido (ni tiene flota en camino) es perjuro. */
+  /**
+   * A las tantas horas de lucha, quien juró y no ha combatido (ni llevado su flota, ni la tiene en
+   * camino) es perjuro. Se vuelve a mirar al acabar, por si la flota que estaba en camino se retiró.
+   */
   #purgePerjurers(id, t) {
     const f = this.islandStates.get(id).feat;
     f.perjuryDone = true;
+    this.touch(id);
     const theme = FEAT_THEMES[f.theme];
     const siteName = this.islands.get(id)?.name ?? '';
     const out = Object.keys(f.pledged).filter((uid) => {
-      if ((f.brought[uid] ?? 0) > 0) return false;
+      if ((f.brought[uid] ?? 0) > 0 || f.present?.[uid]) return false;
       const g = this.games.get(Number(uid));
       return !g?.state.missions.some((m) => m.target === id && m.phase !== 'vuelta');
     });
@@ -1068,8 +1113,9 @@ export class WorldServer {
     const name = this.islands.get(id)?.name ?? '';
     const R = FEATS.reward;
     result ??= bossLeft(f.theme, f.boss) <= R.half ? 'media' : 'derrota';
-    // Los perjuros se apartan antes de pagar (si la lucha ha durado lo bastante)
-    if (!f.perjuryDone && t - f.start >= featHours(FEATS.perjuryHours)) this.#purgePerjurers(id, t);
+    // Los perjuros se apartan antes de pagar (si la lucha ha durado lo bastante): también quien
+    // tenía la flota en camino a la hora del juicio y luego la retiró
+    if (t - f.start >= featHours(FEATS.perjuryHours)) this.#purgePerjurers(id, t);
     f.stage = 'fin';
     f.result = result;
     f.finishedAt = t;
@@ -1457,6 +1503,7 @@ export class WorldServer {
     return this.#jointMissions(key).map(({ game, mission }) => {
       game.update(t);
       return {
+        uid: game.userId,
         name: game.name,
         mission,
         combat: playerCombat(game.state),
