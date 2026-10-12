@@ -5252,3 +5252,76 @@ kbd {
     display: none;
   }
 }
+
+/* ── Novedades: las notas de las actualizaciones ─────────────────────────── */
+
+.news {
+  display: grid;
+  gap: 14px;
+}
+
+.news-entry {
+  padding: 12px 14px;
+  border-left: 3px solid rgba(242, 201, 76, 0.35);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+}
+
+.news-entry.latest {
+  border-left-color: var(--gold);
+  background: rgba(242, 201, 76, 0.07);
+}
+
+.news-entry header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.news-entry h4 {
+  margin: 0;
+  color: var(--gold);
+  font-family: var(--font-title);
+}
+
+.news-entry time {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.news-entry ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 5px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* El botón de lo que está abierto, resaltado en oro */
+#actionbar > button.active {
+  border-color: var(--gold);
+  background: radial-gradient(circle at 50% 35%, rgba(242, 201, 76, 0.35), rgba(242, 201, 76, 0.12) 70%);
+  box-shadow:
+    0 0 0 1px rgba(242, 201, 76, 0.45),
+    0 0 12px rgba(242, 201, 76, 0.35);
+}
+
+/* Iconos de recurso que son imagen (el lingote de bronce), del tamaño del texto que los rodea */
+.res-img {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  object-fit: contain;
+  vertical-align: -0.25em;
+  image-rendering: auto;
+}
+
+.res-icon .res-img {
+  width: 22px;
+  height: 22px;
+  vertical-align: middle;
+}

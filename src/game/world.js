@@ -158,7 +158,7 @@ export function generateSector(index, worldSeed = 1, obstacles = []) {
 
 const CONTINENT_CHANCE = 0.55;
 const LAND_HEADS = ['Tierras', 'Costa', 'Reino', 'Llanuras', 'Marca', 'Montes'];
-const LAND_TAILS = ['del Norte', 'de Hierro', 'Salvajes', 'de Ámbar', 'del Jabalí', 'Doradas', 'de Bronce', 'Olvidadas', 'del Trueno', 'de Ceniza'];
+const LAND_TAILS = ['del Norte', 'de Estaño', 'Salvajes', 'de Ámbar', 'del Jabalí', 'Doradas', 'de Bronce', 'Olvidadas', 'del Trueno', 'de Ceniza'];
 const CITY_HEADS = ['Bastión', 'Fortaleza', 'Burgo', 'Empalizada', 'Ciudadela', 'Torreón'];
 const CITY_TAILS = ['del Jabalí', 'de Hueso', 'Roja', 'del Lobo', 'Negra', 'de los Cuervos', 'del Oso', 'de las Lanzas'];
 const SITE_HEADS = ['Vega', 'Valle', 'Ribera', 'Llano', 'Prado', 'Cañada'];

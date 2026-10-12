@@ -1546,7 +1546,7 @@ export class Game extends EventTarget {
   }
 
   /**
-   * Ofrendas recursos en la fragua de Hefesto de la gesta que juraste. Solo madera, hierro y
+   * Ofrendas recursos en la fragua de Hefesto de la gesta que juraste. Solo madera, bronce y
    * cristal; si no cabe todo (topes por jugador y meta), se ofrenda lo que quepa.
    */
   featForge(site, bag, now = this.now()) {
@@ -2187,7 +2187,7 @@ export class Game extends EventTarget {
     } else if (isl.type === 'libre') {
       text += rt.colonizedBy != null
         ? ` Ya es una colonia de ${this.world.playerInfo(rt.colonizedBy)?.name ?? 'otro imperio'}.`
-        : ` Tierra fértil: una colonia aquí produciría ${RESOURCES[isl.specialty].icon} ${RESOURCES[isl.specialty].name.toLowerCase()}.`;
+        : ` Tierra fértil: una colonia aquí produciría ${RESOURCES[isl.specialty].emoji} ${RESOURCES[isl.specialty].name.toLowerCase()}.`;
     }
     this.#report({ t, kind: 'exploracion', island: isl.id, islandName: isl.name, title: `${first ? 'Descubierta' : 'Explorada'}: ${isl.name}`, text, intel, loot });
     this.#note(`🔭 ${isl.name}: ${ISLAND_TYPES[isl.type].name}`, 'success');
@@ -2818,7 +2818,7 @@ export class Game extends EventTarget {
       islandName: isl.name,
       outcome: 'victoria',
       title: `¡Has conquistado ${isl.name}!`,
-      text: `Tu bandera ondea sobre la empalizada. La ciudad mandará ${r.icon} ${r.name.toLowerCase()} a tu capital y puedes ampliarla como cualquier colonia.`,
+      text: `Tu bandera ondea sobre la empalizada. La ciudad mandará ${r.emoji} ${r.name.toLowerCase()} a tu capital y puedes ampliarla como cualquier colonia.`,
     });
     this.#note(`🏴 ¡Has conquistado ${isl.name}!`, 'success');
     this.world.announce?.(`🏴 ${this.state.name} conquista la ciudad bárbara de ${isl.name}`);
@@ -2842,7 +2842,7 @@ export class Game extends EventTarget {
       island: isl.id,
       islandName: isl.name,
       title: `Nueva colonia: ${isl.name}`,
-      text: `Los colonos se han quedado con su barco. La colonia producirá ${r.icon} ${r.name.toLowerCase()} para tu imperio.`,
+      text: `Los colonos se han quedado con su barco. La colonia producirá ${r.emoji} ${r.name.toLowerCase()} para tu imperio.`,
     });
     this.#note(`🚩 Has fundado una colonia en ${isl.name}`, 'success');
   }
@@ -3223,6 +3223,6 @@ function cargoOf(units) {
 function fmtBag(bag) {
   return Object.entries(bag ?? {})
     .filter(([, n]) => n > 0)
-    .map(([res, n]) => `${RESOURCES[res].icon} ${Math.floor(n).toLocaleString('es-ES')}`)
+    .map(([res, n]) => `${RESOURCES[res].emoji} ${Math.floor(n).toLocaleString('es-ES')}`)
     .join(' ');
 }

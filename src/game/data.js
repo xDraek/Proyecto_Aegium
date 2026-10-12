@@ -5,10 +5,15 @@ export const RESOURCES = {
   madera: { name: 'Madera', icon: '🪵', color: '#c8935f', value: 1 },
   piedra: { name: 'Piedra', icon: '🪨', color: '#a9b1bb', value: 1.2 },
   comida: { name: 'Comida', icon: '🥖', color: '#9ccc65', value: 0.9 },
-  hierro: { name: 'Hierro', icon: '🔩', color: '#8fa3bf', value: 1.6 },
+  // Por dentro sigue siendo «hierro» (partidas guardadas), pero en la Edad del Bronce es bronce.
+  // Su icono es una imagen (un lingote); en los textos sin formato se usa `emoji`.
+  hierro: { name: 'Bronce', icon: '<img class="res-img" src="/ui/bronce.png" alt="🥉" draggable="false" />', emoji: '🥉', color: '#c7843f', value: 1.6 },
   cristal: { name: 'Cristal', icon: '💎', color: '#7fd4ff', value: 2 },
   oro: { name: 'Oro', icon: '🪙', color: '#f2c94c', value: 2.5 },
 };
+
+// `icon` va en HTML; `emoji`, en los textos sin formato (avisos, informes, desplegables)
+for (const r of Object.values(RESOURCES)) r.emoji ??= r.icon;
 
 export const RESOURCE_KEYS = Object.keys(RESOURCES);
 
@@ -75,7 +80,7 @@ export const BUILDINGS = {
   fundicion: {
     name: 'Fundición',
     icon: '🔥',
-    description: 'Funde el mineral de la montaña y forja lingotes de hierro para armas y barcos.',
+    description: 'Funde el cobre y el estaño de la montaña y forja lingotes de bronce para armas y barcos.',
     produces: 'hierro',
     baseProduction: 25,
     baseCost: { madera: 140, piedra: 110 },
@@ -261,7 +266,7 @@ export const UNITS = {
     icon: '⚔️',
     kind: 'tierra',
     building: 'cuartel',
-    description: 'Soldado de élite con espada y escudo de hierro.',
+    description: 'Soldado de élite con espada y escudo de bronce.',
     cost: { madera: 30, hierro: 45, comida: 40 },
     time: 75,
     atk: 15,
@@ -356,7 +361,7 @@ export const UNITS = {
     kind: 'tierra',
     building: 'cuartel',
     elite: true,
-    description: 'Jinete y caballo cubiertos de escamas de hierro: embiste como un ariete. Ocupa dos plazas en los barcos y cobra en oro.',
+    description: 'Jinete y caballo cubiertos de escamas de bronce: embiste como un ariete. Ocupa dos plazas en los barcos y cobra en oro.',
     cost: { hierro: 220, comida: 150, oro: 120 },
     time: 260,
     atk: 59,
@@ -542,7 +547,7 @@ export const RESEARCH = {
     name: 'Ingeniería minera',
     icon: '⛏️',
     description: 'Galerías más profundas y mejores herramientas.',
-    effect: (n) => `+${n * 10} % de piedra y hierro`,
+    effect: (n) => `+${n * 10} % de piedra y bronce`,
     baseCost: { madera: 150, piedra: 150, cristal: 60 },
     baseTime: 130,
     requires: { academia: 1 },
@@ -595,7 +600,7 @@ export const RESEARCH = {
   herreria: {
     name: 'Herrería',
     icon: '⚒️',
-    description: 'Armas de hierro templado. El nivel 1 permite entrenar espadachines.',
+    description: 'Armas de bronce bien forjado. El nivel 1 permite entrenar espadachines.',
     effect: (n) => `+${n * 10} % de ataque`,
     baseCost: { madera: 150, hierro: 200, cristal: 120, oro: 30 },
     baseTime: 200,
@@ -823,7 +828,7 @@ export const QUESTS = [
   { id: 'q-lanceros', title: 'La primera guardia', text: 'Ten 10 lanceros en tu ejército.', goal: (g) => [Math.min(g.armyCount('lancero'), 10), 10], reward: { comida: 300, madera: 300 } },
   { id: 'q-puerto', title: 'Rumbo al mar', text: 'Construye el puerto.', goal: lvl('puerto', 1), reward: { madera: 400, piedra: 200 } },
   { id: 'q-explora', title: 'Tierra a la vista', text: 'Explora una isla del archipiélago.', goal: (g) => [Math.min(g.exploredCount(), 1), 1], reward: { madera: 300, comida: 300 } },
-  { id: 'q-fundicion', title: 'Edad del hierro', text: 'Construye la fundición.', goal: lvl('fundicion', 1), reward: { piedra: 400, comida: 200 } },
+  { id: 'q-fundicion', title: 'Edad del bronce', text: 'Construye la fundición.', goal: lvl('fundicion', 1), reward: { piedra: 400, comida: 200 } },
   { id: 'q-ayto3', title: 'Ciudad', text: 'Mejora el ayuntamiento a nivel 3. ¡Cuidado con los piratas!', goal: lvl('ayuntamiento', 3), reward: { madera: 600, piedra: 600, hierro: 200 } },
   { id: 'q-muralla', title: 'Puertas cerradas', text: 'Construye la muralla.', goal: lvl('muralla', 1), reward: { piedra: 600 } },
   { id: 'q-saqueo', title: 'Botín bárbaro', text: 'Gana un ataque contra una isla enemiga.', goal: stat('victories', 1), reward: { hierro: 300, oro: 100 } },
@@ -1026,7 +1031,7 @@ export const WORLD_EVENTS = {
   oro: { name: 'Fiebre del oro', icon: '💰', text: '+40 % de oro en todas las islas.', prod: { oro: 0.4 } },
   cosecha: { name: 'Año de buenas cosechas', icon: '🌾', text: '+40 % de comida en todas las islas.', prod: { comida: 0.4 } },
   tala: { name: 'Temporada de tala', icon: '🪵', text: '+35 % de madera en todas las islas.', prod: { madera: 0.35 } },
-  vetas: { name: 'Vetas nuevas', icon: '⛏️', text: '+30 % de piedra y de hierro.', prod: { piedra: 0.3, hierro: 0.3 } },
+  vetas: { name: 'Vetas nuevas', icon: '⛏️', text: '+30 % de piedra y de bronce.', prod: { piedra: 0.3, hierro: 0.3 } },
   estrellas: { name: 'Lluvia de estrellas', icon: '💎', text: '+40 % de cristal en todas las islas.', prod: { cristal: 0.4 } },
   festival: { name: 'Festival de Poseidón', icon: '🔱', text: 'Los templos dan el doble de favor.', favor: 2 },
   feria: { name: 'Gran feria del archipiélago', icon: '⚖️', text: 'El mercado cambia un 15 % mejor.', trade: 0.15 },

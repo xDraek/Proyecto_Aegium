@@ -666,10 +666,10 @@ const TOPICS = {
     title: 'Visitantes',
     body: () => `<p>Cada pocas horas llega alguien a tu isla:</p>
       ${list([
-        '🧳 <b>Mercader ambulante</b>: compra lo que más te sobra y paga en hierro, cristal u oro, mejor que el mercado. Se va en una hora.',
+        '🧳 <b>Mercader ambulante</b>: compra lo que más te sobra y paga en bronce, cristal u oro, mejor que el mercado. Se va en una hora.',
         '🗡️ <b>Mercenarios de paso</b>: se unen a tu ejército para siempre a cambio de oro. Se van en una hora.',
         '🕯️ <b>Peregrinos</b>: dejan favor en tu templo (u oro, si no tienes templo).',
-        '🛟 <b>Restos de un naufragio</b>: madera, hierro y comida gratis.',
+        '🛟 <b>Restos de un naufragio</b>: madera, bronce y comida gratis.',
       ])}`,
   },
   competicion: {

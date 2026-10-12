@@ -265,7 +265,7 @@ function portSection(game) {
 
 function marketSection(game) {
   if (game.level('mercado') < 1) return '';
-  const opts = (sel) => RESOURCE_KEYS.map((r) => `<option value="${r}" ${r === sel ? 'selected' : ''}>${RESOURCES[r].icon} ${RESOURCES[r].name}</option>`).join('');
+  const opts = (sel) => RESOURCE_KEYS.map((r) => `<option value="${r}" ${r === sel ? 'selected' : ''}>${RESOURCES[r].emoji} ${RESOURCES[r].name}</option>`).join('');
   const closed = game.portClosed() ? '<p class="hint warn">⛓️ Tu puerto está en manos enemigas: los mercaderes no pueden entrar.</p>' : '';
   return `<h4>Cambiar recursos</h4>${closed}
     <div class="trade">
@@ -288,13 +288,17 @@ function refreshMarket(game, root) {
   const amount = Math.max(0, Math.floor(Number(root.querySelector('[name="t-amount"]').value) || 0));
   if (from === to) {
     out.textContent = 'Elige dos recursos distintos.';
+    delete out.dataset.html;
     return;
   }
   const rate = game.tradeRate(from, to);
   const get = Math.floor(amount * rate);
   const tax = Math.round((1 - rate / (RESOURCES[from].value / RESOURCES[to].value)) * 100);
   const text = `Recibes ${RESOURCES[to].icon} ${fmtNum(get)} · 1 ${RESOURCES[from].icon} = ${fmtDec(rate)} ${RESOURCES[to].icon} · el mercado se queda un ${tax} % en impuestos (con otros jugadores no hay)`;
-  if (out.textContent !== text) out.textContent = text;
+  if (out.dataset.html !== text) {
+    out.dataset.html = text;
+    out.innerHTML = text;
+  }
 }
 
 // ── Otros ────────────────────────────────────────────────────────────────────

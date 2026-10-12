@@ -13,11 +13,24 @@ import { openGuide } from './guide.js';
 import { Tutorial } from './tutorial.js';
 import { WorldMap } from './worldMap.js';
 import { reportsHtml, playReplay, sharedReportHtml } from './reports.js';
+import { hasUnreadNews, markNewsRead, newsHtml } from './changelog.js';
 import { Social } from './social.js';
 
 const $ = (sel) => document.querySelector(sel);
 const CHAT_KEY = 'imperium.chatRead2';
 const DOCK_KEY = 'imperium.dockCollapsed';
+/** Qué botón de la barra de abajo abre cada ventana (para resaltarlo mientras está abierta). */
+const ACTIVE_BUTTON = {
+  army: 'army-btn',
+  quests: 'quests-btn',
+  mail: 'mail-btn',
+  alliance: 'alliance-btn',
+  friends: 'friends-btn',
+  ranking: 'rank-btn',
+  worldmap: 'map-btn',
+  reports: 'reports-btn',
+  news: 'news-btn',
+};
 const NARROW = matchMedia('(max-width: 800px)');
 
 /** Una preferencia de sí o no guardada en el navegador (con su valor si no hay nada guardado). */
@@ -116,6 +129,23 @@ export class Hud {
     });
     this.alert.addEventListener('click', () => this.onSelect(this.alertTarget ?? 'muralla'));
     this.viewBtn.addEventListener('click', () => this.onView(this.view === 'isla' ? 'mapa' : 'isla'));
+    this.actionbar = $('#actionbar');
+    this.actionbar.addEventListener(
+      'click',
+      (e) => {
+        const btn = e.target.closest('#actionbar > button.active');
+        if (!btn) return;
+        // Antes que el propio botón: en vez de volver a abrirlo, se cierra
+        e.stopPropagation();
+        if (btn.id === 'chat-btn') this.toggleChat(false);
+        else if (btn.id === 'menu-btn') this.menu.hidden = true;
+        else this.closeModal();
+        this.#syncActive();
+      },
+      true,
+    );
+    // Lo que se cierra por su cuenta (el menú al pulsar fuera, una ventana con su ✕…) apaga su botón
+    new MutationObserver(() => this.#syncActive()).observe(this.menu, { attributes: true, attributeFilter: ['hidden'] });
     this.reportsBtn.addEventListener('click', () => this.openReports());
     this.questsBtn.addEventListener('click', () => this.openModal('quests'));
     this.armyBtn = $('#army-btn');
@@ -124,6 +154,14 @@ export class Hud {
     this.friendsBtn.addEventListener('click', () => this.social.openFriends());
     $('#rank-btn').addEventListener('click', () => this.openModal('ranking'));
     $('#map-btn').addEventListener('click', () => this.worldMap.open());
+    // Novedades: las notas de las últimas actualizaciones (marcado mientras haya una sin leer)
+    this.newsBtn = $('#news-btn');
+    this.newsBtn.querySelector('.badge').hidden = !hasUnreadNews();
+    this.newsBtn.addEventListener('click', () => {
+      markNewsRead();
+      this.newsBtn.querySelector('.badge').hidden = true;
+      this.showModal('news', newsHtml());
+    });
     this.favorEl.addEventListener('click', () => this.onSelect('templo'));
     this.eventEl = $('#event-pill');
     this.eventEl.addEventListener('click', () => this.openEvents());
@@ -239,6 +277,11 @@ export class Hud {
     $('#menu-btn').addEventListener('click', (e) => {
       e.stopPropagation();
       this.menu.hidden = !this.menu.hidden;
+      if (!this.menu.hidden) {
+        if (!this.modal.hidden) this.closeModal();
+        if (!this.chatEl.hidden) this.toggleChat(false);
+      }
+      this.#syncActive();
       if (this.menu.hidden) return;
       const tag = game.alliance ? ` <span class="muted">[${escapeHtml(game.alliance.tag)}]</span>` : '';
       this.menu.querySelector('.menu-user').innerHTML = `<span class="menu-avatar">${escapeHtml(game.state.banner?.emblem ?? '⚜')}</span>
@@ -360,6 +403,7 @@ export class Hud {
     this.modalKind = 'reports';
     this.modal.innerHTML = reportsHtml(this.game.reports);
     this.#reveal();
+    this.#syncActive();
     this.modal.querySelector('details')?.setAttribute('open', '');
     this.game.markReportsRead();
   }
@@ -367,6 +411,8 @@ export class Hud {
   /** Al abrir (no al redibujar) la ventana entra con su animación. */
   #reveal() {
     this.menu.hidden = true;
+    if (!this.chatEl.hidden) this.toggleChat(false);
+    this.#syncActive();
     if (!this.modal.hidden) return;
     this.modal.hidden = false;
     this.modal.classList.add('opening');
@@ -378,6 +424,7 @@ export class Hud {
   showModal(kind, html) {
     this.modalKind = kind;
     this.#reveal();
+    this.#syncActive();
     if (html) this.#setHtml(this.modal, 'modal', html);
   }
 
@@ -385,6 +432,7 @@ export class Hud {
     this.modalKind = kind;
     this.cache.modal = '';
     this.#reveal();
+    this.#syncActive();
     if (kind === 'ranking') {
       this.modal.innerHTML = '<div class="modal-card narrow"><p class="muted">Cargando la clasificación…</p></div>';
       try {
@@ -402,6 +450,20 @@ export class Hud {
     this.modalKind = null;
     this.modal.hidden = true;
     this.modal.innerHTML = '';
+    this.#syncActive();
+  }
+
+  /**
+   * Resalta en la barra de abajo el botón de lo que está abierto (una ventana, el chat o las
+   * opciones). Solo hay una cosa abierta a la vez: abrir otra cierra la anterior.
+   */
+  #syncActive() {
+    const open = !this.modal.hidden && this.modalKind ? ACTIVE_BUTTON[this.modalKind] : null;
+    for (const btn of this.actionbar.querySelectorAll(':scope > button')) {
+      const on = btn.id === open || (btn.id === 'chat-btn' && !this.chatEl.hidden) || (btn.id === 'menu-btn' && !this.menu.hidden);
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', String(on));
+    }
   }
 
   #renderModal() {
@@ -852,7 +914,7 @@ export class Hud {
         const from = root.querySelector('[name="t-from"]').value;
         const to = root.querySelector('[name="t-to"]').value;
         const amount = Number(root.querySelector('[name="t-amount"]').value);
-        await this.#run(btn, () => game.trade(from, to, amount), (res) => `⚖️ Cambiados ${RESOURCES[from].icon} ${fmtNum(res.paid)} por ${RESOURCES[to].icon} ${fmtNum(res.got)}`, 'coins');
+        await this.#run(btn, () => game.trade(from, to, amount), (res) => `⚖️ Cambiados ${RESOURCES[from].emoji} ${fmtNum(res.paid)} por ${RESOURCES[to].emoji} ${fmtNum(res.got)}`, 'coins');
         break;
       }
       case 'open-map':
@@ -1177,6 +1239,11 @@ export class Hud {
 
   toggleChat(open = this.chatEl.hidden, channel = this.chatChannel) {
     this.chatEl.hidden = !open;
+    if (open) {
+      this.menu.hidden = true;
+      if (!this.modal.hidden) this.closeModal();
+    }
+    this.#syncActive();
     if (!open) return;
     this.chatChannel = (channel === 'alianza' && !this.game.alliance) || (channel === 'gesta' && !this.#featChatOpen()) ? 'global' : channel;
     this.#renderChat(true);

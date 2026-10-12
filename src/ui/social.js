@@ -14,7 +14,7 @@ const head = (icon, title, sub, guide = '') => `
   <div class="panel-head"><span class="panel-icon">${icon}</span><div><h3>${title}</h3><div class="panel-lvl">${sub}</div></div>
   ${guide ? `<button class="icon-btn help-btn" data-guide="${guide}" title="Qué es esto (guía)">?</button>` : ''}<button class="icon-btn" data-action="close-modal" title="Cerrar">✕</button></div>`;
 
-const resOptions = (sel) => RESOURCE_KEYS.map((r) => `<option value="${r}" ${r === sel ? 'selected' : ''}>${RESOURCES[r].icon} ${RESOURCES[r].name}</option>`).join('');
+const resOptions = (sel) => RESOURCE_KEYS.map((r) => `<option value="${r}" ${r === sel ? 'selected' : ''}>${RESOURCES[r].emoji} ${RESOURCES[r].name}</option>`).join('');
 
 export class Social {
   constructor(hud) {

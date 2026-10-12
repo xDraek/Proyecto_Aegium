@@ -1227,7 +1227,7 @@ function fundicion(level) {
   cart.position.set(-1.7, 0, 1.35);
   cart.rotation.y = 0.5;
   g.add(cart);
-  // Lingotes apilados en el patio (más con el nivel), de bronce y de hierro
+  // Lingotes de bronce apilados en el patio (más con el nivel), recién fundidos y ya oscurecidos
   const ingots = Math.min(12, 3 + level);
   for (let i = 0; i < ingots; i++) {
     const layer = Math.floor(i / 4);
@@ -1235,7 +1235,7 @@ function fundicion(level) {
     const across = layer % 2 === 1;
     const x = 0.65 + (across ? 0.3 : k * 0.2);
     const z = 1.2 + (across ? k * 0.12 - 0.18 : 0);
-    const ing = box(across ? 0.76 : 0.14, 0.1, across ? 0.1 : 0.36, i % 3 ? '#b07a3a' : '#8fa3bf', x, layer * 0.1, z, { metalness: 0.6, roughness: 0.35 });
+    const ing = box(across ? 0.76 : 0.14, 0.1, across ? 0.1 : 0.36, i % 3 ? '#b07a3a' : '#8a5a2a', x, layer * 0.1, z, { metalness: 0.6, roughness: 0.35 });
     g.add(ing);
   }
   // Bancales de piedra seca al borde del patio
@@ -2671,7 +2671,7 @@ export function createSoldier(id) {
     return g;
   }
   if (id === 'catafracto') {
-    // Caballo y jinete cubiertos de escamas de hierro, con lanza larga (contus)
+    // Caballo y jinete cubiertos de escamas de bronce, con lanza larga (contus)
     const back = horse(g, '#5a4636');
     g.add(box(0.24, 0.16, 0.5, IRON, 0, 0.3, 0), box(0.12, 0.16, 0.14, IRON, 0, 0.42, 0.28));
     for (let k = 0; k < 5; k++) g.add(box(0.245, 0.012, 0.5, '#6e737a', 0, 0.33 + k * 0.025, 0));
