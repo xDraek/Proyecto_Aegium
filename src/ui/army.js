@@ -53,7 +53,7 @@ function fleetRows(game) {
       const from = m.fromName ? ` <span class="muted small">desde ${escapeHtml(m.fromName)}</span>` : '';
       const feat = m.feat != null && m.phase === 'estacionada' ? featWait(game, m) : null;
       if (feat) {
-        what = `${feat.icon} Esperando a ${feat.enemy} en ${target}`;
+        what = m.post != null ? `⚓ Fondeadero ${m.post + 1} de ${target}` : `${feat.icon} Esperando a ${feat.enemy} en ${target}`;
         when = `${feat.label} en <span data-until="${feat.until}"></span>`;
       } else if (m.phase === 'estacionada') {
         what = `${{ invadir: '🦅 Ocupando', bloquear: '⛓️ Bloqueando' }[m.type] ?? '🛡️ Defendiendo'} ${target}`;

@@ -88,7 +88,7 @@ function featsHtml(feats) {
   const hall = feats.hall
     .map((h) => {
       const t = FEAT_THEMES[h.theme];
-      const best = [h.top ? `⚡ ${escapeHtml(h.top)}` : '', h.heart ? `🦁 ${escapeHtml(h.heart)}` : ''].filter(Boolean).join(' · ');
+      const best = [h.top ? `⚡ ${escapeHtml(h.top)}` : '', h.heart ? `🦁 ${escapeHtml(h.heart)}` : '', h.navarch ? `⚓ ${escapeHtml(h.navarch)}` : ''].filter(Boolean).join(' · ');
       return `<li><span>${t?.icon ?? '🌋'} ${escapeHtml(t?.enemy ?? '')} en ${escapeHtml(h.siteName)} <span class="muted small">· ${date(h.t)} · ${h.players} imperios</span></span>
         <span class="small">${FEAT_RESULT[h.result] ?? ''}${best ? ` · ${best}` : ''}</span></li>`;
     })

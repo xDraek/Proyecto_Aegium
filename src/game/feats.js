@@ -161,8 +161,14 @@ export function capRest(values) {
 }
 
 /** Meta de la fragua: horas de la producción de todos los juramentados (con el tope «el resto»). */
-export function forgeGoal(prods) {
-  return Math.round(FEATS.forge.hours * capRest(prods).reduce((a, b) => a + b, 0));
+export function forgeGoal(prods, hours = FEATS.forge.hours) {
+  return Math.round(hours * capRest(prods).reduce((a, b) => a + b, 0));
+}
+
+/** Horas de la meta de la fragua de un tema (la Hidra la usa para la brea). */
+export function forgeHours(themeId) {
+  const th = FEAT_THEMES[themeId];
+  return th?.forge === 'brea' ? th.tune.brea : FEATS.forge.hours;
 }
 
 /** Cuánto valor puede ofrendar aún un jugador (`prod`: su producción por hora al jurar). */
@@ -199,12 +205,17 @@ export function forgeValue(bag) {
 // ── El enemigo ───────────────────────────────────────────────────────────────
 
 /**
- * El enemigo de una gesta según el poder jurado (ya con su tope) y el nivel del sitio: cuántos
- * hijos echa en cada fase y los multiplicadores de las cabezas.
+ * El enemigo de una gesta según el poder jurado (ya con su tope) y el nivel del sitio. En Tifón,
+ * cuántos hijos echa en cada fase y los multiplicadores de las cabezas; en la Armada, las escuadras
+ * de los fondeaderos (`ctx.posts`, y `ctx.mariners`: el poder naval de cada juramentado) y el
+ * campamento; en la Hidra, sus cabezas y la brea que cuesta cauterizar cada una (`ctx.prods`).
  */
-export function featBoss(themeId, P, tier = 0) {
-  const T = FEAT_THEMES[themeId].tune;
+export function featBoss(themeId, P, tier = 0, ctx = {}) {
+  const th = FEAT_THEMES[themeId];
+  const T = th.tune;
   const k = 1 + FEATS.tierStep * tier;
+  if (th.kind === 'armada') return armadaBoss(T, P, k, ctx);
+  if (th.kind === 'hidra') return hydraBoss(T, P, k, ctx);
   return {
     sierpe: Math.max(3, Math.round((k * T.sierpes * Math.max(P.AM, 0.08 * P.AL)) / UNITS.sierpe.hp)),
     gigante: Math.max(10, Math.round((k * T.gigantes * P.AL) / UNITS.gigante.hp)),
@@ -212,6 +223,39 @@ export function featBoss(themeId, P, tier = 0) {
     headHp: Math.max(0.5, (k * T.headHp * P.AL) / 100_000),
     headAtk: Math.max(0.2, (k * T.headAtk * P.HL) / 10_000),
     lava: k * T.lava * P.HL,
+  };
+}
+
+/** La Armada: una escuadra por fondeadero (medida por el K-ésimo mejor marino) y el campamento. */
+function armadaBoss(T, P, k, { posts = 3, mariners = [] } = {}) {
+  const K = Math.max(1, posts);
+  const sorted = [...mariners].sort((a, b) => Math.sqrt(b.AM * b.HM) - Math.sqrt(a.AM * a.HM));
+  const m = sorted[Math.min(K, sorted.length) - 1] ?? { AM: 0, HM: 0 };
+  const squad = Math.max(3, Math.round((k * T.squad * Math.sqrt(m.AM * m.HM)) / 49));
+  // Paquetes de 3 inmortales y 2 arqueros
+  const packHp = 3 * UNITS.inmortal.hp + 2 * UNITS.arquero_persa.hp;
+  const packAtk = 3 * UNITS.inmortal.atk + 2 * UNITS.arquero_persa.atk;
+  const packs = Math.max(10, Math.round((k * T.camp * P.AL) / packHp));
+  return {
+    kind: 'armada',
+    posts: Array.from({ length: K }, () => ({ squad, full: squad, holder: null, held: 0, freeWaves: 0 })),
+    inmortal: 3 * packs,
+    arquero_persa: 2 * packs,
+    campAtk: Math.max(0.2, (k * T.campAtk * P.HL) / (packs * packAtk)),
+    hunger: 0,
+  };
+}
+
+/** La Hidra: nueve cabezas que reparten su vida y su daño, y la brea que pide cada una. */
+function hydraBoss(T, P, k, { prods = [] } = {}) {
+  const heads = T.heads;
+  return {
+    kind: 'hidra',
+    hidra: heads,
+    headHp: Math.max(0.5, (k * T.life * P.AL) / heads / UNITS.hidra.hp),
+    headAtk: Math.max(0.2, (k * T.atk * P.HL) / UNITS.hidra.atk),
+    brea: Math.max(1, Math.round(forgeGoal(prods, T.brea) / heads)),
+    cut: 0,
   };
 }
 
@@ -225,6 +269,13 @@ export function phaseLife(boss, unit, n) {
 
 /** Qué parte de la vida total le queda al enemigo (de 0 a 1). */
 export function bossLeft(themeId, boss) {
+  const th = FEAT_THEMES[themeId];
+  if (th.kind === 'armada') {
+    const now = (boss.inmortal ?? 0) * UNITS.inmortal.hp + (boss.arquero_persa ?? 0) * UNITS.arquero_persa.hp;
+    const full = (boss.full?.inmortal ?? 0) * UNITS.inmortal.hp + (boss.full?.arquero_persa ?? 0) * UNITS.arquero_persa.hp;
+    return full ? now / full : 0;
+  }
+  if (th.kind === 'hidra') return Math.min(1, (boss.hidra ?? 0) / th.tune.heads);
   let left = 0;
   let full = 0;
   for (const p of featPhases(themeId)) {

@@ -501,6 +501,11 @@ export const UNITS = {
   sierpe: { name: 'Sierpe marina', icon: '🐍', kind: 'barco', npc: true, atk: 14, hp: 300 },
   gigante: { name: 'Gigante', icon: '🗿', kind: 'tierra', npc: true, atk: 12, hp: 400 },
   cabeza: { name: 'Cabeza de Tifón', icon: '🐲', kind: 'tierra', npc: true, atk: 100, hp: 1000 },
+  // La Armada del Gran Rey y la Hidra de Lerna (gestas)
+  fenicia: { name: 'Trirreme fenicia', icon: '⛵', kind: 'barco', npc: true, atk: 30, hp: 80 },
+  inmortal: { name: 'Inmortal', icon: '🛡️', kind: 'tierra', npc: true, atk: 14, hp: 40 },
+  arquero_persa: { name: 'Arquero persa', icon: '🏹', kind: 'tierra', npc: true, atk: 12, hp: 14 },
+  hidra: { name: 'Cabeza de la Hidra', icon: '🐉', kind: 'tierra', npc: true, atk: 100, hp: 1000 },
 };
 
 export const UNIT_KEYS = Object.keys(UNITS);
@@ -883,6 +888,9 @@ export const RELICS = {
   // Solo se ganan en las gestas (`source`): no salen en ningún otro sitio
   rayozeus: { name: 'Rayo de Zeus', icon: '⚡', rarity: 'legendaria', stat: 'ataque', value: 0.1, text: '+10 % de ataque de tus tropas', source: 'tifon' },
   escama: { name: 'Escama de Tifón', icon: '🐉', rarity: 'epica', stat: 'defensa', value: 0.1, text: '+10 % de vida de tus tropas', source: 'tifon' },
+  tiara: { name: 'Tiara del Gran Rey', icon: '👑', rarity: 'legendaria', stat: 'botin', value: 0.3, text: '+30 % de botín', source: 'armada' },
+  remo: { name: 'Remo de Temístocles', icon: '🚣', rarity: 'epica', stat: 'velocidad', value: 0.12, text: '+12 % de velocidad de tus flotas', source: 'armada' },
+  nemea: { name: 'Piel del león de Nemea', icon: '🦁', rarity: 'legendaria', stat: 'defensa', value: 0.15, text: '+15 % de vida de tus tropas', source: 'hidra' },
 };
 export const RELIC_SLOTS = 3;
 export const RELIC_RARITY = {
@@ -947,6 +955,8 @@ export const ACHIEVEMENTS = [
   { id: 'liga', icon: '🏛️', name: 'Héroe de la Liga', text: 'Vence en 5 gestas', check: (g) => (g.stats.feats ?? 0) >= 5 },
   { id: 'azote', icon: '⚡', name: 'Azote de Tifón', text: 'Sé quien más gloria gana en una gesta', check: (g) => (g.stats.featTop ?? 0) >= 1 },
   { id: 'corazon', icon: '🦁', name: 'Corazón de león', text: 'Sé quien más se esfuerza en una gesta', check: (g) => (g.stats.featHeart ?? 0) >= 1 },
+  { id: 'navarco', icon: '⚓', name: 'Navarco', text: 'Sostén más que nadie un fondeadero contra la Armada del Gran Rey', check: (g) => (g.stats.featNavarch ?? 0) >= 1 },
+  { id: 'heracles', icon: '🏺', name: 'Heracles', text: 'Vence a la Hidra de Lerna', check: (g) => (g.stats.featHydra ?? 0) >= 1 },
 ];
 
 // ── Almirante (héroe) ────────────────────────────────────────────────────────
@@ -1116,5 +1126,33 @@ export const FEAT_THEMES = {
     tune: { sierpes: 2.2, gigantes: 2.0, headHp: 6, headAtk: 0.045, heads: 100, furyAt: 50, fury: 1.3, lava: 0.015 },
     relics: ['rayozeus', 'escama'],
     emblem: '⚡', // emblema del estandarte para quien llega al tramo Oro en una victoria
+  },
+  armada: {
+    kind: 'armada',
+    name: 'La Armada del Gran Rey',
+    enemy: 'Jerjes',
+    icon: '👑',
+    text: 'La flota persa fondea frente al continente. Cerrad sus fondeaderos y asaltad el campamento mientras pasa hambre.',
+    phases: [
+      { unit: 'fenicia', name: 'Los fondeaderos', text: 'Una escuadra fenicia guarda cada fondeadero (uno frente a cada asentamiento). Tómalo con la misión Bloquear y solo barcos de guerra; tu flota se queda allí aguantando sus salidas. Otros pueden ir de escolta al mismo fondeadero.', glory: 0 },
+      { unit: 'inmortal', name: 'El campamento', text: 'Inmortales y arqueros tras una empalizada. Se asalta con la misión Atacar, con la coraza. Mientras quede algún fondeadero libre se rehace; con el cerco completo no y pasa hambre.', glory: 650 },
+    ],
+    // Escuadras, salidas, campamento, cerco y hambre (ver featBoss y WorldServer.#waveArmada)
+    tune: { squad: 0.6, sortie: 0.3, sortieStep: 0.15, regenWaves: 2, camp: 4, campAtk: 0.04, siegeHp: 0.35, hunger: 0.15, hungerMax: 0.45, wall: 0.5, towers: 0.1, postGlory: 25, takeGlory: 15, satrapyHours: 48, navarch: { rara: 20, epica: 60, legendaria: 20 } },
+    relics: ['tiara', 'remo'],
+    emblem: '👑',
+  },
+  hidra: {
+    kind: 'hidra',
+    name: 'La Hidra de Lerna',
+    enemy: 'la Hidra',
+    icon: '🐉',
+    text: 'En los pantanos del continente despierta la Hidra: cada cabeza que no se cauteriza vuelve como dos.',
+    phases: [{ unit: 'hidra', name: 'Las cabezas de la Hidra', text: 'Solo en tierra. Cada cabeza cortada y no cauterizada con la brea de la fragua vuelve como dos. La última, la inmortal, solo cae cauterizada y con al menos 3 imperios efectivos en la oleada.', glory: 1000 }],
+    // Cabezas, vida, daño y brea por cabeza (horas de la producción de todos repartidas entre 9)
+    tune: { heads: 9, maxHeads: 27, life: 6, atk: 0.005, brea: 1.5, finalCoop: 0.75 },
+    forge: 'brea', // la fragua no da ataque: hace la brea para cauterizar
+    relics: ['nemea'],
+    emblem: '🏺',
   },
 };

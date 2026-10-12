@@ -960,7 +960,7 @@ export class Hud {
       const feat = m.feat != null && m.phase === 'estacionada' ? featWait(game, m) : null;
       if (feat) {
         rows.push(`<div class="dock-row" data-select="${m.target}">
-          <div class="q-title"><span>${feat.icon} Esperando a ${escapeHtml(feat.enemy)}</span><span class="q-time" data-until="${feat.until}"></span></div>
+          <div class="q-title"><span>${m.post != null ? `⚓ Fondeadero ${m.post + 1}` : `${feat.icon} Esperando a ${escapeHtml(feat.enemy)}`}</span><span class="q-time" data-until="${feat.until}"></span></div>
           <button class="ghost small" data-action="recall" data-mission="${m.id}">Retirar</button></div>`);
         continue;
       }
@@ -1074,10 +1074,10 @@ export class Hud {
     const name = f.name;
     if (!f.pledged) {
       if (!f.convoked || !f.pledgeOpen) return null;
-      return { site: f.site, icon: f.icon, title: `¡${f.enemy} despierta en ${name}!`, text: f.stage === 'presagio' ? 'Estás convocado: jura la gesta · emerge en' : 'Aún puedes jurar la gesta · próxima oleada en', until: f.stage === 'presagio' ? f.start : f.nextWave };
+      return { site: f.site, icon: f.icon, title: `¡${f.Enemy} despierta en ${name}!`, text: f.stage === 'presagio' ? 'Estás convocado: jura la gesta · emerge en' : 'Aún puedes jurar la gesta · próxima oleada en', until: f.stage === 'presagio' ? f.start : f.nextWave };
     }
     if (this.game.state.missions.some((m) => m.target === f.site && m.phase !== 'vuelta')) return null;
-    return { site: f.site, icon: f.icon, title: `${f.enemy} en ${name}`, text: f.stage === 'presagio' ? 'Has jurado: manda tu flota · emerge en' : 'Has jurado y tu flota no está: mándala · próxima oleada en', until: f.stage === 'presagio' ? f.start : f.nextWave };
+    return { site: f.site, icon: f.icon, title: `${f.Enemy} en ${name}`, text: f.stage === 'presagio' ? 'Has jurado: manda tu flota · emerge en' : 'Has jurado y tu flota no está: mándala · próxima oleada en', until: f.stage === 'presagio' ? f.start : f.nextWave };
   }
 
   #renderVisitor() {
