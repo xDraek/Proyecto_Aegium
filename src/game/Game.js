@@ -132,7 +132,7 @@ export function newState({ now = clock.now(), home, name }) {
     notes: [],
     favor: 0,
     buffs: {},
-    stats: { spent: 0, victories: 0, raidsRepelled: 0, expeditions: 0, powers: 0, treasures: 0, kraken: 0, pvpWins: 0, trades: 0, transports: 0, kills: 0, loot: 0, conquests: 0, donated: 0, contestWins: 0, trained: 0, explorations: 0, exchanges: 0, upgrades: 0, researched: 0, sabotages: 0, feats: 0, featTop: 0, featHeart: 0 },
+    stats: { spent: 0, victories: 0, raidsRepelled: 0, expeditions: 0, powers: 0, treasures: 0, kraken: 0, pvpWins: 0, trades: 0, transports: 0, kills: 0, loot: 0, conquests: 0, donated: 0, contestWins: 0, trained: 0, explorations: 0, exchanges: 0, upgrades: 0, researched: 0, sabotages: 0, feats: 0, featTop: 0, featHeart: 0, featNavarch: 0, featHydra: 0 },
     daily: { last: null, streak: 0, best: 0 },
     hero: null,
     quests: { claimed: [] },
@@ -152,6 +152,8 @@ export function newState({ now = clock.now(), home, name }) {
     perjuryUntil: 0,
     // Emblemas del estandarte ganados (además de los de siempre)
     emblems: [],
+    // Estatua de una gesta ganada en tu isla: { theme, until }
+    statue: null,
     startedAt: now,
     seq: 1,
     lastUpdate: now,
@@ -659,6 +661,7 @@ export class Game extends EventTarget {
     const isl = this.world.island(id);
     if (!isl || isl.type !== 'continente') return this.#fail('Eso no es un continente.');
     if (!this.hasColonyOn(id)) return this.#fail('Necesitas una colonia en este continente para ayudar a levantar su maravilla.');
+    if ((this.world.islandState(id)?.satrapyUntil ?? 0) > now) return this.#fail('El continente es ahora una satrapía del Gran Rey: nadie puede trabajar en su maravilla por un tiempo.');
     const gift = {};
     for (const r of WONDER_RESOURCES) {
       const n = Math.floor(Number(bag?.[r]) || 0);
@@ -889,6 +892,8 @@ export class Game extends EventTarget {
         port: p?.port ?? null,
         // Hasta cuándo está a salvo de bloqueos e invasiones (recién liberada)
         shield: isShielded(p?.shieldFrom, p?.shield, t) ? p.shield : null,
+        // Estatua de una gesta ganada (una semana)
+        statue: p?.statue && p.statue.until > t ? p.statue.theme : null,
       });
       // Las ciudades de tu alianza las conoces sin espiarlas
       if (view.relation === 'aliado') view.explored = true;
@@ -1106,10 +1111,18 @@ export class Game extends EventTarget {
     // Un continente solo se ataca cuando hay una horda bárbara o una gesta en él
     const feat = rt?.feat && (rt.feat.stage === 'presagio' || rt.feat.stage === 'lucha') ? rt.feat : null;
     if (isl.type === 'continente' && feat) {
-      if (type !== 'atacar') reason ||= `Contra ${FEAT_THEMES[feat.theme].enemy} solo se puede atacar.`;
+      const fth = FEAT_THEMES[feat.theme];
+      const armada = fth.kind === 'armada';
+      const posts = armada ? (feat.boss?.posts?.length ?? this.world.sitesOn(target).length) : 0;
+      if (type !== 'atacar' && !(armada && type === 'bloquear')) reason ||= armada ? `Contra ${fth.enemy} se ataca su campamento o se bloquean sus fondeaderos.` : `Contra ${fth.enemy} solo se puede atacar.`;
       else if (!feat.pledged?.[this.userId]) reason ||= feat.convoked?.includes(this.userId) ? 'Jura primero la gesta desde el panel del continente.' : 'No te han convocado a esta gesta.';
-      else if (s.missions.some((m) => m.target === target && m.phase !== 'vuelta')) reason ||= 'Ya tienes una flota de camino o esperando: espera a que combata en la oleada.';
+      else if (s.missions.some((m) => m.target === target && m.type === type && m.phase !== 'vuelta'))
+        reason ||= type === 'bloquear' ? 'Ya tienes una flota en un fondeadero o de camino: solo puedes sostener uno.' : 'Ya tienes una flota de camino o esperando: espera a que combata en la oleada.';
       else if (this.now() + seconds * 1000 >= feat.end) reason ||= 'Tu flota no llegaría antes de que acabe la gesta.';
+      if (type === 'bloquear') {
+        if (Object.keys(sent).some((id) => UNITS[id].kind !== 'barco' || !(UNITS[id].atk > 0))) reason ||= 'A los fondeaderos solo van barcos de guerra.';
+        if (!(Number.isInteger(opts.post) && opts.post >= 0 && opts.post < posts)) reason ||= 'Elige a qué fondeadero va tu flota.';
+      } else if (!hasCombat(sent)) reason ||= 'Envía al menos una unidad de combate.';
       if (withHero) reason ||= 'Tu almirante no va a las gestas: se queda defendiendo la capital.';
     } else if (isl.type === 'continente' && !(type === 'atacar' && rt?.horde)) reason ||= rt?.horde ? 'Contra la horda solo se puede atacar.' : 'Es un continente: elige una de sus ciudades o tierras.';
     if (opts.join) {
@@ -1203,6 +1216,7 @@ export class Game extends EventTarget {
       if (!hasCombat(sent)) reason ||= 'Envía al menos una unidad de combate.';
     } else if (type === 'colonizar') {
       const colonies = s.colonies.length;
+      if (isl.land && (this.world.islandState(isl.land)?.satrapyUntil ?? 0) > this.now()) reason ||= 'El continente es ahora una satrapía del Gran Rey: nadie puede fundar colonias en él por un tiempo.';
       const max = maxColonies(s);
       if (!view.explored) reason ||= 'Explora la isla antes de mandar colonos.';
       else if (isl.type !== 'libre') reason ||= 'Solo puedes colonizar islas deshabitadas.';
@@ -1216,6 +1230,7 @@ export class Game extends EventTarget {
     } else if (type === 'conquistar') {
       // Vencer a la guarnición y quedarse con la ciudad: un ataque con colonos detrás
       const colonies = s.colonies.length;
+      if (isl.land && (this.world.islandState(isl.land)?.satrapyUntil ?? 0) > this.now()) reason ||= 'El continente es ahora una satrapía del Gran Rey: nadie puede conquistar en él por un tiempo.';
       const max = maxColonies(s);
       if (isl.type !== 'ciudadela') reason ||= 'Solo se pueden conquistar las ciudades bárbaras de los continentes.';
       else if (!view.explored) reason ||= 'Espía la ciudad antes de intentar conquistarla.';
@@ -1227,7 +1242,8 @@ export class Game extends EventTarget {
       if (!sent.mercante) reason ||= 'Los colonos viajan en un barco mercante.';
       cost = colonyCost(colonies + pendingColonies);
       if (!canAfford(s.resources, cost)) reason ||= 'No tienes los recursos para gobernar la ciudad.';
-    } else {
+    } else if (!(type === 'bloquear' && isl.type === 'continente' && FEAT_THEMES[feat?.theme]?.kind === 'armada')) {
+      // (los fondeaderos de la Armada ya se han comprobado arriba)
       reason ||= 'Esa misión no se puede hacer en esta isla.';
     }
     return { ok: !reason, reason, units: sent, seconds, travel, capacity, used, cargo, ships, cost, load, joint, base };
@@ -1257,6 +1273,8 @@ export class Game extends EventTarget {
       ...(plan.joint ? { joint: opts.join, leader: plan.joint.leader, trip: plan.travel * 1000 } : {}),
       // Si zarpa de una ciudad ocupada, vuelve a ella
       ...(plan.base ? { from: plan.base.target, fromName: plan.base.targetName, base: plan.base.id } : {}),
+      // A qué fondeadero va (gesta de la Armada)
+      ...(type === 'bloquear' && Number.isInteger(opts.post) ? { post: opts.post } : {}),
     });
     if (opts.hero) this.state.hero.mission = this.state.missions.at(-1).id;
     // Lo que cuenta para el límite de ataques al mismo jugador
@@ -1266,7 +1284,7 @@ export class Game extends EventTarget {
       this.state.hits = [...(this.state.hits ?? []).filter((h) => h.t > since), { uid: owner, t: now }];
     }
     // Quien bloquea o invade pierde su propia protección
-    if (type === 'invadir' || type === 'bloquear') this.state.shieldFrom = this.state.shieldUntil = 0;
+    if ((type === 'invadir' || type === 'bloquear') && owner != null) this.state.shieldFrom = this.state.shieldUntil = 0;
     return this.#done();
   }
 
@@ -1276,7 +1294,7 @@ export class Game extends EventTarget {
     const m = this.state.missions.find((x) => x.id === id);
     if (!m || (m.phase !== 'ida' && m.phase !== 'estacionada')) return this.#fail('Esa flota ya no puede volver.');
     // Levantar un bloqueo o dejar una ciudad ocupada: el tributo pendiente se va con las tropas
-    if (m.phase === 'estacionada' && (m.type === 'bloquear' || m.type === 'invadir')) {
+    if (m.phase === 'estacionada' && m.feat == null && (m.type === 'bloquear' || m.type === 'invadir')) {
       this.endStation(m, now, 'retirada');
       return this.#done();
     }
@@ -1422,7 +1440,10 @@ export class Game extends EventTarget {
       k: f.k,
       theme: f.theme,
       themeName: theme.name,
+      themeText: theme.text,
       enemy: theme.enemy,
+      // El nombre para empezar una frase («La Hidra»)
+      Enemy: theme.enemy.charAt(0).toUpperCase() + theme.enemy.slice(1),
       icon: theme.icon,
       stage: f.stage,
       omen: f.omen,
@@ -1432,6 +1453,9 @@ export class Game extends EventTarget {
       result: f.result ?? null,
       tier: f.tier ?? 0,
       boss: f.boss,
+      kind: theme.kind ?? 'tifon',
+      // Armada: quién sostiene cada fondeadero
+      posts: f.boss?.posts?.map((p, i) => ({ ...p, i, holderName: p.holder != null ? (f.pledged?.[p.holder]?.name ?? f.names?.[p.holder] ?? '¿?') : null, mine: p.holder === this.userId })) ?? null,
       phases: theme.phases,
       convoked: !!f.convoked?.includes(this.userId),
       convokedCount: f.convoked?.length ?? 0,
@@ -1505,14 +1529,14 @@ export class Game extends EventTarget {
     if (info) {
       const theme = FEAT_THEMES[info.theme];
       this.#report({ t, kind: 'gesta', island: info.site, islandName: info.siteName, title: `${theme.icon} ${theme.name}`, text: `${theme.text} Los imperios cercanos estáis convocados en ${info.siteName}: jura la gesta desde el panel del continente y manda tu flota antes de cada oleada.` });
-      this.#note(`${theme.icon} ¡${theme.enemy} despierta en ${info.siteName}! Estás convocado a la gesta`, 'info');
+      this.#note(`${theme.icon} ¡${theme.enemy.charAt(0).toUpperCase() + theme.enemy.slice(1)} despierta en ${info.siteName}! Estás convocado a la gesta`, 'info');
     }
     this.#dirty = true;
   }
 
   /** Tu flota llega al continente de la gesta: espera allí a la próxima oleada. */
   #arriveFeat(m, isl, t) {
-    const res = this.world.featArrive?.(isl.id, this.userId, t);
+    const res = this.world.featArrive?.(isl.id, this.userId, t, m);
     if (!res?.ok) {
       this.#report({ t, kind: 'gesta', island: isl.id, islandName: isl.name, title: `Nada que hacer en ${isl.name}`, text: res?.reason ?? 'La gesta ya ha terminado. La flota vuelve a casa.' });
       return;
@@ -1521,23 +1545,23 @@ export class Game extends EventTarget {
     m.feat = isl.id;
     m.waitSince = t;
     m.stationedAt = t;
-    this.#note(`${res.icon} Tu flota espera a ${res.enemy} frente a ${isl.name}: combatirá en la próxima oleada`, 'info');
+    this.#note(res.post != null ? `${res.icon} Tu flota llega al fondeadero ${res.post + 1} frente a ${isl.name}: luchará por él en la próxima oleada` : `${res.icon} Tu flota espera a ${res.enemy} frente a ${isl.name}: combatirá en la próxima oleada`, 'info');
   }
 
   /** Tu flota ha combatido en una oleada: vuelve a casa con los que queden. */
-  settleFeat(m, { left, lost, kills = 0, report, result }, t) {
+  settleFeat(m, { left, lost, kills = 0, report, result, stay = false }, t) {
     m.units = clean(left);
     this.#mercsLost(lost ?? {});
     this.state.stats.kills += kills;
     if (report) this.#report(result ? { ...report, battle: pick(result) } : report);
     if (report) this.#note(`${report.icon ?? '🌋'} ${report.title}`, report.outcome === 'derrota' ? 'error' : 'success');
     this.#dirty = true;
-    if (count(m.units) > 0) {
+    if (!count(m.units)) this.state.missions = this.state.missions.filter((x) => x !== m);
+    else if (stay) return; // en un fondeadero de la Armada: se queda
+    else {
       m.phase = 'vuelta';
       m.turn = t;
       m.back = t + (m.arrive - m.depart);
-    } else {
-      this.state.missions = this.state.missions.filter((x) => x !== m);
     }
   }
 
@@ -1562,8 +1586,10 @@ export class Game extends EventTarget {
   }
 
   /** Lo que ganas (o recuperas) al acabar una gesta. */
-  receiveFeatReward({ bag, blessingHours = 0, wounded, relic, theme, top, heart, won, report, emblem }, t) {
+  receiveFeatReward({ bag, blessingHours = 0, wounded, relic, theme, top, heart, won, report, emblem, navarch, statue }, t) {
     const s = this.state;
+    // Estatua en tu isla (los tres de más gloria en una victoria)
+    if (statue) s.statue = statue;
     // Un emblema nuevo para el estandarte (tramo Oro en una victoria)
     if (emblem && !(s.emblems ?? []).includes(emblem)) {
       s.emblems = [...(s.emblems ?? []), emblem];
@@ -1575,6 +1601,8 @@ export class Game extends EventTarget {
     if (won) s.stats.feats = (s.stats.feats ?? 0) + 1;
     if (top) s.stats.featTop = (s.stats.featTop ?? 0) + 1;
     if (heart) s.stats.featHeart = (s.stats.featHeart ?? 0) + 1;
+    if (navarch) s.stats.featNavarch = (s.stats.featNavarch ?? 0) + 1;
+    if (won && FEAT_THEMES[theme]?.kind === 'hidra') s.stats.featHydra = (s.stats.featHydra ?? 0) + 1;
     if (s.feat) s.feat.result = report?.outcome ?? null;
     if (report) this.#report(report);
     if (report) this.#note(`${FEAT_THEMES[theme]?.icon ?? '🌋'} ${report.title}${fmtBag(bag) ? ` · ${fmtBag(bag)}` : ''}`, won ? 'success' : 'error');
@@ -1583,6 +1611,8 @@ export class Game extends EventTarget {
       if (relic.chance == null) this.#findRelic(t, where, relic, theme);
       else if (Math.random() < relic.chance) this.#findRelic(t, where, relic.weights, theme);
     }
+    // El Navarco de la Armada se lleva además una reliquia segura
+    if (navarch) this.#findRelic(t, 'en la galera capitana persa', navarch, theme);
     this.#dirty = true;
   }
 
@@ -2038,6 +2068,7 @@ export class Game extends EventTarget {
       else if (m.type === 'bloquear') this.#arriveBlockade(m, isl, t);
       else this.#arrivePlayerAttack(m, isl, t);
     } else if (m.type === 'explorar') this.#arriveExplore(m, isl, t);
+    else if (m.type === 'bloquear' && isl.type === 'continente') this.#arriveFeat(m, isl, t);
     else if (m.type === 'atacar') {
       if (isl.type !== 'continente') this.#arriveAttack(m, isl, t);
       // Una gesta (en marcha o ya acabada, si no ha llegado otra horda) da su propio motivo al llegar

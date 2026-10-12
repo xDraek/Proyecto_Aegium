@@ -91,6 +91,8 @@ const ACTIONS = {
           join: typeof opts?.join === 'string' && opts.join.length < 40 ? opts.join : undefined,
           // Zarpar desde una ciudad ocupada: el id de la misión que la ocupa
           from: opts?.from != null && int(opts.from) >= 0 ? int(opts.from) : undefined,
+          // Fondeadero de la Armada del Gran Rey
+          post: opts?.post != null && int(opts.post) >= 0 && int(opts.post) < 16 ? int(opts.post) : undefined,
         })
       : bad(),
   hireHero: (g, [name]) => g.hireHero(typeof name === 'string' ? name : ''),

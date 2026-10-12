@@ -194,12 +194,12 @@ function featCoopTable() {
 }
 
 /** Las fases de cada gesta: dónde se lucha, contra qué y cuánta gloria da. */
-function featPhasesTable() {
-  return Object.values(FEAT_THEMES)
+function featPhasesTable(th) {
+  return [th]
     .map((th) =>
       table(
         ['Fase', 'Enemigo', 'Cómo', 'Gloria'],
-        th.phases.map((p, i) => [`${i + 1}. <b>${p.name}</b>`, unitName(p.unit), p.text, fmtNum(p.glory)]),
+        th.phases.map((p, i) => [`${i + 1}. <b>${p.name}</b>`, unitName(p.unit), p.text, p.glory ? fmtNum(p.glory) : 'por oleada']),
       ),
     )
     .join('');
@@ -554,7 +554,10 @@ const TOPICS = {
       const T = th.tune;
       const bands = ['🥉 Bronce', '🥈 Plata', '🥇 Oro'];
       const F = FEATS.forge;
-      return `<p>Cada ${FEATS.periodDays} días de juego, más o menos, despierta un enemigo de leyenda en algunos continentes: <b>${th.name}</b> ${th.icon}. Ningún imperio puede vencerlo solo, ni siquiera el más grande: hay que combatir <b>juntos</b>. No es para ganar la partida: es una hazaña con un buen botín para todos los que luchan.</p>
+      const A = FEAT_THEMES.armada;
+      const H = FEAT_THEMES.hidra;
+      const themes = Object.values(FEAT_THEMES);
+      return `<p>Cada ${FEATS.periodDays} días de juego, más o menos, despierta un enemigo de leyenda en algunos continentes: ${themes.map((x) => `<b>${x.name}</b> ${x.icon}`).join(', ').replace(/, ([^,]*)$/, ' o $1')} (nunca la misma dos veces seguidas). Ningún imperio puede vencerlo solo, ni siquiera el más grande: hay que combatir <b>juntos</b>. No es para ganar la partida: es una hazaña con un buen botín para todos los que luchan.</p>
       <h5>1. Convocatoria y juramento</h5>
       ${list([
         `Empieza con <b>${FEATS.omenHours} h de presagios</b>. En cada continente se convoca a los imperios más cercanos (a menos de ${fmtNum(FEATS.radius)} leguas; si faltan, hasta ${fmtNum(FEATS.radiusMax)}): de ${FEATS.minConvoked} a ${FEATS.maxConvoked} por continente.`,
@@ -570,8 +573,28 @@ const TOPICS = {
         `Si en una oleada no combate nadie (o la coraza no deja pasar nada), el enemigo se rehace un ${pct(FEATS.regrow)}.`,
         'Mientras hay una gesta en un continente, allí no llegan hordas.',
       ])}
-      ${featPhasesTable()}
+      <h5>${th.icon} ${th.name}</h5>
+      <p>${th.text}</p>
+      ${featPhasesTable(th)}
       <p class="muted small">Las cabezas entran en furia cuando quedan ${T.furyAt}: pegan un ${pct(T.fury - 1)} más y escupen lava. El enemigo se mide con lo que juran todos: más sierpes si hay muchos barcos, más gigantes y cabezas más duras si hay mucha tierra.</p>
+      <h5>${A.icon} ${A.name}</h5>
+      <p>${A.text}</p>
+      ${featPhasesTable(A)}
+      ${list([
+        '<b>Fondeaderos</b>: hay uno frente a cada asentamiento del continente. Manda <b>solo barcos de guerra</b> con la misión «Al fondeadero» y elige cuál. Si vencéis a su escuadra lo tomáis y la flota <b>se queda</b> allí; en cada oleada aguanta una salida mayor que la anterior. Cada jugador sostiene uno solo, pero otros pueden ir de <b>escolta</b> al mismo. Las escuadras se miden con la marina de los juramentados.',
+        `Un fondeadero libre se rehace entero si nadie lo toma en ${A.tune.regenWaves} oleadas. Sostenerlo da ${A.tune.postGlory} de gloria por oleada (el doble con el cerco completo) y tomarlo, ${A.tune.takeGlory}.`,
+        `<b>El campamento</b> se asalta con «Atacar», con la coraza. Lo defienden sus inmortales y arqueros tras una empalizada (+${pct(A.tune.wall)} de vida) y torres; las escuadras de los fondeaderos libres le guardan el mar. Cada fondeadero libre le da +${pct(A.tune.siegeHp)} de vida y le deja recuperar parte de lo que pierde.`,
+        `<b>Cerco completo</b> (todos los fondeaderos tomados): no se rehace y pasa hambre, un ${pct(A.tune.hunger)} menos de vida por oleada (hasta ${pct(A.tune.hungerMax)}).`,
+        `⚓ <b>Navarco</b>: quien más oleadas aguantó en un fondeadero se lleva una reliquia segura. Si gana la Armada, el continente queda <b>${A.tune.satrapyHours} h como satrapía</b>: ni maravilla ni colonias nuevas.`,
+      ])}
+      <h5>${H.icon} ${H.name}</h5>
+      <p>${H.text}</p>
+      ${featPhasesTable(H)}
+      ${list([
+        `Empieza con <b>${H.tune.heads} cabezas</b>, solo en tierra (manda tropas con barcos que las lleven). Cada cabeza cortada que no se cauteriza vuelve como <b>dos</b> en la siguiente oleada (como mucho ${H.tune.maxHeads}).`,
+        `Para cauterizar hace falta <b>brea</b>: aquí la fragua no da ataque, hace brea. Su meta son ${H.tune.brea} h de la producción de todos, y cada cabeza cauterizada gasta su parte. Sin ofrendas, la Hidra crece: los pacíficos son tan necesarios como los guerreros.`,
+        `La última cabeza, la <b>inmortal</b>, solo cae cauterizada y en una oleada con la coraza dejando pasar al menos el ${pct(H.tune.finalCoop)} del daño.`,
+      ])}
       <h5>3. La coraza 🛡️</h5>
       <p>El daño que le hacéis depende de cuántos <b>imperios efectivos</b> combaten en la oleada: (suma de fuerzas)² ÷ suma de los cuadrados. Cuatro imperios iguales son 4; uno muy grande con tres pequeños, poco más de 1. Así lo que cuenta es que combatan muchos a la vez, no uno solo enorme.</p>
       ${featCoopTable()}
@@ -591,7 +614,8 @@ const TOPICS = {
         `<b>Bendición del Olimpo</b> (Plata y Oro): +${pct(R.blessing)} de producción durante ${R.blessingHours} h.`,
         `<b>Heridos</b>: al acabar vuelven a casa el ${pct(R.wounded[0])} de tus caídos si se gana y el ${pct(R.wounded[1])} si se pierde.`,
         `⚡ <b>Azote de ${th.enemy}</b> (más gloria): +${pct(R.topBonus - 1)} de botín personal y una reliquia legendaria. 🦁 <b>Corazón de león</b> (quien más esfuerzo ha puesto, con al menos el ${pct1(R.heartMinGlory)} de la gloria): otra legendaria. El 2.º y el 3.º en gloria se llevan una épica o legendaria; los demás, una probabilidad (${R.relicChance.map(pct).join(' / ')} según su tramo).`,
-        `Hay reliquias que solo salen en esta gesta: ${th.relics.map((id) => `${RELICS[id].icon} ${RELICS[id].name}`).join(' y ')}. Quien llega a 🥇 Oro en una victoria gana además el emblema ${th.emblem} para su estandarte.`,
+        `Cada gesta tiene sus reliquias: ${themes.map((x) => `${x.icon} ${x.relics.map((id) => `${RELICS[id].icon} ${RELICS[id].name}`).join(' y ')}`).join(' · ')}. Quien llega a 🥇 Oro en una victoria gana además su emblema para el estandarte (${themes.map((x) => x.emblem).join(' ')}).`,
+        '🗿 Los tres con más gloria de una victoria levantan una <b>estatua</b> en su isla durante una semana: todo el archipiélago la ve.',
         'Los premios se pagan en lo que produces (y algo de oro y cristal), así que valen lo mismo para un imperio pequeño que para uno grande.',
       ])}
       <h5>5. Resultados</h5>

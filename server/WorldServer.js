@@ -1,9 +1,9 @@
 import { clock, universe } from '../src/config.js';
 import { RESOURCES } from '../src/game/data.js';
 import { assault, battle, combineGroups, count, hasCombat, shareSurvivors, splitForces } from '../src/game/combat.js';
-import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, forgeBonus, forgeGoal, forgeRoom, pledgeEmpires, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
+import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, forgeBonus, forgeGoal, forgeHours, forgeRoom, pledgeEmpires, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
 import { Game, newState } from '../src/game/Game.js';
-import { ACHIEVEMENTS, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, WONDERS } from '../src/game/data.js';
+import { ACHIEVEMENTS, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, UNITS, WONDERS } from '../src/game/data.js';
 import { playerCombat, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
 import { footprint, freshIslandState, generateContinent, generateSector, homeIsland, sectorCenter, sectorVertices } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
@@ -27,6 +27,8 @@ const MAX_POSTS = 200;
 export const NAME_RE = /^[\p{L}\p{N}_ .-]{3,20}$/u;
 export const EMAIL_RE = /^[^\s@<>()"',;]{1,64}@[^\s@<>()"',;]+\.[^\s@<>()"',;]{2,}$/;
 const HOUR = 3_600_000;
+/** Primera letra en mayúscula (para «la Hidra» al empezar una frase). */
+const cap = (text) => text.charAt(0).toUpperCase() + text.slice(1);
 // Cuánto vale cada enlace o permiso que se manda por correo
 const TOKEN_HOURS = { registro: 24, correo: 24, clave: 1, permiso: 0.5 };
 const tokenHash = (token) => createHash('sha256').update(String(token)).digest('hex');
@@ -34,6 +36,13 @@ const cleanEmail = (email) => String(email ?? '').trim().toLowerCase();
 const ALLIANCE_RE = /^[\p{L}\p{N}_ .'-]{3,30}$/u;
 // Flotas que avisan al llegar a tu ciudad
 const HOSTILE = new Set(['atacar', 'invadir', 'bloquear']);
+
+/** Lo que tiene el enemigo al emerger (para las barras y para saber cuánto le queda). */
+function bossFull(theme, boss) {
+  if (theme.kind === 'armada') return { inmortal: boss.inmortal, arquero_persa: boss.arquero_persa, fenicia: boss.posts.reduce((a, p) => a + p.full, 0) };
+  if (theme.kind === 'hidra') return { hidra: boss.hidra };
+  return Object.fromEntries(theme.phases.map((p) => [p.unit, boss[p.unit]]));
+}
 
 /** Une la batalla en el mar (`sea`) y la de tierra (`land`) de una misma oleada en un solo resultado. */
 function joinBattles(sea, land) {
@@ -380,6 +389,11 @@ export class WorldServer {
     return this.islandStates.get(id) ?? null;
   }
 
+  /** Los asentamientos de un continente. */
+  sitesOn(land) {
+    return [...this.islands.values()].filter((i) => i.land === land);
+  }
+
   touch(id) {
     this.dirtyIslands.add(id);
   }
@@ -403,6 +417,8 @@ export class WorldServer {
       // Recién liberada: a salvo de bloqueos e invasiones desde `shieldFrom` hasta `shield`
       shield: game.state.shieldUntil || null,
       shieldFrom: game.state.shieldFrom ?? 0,
+      // Estatua de una gesta ganada (tema y hasta cuándo)
+      statue: game.state.statue ?? null,
     };
   }
 
@@ -691,7 +707,7 @@ export class WorldServer {
     }
     for (const [site, games] of sites) this.startFeat(site, { ...cyc, players: games.map((g) => g.userId) }, now);
     for (const g of pool) {
-      g.receiveNews(null, `${FEAT_THEMES[cyc.theme].icon} ${FEAT_THEMES[cyc.theme].enemy} despierta en el archipiélago, pero esta vez no hay ninguna gesta cerca de tu ciudad`, 'info');
+      g.receiveNews(null, `${FEAT_THEMES[cyc.theme].icon} ${cap(FEAT_THEMES[cyc.theme].enemy)} despierta en el archipiélago, pero esta vez no hay ninguna gesta cerca de tu ciudad`, 'info');
       this.pendingPush.add(g.userId);
     }
     if (sites.size) {
@@ -796,7 +812,7 @@ export class WorldServer {
     f.names[uid] = snap.name;
     this.#forgeGoal(f);
     // Jurar con la lucha empezada endurece al enemigo
-    if (f.boss) this.#rebaseFeat(f);
+    if (f.boss) this.#rebaseFeat(f, site);
     this.touch(site);
     for (const id of Object.keys(f.pledged)) this.pendingPush.add(Number(id));
     return { ok: true, k: f.k, theme: f.theme };
@@ -805,7 +821,7 @@ export class WorldServer {
   /** La meta de la fragua sale de la producción de los que siguen jurados. */
   #forgeGoal(f) {
     f.forge ??= { goal: 0, total: 0, by: {} };
-    f.forge.goal = forgeGoal(Object.values(f.pledged).map((p) => p.prod ?? 0));
+    f.forge.goal = forgeGoal(Object.values(f.pledged).map((p) => p.prod ?? 0), forgeHours(f.theme));
   }
 
   /** Cuánto puede ofrendar aún un jugador en la fragua de `site`. */
@@ -829,7 +845,7 @@ export class WorldServer {
     forge.total += value;
     if (forge.goal) f.glory[uid] = (f.glory[uid] ?? 0) + (F.glory * value) / forge.goal;
     const after = forgeBonus(forge).quarters;
-    if (after > before) {
+    if (after > before && FEAT_THEMES[f.theme].forge !== 'brea') {
       const theme = FEAT_THEMES[f.theme];
       const name = this.islands.get(site)?.name ?? '';
       for (const id of Object.keys(f.pledged)) {
@@ -841,12 +857,19 @@ export class WorldServer {
   }
 
   /** Llega una flota a la gesta: puede esperar a la oleada si su dueño la juró y aún no ha acabado. */
-  featArrive(site, uid, t) {
+  featArrive(site, uid, t, m = null) {
     const f = this.islandStates.get(site)?.feat;
     const theme = f ? FEAT_THEMES[f.theme] : null;
     if (!f || f.stage === 'fin' || t >= f.end) return { ok: false, reason: 'La gesta ya ha terminado. La flota vuelve a casa.' };
     if (!f.pledged[uid]) return { ok: false, reason: 'No juraste esta gesta: tu flota se da la vuelta.' };
-    return { ok: true, icon: theme.icon, enemy: theme.enemy };
+    // Armada: un fondeadero que exista, y uno solo por jugador
+    if (m?.type === 'bloquear') {
+      const posts = f.boss?.posts?.length ?? this.#featCtx(site, f).posts;
+      if (theme.kind !== 'armada' || !(m.post >= 0 && m.post < posts)) return { ok: false, reason: 'Ahí no hay ningún fondeadero que tomar. La flota vuelve a casa.' };
+      const other = this.games.get(uid)?.state.missions.some((x) => x !== m && x.feat === site && x.type === 'bloquear' && x.phase === 'estacionada' && x.post !== m.post);
+      if (other) return { ok: false, reason: 'Ya tienes una flota en otro fondeadero: solo puedes sostener uno.' };
+    }
+    return { ok: true, icon: theme.icon, enemy: theme.enemy, post: m?.type === 'bloquear' ? m.post : null };
   }
 
   /** Tregua sagrada: los que juraron la misma gesta no se pueden atacar desde que emerge el enemigo hasta unas horas después (salvo en guerra). */
@@ -923,7 +946,7 @@ export class WorldServer {
       f.stage = 'fin';
       f.result = 'dormido';
       f.truceUntil = t;
-      this.#releaseFeatFleets(id, t, `${theme.icon} ${theme.enemy} vuelve a dormirse: tu flota vuelve a casa`);
+      this.#releaseFeatFleets(id, t, `${theme.icon} ${cap(theme.enemy)} vuelve a dormirse: tu flota vuelve a casa`);
       for (const uid of f.convoked) {
         this.games.get(uid)?.receiveNews(null, `${theme.icon} No se juntaron bastantes imperios y ${theme.enemy} vuelve a dormirse en ${name}. Nadie pierde nada.`, 'info');
         this.pendingPush.add(uid);
@@ -931,13 +954,13 @@ export class WorldServer {
       this.touch(id);
       return;
     }
-    const boss = featBoss(f.theme, capByRest(powers), f.tier);
-    f.boss = { ...boss, phase: 0, full: Object.fromEntries(theme.phases.map((p) => [p.unit, boss[p.unit]])) };
+    const boss = featBoss(f.theme, capByRest(powers), f.tier, this.#featCtx(id, f));
+    f.boss = { ...boss, phase: 0, full: bossFull(theme, boss) };
     f.stage = 'lucha';
     f.emergedAt = t;
-    this.announce(`${theme.icon} ¡${theme.enemy} emerge en ${name}! ${pledged.length} imperios han jurado combatirlo.`);
+    this.announce(`${theme.icon} ¡${cap(theme.enemy)} emerge en ${name}! ${pledged.length} imperios han jurado combatirlo.`);
     for (const uid of Object.keys(f.pledged)) {
-      this.games.get(Number(uid))?.receiveNews(null, `${theme.icon} ¡${theme.enemy} emerge en ${name}! La primera oleada, en cuanto lleguen las flotas.`, 'error');
+      this.games.get(Number(uid))?.receiveNews(null, `${theme.icon} ¡${cap(theme.enemy)} emerge en ${name}! La primera oleada, en cuanto lleguen las flotas.`, 'error');
       this.pendingPush.add(Number(uid));
     }
     this.touch(id);
@@ -954,32 +977,50 @@ export class WorldServer {
     return out;
   }
 
-  /** Una oleada: las flotas que esperan combaten juntas contra la fase del enemigo. */
+  /**
+   * Una oleada: las flotas que esperan combaten juntas contra el enemigo. Cada tema tiene su
+   * combate (#waveTifon, #waveHydra, #waveArmada); el reparto de supervivientes, gloria e informes
+   * es común (#featSettle).
+   */
   #featWave(id, tw) {
-    const rt = this.islandStates.get(id);
-    const f = rt.feat;
+    const f = this.islandStates.get(id).feat;
     const boss = f.boss;
     const theme = FEAT_THEMES[f.theme];
-    const phases = theme.phases;
-    const T = theme.tune;
+    const kind = theme.kind ?? 'tifon';
     const name = this.islands.get(id)?.name ?? '';
-    const groups = this.#featFleets(id, tw).map((x) => {
-      const c = playerCombat(x.game.state);
-      return { ...x, units: { ...x.m.units }, atkMul: c.atkMul, hpMul: c.hpMul };
-    });
+    const all = this.#featFleets(id, tw);
+    // En la Armada, las flotas de los fondeaderos combaten aparte (y se quedan)
+    const posted = kind === 'armada' ? all.filter((x) => x.m.type === 'bloquear') : [];
+    const groups = all
+      .filter((x) => !posted.includes(x))
+      .map((x) => {
+        const c = playerCombat(x.game.state);
+        return { ...x, units: { ...x.m.units }, atkMul: c.atkMul, hpMul: c.hpMul };
+      });
     const forces = groups.map((g) => forceOf(g.units, g.atkMul, g.hpMul));
     // Cada jugador cuenta una vez, aunque traiga varias flotas
     const byPlayer = {};
     groups.forEach((g, i) => (byPlayer[g.uid] = (byPlayer[g.uid] ?? 0) + forces[i]));
     const N = effectiveEmpires(Object.values(byPlayer));
     const coop = featCoop(N);
-    const wave = { t: tw, players: Object.keys(byPlayer).length, N: Math.round(N * 100) / 100, coop: Math.round(coop * 100) / 100, phase: boss.phase, killed: 0 };
+    const wave = { t: tw, players: Object.keys(byPlayer).length, N: Math.round(N * 100) / 100, coop: Math.round(coop * 100) / 100, phase: boss.phase ?? 0, killed: 0 };
     const fmtN = String(wave.N).replace('.', ',');
+    const ctx = { id, f, boss, theme, name, tw, groups, forces, coop, wave, lines: [] };
+
+    // La Armada: primero los fondeaderos (no tienen coraza)
+    if (kind === 'armada') this.#armadaPosts(ctx, posted);
 
     if (!groups.length || coop <= 0) {
-      // Sin combate el enemigo se rehace un poco (las cabezas no: no se curan)
-      const unit = phases[boss.phase].unit;
-      if (unit !== 'cabeza') boss[unit] = Math.min(boss.full[unit], boss[unit] + Math.ceil(FEATS.regrow * boss.full[unit]));
+      // Sin combate: Tifón se rehace un poco (sus cabezas no, que no se curan)
+      let regrow = '';
+      if (kind === 'tifon') {
+        const unit = theme.phases[boss.phase].unit;
+        if (unit !== 'cabeza') {
+          boss[unit] = Math.min(boss.full[unit], boss[unit] + Math.ceil(FEATS.regrow * boss.full[unit]));
+          regrow = ` y ${theme.enemy} se rehace un ${Math.round(FEATS.regrow * 100)} %`;
+        }
+      }
+      if (kind === 'armada') this.#armadaCamp(ctx, 0);
       // Quien trajo su flota cumplió su juramento aunque la coraza no cediera
       f.present ??= {};
       for (const g of groups) f.present[g.uid] = true;
@@ -987,41 +1028,64 @@ export class WorldServer {
         g.game.receiveNews(null, `${theme.icon} La coraza de ${theme.enemy} no cede: en la oleada solo había ${fmtN} imperios efectivos. Hacen falta más (tu flota sigue esperando).`, 'error');
         this.pendingPush.add(g.uid);
       }
-      this.announce(`${theme.icon} Oleada sin combate: ${groups.length ? `solo ${fmtN} imperios efectivos esperaban` : 'no esperaba ninguna flota'} y ${theme.enemy} se rehace un ${Math.round(FEATS.regrow * 100)} %.`, `f:${id}`);
+      this.announce(`${theme.icon} Oleada sin asalto: ${groups.length ? `solo ${fmtN} imperios efectivos esperaban` : 'no esperaba ninguna flota'}${regrow}. ${ctx.lines.join(' ')}`.trim(), `f:${id}`);
       f.waves = [...f.waves, wave].slice(-16);
       this.touch(id);
       return;
     }
 
     const army = combineGroups(groups);
-    // La fragua de Hefesto: más ataque y menos lava
-    const forge = forgeBonus(f.forge);
+    // La fragua de Hefesto: más ataque y menos lava (en la Hidra hace brea y no da ataque)
+    const forge = theme.forge === 'brea' ? { atk: 1, lava: 1 } : forgeBonus(f.forge);
     army.atkMul *= forge.atk;
-    let units = army.units;
-    const glory = groups.map(() => 0);
-    const kills = groups.map(() => 0);
-    const credit = (amount, killed, weights) => {
-      const total = weights.reduce((a, b) => a + b, 0);
-      weights.forEach((w, i) => {
-        const k = total ? w / total : 1 / weights.length;
-        glory[i] += amount * k;
-        kills[i] += killed * k;
-      });
-    };
-    let main = null;
-    const lines = [];
+    Object.assign(ctx, { army, forge, glory: groups.map(() => 0), kills: groups.map(() => 0), units: army.units, main: null });
+    if (kind === 'armada') this.#waveArmada(ctx);
+    else if (kind === 'hidra') this.#waveHydra(ctx);
+    else this.#waveTifon(ctx);
 
+    const lefts = shareSurvivors(groups.map((g) => g.units), ctx.units);
+    const text = (i) =>
+      `${groups.length > 1 ? `Combatís ${Object.keys(byPlayer).length} imperios juntos` : 'Combates'} (${fmtN} imperios efectivos: el ${Math.round(coop * 100)} % de vuestro daño atraviesa su coraza). ${ctx.lines.join(' ')} Tu gloria: +${Math.round(ctx.glory[i])}.`;
+    this.#featSettle(ctx, groups, lefts, ctx.glory, ctx.kills, forces, ctx.main, text);
+    f.waves = [...f.waves, wave].slice(-16);
+    this.touch(id);
+    // Resumen de la oleada en el chat de la gesta, para coordinarse
+    this.announce(`${theme.icon} Oleada: ${Object.keys(byPlayer).length} imperios (${fmtN} efectivos, coraza ${Math.round(coop * 100)} %). ${ctx.lines.join(' ')}`, `f:${id}`);
+    if (ctx.victory) this.#finishFeat(id, tw, 'victoria');
+    else if (kind === 'tifon' && wave.phase !== boss.phase) this.announce(`${theme.icon} ${name}: cae la fase «${theme.phases[wave.phase].name}» de ${theme.enemy}. Empieza «${theme.phases[boss.phase].name}».`);
+  }
+
+  /** Reparte la gloria y las bajas de un combate entre los grupos según `weights`. */
+  #featCredit(ctx, amount, killed, weights) {
+    const total = weights.reduce((a, b) => a + b, 0);
+    weights.forEach((w, i) => {
+      const k = total ? w / total : 1 / weights.length;
+      ctx.glory[i] += amount * k;
+      ctx.kills[i] += killed * k;
+    });
+  }
+
+  /** Peso de cada grupo en tierra: sus tropas desembarcadas más un cuarto de sus barcos. */
+  #landWeights(ctx, unitsByGroup) {
+    return unitsByGroup.map((u, i) => forceOf(splitWar(u).land, ctx.groups[i].atkMul, ctx.groups[i].hpMul) + 0.25 * forceOf(splitWar(u).sea, ctx.groups[i].atkMul, ctx.groups[i].hpMul));
+  }
+
+  /** Tifón: el mar con sus sierpes y, ganado el mar, gigantes y después las cabezas. */
+  #waveTifon(ctx) {
+    const { boss, theme, coop, army, forge, wave, groups, lines } = ctx;
+    const phases = theme.phases;
+    const T = theme.tune;
     // Fase I: en el mar (solo cuentan los barcos de guerra). Si se gana, se desembarca en la misma oleada
     let landNow = boss.phase >= 1;
     if (boss.phase === 0) {
-      const r = assault({ units, atkMul: army.atkMul, hpMul: army.hpMul }, { units: { sierpe: boss.sierpe }, atkMul: 1, hpMul: 1 / coop });
+      const r = assault({ units: ctx.units, atkMul: army.atkMul, hpMul: army.hpMul }, { units: { sierpe: boss.sierpe }, atkMul: 1, hpMul: 1 / coop });
       const killed = boss.sierpe - (r.def.left.sierpe ?? 0);
       boss.sierpe -= killed;
-      credit((killed / boss.full.sierpe) * phases[0].glory, killed, groups.map((g) => forceOf(splitWar(g.units).sea, g.atkMul, g.hpMul)));
+      this.#featCredit(ctx, (killed / boss.full.sierpe) * phases[0].glory, killed, groups.map((g) => forceOf(splitWar(g.units).sea, g.atkMul, g.hpMul)));
       wave.killed += killed;
       lines.push(`En el mar abatís ${killed} ${killed === 1 ? 'sierpe' : 'sierpes'}${boss.sierpe ? ` (quedan ${boss.sierpe})` : ': el mar es vuestro'}.`);
-      units = r.att.left;
-      main = r;
+      ctx.units = r.att.left;
+      ctx.main = r;
       if (boss.sierpe <= 0) {
         boss.phase = 1;
         landNow = r.landed;
@@ -1029,29 +1093,203 @@ export class WorldServer {
     }
     // Fases en tierra: gigantes y después las cabezas
     if (landNow && boss.phase >= 1 && boss.phase < phases.length) {
-      const now = shareSurvivors(groups.map((g) => g.units), units);
+      const now = shareSurvivors(groups.map((g) => g.units), ctx.units);
       const unit = phases[boss.phase].unit;
       const fury = unit === 'cabeza' && boss.cabeza <= T.furyAt;
       const def =
         unit === 'cabeza'
           ? { units: { cabeza: boss.cabeza }, atkMul: boss.headAtk * (fury ? T.fury : 1), hpMul: boss.headHp / coop, extraAtk: fury ? boss.lava * forge.lava : 0, extraOnlyAlive: true }
           : { units: { [unit]: boss[unit] }, atkMul: 1, hpMul: 1 / coop };
-      const r = assault({ units, atkMul: army.atkMul, hpMul: army.hpMul }, def);
+      const r = assault({ units: ctx.units, atkMul: army.atkMul, hpMul: army.hpMul }, def);
       const killed = boss[unit] - (r.def.left[unit] ?? 0);
       boss[unit] -= killed;
-      const weights = now.map((u, i) => forceOf(splitWar(u).land, groups[i].atkMul, groups[i].hpMul) + 0.25 * forceOf(splitWar(u).sea, groups[i].atkMul, groups[i].hpMul));
-      credit((killed / boss.full[unit]) * phases[boss.phase].glory, killed, weights);
+      this.#featCredit(ctx, (killed / boss.full[unit]) * phases[boss.phase].glory, killed, this.#landWeights(ctx, now));
       wave.killed += killed;
       const what = unit === 'cabeza' ? (killed === 1 ? 'cabeza' : 'cabezas') : killed === 1 ? 'gigante' : 'gigantes';
       lines.push(`${r.landed ? 'En tierra' : 'No llegáis a desembarcar:'} abatís ${killed} ${what}${boss[unit] ? ` (quedan ${boss[unit]})` : ''}${fury ? ' contra su furia' : ''}.`);
-      units = r.att.left;
+      ctx.units = r.att.left;
       // Si en la misma oleada se luchó en el mar y en tierra, el informe lleva las dos batallas
-      main = main ? joinBattles(main, r) : r;
+      ctx.main = ctx.main ? joinBattles(ctx.main, r) : r;
       if (boss[unit] <= 0) boss.phase += 1;
     }
+    ctx.victory = boss.phase >= phases.length;
+  }
 
-    // Cada uno se lleva sus supervivientes, su gloria y su informe
-    const lefts = shareSurvivors(groups.map((g) => g.units), units);
+  /**
+   * La Hidra: se cortan cabezas en tierra; las que no se cauterizan con la brea de la fragua vuelven
+   * como dos, y la última solo cae cauterizada y con bastantes imperios en la oleada.
+   */
+  #waveHydra(ctx) {
+    const { f, boss, theme, coop, army, wave, groups, lines } = ctx;
+    const T = theme.tune;
+    const now = shareSurvivors(groups.map((g) => g.units), ctx.units);
+    const heads = boss.hidra;
+    const r = assault({ units: ctx.units, atkMul: army.atkMul, hpMul: army.hpMul }, { units: { hidra: heads }, atkMul: boss.headAtk, hpMul: boss.headHp / coop });
+    const killed = heads - (r.def.left.hidra ?? 0);
+    // Cauterizar con la brea que haya en la fragua
+    const forge = (f.forge ??= { goal: 0, total: 0, by: {} });
+    const avail = Math.max(0, (forge.total ?? 0) - (forge.used ?? 0));
+    const burnt = Math.min(killed, Math.floor(avail / boss.brea));
+    forge.used = (forge.used ?? 0) + burnt * boss.brea;
+    let next = Math.min(T.maxHeads, heads - killed + 2 * (killed - burnt));
+    // La cabeza inmortal: no cae sin brea o con la coraza entera
+    const immortal = next === 0 && !(coop >= T.finalCoop && burnt === killed);
+    if (immortal) next = 1;
+    boss.hidra = next;
+    boss.cut = (boss.cut ?? 0) + killed;
+    this.#featCredit(ctx, (killed / T.heads) * theme.phases[0].glory, killed, this.#landWeights(ctx, now));
+    wave.killed += killed;
+    const grown = killed - burnt;
+    lines.push(
+      `${r.landed ? 'En tierra' : 'No llegáis a desembarcar:'} cortáis ${killed} ${killed === 1 ? 'cabeza' : 'cabezas'}${burnt ? `, cauterizáis ${burnt} con la brea` : ''}${grown ? ` y ${grown === 1 ? 'una vuelve' : `${grown} vuelven`} como dos` : ''}.${immortal ? ' La cabeza inmortal resiste: solo cae cauterizada y con al menos 3 imperios efectivos.' : ''} ${next ? `Quedan ${next}.` : '¡La Hidra cae!'}`,
+    );
+    ctx.units = r.att.left;
+    ctx.main = r;
+    ctx.victory = next === 0;
+  }
+
+  /**
+   * La Armada, en el mar: cada fondeadero libre se toma contra su escuadra; uno tomado aguanta sus
+   * salidas (cada vez mayores). Las flotas de los fondeaderos se quedan hasta caer o retirarse.
+   */
+  #armadaPosts(ctx, posted) {
+    const { f, boss, theme } = ctx;
+    const T = theme.tune;
+    const full = boss.posts.every((p) => p.holder != null);
+    boss.posts.forEach((post, i) => {
+      const here = posted.filter((x) => x.m.post === i);
+      if (!here.length) {
+        if (post.holder != null) {
+          // Se fueron todos: el fondeadero vuelve a estar libre
+          post.holder = null;
+          post.held = 0;
+          post.freeWaves = 0;
+          post.squad = Math.max(post.squad, Math.ceil(post.full / 2));
+        } else if (++post.freeWaves >= T.regenWaves) post.squad = post.full;
+        return;
+      }
+      const groups = here.map((x) => {
+        const c = playerCombat(x.game.state);
+        return { ...x, units: { ...x.m.units }, atkMul: c.atkMul, hpMul: c.hpMul };
+      });
+      const forces = groups.map((g) => forceOf(g.units, g.atkMul, g.hpMul));
+      const army = combineGroups(groups);
+      const taking = post.holder == null;
+      const enemy = taking ? post.squad : Math.ceil(post.full * (T.sortie + T.sortieStep * (post.held + 1)));
+      const r = battle({ units: army.units, atkMul: army.atkMul, hpMul: army.hpMul }, { units: { fenicia: enemy } });
+      const killed = enemy - (r.def.left.fenicia ?? 0);
+      const alive = hasCombat(r.att.left);
+      const local = { ...ctx, groups, glory: groups.map(() => 0), kills: groups.map(() => 0) };
+      const weights = forces;
+      let text;
+      if (taking) {
+        post.squad -= killed;
+        if (post.squad <= 0 && alive) {
+          post.holder = groups[0].uid;
+          post.held = 0;
+          post.freeWaves = 0;
+          post.squad = 0;
+          this.#featCredit(local, T.takeGlory, killed, weights);
+          text = `Tomáis el fondeadero ${i + 1}: su escuadra se hunde.`;
+        } else {
+          this.#featCredit(local, 0, killed, weights);
+          text = `El fondeadero ${i + 1} resiste: hundís ${killed} ${killed === 1 ? 'fenicia' : 'fenicias'} (quedan ${Math.max(0, post.squad)}).`;
+        }
+      } else if (alive) {
+        post.held += 1;
+        const g = T.postGlory * (full ? 2 : 1);
+        this.#featCredit(local, g, killed, weights);
+        for (const x of groups) (f.held ??= {})[x.uid] = (f.held[x.uid] ?? 0) + 1;
+        text = `El fondeadero ${i + 1} aguanta una salida de ${enemy} fenicias${full ? ' (con el cerco completo, doble gloria)' : ''}.`;
+      } else {
+        post.holder = null;
+        post.held = 0;
+        post.freeWaves = 0;
+        post.squad = r.def.left.fenicia ?? 0;
+        this.#featCredit(local, 0, killed, weights);
+        text = `Una salida de ${enemy} fenicias rompe el fondeadero ${i + 1}: vuelve a estar libre.`;
+      }
+      ctx.lines.push(text);
+      const lefts = shareSurvivors(groups.map((g) => g.units), r.att.left);
+      const report = (k) => `${text} Tu gloria: +${Math.round(local.glory[k])}.`;
+      this.#featSettle({ ...ctx, wave: { ...ctx.wave, killed: alive ? 1 : 0 } }, groups, lefts, local.glory, local.kills, forces, r, report, { stay: true, title: `Fondeadero ${i + 1}` });
+    });
+    boss.free = boss.posts.filter((p) => p.holder == null).length;
+  }
+
+  /** La Armada, en tierra: el asalto al campamento (con sus escuadras libres en el mar). */
+  #waveArmada(ctx) {
+    const { boss, theme, coop, army, wave, groups, lines } = ctx;
+    const T = theme.tune;
+    const free = boss.free ?? boss.posts.filter((p) => p.holder == null).length;
+    const before = { inmortal: boss.inmortal, arquero_persa: boss.arquero_persa };
+    // Las escuadras de los fondeaderos libres defienden el mar
+    const freeSquads = boss.posts.filter((p) => p.holder == null).reduce((a, p) => a + Math.max(0, p.squad), 0);
+    let r = null;
+    if (freeSquads > 0) {
+      r = assault({ units: ctx.units, atkMul: army.atkMul, hpMul: army.hpMul }, { units: { fenicia: freeSquads }, hpMul: 1 / coop });
+      const sunk = freeSquads - (r.def.left.fenicia ?? 0);
+      // Las bajas se reparten entre las escuadras libres
+      let left = sunk;
+      for (const p of boss.posts.filter((x) => x.holder == null)) {
+        const k = Math.min(p.squad, Math.round((sunk * p.squad) / freeSquads), left);
+        p.squad -= k;
+        left -= k;
+      }
+      lines.push(`En el mar hundís ${sunk} fenicias de las escuadras libres${r.seaWon ? '' : ': no llegáis a desembarcar'}.`);
+      ctx.units = r.att.left;
+      ctx.main = r;
+      if (!r.seaWon) {
+        this.#armadaCamp(ctx, 0);
+        ctx.victory = false;
+        return;
+      }
+    }
+    const now = shareSurvivors(groups.map((g) => g.units), ctx.units);
+    const camp = { inmortal: boss.inmortal, arquero_persa: boss.arquero_persa };
+    const hp = Math.max(0.3, 1 + T.siegeHp * free - boss.hunger);
+    const towers = T.towers * (camp.inmortal * UNITS.inmortal.atk + camp.arquero_persa * UNITS.arquero_persa.atk) * boss.campAtk;
+    const r2 = assault({ units: ctx.units, atkMul: army.atkMul, hpMul: army.hpMul }, { units: camp, atkMul: boss.campAtk, hpMul: hp / coop, wallHp: T.wall, extraAtk: towers, extraOnlyAlive: true }, { needLanding: true });
+    boss.inmortal = r2.def.left.inmortal ?? 0;
+    boss.arquero_persa = r2.def.left.arquero_persa ?? 0;
+    const lifeOf = (u) => (u.inmortal ?? 0) * UNITS.inmortal.hp + (u.arquero_persa ?? 0) * UNITS.arquero_persa.hp;
+    const removed = lifeOf(before) - lifeOf(boss);
+    const killed = before.inmortal + before.arquero_persa - boss.inmortal - boss.arquero_persa;
+    this.#featCredit(ctx, (removed / Math.max(1, lifeOf(boss.full))) * theme.phases[1].glory, killed, this.#landWeights(ctx, now));
+    wave.killed += killed;
+    lines.push(`${r2.landed ? 'En el campamento' : 'No llegáis a desembarcar:'} abatís ${killed} persas (quedan ${boss.inmortal + boss.arquero_persa}).`);
+    ctx.units = r2.att.left;
+    ctx.main = ctx.main ? joinBattles(ctx.main, r2) : r2;
+    this.#armadaCamp(ctx, killed, before);
+    ctx.victory = boss.inmortal + boss.arquero_persa <= 0;
+  }
+
+  /** El campamento tras la oleada: con fondeaderos libres se rehace; con el cerco completo pasa hambre. */
+  #armadaCamp(ctx, killed, before = null) {
+    const { boss, theme, lines } = ctx;
+    const T = theme.tune;
+    const K = boss.posts.length;
+    const free = boss.posts.filter((p) => p.holder == null).length;
+    if (free === 0) {
+      boss.hunger = Math.min(T.hungerMax, (boss.hunger ?? 0) + T.hunger);
+      lines.push(`Cerco completo: el campamento pasa hambre (−${Math.round(boss.hunger * 100)} % de vida).`);
+    } else if (killed > 0 && before) {
+      // Por los fondeaderos libres le llegan refuerzos: recupera parte de lo perdido
+      for (const u of ['inmortal', 'arquero_persa']) {
+        const lost = before[u] - boss[u];
+        boss[u] = Math.min(boss.full[u], boss[u] + Math.round((lost * free) / K));
+      }
+      if (boss.inmortal + boss.arquero_persa > 0) lines.push(`Por ${free === 1 ? 'el fondeadero libre' : `los ${free} fondeaderos libres`} le llegan refuerzos.`);
+    }
+  }
+
+  /**
+   * Cierra una oleada para cada grupo: supervivientes, gloria, bajas propias (sin mercenarios),
+   * informe y vuelta a casa (o se quedan, en los fondeaderos de la Armada).
+   */
+  #featSettle(ctx, groups, lefts, glory, kills, forces, main, text, { stay = false, title = null } = {}) {
+    const { f, theme, id, name, tw, wave } = ctx;
+    const phases = theme.phases;
     groups.forEach((g, i) => {
       const uid = g.uid;
       const left = lefts[i];
@@ -1065,11 +1303,11 @@ export class WorldServer {
       for (const c of g.game.state.mercs ?? []) mercs[c.unit] = (mercs[c.unit] ?? 0) + c.count;
       const fallen = (f.fallen[uid] ??= {});
       for (const [u, n] of Object.entries(lost)) {
-        const own = n - Math.min(n, mercs[u] ?? 0);
-        if (own > 0) fallen[u] = (fallen[u] ?? 0) + own;
+        const mine = n - Math.min(n, mercs[u] ?? 0);
+        if (mine > 0) fallen[u] = (fallen[u] ?? 0) + mine;
       }
       (f.present ??= {})[uid] = true;
-      const phaseName = phases[Math.min(wave.phase, phases.length - 1)].name;
+      const phaseName = title ?? phases[Math.min(wave.phase, phases.length - 1)].name;
       const report = {
         t: tw,
         kind: 'gesta',
@@ -1079,24 +1317,46 @@ export class WorldServer {
         outcome: wave.killed ? 'victoria' : 'derrota',
         enemy: theme.enemy,
         title: `Oleada contra ${theme.enemy}: ${phaseName}`,
-        text: `${groups.length > 1 ? `Combatís ${Object.keys(byPlayer).length} imperios juntos` : 'Combates'} (${fmtN} imperios efectivos: el ${Math.round(coop * 100)} % de vuestro daño atraviesa su coraza). ${lines.join(' ')} Tu gloria: +${Math.round(glory[i])}.`,
+        text: text(i),
       };
-      g.game.settleFeat(g.m, { left, lost, kills: Math.round(kills[i]), report, result: main }, tw);
+      g.game.settleFeat(g.m, { left, lost, kills: Math.round(kills[i]), report, result: main, stay }, tw);
       this.pendingPush.add(uid);
     });
-    f.waves = [...f.waves, wave].slice(-16);
-    this.touch(id);
-    // Resumen de la oleada en el chat de la gesta, para coordinarse
-    this.announce(`${theme.icon} Oleada: ${Object.keys(byPlayer).length} imperios (${fmtN} efectivos, coraza ${Math.round(coop * 100)} %). ${lines.join(' ')}`, `f:${id}`);
-    if (boss.phase >= phases.length) this.#finishFeat(id, tw, 'victoria');
-    else if (wave.phase !== boss.phase) this.announce(`${theme.icon} ${name}: cae la fase «${phases[wave.phase].name}» de ${theme.enemy}. Empieza «${phases[boss.phase].name}».`);
+  }
+
+  /** Lo que el enemigo necesita saber del sitio y de los juramentados (fondeaderos, marinos y producción). */
+  #featCtx(id, f) {
+    const posts = this.sitesOn(id).length || 3;
+    const pledged = Object.values(f.pledged);
+    return { posts, mariners: pledged.map((p) => ({ AM: p.P.AM, HM: p.P.HM })), prods: pledged.map((p) => p.prod ?? 0) };
   }
 
   /** Con el enemigo ya fuera, recalcula su tamaño con el poder de los que quedan jurados. */
-  #rebaseFeat(f) {
+  #rebaseFeat(f, id) {
     const powers = Object.values(f.pledged).map((p) => ({ ...p.P, f: p.f }));
     if (!f.boss || !powers.length) return;
-    const nb = featBoss(f.theme, capByRest(powers), f.tier);
+    const kind = FEAT_THEMES[f.theme].kind ?? 'tifon';
+    const nb = featBoss(f.theme, capByRest(powers), f.tier, this.#featCtx(id, f));
+    if (kind === 'armada') {
+      // El campamento en proporción a lo que le quede; las escuadras libres, a su tamaño nuevo
+      for (const u of ['inmortal', 'arquero_persa']) {
+        f.boss[u] = Math.max(0, Math.round((f.boss[u] * nb[u]) / Math.max(1, f.boss.full[u])));
+        f.boss.full[u] = nb[u];
+      }
+      f.boss.campAtk = nb.campAtk;
+      f.boss.posts.forEach((p, i) => {
+        const squad = nb.posts[i]?.full ?? p.full;
+        if (p.holder == null) p.squad = Math.max(0, Math.round((p.squad * squad) / Math.max(1, p.full)));
+        p.full = squad;
+      });
+      return;
+    }
+    if (kind === 'hidra') {
+      f.boss.headHp = nb.headHp;
+      f.boss.headAtk = nb.headAtk;
+      f.boss.brea = nb.brea;
+      return;
+    }
     FEAT_THEMES[f.theme].phases.forEach((p, i) => {
       const u = p.unit;
       if (i < f.boss.phase || u === 'cabeza') return;
@@ -1136,7 +1396,7 @@ export class WorldServer {
     }
     // Sin ellos el enemigo es más pequeño (y la fragua pide menos)
     this.#forgeGoal(f);
-    this.#rebaseFeat(f);
+    this.#rebaseFeat(f, id);
     this.touch(id);
   }
 
@@ -1179,6 +1439,11 @@ export class WorldServer {
     const bands = ['Bronce', 'Plata', 'Oro'];
     let topName = null;
     let heartName = null;
+    // Armada: el Navarco es quien más oleadas aguantó en un fondeadero
+    const navarch = theme.kind === 'armada' && won ? Object.entries(f.held ?? {}).filter(([uid]) => f.pledged[uid]).sort((a, b) => b[1] - a[1])[0]?.[0] : null;
+    let navarchName = null;
+    // Los tres con más gloria de una victoria tienen estatua en su isla una semana
+    const statues = result === 'victoria' ? Object.entries(rewards).filter(([, r]) => r.band >= 0).sort((a, b) => b[1].share - a[1].share).slice(0, 3).map(([uid]) => uid) : [];
     for (const [uid, r] of Object.entries(rewards)) {
       const game = this.games.get(Number(uid));
       if (!game) continue;
@@ -1188,13 +1453,16 @@ export class WorldServer {
       const bag = rewardBag(r.value, f.pledged[uid].mix);
       if (r.top) topName = f.pledged[uid].name;
       if (r.heart) heartName = f.pledged[uid].name;
-      const title = { victoria: `¡${theme.enemy} ha caído!`, media: `${theme.enemy} huye malherido`, derrota: `${theme.enemy} resiste` }[result];
+      if (uid === navarch) navarchName = f.pledged[uid].name;
+      const title = { victoria: `¡${cap(theme.enemy)} ha caído!`, media: `${cap(theme.enemy)} huye malherido`, derrota: `${cap(theme.enemy)} resiste` }[result];
       const parts = [
         r.band >= 0
           ? `Tramo ${bands[r.band]}: trajiste el ${Math.round(r.effort * 100)} % de tu fuerza${r.offer > 0 ? `, ofrendaste ${String(Math.round(r.offer * 10) / 10).replace('.', ',')} h de tu producción` : ''} y ganaste el ${Math.round(r.share * 100)} % de la gloria.`
           : 'No llegaste a ningún tramo de premio: hace falta combatir (o ofrendar) más.',
         r.top ? `⚡ Eres el Azote de ${theme.enemy}: quien más gloria ha ganado.` : '',
         r.heart ? '🦁 Corazón de león: nadie se ha esforzado más que tú.' : '',
+        uid === navarch ? '⚓ Navarco: nadie ha aguantado más oleadas en un fondeadero.' : '',
+        statues.includes(uid) ? `🗿 Tu isla levanta una estatua a tu victoria sobre ${theme.enemy}: todos la verán durante una semana.` : '',
         r.blessing ? `La bendición del Olimpo te da +${Math.round(R.blessing * 100)} % de producción durante ${r.blessing} h.` : '',
         Object.keys(wounded).length ? `Vuelven ${Object.values(wounded).reduce((a, b) => a + b, 0)} heridos de los que cayeron.` : '',
       ];
@@ -1209,6 +1477,8 @@ export class WorldServer {
           heart: r.heart,
           won,
           emblem: result === 'victoria' && r.band >= 2 ? theme.emblem : null,
+          navarch: uid === navarch ? theme.tune.navarch : null,
+          statue: statues.includes(uid) ? { theme: f.theme, until: t + Math.round(featHours(24 * 7)) } : null,
           report: { t, kind: 'gesta', island: id, islandName: name, outcome: won ? 'victoria' : 'derrota', enemy: theme.enemy, title, text: parts.filter(Boolean).join(' '), loot: bag },
         },
         t,
@@ -1219,11 +1489,13 @@ export class WorldServer {
     const [lo, hi] = FEATS.tiers;
     if (result === 'victoria' && t - (f.emergedAt ?? f.start) <= featHours(24)) rt.featTier = Math.min(hi, (rt.featTier ?? 0) + 1);
     if (result === 'derrota') rt.featTier = Math.max(lo, (rt.featTier ?? 0) - 1);
-    this.meta.featHall = [{ k: f.k, site: id, siteName: name, theme: f.theme, result, t, players: Object.keys(f.pledged).length, top: topName, heart: heartName }, ...(this.meta.featHall ?? [])].slice(0, 12);
+    // Si la Armada gana, el continente queda un tiempo como satrapía: ni maravilla ni colonias nuevas
+    if (result === 'derrota' && theme.kind === 'armada') rt.satrapyUntil = t + Math.round(featHours(theme.tune.satrapyHours));
+    this.meta.featHall = [{ k: f.k, site: id, siteName: name, theme: f.theme, result, t, players: Object.keys(f.pledged).length, top: topName, heart: heartName, navarch: navarchName }, ...(this.meta.featHall ?? [])].slice(0, 12);
     const msg = {
-      victoria: `${theme.icon} ¡${theme.enemy} ha caído en ${name}!${topName ? ` Azote: ${topName}.` : ''}${heartName ? ` Corazón de león: ${heartName}.` : ''}`,
-      media: `${theme.icon} ${theme.enemy} huye malherido de ${name}: victoria a medias.`,
-      derrota: `${theme.icon} ${theme.enemy} resiste en ${name}: la gesta ha fracasado.`,
+      victoria: `${theme.icon} ¡${cap(theme.enemy)} ha caído en ${name}!${topName ? ` Azote: ${topName}.` : ''}${heartName ? ` Corazón de león: ${heartName}.` : ''}`,
+      media: `${theme.icon} ${cap(theme.enemy)} huye malherido de ${name}: victoria a medias.`,
+      derrota: `${theme.icon} ${cap(theme.enemy)} resiste en ${name}: la gesta ha fracasado.${theme.kind === 'armada' ? ` ${name} queda como satrapía ${theme.tune.satrapyHours} h: ni maravilla ni colonias nuevas.` : ''}`,
     }[result];
     this.announce(msg);
     this.touch(id);
@@ -1771,6 +2043,8 @@ export class WorldServer {
     const byPlayer = {};
     let fleets = 0;
     for (const { uid, game, m } of this.#featFleets(site, Infinity)) {
+      // En la Armada, las de los fondeaderos no cuentan para la coraza del asalto
+      if (m.type === 'bloquear') continue;
       const c = playerCombat(game.state);
       byPlayer[uid] = (byPlayer[uid] ?? 0) + forceOf(m.units, c.atkMul, c.hpMul);
       fleets++;

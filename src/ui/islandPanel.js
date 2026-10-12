@@ -146,9 +146,9 @@ function featSection(game, view) {
   const more = '<p class="small"><button class="link" data-action="guide" data-topic="gestas">📖 Cómo funcionan las gestas</button></p>';
   if (f.stage === 'fin') {
     const text = {
-      victoria: `¡${f.enemy} ha caído! Los premios ya están repartidos (míralos en tus informes 📜).`,
-      media: `${f.enemy} huyó malherido: victoria a medias, con la mitad de los premios.`,
-      derrota: `${f.enemy} resistió. Los que combatieron recuperan parte de sus caídos y el continente se vuelve un poco más fácil para la próxima vez.`,
+      victoria: `¡${f.Enemy} ha caído! Los premios ya están repartidos (míralos en tus informes 📜).`,
+      media: `${f.Enemy} huyó malherido: victoria a medias, con la mitad de los premios.`,
+      derrota: `${f.Enemy} resistió. Los que combatieron recuperan parte de sus caídos y el continente se vuelve un poco más fácil para la próxima vez.`,
       dormido: `No se juntaron bastantes imperios y ${f.enemy} volvió a dormirse. Nadie perdió nada.`,
     }[f.result];
     const truce = f.truceUntil && f.pledged ? `<div class="info-row"><span>🕊️ Tregua sagrada</span><b class="q-time" data-until="${f.truceUntil}"></b></div>` : '';
@@ -166,7 +166,9 @@ function featSection(game, view) {
 
   // Las fases del enemigo (cuando ya ha emergido)
   let phases = '';
-  if (f.boss) {
+  if (f.boss && f.kind === 'armada') phases = armadaPhases(game, view, f);
+  else if (f.boss && f.kind === 'hidra') phases = hydraPhases(f);
+  else if (f.boss) {
     phases = f.phases
       .map((p, i) => {
         const full = f.boss.full?.[p.unit] ?? 0;
@@ -207,11 +209,47 @@ function featSection(game, view) {
   const forge = f.pledged && f.forge ? forgeSection(view, f) : '';
   const estimate = f.pledged && f.stage === 'lucha' ? estimateHint(f) : '';
   const top = f.top.length ? `<h5>Más gloria</h5><ol class="mini-rank contest-list">${f.top.map((x) => `<li class="${x.me ? 'me' : ''}"><span>${escapeHtml(x.name)}</span><b>${pct(x.share)}</b></li>`).join('')}</ol>` : '';
-  const intro = f.stage === 'presagio' ? `<p class="desc small">${escapeHtml(FEAT_INTRO)}</p>` : '';
+  const intro = f.stage === 'presagio' ? `<p class="desc small">${escapeHtml(f.themeText ?? '')} ${escapeHtml(FEAT_INTRO)}</p>` : '';
   return `<div class="feat-box">${head}${intro}${rows.join('')}${phases}${armor}${mine}${estimate}${forge}${top}${more}</div>`;
 }
 
 const num = (x) => String(Math.round(x * 100) / 100).replace('.', ',');
+
+/** Nombre de un fondeadero: el asentamiento del continente al que mira. */
+function postName(game, view, i) {
+  const sites = game.world.islands().filter((x) => x.land === view.id);
+  return sites[i]?.name ? `frente a ${sites[i].name}` : '';
+}
+
+/** La Armada: los fondeaderos (quién los sostiene o su escuadra) y el campamento. */
+function armadaPhases(game, view, f) {
+  const b = f.boss;
+  const posts = f.posts
+    .map((p) => {
+      const what = p.holderName ? `⚓ ${escapeHtml(p.holderName)}${p.mine ? ' (tú)' : ''} · aguanta ${p.held} ${p.held === 1 ? 'salida' : 'salidas'}` : `⛵ libre · escuadra de ${p.squad}`;
+      return `<li class="feat-phase ${p.holderName ? 'done' : 'now'}"><div class="info-row"><span>Fondeadero ${p.i + 1} <span class="muted small">${escapeHtml(postName(game, view, p.i))}</span></span><b>${what}</b></div></li>`;
+    })
+    .join('');
+  const camp = (b.inmortal ?? 0) + (b.arquero_persa ?? 0);
+  const full = (b.full?.inmortal ?? 0) + (b.full?.arquero_persa ?? 0);
+  const free = f.posts.filter((p) => !p.holderName).length;
+  const w = full ? Math.round((camp / full) * 100) : 0;
+  const siege = free ? `${free} ${free === 1 ? 'fondeadero libre' : 'fondeaderos libres'}: el campamento se rehace y su empalizada aguanta más.` : `Cerco completo: pasa hambre (−${Math.round((b.hunger ?? 0) * 100)} % de vida) y no se rehace.`;
+  return `<ol class="feat-phases">${posts}
+    <li class="feat-phase now"><div class="info-row"><span>🏕️ El campamento</span><b>${fmtNum(camp)} / ${fmtNum(full)}</b></div><div class="progress horde-bar"><i style="width:${w}%"></i></div></li></ol>
+    <p class="muted small">${siege}</p>`;
+}
+
+/** La Hidra: cabezas vivas, cortadas y la brea que hay para cauterizarlas. */
+function hydraPhases(f) {
+  const b = f.boss;
+  const T = FEAT_THEMES[f.theme].tune;
+  const brea = Math.max(0, (f.forge?.total ?? 0) - (f.forge?.used ?? 0));
+  const can = b.brea ? Math.floor(brea / b.brea) : 0;
+  const w = Math.min(100, Math.round((b.hidra / T.maxHeads) * 100));
+  return `<ol class="feat-phases"><li class="feat-phase now"><div class="info-row"><span>🐉 Cabezas vivas</span><b>${b.hidra} (como mucho ${T.maxHeads})</b></div><div class="progress horde-bar"><i style="width:${w}%"></i></div></li></ol>
+    <p class="muted small">Cortadas: ${fmtNum(b.cut ?? 0)} · brea para cauterizar ${can} ${can === 1 ? 'cabeza' : 'cabezas'} (${fmtNum(b.brea)} por cabeza). Las que no se cauterizan vuelven como dos; la última solo cae cauterizada y con al menos ${num(FEATS.coop.find(([, y]) => y >= T.finalCoop)?.[0] ?? 3)} imperios efectivos.</p>`;
+}
 
 /** Imperios efectivos de la oleada si a las flotas que ya esperan se suma una de fuerza `x`. */
 function predictedN(wt, x) {
@@ -259,7 +297,7 @@ function idealHint(game, wt) {
   const Q = wt.othersSq ?? 0;
   const N = predictedN(wt, x);
   const ideal = S > 0 ? Q / S : 0;
-  const yours = `Si mandas todo lo que tienes en casa (fuerza ${fmtNum(x)}), contaríais como ${num(N)} imperios efectivos: la coraza dejaría pasar el ${Math.round(featCoop(N) * 100)} % del daño.`;
+  const yours = `Si mandas todo lo que tienes en casa (fuerza ${fmtNum(x)}), contaríais como ${num(N)} ${Math.abs(N - 1) < 0.005 ? 'imperio efectivo' : 'imperios efectivos'}: la coraza dejaría pasar el ${Math.round(featCoop(N) * 100)} % del daño.`;
   const best = S > 0 && x > ideal * 1.5 ? ` Lo que más la abre es una flota parecida a las demás: una fuerza de unos ${fmtNum(ideal)}.` : '';
   return `<p class="hint small">⚖️ ${yours}${best}</p>`;
 }
@@ -289,7 +327,14 @@ function forgeSection(view, f) {
   if (!fg.goal) return '';
   const pct = Math.min(100, Math.round((fg.total / fg.goal) * 100));
   const bonus = forgeBonus({ goal: fg.goal, total: fg.total });
-  const now = bonus.quarters ? `Ahora: +${num(bonus.atk * 100 - 100)} % de ataque y ${bonus.lava <= 0 ? 'nada de lava' : `un ${Math.round((1 - bonus.lava) * 100)} % menos de lava`}.` : 'Aún no da nada: llenad el primer cuarto.';
+  const brea = FEAT_THEMES[f.theme]?.forge === 'brea';
+  // La lava solo la escupe Tifón
+  const lava = f.kind === 'tifon';
+  const now = brea
+    ? 'Aquí la fragua hace brea: cada cabeza cortada que se cauteriza con ella ya no vuelve como dos.'
+    : bonus.quarters
+      ? `Ahora: +${num(bonus.atk * 100 - 100)} % de ataque${lava ? ` y ${bonus.lava <= 0 ? 'nada de lava' : `un ${Math.round((1 - bonus.lava) * 100)} % menos de lava`}` : ''}.`
+      : 'Aún no da nada: llenad el primer cuarto.';
   const open = f.stage === 'presagio' || f.stage === 'lucha';
   const room = fg.room ?? 0;
   const canGive = open && room >= 1;
@@ -302,14 +347,14 @@ function forgeSection(view, f) {
       ? `<p class="muted small">${fg.total >= fg.goal ? 'La fragua está llena.' : 'Ya has ofrendado todo lo que puedes en esta gesta.'}</p>`
       : '';
   return `<div class="section feat-forge">
-    <h5>🔥 Fragua de Hefesto · ${pct} %</h5>
+    <h5>🔥 ${brea ? 'Brea de la fragua' : 'Fragua de Hefesto'} · ${pct} %</h5>
     <div class="progress"><i style="width:${pct}%"></i></div>
-    <p class="muted small">${fmtNum(fg.total)} / ${fmtNum(fg.goal)} en valor · ${fg.givers} ${fg.givers === 1 ? 'imperio ha' : 'imperios han'} ofrendado · tú, ${fmtNum(fg.mine)}. Cada cuarto da +${num(F.atk * 100)} % de ataque y quita un ${Math.round(F.lava * 100)} % de la lava. ${now}</p>
+    <p class="muted small">${fmtNum(fg.total)} / ${fmtNum(fg.goal)} en valor · ${fg.givers} ${fg.givers === 1 ? 'imperio ha' : 'imperios han'} ofrendado · tú, ${fmtNum(fg.mine)}. ${brea ? '' : `Cada cuarto da +${num(F.atk * 100)} % de ataque${lava ? ` y quita un ${Math.round(F.lava * 100)} % de la lava` : ''}. `}${now}</p>
     ${form}
   </div>`;
 }
 
-const FEAT_INTRO = 'Un enemigo de leyenda despierta. Solo cae si varios imperios combaten juntos: lucha por oleadas cada pocas horas, en el mar y en tierra. Si cae, todos los que combatieron se reparten un botín a la medida de lo que producen.';
+const FEAT_INTRO = 'Solo cae si varios imperios combaten juntos, por oleadas cada pocas horas. Si cae, todos los que combatieron se reparten un botín a la medida de lo que producen.';
 
 /** Una horda bárbara en el continente: cuánto le queda, cuándo ataca y quién la está mermando. */
 function hordeSection(view) {
@@ -474,6 +519,9 @@ function fleetForm(hud, game, view) {
   const known = view.explored;
   const hostile = known && (['barbaros', 'ciudadela', 'piratas', 'kraken', 'jugador'].includes(view.type) || (view.type === 'continente' && (!!view.horde || !!feat)));
   if (view.type !== 'brumas' && view.colonizedBy == null && hostile) types.push('atacar');
+  // La Armada: también se toman sus fondeaderos
+  const armada = feat?.kind === 'armada';
+  if (armada) types.push('bloquear');
   const enemyCity = known && view.type === 'jugador' && !(view.alliance && view.alliance.id === game.alliance?.id);
   if (enemyCity) types.push('invadir', 'bloquear', 'sabotaje');
   if (known && view.type === 'jugador') types.push('transporte');
@@ -485,7 +533,7 @@ function fleetForm(hud, game, view) {
 
   const buttons = allowed
     .map((t) => {
-      const label = t === 'explorar' && view.type === 'jugador' ? 'Espiar' : t === 'sabotaje' ? 'Sabotear' : t === 'bloquear' ? 'Bloquear' : MISSION_TYPES[t].name;
+      const label = t === 'explorar' && view.type === 'jugador' ? 'Espiar' : t === 'sabotaje' ? 'Sabotear' : t === 'bloquear' ? (armada ? 'Al fondeadero' : 'Bloquear') : armada && t === 'atacar' ? 'Asaltar el campamento' : MISSION_TYPES[t].name;
       return `<button class="${['atacar', 'invadir', 'bloquear'].includes(t) ? 'danger' : 'primary'} small" data-action="mission" data-type="${t}">${MISSION_TYPES[t].icon} ${label}</button>`;
     })
     .join('');
@@ -513,8 +561,9 @@ function fleetForm(hud, game, view) {
     ${colony}
     <div class="mission-buttons">${buttons}</div>
     ${warHint}
-    ${feat ? `<p class="hint small">${feat.icon} Manda barcos de guerra para la primera fase (en el mar) y tropas de tierra para las siguientes. Tu flota espera frente a la costa y combate en la siguiente oleada junto a las de los demás.</p>` : ''}
-    ${hostile && (!feat || feat.boss) ? `<button class="ghost wide sim-btn" data-action="simulate">🎲 ${feat ? 'Simular contra la fase actual' : 'Simular el combate'}</button>` : ''}
+    ${armada ? postSelect(game, view, feat) : ''}
+    ${feat ? `<p class="hint small">${feat.icon} ${FEAT_FLEET_HINT[feat.kind] ?? FEAT_FLEET_HINT.tifon}</p>` : ''}
+    ${hostile && (!feat || (feat.boss && feat.kind === 'tifon')) ? `<button class="ghost wide sim-btn" data-action="simulate">🎲 ${feat ? 'Simular contra la fase actual' : 'Simular el combate'}</button>` : ''}
     <div class="hint warn" data-fleet-reason></div>
   </div>`;
 }
@@ -534,7 +583,23 @@ function jointSelect(game, view) {
 /** Opciones de la flota: almirante y ataque conjunto. */
 export function readOpts(root) {
   const from = root.querySelector('[name="from"]')?.value;
-  return { hero: !!root.querySelector('[name="with-hero"]')?.checked, join: root.querySelector('[name="join"]')?.value || undefined, from: from ? Number(from) : undefined };
+  const post = root.querySelector('[name="post"]')?.value;
+  return { hero: !!root.querySelector('[name="with-hero"]')?.checked, join: root.querySelector('[name="join"]')?.value || undefined, from: from ? Number(from) : undefined, post: post !== undefined && post !== '' ? Number(post) : undefined };
+}
+
+const FEAT_FLEET_HINT = {
+  tifon: 'Manda barcos de guerra para la primera fase (en el mar) y tropas de tierra para las siguientes. Tu flota espera frente a la costa y combate en la siguiente oleada junto a las de los demás.',
+  armada: 'Al fondeadero: solo barcos de guerra; si lo tomáis, tu flota se queda allí aguantando sus salidas (otros pueden ir de escolta). Asaltar el campamento: tropas de tierra con barcos, en la oleada, junto a los demás y con la coraza.',
+  hidra: 'Solo se lucha en tierra: manda tropas con barcos que las lleven. Tu flota espera frente a la costa y combate en la siguiente oleada junto a las de los demás.',
+};
+
+/** A qué fondeadero de la Armada va la flota (los tomados por otros, para escoltarlos). */
+function postSelect(game, view, feat) {
+  const posts = feat.posts ?? Array.from({ length: game.world.islands().filter((x) => x.land === view.id).length || 3 }, (_, i) => ({ i, holderName: null, squad: null }));
+  const options = posts
+    .map((p) => `<option value="${p.i}">Fondeadero ${p.i + 1} ${escapeHtml(postName(game, view, p.i))} · ${p.holderName ? `de ${escapeHtml(p.holderName)} (escolta)` : p.squad != null ? `libre, ${p.squad} fenicias` : 'libre'}</option>`)
+    .join('');
+  return `<label class="joint-pick">⚓ Fondeadero <select name="post">${options}</select></label>`;
 }
 
 /** Unidades elegidas en el formulario de flota. */

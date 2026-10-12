@@ -57,6 +57,11 @@ export class ClientWorld {
     return [...this.islandMap.values()];
   }
 
+  /** Los asentamientos de un continente (los que lleguen en el estado). */
+  sitesOn(land) {
+    return this.islands().filter((i) => i.land === land);
+  }
+
   islandsNear(homeId, radius) {
     const home = this.island(homeId);
     if (!home) return [];

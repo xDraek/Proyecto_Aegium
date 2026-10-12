@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { C, box, colonnade, createShip, createSoldier, cyl, dome, figure, gableRoof, hipRoof, mat, mediterraneanTree, mesh, palmTree, smokeColumn, stylobate } from './models.js';
+import { C, box, colonnade, createShip, createSoldier, cyl, dome, figure, gableRoof, hipRoof, mat, mediterraneanTree, mesh, palmTree, smokeColumn, statue, stylobate } from './models.js';
 import { wonderLevel, wonderOf } from '../game/rules.js';
 import { FEAT_THEMES } from '../game/data.js';
 import { Batch, bakeStatic, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng } from './util.js';
@@ -311,7 +311,7 @@ function tree(color, palm) {
 export function islandLook(view) {
   if (view.type === 'brumas') return 'brumas';
   if (view.type === 'continente') return `maravilla-${view.wonder?.level ?? 0}${view.horde ? '-h' : ''}${featLook(view.feat)}`;
-  if (view.type === 'jugador') return `ciudad-${view.townLevel >= 6 ? 3 : view.townLevel >= 3 ? 2 : 1}`;
+  if (view.type === 'jugador') return `ciudad-${view.townLevel >= 6 ? 3 : view.townLevel >= 3 ? 2 : 1}${view.statue ? `-e${view.statue}` : ''}`;
   if (view.type === 'ciudadela' && view.colonizedBy != null) return view.colonized ? 'ciudadela-propia' : 'ciudadela-otro';
   if (view.colonized) return 'colonia';
   if (view.colonizedBy != null) return 'colonia-otro';
@@ -321,16 +321,20 @@ export function islandLook(view) {
 }
 
 /**
- * Cómo se ve una gesta en su continente: «-tp» en presagios y «-t0», «-t1», «-t2» según la fase
- * de la lucha («-t2f» con las cabezas en furia). Nada si no hay gesta en marcha.
+ * Cómo se ve una gesta en su continente: «-gT…» Tifón («p» en presagios, «0», «1», «2» según la
+ * fase y «2f» con las cabezas en furia), «-gA…» la Armada (fondeaderos tomados) y «-gH…» la Hidra
+ * (cabezas vivas). Nada si no hay gesta en marcha.
  */
 function featLook(feat) {
   if (!feat || (feat.stage !== 'presagio' && feat.stage !== 'lucha')) return '';
-  if (feat.stage === 'presagio' || !feat.boss) return '-tp';
+  const kind = FEAT_THEMES[feat.theme]?.kind ?? 'tifon';
+  if (kind === 'armada') return `-gA${feat.boss ? feat.boss.posts.filter((p) => p.holder != null).length : 'p'}`;
+  if (kind === 'hidra') return `-gH${feat.boss ? Math.min(12, feat.boss.hidra) : 'p'}`;
+  if (feat.stage === 'presagio' || !feat.boss) return '-gTp';
   const phase = Math.min(feat.boss.phase, feat.phases.length - 1);
   const unit = feat.phases[phase]?.unit;
   const fury = unit === 'cabeza' && (feat.boss.cabeza ?? 0) <= (FEAT_THEMES[feat.theme]?.tune.furyAt ?? 0);
-  return `-t${phase}${fury ? 'f' : ''}`;
+  return `-gT${phase}${fury ? 'f' : ''}`;
 }
 
 export function createIslandFeature(isl, fullLook) {
@@ -352,18 +356,22 @@ export function createIslandFeature(isl, fullLook) {
     libre: () => specialty(g, isl, R, rand),
     colonia: () => colony(g, isl, R, rand, isl.bannerColor ?? C.cloth[0]),
     'colonia-otro': () => colony(g, isl, R, rand, ownerColor(isl)),
-    'ciudad-1': () => city(g, isl, R, rand, 1),
-    'ciudad-2': () => city(g, isl, R, rand, 2),
-    'ciudad-3': () => city(g, isl, R, rand, 3),
     kraken: () => lair(g, R, rand),
     brumas: () => fogBank(g, R, rand),
   };
-  if (look.startsWith('maravilla-')) {
+  if (look.startsWith('ciudad-')) {
+    // Una ciudad (con la estatua de una gesta ganada, si la tiene)
+    const [, size, extra] = look.split('-');
+    city(g, isl, R, rand, Number(size));
+    if (extra?.startsWith('e')) featStatue(g, R, extra.slice(1));
+  } else if (look.startsWith('maravilla-')) {
     const parts = look.slice(10).split('-');
     wonderModel(g, wonderOf(isl), Number(parts[0]));
     if (parts.includes('h')) hordeCamp(g, R, rand);
-    const feat = parts.find((x) => x.startsWith('t'));
-    if (feat) typhonRise(g, isl, R, rand, feat.slice(1));
+    const feat = parts.find((x) => x.startsWith('g'));
+    if (feat?.[1] === 'T') typhonRise(g, isl, R, rand, feat.slice(2));
+    else if (feat?.[1] === 'A') persianCamp(g, isl, R, rand, feat.slice(2));
+    else if (feat?.[1] === 'H') hydraSwamp(g, isl, R, rand, feat.slice(2));
   }
   else builders[look]?.();
   return bakeStatic(g);
@@ -932,6 +940,23 @@ const LAVA = { emissive: '#ff4500', emissiveIntensity: 2.2 };
 const SERPENT = '#2f6b5a';
 const SERPENT_BELLY = '#c9b36a';
 
+/** La estatua dorada de una gesta ganada, sobre su pedestal, en una plaza de la ciudad. */
+function featStatue(g, R, theme) {
+  const s = new THREE.Group();
+  s.add(box(0.9, 0.5, 0.9, C.marble, 0, 0, 0));
+  s.add(box(0.7, 0.15, 0.7, C.wallDark, 0, 0.5, 0));
+  s.add(statue(0, 0, C.gold, 1.2, { metalness: 0.55, roughness: 0.35 }));
+  s.children.at(-1).position.y += 0.65;
+  // Lo que la distingue: el rayo de Zeus, la tiara del Gran Rey o la cabeza de la Hidra
+  const mark = { tifon: '#ffd34a', armada: '#7a3fa0', hidra: '#2f6b5a' }[theme] ?? C.gold;
+  const gem = mesh(new THREE.OctahedronGeometry(0.16, 0), mark, { emissive: mark, emissiveIntensity: 0.8 });
+  gem.position.set(0, 1.95, 0);
+  s.add(gem);
+  s.position.copy(polar(R * 0.22, 135));
+  s.scale.setScalar(1.6);
+  g.add(s);
+}
+
 /** Hacia dónde sale el volcán: en el mayor hueco entre los asentamientos del continente. */
 function volcanoAngle(siteAngles, rand) {
   const a = [...siteAngles].map((x) => ((x % 360) + 360) % 360).sort((x, y) => x - y);
@@ -953,10 +978,15 @@ function volcanoAngle(siteAngles, rand) {
  * «0» sierpes en el mar, «1» gigantes en la orilla, «2» las cien cabezas («2f», en furia).
  * Lo estático se funde con el resto; la lava, el humo y lo que se mueve queda aparte.
  */
-function typhonRise(g, isl, R, rand, code) {
+/** Dónde va lo de una gesta: hacia el mayor hueco entre asentamientos, junto a la costa. */
+function featSpot(isl, R, rand) {
   const deg = volcanoAngle(isl.siteAngles ?? [], rand);
   const f = coastFactor(islandCoast(isl), THREE.MathUtils.degToRad(deg));
-  const coastR = R * 1.08 * f;
+  return { deg, coastR: R * 1.08 * f };
+}
+
+function typhonRise(g, isl, R, rand, code) {
+  const { deg, coastR } = featSpot(isl, R, rand);
   const vr = R * 0.17;
   const c = polar(coastR - vr * 1.05, deg);
   const top = R * 0.3;
@@ -1124,4 +1154,104 @@ function typhonNeck(rand, fury) {
   }
   parent.add(head);
   return root;
+}
+
+// ── Gestas: la Armada del Gran Rey y la Hidra de Lerna ───────────────────────
+
+const PURPLE = '#6a2c8a';
+const PURPLE_DARK = '#4a1d63';
+const PERSIAN_GOLD = '#d8b84a';
+
+/**
+ * El campamento persa junto a la costa: empalizada, tiendas púrpura y doradas, el pabellón del
+ * Gran Rey y sus estandartes; enfrente, las trirremes fenicias que guardan los fondeaderos
+ * (`code`: cuántos fondeaderos han tomado los juramentados, o «p» en presagios).
+ */
+function persianCamp(g, isl, R, rand, code) {
+  const { deg, coastR } = featSpot(isl, R, rand);
+  const cr = R * 0.2;
+  const c = polar(coastR - cr * 1.2, deg);
+  // Empalizada
+  const posts = 26;
+  for (let i = 0; i < posts; i++) {
+    const p = polar(cr, (i / posts) * 360, 0);
+    g.add(cyl(0.16, 0.2, 1.6 + rand() * 0.3, 5, C.woodDark, c.x + p.x, 0, c.z + p.z));
+  }
+  // Tiendas en anillos
+  for (let i = 0; i < 12; i++) {
+    const p = polar(cr * (0.45 + (i % 2) * 0.28), (i / 12) * 360 + rand() * 12, 0);
+    const tent = mesh(new THREE.ConeGeometry(0.9 + rand() * 0.3, 1.5, 6), i % 3 ? PURPLE : PERSIAN_GOLD);
+    tent.position.set(c.x + p.x, 0.75, c.z + p.z);
+    g.add(tent);
+  }
+  // El pabellón del Gran Rey
+  g.add(cyl(1.6, 1.8, 1.4, 10, PERSIAN_GOLD, c.x, 0, c.z));
+  const roof = mesh(new THREE.ConeGeometry(2.0, 1.6, 10), PURPLE_DARK);
+  roof.position.set(c.x, 2.2, c.z);
+  g.add(roof);
+  g.add(cyl(0.05, 0.05, 1.2, 5, C.gold, c.x, 3.0, c.z, { metalness: 0.6, roughness: 0.3 }));
+  // Estandartes que ondean
+  for (let i = 0; i < 4; i++) {
+    const p = polar(cr * 1.05, deg + 150 + i * 20, 0);
+    g.add(cyl(0.05, 0.05, 3.4, 5, C.dark, c.x + p.x, 0, c.z + p.z));
+    const flag = box(1.0, 0.7, 0.03, PURPLE, 0, 0, 0);
+    flag.geometry.translate(0.5, 0, 0);
+    flag.position.set(c.x + p.x, 3.1, c.z + p.z);
+    flag.userData.wave = true;
+    g.add(flag);
+  }
+  // Hogueras
+  for (let i = 0; i < 3; i++) {
+    const p = polar(cr * 0.62, deg + 60 + i * 110, 0);
+    const fire = mesh(new THREE.ConeGeometry(0.3, 0.75, 6), '#ff8a2a', { emissive: '#ff5a00', emissiveIntensity: 1.8 });
+    fire.position.set(c.x + p.x, 0.45, c.z + p.z);
+    fire.userData.flicker = true;
+    g.add(fire);
+  }
+  // Las trirremes fenicias que siguen libres frente a la costa
+  const held = code === 'p' ? 0 : Number(code) || 0;
+  const ships = Math.max(1, 4 - held);
+  for (let i = 0; i < ships; i++) {
+    const p = polar(coastR + R * 0.18, deg + (i - (ships - 1) / 2) * 11, 0);
+    const ship = createShip('trirreme');
+    ship.position.set(p.x, SEA, p.z);
+    ship.rotation.y = THREE.MathUtils.degToRad(deg + 90);
+    ship.scale.setScalar(2.3);
+    ship.userData.bob = { amp: 0.08, speed: 0.9 + i * 0.17, base: SEA };
+    g.add(ship);
+  }
+}
+
+/**
+ * La Hidra en su pantano, junto a la costa: agua negra, juncos, un lomo escamoso y tantos cuellos
+ * como cabezas le quedan (como mucho doce a la vista; «p» en presagios, solo burbujas y tres).
+ */
+function hydraSwamp(g, isl, R, rand, code) {
+  const { deg, coastR } = featSpot(isl, R, rand);
+  const sr = R * 0.2;
+  const c = polar(coastR - sr * 1.1, deg);
+  const swamp = new THREE.Mesh(new THREE.CylinderGeometry(sr, sr * 1.05, 0.12, 18), mat('#2c3b25', { transparent: true, opacity: 0.92, roughness: 0.3 }));
+  swamp.position.set(c.x, 0.06, c.z);
+  g.add(swamp);
+  // Juncos alrededor
+  for (let i = 0; i < 28; i++) {
+    const p = polar(sr * (0.85 + rand() * 0.3), rand() * 360, 0);
+    const reed = mesh(new THREE.ConeGeometry(0.08, 1.2 + rand() * 0.8, 4), i % 2 ? '#6b7a3a' : '#556b2f');
+    reed.position.set(c.x + p.x, 0.6, c.z + p.z);
+    g.add(reed);
+  }
+  // El lomo
+  const back = mesh(new THREE.SphereGeometry(sr * 0.32, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), SERPENT);
+  back.position.set(c.x, 0.05, c.z);
+  back.scale.y = 0.6;
+  g.add(back);
+  const heads = code === 'p' ? 3 : Math.max(1, Math.min(12, Number(code) || 1));
+  for (let i = 0; i < heads; i++) {
+    const neck = typhonNeck(rand, false);
+    const p = polar(sr * 0.18, (i / heads) * 360 + rand() * 15, 0);
+    neck.position.set(c.x + p.x, 0.3, c.z + p.z);
+    neck.rotation.y = THREE.MathUtils.degToRad((i / heads) * 360);
+    neck.scale.setScalar(code === 'p' ? 0.55 : 0.8);
+    g.add(neck);
+  }
 }

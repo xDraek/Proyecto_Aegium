@@ -3311,11 +3311,16 @@ function cart() {
 /** Etiqueta de un continente con gesta: «🌋 ¡Tifón! Las cien cabezas · 63/100». */
 function featStatus(feat) {
   if (feat.stage === 'presagio' || !feat.boss) return `${feat.icon} Presagios de ${feat.enemy} · ${feat.pledgedCount} juramentos`;
+  if (feat.kind === 'armada') {
+    const held = feat.boss.posts.filter((p) => p.holder != null).length;
+    return `${feat.icon} ¡${feat.Enemy}! Fondeaderos ${held}/${feat.boss.posts.length} · campamento ${feat.boss.inmortal + feat.boss.arquero_persa}`;
+  }
+  if (feat.kind === 'hidra') return `${feat.icon} ¡La Hidra! ${feat.boss.hidra} ${feat.boss.hidra === 1 ? 'cabeza' : 'cabezas'}`;
   const i = Math.min(feat.boss.phase, feat.phases.length - 1);
   const p = feat.phases[i];
   const left = feat.boss[p.unit] ?? 0;
   const full = feat.boss.full?.[p.unit] ?? left;
-  return `${feat.icon} ¡${feat.enemy}! ${p.name} · ${left}/${full}`;
+  return `${feat.icon} ¡${feat.Enemy}! ${p.name} · ${left}/${full}`;
 }
 
 function anchoredShip(type, p, scale, i) {
