@@ -222,6 +222,7 @@ export const UNITS = {
     atk: 5,
     hp: 18,
     upkeep: 1,
+    pay: 0.2,
     size: 1,
     requires: { cuartel: 1 },
   },
@@ -236,6 +237,7 @@ export const UNITS = {
     atk: 7,
     hp: 8,
     upkeep: 1,
+    pay: 0.2,
     size: 1,
     requires: { cuartel: 1 },
   },
@@ -250,6 +252,7 @@ export const UNITS = {
     atk: 11,
     hp: 9,
     upkeep: 1,
+    pay: 0.3,
     size: 1,
     requires: { cuartel: 2 },
   },
@@ -264,6 +267,7 @@ export const UNITS = {
     atk: 15,
     hp: 24,
     upkeep: 2,
+    pay: 0.4,
     size: 1,
     requires: { cuartel: 3, herreria: 1 },
   },
@@ -278,6 +282,7 @@ export const UNITS = {
     atk: 10,
     hp: 42,
     upkeep: 2,
+    pay: 0.5,
     size: 1,
     requires: { cuartel: 4, armaduras: 1 },
   },
@@ -292,8 +297,9 @@ export const UNITS = {
     atk: 28,
     hp: 38,
     upkeep: 3,
+    pay: 1,
     size: 2,
-    requires: { cuartel: 5, equitacion: 1 },
+    requires: { cuartel: 5, equitacion: 2 },
   },
   catapulta: {
     name: 'Catapulta',
@@ -306,6 +312,7 @@ export const UNITS = {
     atk: 40,
     hp: 25,
     upkeep: 3,
+    pay: 1,
     size: 3,
     siege: 0.06,
     requires: { cuartel: 6, asedio: 1 },
@@ -323,7 +330,7 @@ export const UNITS = {
     atk: 27,
     hp: 86,
     upkeep: 2,
-    pay: 2,
+    pay: 2.5,
     size: 1,
     requires: { cuartel: 7, armaduras: 2, tactica: 1 },
   },
@@ -339,7 +346,7 @@ export const UNITS = {
     atk: 37,
     hp: 17,
     upkeep: 2,
-    pay: 1.5,
+    pay: 2,
     size: 1,
     requires: { cuartel: 7, tactica: 2 },
   },
@@ -355,9 +362,9 @@ export const UNITS = {
     atk: 59,
     hp: 98,
     upkeep: 4,
-    pay: 4,
+    pay: 5,
     size: 2,
-    requires: { cuartel: 9, equitacion: 1, tactica: 3 },
+    requires: { cuartel: 9, equitacion: 2, tactica: 3 },
   },
   elefante: {
     name: 'Elefante de guerra',
@@ -371,9 +378,9 @@ export const UNITS = {
     atk: 92,
     hp: 270,
     upkeep: 10,
-    pay: 8,
+    pay: 10,
     size: 4,
-    requires: { cuartel: 10, elefantes: 1 },
+    requires: { cuartel: 10, academia: 7, equitacion: 4, tactica: 2 },
   },
   bote: {
     name: 'Bote explorador',
@@ -386,6 +393,7 @@ export const UNITS = {
     atk: 0,
     hp: 6,
     upkeep: 1,
+    pay: 0.1,
     speed: 2.2,
     cargo: 0,
     capacity: 0,
@@ -403,6 +411,7 @@ export const UNITS = {
     atk: 0,
     hp: 30,
     upkeep: 1,
+    pay: 0.3,
     speed: 1,
     cargo: 500,
     capacity: 12,
@@ -419,6 +428,7 @@ export const UNITS = {
     atk: 18,
     hp: 45,
     upkeep: 2,
+    pay: 1,
     speed: 1.35,
     cargo: 120,
     capacity: 4,
@@ -435,6 +445,7 @@ export const UNITS = {
     atk: 42,
     hp: 24,
     upkeep: 2,
+    pay: 1,
     speed: 1.25,
     cargo: 0,
     capacity: 0,
@@ -451,6 +462,7 @@ export const UNITS = {
     atk: 48,
     hp: 130,
     upkeep: 4,
+    pay: 2.5,
     speed: 1.15,
     cargo: 400,
     capacity: 15,
@@ -468,6 +480,7 @@ export const UNITS = {
     atk: 72,
     hp: 190,
     upkeep: 5,
+    pay: 3.5,
     speed: 1.05,
     cargo: 600,
     capacity: 20,
@@ -485,7 +498,7 @@ export const UNITS = {
     atk: 52,
     hp: 120,
     upkeep: 3,
-    pay: 3,
+    pay: 4,
     speed: 1.6,
     cargo: 300,
     capacity: 6,
@@ -495,7 +508,7 @@ export const UNITS = {
   // Unidades que solo usan los enemigos
   barbaro: { name: 'Bárbaro', icon: '🪓', kind: 'tierra', npc: true, atk: 7, hp: 15 },
   pirata: { name: 'Pirata', icon: '🏴‍☠️', kind: 'tierra', npc: true, atk: 11, hp: 17 },
-  corsario: { name: 'Barco corsario', icon: '⛵', kind: 'barco', npc: true, atk: 20, hp: 50 },
+  corsario: { name: 'Barco corsario', icon: '⛵', kind: 'barco', npc: true, atk: 20, hp: 50, capacity: 12 },
   kraken: { name: 'Kraken', icon: '🐙', kind: 'barco', npc: true, atk: 260, hp: 2600 },
   // Los hijos de Tifón (gestas): su número y sus multiplicadores dependen de quién les plante cara
   sierpe: { name: 'Sierpe marina', icon: '🐍', kind: 'barco', npc: true, atk: 14, hp: 300 },
@@ -521,7 +534,7 @@ export const RESEARCH = {
     icon: '🌲',
     description: 'Técnicas de tala y replantado.',
     effect: (n) => `+${n * 10} % de madera`,
-    baseCost: { madera: 180, piedra: 120 },
+    baseCost: { madera: 180, piedra: 120, cristal: 60 },
     baseTime: 120,
     requires: { academia: 1 },
   },
@@ -530,7 +543,7 @@ export const RESEARCH = {
     icon: '⛏️',
     description: 'Galerías más profundas y mejores herramientas.',
     effect: (n) => `+${n * 10} % de piedra y hierro`,
-    baseCost: { madera: 150, piedra: 150 },
+    baseCost: { madera: 150, piedra: 150, cristal: 60 },
     baseTime: 130,
     requires: { academia: 1 },
   },
@@ -539,7 +552,7 @@ export const RESEARCH = {
     icon: '💧',
     description: 'Acequias y molinos para regar los campos.',
     effect: (n) => `+${n * 10} % de comida`,
-    baseCost: { madera: 160, piedra: 80 },
+    baseCost: { madera: 160, piedra: 80, cristal: 50 },
     baseTime: 110,
     requires: { academia: 1 },
   },
@@ -548,7 +561,7 @@ export const RESEARCH = {
     icon: '🔬',
     description: 'Los sabios aprenden a tallar el cristal sin romperlo.',
     effect: (n) => `+${n * 10} % de cristal`,
-    baseCost: { madera: 200, cristal: 120 },
+    baseCost: { madera: 200, cristal: 200 },
     baseTime: 160,
     requires: { academia: 2, mineria: 1 },
   },
@@ -557,7 +570,7 @@ export const RESEARCH = {
     icon: '📐',
     description: 'Planos, grúas y andamios mejores.',
     effect: (n) => `Obras un ${n * 8} % más rápidas`,
-    baseCost: { madera: 300, piedra: 300, cristal: 60, oro: 40 },
+    baseCost: { madera: 300, piedra: 300, cristal: 120, oro: 40 },
     baseTime: 200,
     requires: { academia: 2 },
   },
@@ -566,7 +579,7 @@ export const RESEARCH = {
     icon: '🧺',
     description: 'Estanterías, toneles y un buen inventario.',
     effect: (n) => `+${n * 20} % de capacidad del almacén`,
-    baseCost: { madera: 250, piedra: 250, oro: 40 },
+    baseCost: { madera: 250, piedra: 250, cristal: 100, oro: 40 },
     baseTime: 180,
     requires: { academia: 2, almacen: 2 },
   },
@@ -575,7 +588,7 @@ export const RESEARCH = {
     icon: '📜',
     description: 'Contratos, letras de cambio y rutas comerciales.',
     effect: (n) => `+${n * 10} % de oro y mejores cambios en el mercado`,
-    baseCost: { madera: 300, cristal: 150, oro: 50 },
+    baseCost: { madera: 300, cristal: 250, oro: 50 },
     baseTime: 240,
     requires: { academia: 3, mercado: 1 },
   },
@@ -584,7 +597,7 @@ export const RESEARCH = {
     icon: '⚒️',
     description: 'Armas de hierro templado. El nivel 1 permite entrenar espadachines.',
     effect: (n) => `+${n * 10} % de ataque`,
-    baseCost: { madera: 150, hierro: 200, cristal: 60, oro: 30 },
+    baseCost: { madera: 150, hierro: 200, cristal: 120, oro: 30 },
     baseTime: 200,
     requires: { academia: 2, fundicion: 1 },
   },
@@ -593,18 +606,18 @@ export const RESEARCH = {
     icon: '🦺',
     description: 'Cotas de malla y escudos reforzados.',
     effect: (n) => `+${n * 10} % de vida de tus tropas`,
-    baseCost: { piedra: 150, hierro: 250, cristal: 80, oro: 50 },
+    baseCost: { piedra: 150, hierro: 250, cristal: 150, oro: 50 },
     baseTime: 220,
     requires: { academia: 3, herreria: 1 },
   },
   equitacion: {
     name: 'Equitación',
     icon: '🐎',
-    description: 'Cría de caballos de guerra. Permite entrenar caballeros.',
-    effect: () => 'Desbloquea el caballero',
-    baseCost: { comida: 600, hierro: 300, oro: 100 },
+    description: 'Cría y doma de animales de guerra. Nivel 2: caballeros y catafractos. Nivel 4: elefantes de guerra traídos de África y la India.',
+    effect: (n) => (n >= 4 ? 'Caballería y elefantes de guerra' : n >= 2 ? 'Caballería (caballeros y catafractos)' : 'Cuadras y potros: aún sin caballería'),
+    baseCost: { hierro: 300, cristal: 250, oro: 120 },
     baseTime: 400,
-    maxLevel: 1,
+    maxLevel: 4,
     requires: { academia: 4, herreria: 2 },
   },
   asedio: {
@@ -612,7 +625,7 @@ export const RESEARCH = {
     icon: '☄️',
     description: 'Contrapesos, poleas y proyectiles de piedra. Permite construir catapultas.',
     effect: () => 'Desbloquea la catapulta',
-    baseCost: { madera: 800, hierro: 500, cristal: 200, oro: 150 },
+    baseCost: { madera: 800, hierro: 500, cristal: 350, oro: 150 },
     baseTime: 600,
     maxLevel: 1,
     requires: { academia: 5, herreria: 3 },
@@ -622,43 +635,49 @@ export const RESEARCH = {
     icon: '🧭',
     description: 'Brújulas y velas latinas. Nivel 1: trirremes. Nivel 2: expediciones al Mar de las Brumas. Nivel 3: quinquerremes y liburnas.',
     effect: (n) => `Flotas un ${n * 10} % más rápidas`,
-    baseCost: { madera: 300, cristal: 100, oro: 30 },
+    baseCost: { madera: 300, cristal: 180, oro: 30 },
     baseTime: 220,
     requires: { academia: 2, puerto: 2 },
   },
   cartografia: {
     name: 'Cartografía',
     icon: '🗺️',
-    description: 'Cartas náuticas de todo el archipiélago. Cada nivel te deja fundar una colonia más.',
+    description: 'Mapas de las islas y sus fondeaderos. Cada nivel te deja fundar una colonia más.',
     effect: (n) => `${n} ${n === 1 ? 'colonia' : 'colonias'} como máximo`,
-    baseCost: { madera: 500, cristal: 300, oro: 150 },
+    baseCost: { madera: 500, cristal: 450, oro: 150 },
     baseTime: 360,
     maxLevel: 4,
     requires: { academia: 3, navegacion: 1 },
+  },
+  cartas: {
+    name: 'Cartas náuticas',
+    icon: '🧭',
+    description: 'Las rutas, corrientes y fondeaderos de todo el archipiélago. Sin ellas, tus flotas de guerra solo llegan a las ciudades a menos de 300 leguas.',
+    effect: () => 'Atacas, invades y bloqueas a cualquier jugador del archipiélago',
+    baseCost: { madera: 800, cristal: 600, oro: 300 },
+    baseTime: 600,
+    maxLevel: 1,
+    requires: { academia: 5, navegacion: 2, cartografia: 1 },
   },
   tactica: {
     name: 'Táctica militar',
     icon: '📜',
     description: 'Formaciones, disciplina y oficiales de carrera. Necesaria para las tropas de élite: espartanos (1), arqueros cretenses y liburnas (2) y catafractos (3).',
     effect: (n) => `+${n * 3} % de ataque y vida de tus tropas`,
-    baseCost: { hierro: 250, cristal: 300, oro: 200 },
+    baseCost: { hierro: 250, cristal: 450, oro: 200 },
     baseTime: 420,
     maxLevel: 5,
     requires: { academia: 5, herreria: 2 },
   },
-  elefantes: {
-    name: 'Doma de elefantes',
-    icon: '🐘',
-    description: 'Elefantes traídos de África y la India, y cornacas que saben guiarlos en la batalla.',
-    effect: () => 'Desbloquea el elefante de guerra',
-    baseCost: { comida: 1500, cristal: 400, oro: 600 },
-    baseTime: 900,
-    maxLevel: 1,
-    requires: { academia: 7, equitacion: 1, tactica: 2 },
-  },
 };
 
 export const RESEARCH_KEYS = Object.keys(RESEARCH);
+
+/**
+ * Sin Cartas náuticas, los ataques, invasiones y bloqueos contra otros jugadores solo llegan a
+ * las ciudades a menos de estas leguas de la tuya.
+ */
+export const PVP_RANGE = 300;
 export const RESEARCH_COST_FACTOR = 1.9;
 
 // ── Archipiélago ─────────────────────────────────────────────────────────────
@@ -688,6 +707,9 @@ export const COLONY = {
   upgradeMinutes: 20,
   timeFactor: 1.45,
 };
+
+/** Qué parte de lo pagado se recupera al cancelar una obra, una investigación o un reclutamiento. */
+export const CANCEL_REFUND = 0.7;
 
 /** Cuántos aliados pueden unirse a un mismo ataque conjunto. */
 export const JOINT_MAX = 4;
@@ -734,7 +756,8 @@ export const HOSTILE_MISSIONS = ['atacar', 'invadir', 'bloquear'];
 export const OUTPOST_MISSIONS = ['atacar', 'explorar', 'sabotaje', 'bloquear', 'invadir'];
 
 // ── Templo ───────────────────────────────────────────────────────────────────
-// duration: horas de juego que dura el efecto (0 = instantáneo).
+// duration: horas de juego que dura el efecto (0 = instantáneo). cooldown: horas desde que se
+// invoca hasta que se puede volver a invocar (así no se acumulan).
 
 export const POWERS = {
   cosecha: {
@@ -743,6 +766,7 @@ export const POWERS = {
     description: '+25 % de toda la producción durante 2 horas.',
     cost: 60,
     duration: 2,
+    cooldown: 8,
   },
   inspiracion: {
     name: 'Inspiración',
@@ -750,6 +774,7 @@ export const POWERS = {
     description: 'La obra y la investigación en curso terminan un 30 % antes.',
     cost: 50,
     duration: 0,
+    cooldown: 6,
   },
   viento: {
     name: 'Viento favorable',
@@ -757,6 +782,7 @@ export const POWERS = {
     description: 'Tus flotas en el mar se ahorran la mitad de lo que les queda de trayecto.',
     cost: 70,
     duration: 0,
+    cooldown: 6,
   },
   egida: {
     name: 'Égida',
@@ -764,6 +790,7 @@ export const POWERS = {
     description: '+50 % de vida para los defensores de tu isla durante 3 horas.',
     cost: 80,
     duration: 3,
+    cooldown: 10,
   },
   rayo: {
     name: 'Ira de los dioses',
@@ -771,6 +798,7 @@ export const POWERS = {
     description: 'Un rayo hunde el 40 % de la flota pirata que se acerca.',
     cost: 120,
     duration: 0,
+    cooldown: 8,
   },
 };
 

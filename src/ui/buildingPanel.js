@@ -292,7 +292,8 @@ function refreshMarket(game, root) {
   }
   const rate = game.tradeRate(from, to);
   const get = Math.floor(amount * rate);
-  const text = `Recibes ${RESOURCES[to].icon} ${fmtNum(get)} · 1 ${RESOURCES[from].icon} = ${fmtDec(rate)} ${RESOURCES[to].icon}`;
+  const tax = Math.round((1 - rate / (RESOURCES[from].value / RESOURCES[to].value)) * 100);
+  const text = `Recibes ${RESOURCES[to].icon} ${fmtNum(get)} · 1 ${RESOURCES[from].icon} = ${fmtDec(rate)} ${RESOURCES[to].icon} · el mercado se queda un ${tax} % en impuestos (con otros jugadores no hay)`;
   if (out.textContent !== text) out.textContent = text;
 }
 
@@ -318,11 +319,14 @@ function powerCard(game, id) {
   if (id === 'inspiracion' && !game.queue && !game.researchQueue) blocked = 'No hay obras ni investigaciones';
   if (id === 'viento' && !game.missions.length) blocked = 'No hay flotas en el mar';
   if (id === 'rayo' && !game.raid) blocked = 'No hay piratas a la vista';
+  const ready = game.powerReady(id);
+  if (ready) blocked = 'Hay que esperar para volver a invocarla';
   return `<div class="card${until ? ' active' : ''}">
     <div class="card-head"><span class="card-icon">${p.icon}</span><div class="card-title"><b>${p.name}</b>
       ${until ? '<span class="card-lvl">activo</span>' : ''}
       <div class="card-sub">${p.description}</div></div></div>
     ${until ? `<div class="hint ok">Quedan <span data-until="${until}"></span></div>` : ''}
+    ${ready ? `<div class="hint">⏳ Se podrá volver a invocar en <span data-until="${ready}"></span></div>` : `<div class="muted small">Tras invocarla hay que esperar ${p.cooldown} h para volver a hacerlo.</div>`}
     <div class="card-row"><span class="muted small">${blocked}</span>
       <button class="primary small auto" data-action="power" data-id="${id}" data-favor="${p.cost}" data-blocked="${blocked ? 1 : 0}">🙏 ${p.cost}</button></div>
   </div>`;

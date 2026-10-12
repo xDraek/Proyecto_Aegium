@@ -24,7 +24,7 @@ const RICH = { madera: 50000, piedra: 50000, comida: 50000, hierro: 50000, crist
 
 /**
  * Un mundo con los jugadores `names`: fuera de la protección de novato, con puerto, mercado y un
- * almacén grande, muchos recursos y sin piratas (ayuntamiento 2). Todos conocen las ciudades de
+ * almacén grande, Cartas náuticas, muchos recursos y sin piratas (ayuntamiento 2). Todos conocen las ciudades de
  * los demás. `advance(ms)` adelanta el reloj y da una vuelta al bucle del servidor.
  */
 export async function makeWorld(names = ['Lucio', 'Anibal', 'Pericles']) {
@@ -36,6 +36,8 @@ export async function makeWorld(names = ['Lucio', 'Anibal', 'Pericles']) {
     const g = world.games.get(id);
     g.state.stats.spent = 100_000;
     Object.assign(g.state.buildings, { ayuntamiento: 2, puerto: 10, mercado: 3, almacen: 10, cuartel: 5 });
+    // Con Cartas náuticas: llegan a cualquier ciudad del archipiélago
+    g.state.research.cartas = 1;
     g.state.resources = { ...RICH };
     players.push(g);
   }

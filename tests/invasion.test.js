@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { clock } from '../src/config.js';
 import { OCCUPATION } from '../src/game/data.js';
+import { economy } from '../src/game/rules.js';
 import { alive, makeWorld, sendAndArrive } from './world.js';
 
 // Invasiones: ocupación, tributo, saqueo, flotas que zarpan de la ciudad ocupada y liberación.
@@ -63,8 +64,11 @@ test('el tributo se aparta y el saqueo lo manda a casa', async () => {
   const oro = A.state.resources.oro;
   const sent = convoy.cargo.oro;
   assert.ok(sent > 0, 'el convoy lleva oro');
+  // Mientras viaja el convoy, el ejército sigue cobrando su paga (y la ciudad produciendo)
+  const perHour = economy(A.state, clock.now()).net.oro;
+  const hours = (convoy.back - clock.now()) / 3_600_000;
   env.until(convoy.back);
-  assert.ok(A.state.resources.oro >= oro + sent, 'el botín llega a casa');
+  assert.ok(A.state.resources.oro >= oro + sent + perHour * hours - 1, 'el botín llega a casa');
 });
 
 test('desde la ciudad ocupada se lanzan ataques que vuelven a ella', async () => {

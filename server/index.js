@@ -110,6 +110,7 @@ const ACTIONS = {
   dismissVisitor: (g) => g.dismissVisitor(),
   markReportsRead: (g) => g.markReportsRead(),
   upgradeColony: (g, [id]) => (typeof id === 'string' ? g.upgradeColony(id) : bad()),
+  abandonColony: (g, [id]) => (typeof id === 'string' ? g.abandonColony(id) : bad()),
   setWork: (g, [id, pct]) => (typeof id === 'string' && Number.isFinite(pct) ? g.setWork(id, pct) : bad()),
   hireMercenaries: (g, [id]) => (typeof id === 'string' ? g.hireMercenaries(id) : bad()),
   setTitle: (g, [id]) => (typeof id === 'string' ? g.setTitle(id) : bad()),

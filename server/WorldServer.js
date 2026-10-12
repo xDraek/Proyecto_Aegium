@@ -511,6 +511,23 @@ export class WorldServer {
     return out.sort((a, b) => a.d - b.d);
   }
 
+  /**
+   * Una colonia abandonada queda libre. Si era una ciudad conquistada, los bárbaros la repueblan
+   * desde cero (su guarnición y su botín vuelven a crecer poco a poco).
+   */
+  decolonize(id, userId, now = clock.now()) {
+    const rt = this.islandStates.get(id);
+    if (!rt || rt.colonizedBy !== userId) return false;
+    rt.colonizedBy = null;
+    rt.garrison = {};
+    rt.garrisonAt = now;
+    rt.stock = {};
+    rt.stockAt = now;
+    this.touch(id);
+    this.mapCache = null;
+    return true;
+  }
+
   colonize(id, userId) {
     const rt = this.islandStates.get(id);
     if (!rt || rt.colonizedBy != null) return false;

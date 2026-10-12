@@ -960,12 +960,20 @@ select:focus {
 
 .mission-buttons {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
+/* Si no caben todas en una fila, bajan a la siguiente en vez de salirse del panel */
 .mission-buttons button {
-  flex: 1;
+  flex: 1 1 96px;
   width: auto;
+  min-width: 0;
+}
+
+.colony-abandon {
+  margin-top: 12px;
+  width: 100%;
 }
 
 .bag-item {
@@ -5226,4 +5234,21 @@ kbd {
 .label.fleet.ally {
   border-color: rgba(120, 200, 120, 0.7);
   border-left-color: var(--flag, #6bbf59);
+}
+
+/* Con un panel abierto, el cuadro de lo que está en marcha va en el hueco entre la lista de la
+   izquierda y el panel (para no tapar sus botones), y la cámara se maneja con el ratón */
+@media (min-width: 801px) and (max-width: 1500px) {
+  #panel:not([hidden]) ~ #dock,
+  #chat:not([hidden]) ~ #dock {
+    left: 268px;
+    right: auto;
+    transform: none;
+    width: min(440px, calc(100vw - 268px - 424px));
+  }
+
+  #panel:not([hidden]) ~ #cam-controls,
+  #chat:not([hidden]) ~ #cam-controls {
+    display: none;
+  }
 }

@@ -342,7 +342,8 @@ const TOPICS = {
       ${landTable()}
       <h5>Barcos</h5>
       ${shipTable()}
-      <p><b>⭐ Tropas de élite</b>: mucho más fuertes, pero además de comer cobran una <b>paga en oro</b> cada hora, estén en casa o en el mar. Si el oro se acaba, desertan las que más cobran hasta que la paga cuadre. Se desbloquean con <b>Táctica militar</b> (y los elefantes, con <b>Doma de elefantes</b>).</p>
+      <p><b>🪙 Paga</b>: todas las tropas y los barcos, además de comer, cobran una <b>paga en oro</b> cada hora, estén en casa o en el mar. Si el oro se acaba, desertan los que más cobran hasta que la paga cuadre.</p>
+      <p><b>⭐ Tropas de élite</b>: mucho más fuertes, pero cobran bastante más. Se desbloquean con <b>Táctica militar</b>. La caballería pide <b>Equitación 2</b> y los elefantes, <b>Equitación 4</b>.</p>
       ${tip('Los mercantes no combaten, pero llevan muchas tropas y mucho botín. Los botes son rápidos y solo sirven para explorar, espiar y sabotear.')}`,
   },
   combate: {

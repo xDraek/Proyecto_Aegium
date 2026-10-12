@@ -278,7 +278,7 @@ export function upkeepPerHour(state) {
   return total * universe.speed * (1 - tavernSaving(state));
 }
 
-/** Oro por hora que cobran las tropas de élite (las de casa y las que están en el mar). */
+/** Oro por hora que cobran las tropas y los barcos (los de casa y los que están en el mar); la élite, más. */
 export function payPerHour(state) {
   let total = 0;
   for (const [id, n] of Object.entries(totalUnits(state))) total += n * (UNITS[id].pay ?? 0);
@@ -387,7 +387,8 @@ export function storageCapacity(state) {
 /** Cuánto recibes por cada unidad de `from` al cambiarla por `to` en el mercado. */
 export function tradeRate(state, from, to, t = state.lastUpdate) {
   const fair = worldEventAt(t).event?.trade ?? 0;
-  const efficiency = Math.min(0.92 + fair, 0.5 + 0.04 * lvl(state, 'mercado') + 0.04 * lvl(state, 'comercio') + fair);
+  // El mercado cobra impuestos altos (entre el 75 % y el 40 %): sale más a cuenta comerciar con otros jugadores
+  const efficiency = Math.min(0.6 + fair, 0.25 + 0.02 * lvl(state, 'mercado') + 0.02 * lvl(state, 'comercio') + fair);
   return (RESOURCES[from].value / RESOURCES[to].value) * efficiency;
 }
 

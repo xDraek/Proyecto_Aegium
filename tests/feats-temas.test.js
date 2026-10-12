@@ -19,7 +19,11 @@ const ASSAULT = { dromon: 120, hoplita: 1500, espadachin: 600 };
 async function themeWorld(theme, n = 4, army = ARMY) {
   const env = await makeWorld(NAMES.slice(0, n));
   const W = env.world;
-  for (const g of env.players) Object.assign(g.state.units, army);
+  // Ejércitos enormes: con oro de sobra para su paga mientras dura la gesta
+  for (const g of env.players) {
+    Object.assign(g.state.units, army);
+    g.state.resources.oro = 5_000_000;
+  }
   const homes = env.players.map((g) => W.islands.get(g.state.home));
   const far = (c) => Math.max(...homes.map((h) => Math.hypot(c.x - h.x, c.z - h.z)));
   const site = [...W.islands.values()].filter((i) => i.type === 'continente').sort((a, b) => far(a) - far(b))[0].id;

@@ -6,6 +6,7 @@ import {
   BANNER_EMBLEMS,
   BUILDINGS,
   BUILDING_KEYS,
+  CANCEL_REFUND,
   COLONY,
   DAILY_REWARDS,
   DAILY_TASKS,
@@ -26,6 +27,7 @@ import {
   OUTPOST_MISSIONS,
   PLAYER_UNITS,
   POWERS,
+  PVP_RANGE,
   PROTECTION,
   QUESTS,
   RELICS,
@@ -95,7 +97,8 @@ const RAID_MIN_H = 4;
 const RAID_MAX_H = 7;
 const RAID_WARNING_MIN = 20;
 const RAID_THEFT = 0.2;
-const LOOT_SHARE = 0.5;
+// Se saquea todo lo que haya a la vista (menos lo protegido) mientras quepa en los barcos
+const LOOT_SHARE = 1;
 const VISIT_MIN_H = 3;
 const VISIT_MAX_H = 6;
 const ACTIVE_QUESTS = 3;
@@ -175,7 +178,30 @@ export function upgradeState(saved) {
     stats: { ...base.stats, ...saved.stats },
     daily: { ...base.daily, ...saved.daily },
     quests: { claimed: saved.quests?.claimed ?? [] },
+    ...migrateResearch(saved),
   };
+}
+
+/**
+ * Investigaciones que han cambiado: la Doma de elefantes es ahora el nivel 4 de Equitación y la
+ * caballería pide Equitación 2 (quien ya la tenía no la pierde). Si se estaba investigando la doma,
+ * se devuelve lo pagado.
+ */
+function migrateResearch(saved) {
+  const research = { ...saved.research };
+  if (!('elefantes' in research) && !(saved.researchQueue?.id === 'elefantes')) return {};
+  const out = {};
+  if ((research.equitacion ?? 0) >= 1) research.equitacion = Math.max(research.equitacion, 2);
+  if ((research.elefantes ?? 0) >= 1) research.equitacion = 4;
+  delete research.elefantes;
+  out.research = { ...newState({ now: saved.lastUpdate, home: saved.home, name: saved.name }).research, ...research };
+  if (saved.researchQueue?.id === 'elefantes') {
+    const resources = { ...saved.resources };
+    for (const [r, n] of Object.entries(saved.researchQueue.cost ?? {})) resources[r] = (resources[r] ?? 0) + n;
+    out.resources = resources;
+    out.researchQueue = null;
+  }
+  return out;
 }
 
 /**
@@ -293,6 +319,12 @@ export class Game extends EventTarget {
   }
 
   /** Hasta cuándo dura un efecto divino (0 si no está activo). */
+  /** Hasta cuándo no se puede volver a invocar el poder `id` (0 si ya se puede). */
+  powerReady(id, now = this.now()) {
+    const until = this.state.powerReady?.[id] ?? 0;
+    return until > now ? until : 0;
+  }
+
   buffUntil(id, now = this.now()) {
     const until = this.state.buffs[id] ?? 0;
     return until > now ? until : 0;
@@ -855,6 +887,22 @@ export class Game extends EventTarget {
     return this.#done();
   }
 
+  /**
+   * Abandonar una colonia: los colonos se marchan y la isla queda libre para quien la quiera (una
+   * ciudad conquistada vuelve a ser de los bárbaros, que la repueblan poco a poco). Lo invertido
+   * en ella se pierde.
+   */
+  abandonColony(id, now = this.now()) {
+    this.#advance(now);
+    const col = this.colony(id);
+    if (!col) return this.#fail('Esa isla no es tu colonia.');
+    this.state.colonies = this.state.colonies.filter((c) => c !== col);
+    this.state.wonderBonus = this.world.wonderBonusFor?.(this.state.colonies) ?? this.state.wonderBonus;
+    this.world.decolonize?.(id, this.userId, now);
+    this.#note(`🏳️ Abandonas ${col.name}: los colonos vuelven a casa`, 'info');
+    return this.#done();
+  }
+
   #finishColony(col) {
     col.level = (col.level ?? 1) + 1;
     delete col.upgradeEnd;
@@ -956,7 +1004,7 @@ export class Game extends EventTarget {
     this.#advance(now);
     const q = this.state.queue;
     if (!q) return this.#fail('No hay ninguna obra.');
-    this.#refund(q.cost);
+    this.#refund(q.cost, CANCEL_REFUND);
     this.state.queue = null;
     return this.#done();
   }
@@ -979,7 +1027,7 @@ export class Game extends EventTarget {
     this.#advance(now);
     const q = this.state.researchQueue;
     if (!q) return this.#fail('No hay ninguna investigación.');
-    this.#refund(q.cost);
+    this.#refund(q.cost, CANCEL_REFUND);
     this.state.researchQueue = null;
     return this.#done();
   }
@@ -1008,7 +1056,7 @@ export class Game extends EventTarget {
     const q = this.state.training[building];
     const batch = q?.[index];
     if (!batch) return this.#fail('Esa tanda ya no existe.');
-    this.#refund(multiplyCost(batch.cost, batch.count - batch.done));
+    this.#refund(multiplyCost(batch.cost, batch.count - batch.done), CANCEL_REFUND);
     q.splice(index, 1);
     let start = index === 0 ? now : q[index - 1].start + q[index - 1].count * q[index - 1].each;
     for (let i = index; i < q.length; i++) {
@@ -1187,6 +1235,10 @@ export class Game extends EventTarget {
           if (s.missions.some((m) => m.type === 'bloquear' && m.target === target)) reason ||= 'Ya tienes una flota bloqueando este puerto o de camino.';
         }
         if (!hasCombat(sent)) reason ||= 'Envía al menos una unidad de combate.';
+        // Sin Cartas náuticas solo se llega a las ciudades cercanas
+        if (this.researchLevel('cartas') < 1 && dist > PVP_RANGE) {
+          reason ||= `Esa ciudad está a ${Math.round(dist)} leguas: sin Cartas náuticas tus flotas de guerra solo llegan a ${PVP_RANGE}. Investígalas en la academia.`;
+        }
         // Recién liberada: nadie la puede volver a bloquear ni invadir durante un tiempo
         if ((type === 'invadir' || type === 'bloquear') && view.shield) reason ||= `${view.ownerName} acaba de librarse de un bloqueo o una ocupación: nadie la puede bloquear ni invadir hasta dentro de un rato.`;
         // Contra el acoso: un máximo de ataques al mismo jugador al día (salvo en guerra)
@@ -1371,6 +1423,8 @@ export class Game extends EventTarget {
     const s = this.state;
     if (!p) return this.#fail('Poder desconocido.');
     if (this.level('templo') < 1) return this.#fail('Necesitas un templo.');
+    const ready = this.powerReady(id, now);
+    if (ready) return this.#fail(`${p.name} aún no se puede volver a invocar: faltan ${fmtWait(ready - now)}.`);
     if (s.favor < p.cost) return this.#fail('No tienes favor suficiente.');
     if (id === 'inspiracion') {
       const qs = [s.queue, s.researchQueue].filter(Boolean);
@@ -1391,6 +1445,7 @@ export class Game extends EventTarget {
       s.buffs[id] = Math.max(s.buffs[id] ?? 0, now) + hours(p.duration);
     }
     s.favor -= p.cost;
+    s.powerReady = { ...(s.powerReady ?? {}), [id]: now + hours(p.cooldown ?? 0) };
     s.stats.powers++;
     this.#note(`${p.icon} ${p.name}`, 'success');
     return this.#done();
@@ -1859,8 +1914,9 @@ export class Game extends EventTarget {
     if (invest) this.state.stats.spent += sum(cost);
   }
 
-  #refund(cost) {
-    for (const [res, n] of Object.entries(cost)) this.state.resources[res] += n;
+  /** Devuelve una parte (`share`) de lo pagado; lo invertido deja de contar en los puntos. */
+  #refund(cost, share = 1) {
+    for (const [res, n] of Object.entries(cost)) this.state.resources[res] += Math.floor(n * share);
     this.state.stats.spent = Math.max(0, this.state.stats.spent - sum(cost));
   }
 
@@ -1926,7 +1982,7 @@ export class Game extends EventTarget {
     // El final de un efecto divino también es un suceso: cambia la producción
     for (const [id, until] of Object.entries(s.buffs)) consider(until, () => delete s.buffs[id]);
     for (const c of s.mercs ?? []) consider(c.until, (t) => this.#dismissMercs(c, t));
-    // Si la paga de la élite se come el oro, cuando se acabe desertan los que no se pueden pagar
+    // Si la paga de las tropas se come el oro, cuando se acabe desertan los que no se pueden pagar
     if (!s.vacation) {
       const eco = economy(s, s.lastUpdate);
       if (eco.pay > 0 && eco.net.oro < 0) {
@@ -1937,7 +1993,7 @@ export class Game extends EventTarget {
     return best;
   }
 
-  /** Sin oro para la paga: se marchan tropas de élite (las que más cobran primero) hasta que el oro alcance. */
+  /** Sin oro para la paga: se marchan tropas (las que más cobran primero) hasta que el oro alcance. */
   #desert(t) {
     const s = this.state;
     let deficit = -economy(s, t).net.oro;
@@ -2890,15 +2946,16 @@ export class Game extends EventTarget {
     if (!s.raid && !s.nextRaidAt && this.level('ayuntamiento') >= RAID_TOWN_LEVEL) s.nextRaidAt = t + hours(RAID_FIRST_H);
   }
 
+  /** Lo fuerte que viene un asalto pirata: crece con tus puntos (1 al empezar, 6 hacia los 10.000, 12 hacia los 48.000). */
   raidTier() {
-    const levels = Object.values(this.state.buildings).reduce((a, b) => a + b, 0);
-    return Math.max(1, Math.min(6, 1 + Math.floor((levels - 12) / 10)));
+    return Math.max(1, Math.min(15, 1 + Math.floor(Math.sqrt(this.score() / 400))));
   }
 
   #spawnRaid(t) {
     const tier = this.raidTier();
-    const army = { pirata: Math.round(4 * tier ** 1.3) };
-    if (tier >= 3) army.corsario = Math.round((tier - 2) ** 1.2);
+    // Los corsarios llevan a los piratas (12 por barco) y escoltan con más barcos cuanto más fuerte es el asalto
+    const pirata = Math.round(5 * tier ** 1.35);
+    const army = { pirata, corsario: Math.ceil(pirata / 12) + Math.floor(tier / 2) };
     this.state.raid = { spawn: t, arrival: t + hours(RAID_WARNING_MIN / 60), army, tier };
     this.state.nextRaidAt = null;
     this.#note('🏴‍☠️ ¡Velas piratas en el horizonte! Prepara tus defensas.', 'error');
@@ -3104,6 +3161,13 @@ function takeLoot(stock, capacity, share = LOOT_SHARE) {
     if (v > 0) loot[res] = v;
   }
   return loot;
+}
+
+/** Un tiempo de espera para los mensajes: «2 h 15 min», «40 min». */
+function fmtWait(ms) {
+  const min = Math.max(1, Math.ceil(ms / 60_000));
+  const h = Math.floor(min / 60);
+  return h ? `${h} h${min % 60 ? ` ${min % 60} min` : ''}` : `${min} min`;
 }
 
 function pick(result) {

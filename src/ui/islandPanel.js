@@ -113,7 +113,8 @@ function colonySection(game, view) {
   return `${raided}<p class="desc">${col.conquered ? 'La ciudad que conquistaste a los bárbaros: tus colonos la gobiernan y mandan su producción a la capital.' : 'Tus colonos trabajan la isla y mandan sus cosechas a la capital.'}</p>
     <div class="info-row"><span>🚩 Nivel</span><b>${level} / ${COLONY.maxLevel}</b></div>
     <div class="effect"><span>${r.icon} Producción de la colonia</span><b class="up">+${fmtNum(yieldAt(level))}/h</b></div>
-    ${upgrade}`;
+    ${upgrade}
+    <button class="ghost small colony-abandon" data-action="colony-abandon">🏳️ Abandonar la colonia</button>`;
 }
 
 /** Un continente: lo que hay en él, para ir a cada sitio. */

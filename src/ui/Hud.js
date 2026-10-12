@@ -1,6 +1,6 @@
 import { play } from '../audio.js';
 import { clock, universe } from '../config.js';
-import { BUILDINGS, BUILDING_KEYS, FEATS, FEAT_THEMES, ISLAND_TYPES, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCES, RESOURCE_KEYS, UNITS, VISITORS } from '../game/data.js';
+import { BUILDING_KEYS, BUILDINGS, CANCEL_REFUND, FEAT_THEMES, FEATS, ISLAND_TYPES, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCE_KEYS, RESOURCES, UNITS, VISITORS } from '../game/data.js';
 import { HOUR_MS, canAfford, multiplyCost, upcomingWorldEvents } from '../game/rules.js';
 import { featAt, featCycle } from '../game/feats.js';
 import { api } from '../net/api.js';
@@ -562,7 +562,7 @@ export class Hud {
       else if (eco.closed && game.colonies().some((c) => c.specialty === key)) lines.push('Colonias: nada (tu puerto está en manos enemigas)');
       if (eco.tribute?.[key]) lines.push(`Tributo para los invasores: −${fmtNum(eco.tribute[key])}/h`);
       if (key === 'oro' && eco.taxes) lines.push(`Impuestos de los trabajadores libres: +${fmtNum(eco.taxes)}/h`);
-      if (key === 'oro' && eco.pay) lines.push(`Paga de las tropas de élite: −${fmtNum(eco.pay)}/h`);
+      if (key === 'oro' && eco.pay) lines.push(`Paga de las tropas y los barcos: −${fmtNum(eco.pay)}/h`);
       if (eco.eventBonus?.[key]) lines.push(`Evento del archipiélago: +${Math.round(eco.eventBonus[key] * 100)} %`);
       if (key === 'comida' && eco.upkeep) lines.push(`Tropas: −${fmtNum(eco.upkeep)}/h`);
       if (starving) lines.push('Hambruna: la producción cae a la mitad');
@@ -815,6 +815,12 @@ export class Hud {
       case 'colony-upgrade':
         await this.#run(btn, () => game.upgradeColony(this.selected), '🔨 Los colonos se ponen manos a la obra', 'hammer');
         break;
+      case 'colony-abandon': {
+        const col = game.colony(this.selected);
+        if (!col || !confirm(`¿Abandonar ${col.name}? Los colonos se marchan, dejas de recibir su producción y la isla queda libre para cualquiera. Lo invertido en ella se pierde.`)) break;
+        await this.#run(btn, () => game.abandonColony(this.selected), null, null);
+        break;
+      }
       case 'research': {
         const r = RESEARCH[btn.dataset.id];
         await this.#run(btn, () => game.research(btn.dataset.id), `${r.icon} Los sabios investigan ${r.name}`);
@@ -833,7 +839,8 @@ export class Hud {
         break;
       }
       case 'cancel-train':
-        await this.#run(btn, () => game.cancelTraining(btn.dataset.building, Number(btn.dataset.index)), 'Entrenamiento cancelado. Recursos devueltos.', null);
+        if (!confirm(`¿Cancelar este reclutamiento? Recuperas el ${Math.round(CANCEL_REFUND * 100)} % de lo que pagaste.`)) break;
+        await this.#run(btn, () => game.cancelTraining(btn.dataset.building, Number(btn.dataset.index)), `Reclutamiento cancelado. Recuperas el ${Math.round(CANCEL_REFUND * 100)} %.`, null);
         break;
       case 'trade-max': {
         const from = root.querySelector('[name="t-from"]').value;
@@ -978,7 +985,7 @@ export class Hud {
       const head = tq[0];
       const u = UNITS[head.unit];
       const more = tq.length > 1 ? ` (+${tq.length - 1})` : '';
-      rows.push(row({ icon: u.icon, title: `${head.done}/${head.count} ${u.name}${more}`, start: head.start, end: tq.at(-1).end, select: building }));
+      rows.push(row({ icon: u.icon, title: `${head.done}/${head.count} ${u.name}${more}`, start: head.start, end: tq.at(-1).end, select: building, buttons: `<button class="ghost small" data-action="cancel-train" data-building="${building}" data-index="0">Cancelar</button>` }));
     }
     for (const [id, p] of Object.entries(POWERS)) {
       const until = game.buffUntil(id);
@@ -1066,8 +1073,10 @@ export class Hud {
         }, 3000);
         return;
       }
-      if (action === 'cancel-build') await this.#run(btn, () => this.game.cancel(), 'Obra cancelada. Recursos devueltos.', null);
-      if (action === 'cancel-research') await this.#run(btn, () => this.game.cancelResearch(), 'Investigación cancelada. Recursos devueltos.', null);
+      const back = `Recuperas el ${Math.round(CANCEL_REFUND * 100)} % de lo que pagaste.`;
+      if (action === 'cancel-build') await this.#run(btn, () => this.game.cancel(), `Obra cancelada. ${back}`, null);
+      if (action === 'cancel-research') await this.#run(btn, () => this.game.cancelResearch(), `Investigación cancelada. ${back}`, null);
+      if (action === 'cancel-train') await this.#run(btn, () => this.game.cancelTraining(btn.dataset.building, Number(btn.dataset.index)), `Reclutamiento cancelado. ${back}`, null);
       return;
     }
     const rowEl = e.target.closest('[data-select]');
