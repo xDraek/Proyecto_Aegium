@@ -592,7 +592,7 @@ const TOPICS = {
       ${featPhasesTable(H)}
       ${list([
         `Empieza con <b>${H.tune.heads} cabezas</b>, solo en tierra (manda tropas con barcos que las lleven). Cada cabeza cortada que no se cauteriza vuelve como <b>dos</b> en la siguiente oleada (como mucho ${H.tune.maxHeads}).`,
-        `Para cauterizar hace falta <b>brea</b>: aquí la fragua no da ataque, hace brea. Su meta son ${H.tune.brea} h de la producción de todos, y cada cabeza cauterizada gasta su parte. Sin ofrendas, la Hidra crece: los pacíficos son tan necesarios como los guerreros.`,
+        `Para cauterizar hace falta <b>brea</b>: aquí la fragua no da ataque, hace brea. Su meta son ${H.tune.brea} h de la producción de todos, y alcanza para cauterizar ${H.tune.breaHeads} cabezas; lo que se gasta deja hueco y la fragua se puede volver a llenar. Sin ofrendas, la Hidra crece: los pacíficos son tan necesarios como los guerreros.`,
         `La última cabeza, la <b>inmortal</b>, solo cae cauterizada y en una oleada con la coraza dejando pasar al menos el ${pct(H.tune.finalCoop)} del daño.`,
       ])}
       <h5>3. La coraza 🛡️</h5>

@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { clock } from '../src/config.js';
 import { count } from '../src/game/combat.js';
 import { FEAT_THEMES } from '../src/game/data.js';
-import { featBoss, featHours } from '../src/game/feats.js';
+import { featBoss, featHours, forgeRoom } from '../src/game/feats.js';
 import { makeWorld } from './world.js';
 
 // Las otras gestas: la Armada del Gran Rey (fondeaderos, cerco y campamento) y la Hidra de Lerna
@@ -39,7 +39,7 @@ test('la Armada: una escuadra por fondeadero, medida por el K-ésimo mejor marin
   const boss = featBoss('armada', P, 0, { posts: 4, mariners: [{ AM: 3000, HM: 8000 }, { AM: 500, HM: 1000 }, { AM: 500, HM: 1000 }, { AM: 100, HM: 300 }] });
   assert.equal(boss.posts.length, 4);
   // El cuarto mejor marino manda: una ballena no infla las escuadras
-  assert.equal(boss.posts[0].squad, Math.max(3, Math.round((FEAT_THEMES.armada.tune.squad * Math.sqrt(100 * 300)) / 49)));
+  assert.equal(boss.posts[0].squad, Math.max(1, Math.round((FEAT_THEMES.armada.tune.squad * Math.sqrt(100 * 300)) / 49)));
   assert.ok(boss.inmortal > 0 && boss.arquero_persa > 0);
   assert.equal(boss.inmortal / boss.arquero_persa, 3 / 2);
 });
@@ -201,10 +201,23 @@ test('la Hidra: la cabeza inmortal no cae con menos de 3 imperios efectivos', as
   arriveAll(env, [A, B]);
   env.until(f.start);
   f.boss.hidra = 1;
+  const used = f.forge.used ?? 0;
   env.until(f.nextWave);
+  assert.equal(f.forge.used ?? 0, used, 'la inmortal que resiste no gasta brea');
   assert.equal(f.waves.at(-1).players, 2);
   assert.equal(f.boss.hidra, 1, 'la inmortal resiste');
   assert.notEqual(f.result, 'victoria');
   assert.ok([C, D].every((g) => count(g.state.units) > 0));
   assert.ok(featHours(1) > 0);
+});
+
+test('la brea gastada deja sitio para volver a llenar la fragua', () => {
+  // Llena, sin gastar: no cabe nada más
+  assert.equal(forgeRoom({ goal: 1000, total: 1000, used: 0, by: { 1: 300 } }, 2, 1e6), 0);
+  // Gastada en parte: cabe lo gastado (con los topes de cada uno)
+  assert.equal(forgeRoom({ goal: 1000, total: 1000, used: 600, by: { 1: 300 } }, 2, 1e6), 450);
+  assert.equal(forgeRoom({ goal: 1000, total: 1000, used: 300, by: { 1: 300 } }, 2, 1e6), 300);
+  // La meta alcanza para algo más de las nueve cabezas
+  const boss = featBoss('hidra', { AM: 0, HM: 0, AL: 9000, HL: 30000 }, 0, { prods: [1000, 1000, 1000, 1000] });
+  assert.equal(boss.brea, Math.round((FEAT_THEMES.hidra.tune.brea * 4000) / FEAT_THEMES.hidra.tune.breaHeads));
 });

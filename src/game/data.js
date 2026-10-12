@@ -1138,7 +1138,7 @@ export const FEAT_THEMES = {
       { unit: 'inmortal', name: 'El campamento', text: 'Inmortales y arqueros tras una empalizada. Se asalta con la misión Atacar, con la coraza. Mientras quede algún fondeadero libre se rehace; con el cerco completo no y pasa hambre.', glory: 650 },
     ],
     // Escuadras, salidas, campamento, cerco y hambre (ver featBoss y WorldServer.#waveArmada)
-    tune: { squad: 0.6, sortie: 0.3, sortieStep: 0.15, regenWaves: 2, camp: 4, campAtk: 0.04, siegeHp: 0.35, hunger: 0.15, hungerMax: 0.45, wall: 0.5, towers: 0.1, postGlory: 25, takeGlory: 15, satrapyHours: 48, navarch: { rara: 20, epica: 60, legendaria: 20 } },
+    tune: { squad: 0.6, sortie: 0.25, sortieStep: 0.1, regenWaves: 2, camp: 4, campAtk: 0.04, siegeHp: 0.35, hunger: 0.15, hungerMax: 0.45, wall: 0.5, towers: 0.1, postGlory: 25, takeGlory: 15, satrapyHours: 48, navarch: { rara: 20, epica: 60, legendaria: 20 } },
     relics: ['tiara', 'remo'],
     emblem: '👑',
   },
@@ -1150,7 +1150,7 @@ export const FEAT_THEMES = {
     text: 'En los pantanos del continente despierta la Hidra: cada cabeza que no se cauteriza vuelve como dos.',
     phases: [{ unit: 'hidra', name: 'Las cabezas de la Hidra', text: 'Solo en tierra. Cada cabeza cortada y no cauterizada con la brea de la fragua vuelve como dos. La última, la inmortal, solo cae cauterizada y con al menos 3 imperios efectivos en la oleada.', glory: 1000 }],
     // Cabezas, vida, daño y brea por cabeza (horas de la producción de todos repartidas entre 9)
-    tune: { heads: 9, maxHeads: 27, life: 6, atk: 0.005, brea: 1.5, finalCoop: 0.75 },
+    tune: { heads: 9, maxHeads: 27, life: 6, atk: 0.005, brea: 1.5, breaHeads: 12, finalCoop: 0.75 },
     forge: 'brea', // la fragua no da ataque: hace la brea para cauterizar
     relics: ['nemea'],
     emblem: '🏺',

@@ -176,7 +176,9 @@ export function forgeRoom(forge, uid, prod) {
   if (!forge?.goal) return 0;
   const F = FEATS.forge;
   const mine = forge.by?.[uid] ?? 0;
-  return Math.max(0, Math.min(F.capShare * forge.goal - mine, F.capHours * (prod ?? 0) - mine, forge.goal - (forge.total ?? 0)));
+  // Lo que ya se ha gastado (la brea de la Hidra) deja sitio para volver a llenarla
+  const inForge = (forge.total ?? 0) - (forge.used ?? 0);
+  return Math.max(0, Math.min(F.capShare * forge.goal - mine, F.capHours * (prod ?? 0) - mine, forge.goal - inForge));
 }
 
 /** Cuartos llenos de la fragua (de 0 a 4). */
@@ -231,7 +233,7 @@ function armadaBoss(T, P, k, { posts = 3, mariners = [] } = {}) {
   const K = Math.max(1, posts);
   const sorted = [...mariners].sort((a, b) => Math.sqrt(b.AM * b.HM) - Math.sqrt(a.AM * a.HM));
   const m = sorted[Math.min(K, sorted.length) - 1] ?? { AM: 0, HM: 0 };
-  const squad = Math.max(3, Math.round((k * T.squad * Math.sqrt(m.AM * m.HM)) / 49));
+  const squad = Math.max(1, Math.round((k * T.squad * Math.sqrt(m.AM * m.HM)) / 49));
   // Paquetes de 3 inmortales y 2 arqueros
   const packHp = 3 * UNITS.inmortal.hp + 2 * UNITS.arquero_persa.hp;
   const packAtk = 3 * UNITS.inmortal.atk + 2 * UNITS.arquero_persa.atk;
@@ -241,7 +243,7 @@ function armadaBoss(T, P, k, { posts = 3, mariners = [] } = {}) {
     posts: Array.from({ length: K }, () => ({ squad, full: squad, holder: null, held: 0, freeWaves: 0 })),
     inmortal: 3 * packs,
     arquero_persa: 2 * packs,
-    campAtk: Math.max(0.2, (k * T.campAtk * P.HL) / (packs * packAtk)),
+    campAtk: Math.max(0.005, (k * T.campAtk * P.HL) / (packs * packAtk)),
     hunger: 0,
   };
 }
@@ -254,7 +256,8 @@ function hydraBoss(T, P, k, { prods = [] } = {}) {
     hidra: heads,
     headHp: Math.max(0.5, (k * T.life * P.AL) / heads / UNITS.hidra.hp),
     headAtk: Math.max(0.2, (k * T.atk * P.HL) / UNITS.hidra.atk),
-    brea: Math.max(1, Math.round(forgeGoal(prods, T.brea) / heads)),
+    // La fragua llena alcanza para `T.breaHeads` cabezas (algo más de las nueve: hay margen)
+    brea: Math.max(1, Math.round(forgeGoal(prods, T.brea) / T.breaHeads)),
     cut: 0,
   };
 }

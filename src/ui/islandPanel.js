@@ -325,9 +325,11 @@ function forgeSection(view, f) {
   const F = FEATS.forge;
   const fg = f.forge;
   if (!fg.goal) return '';
-  const pct = Math.min(100, Math.round((fg.total / fg.goal) * 100));
-  const bonus = forgeBonus({ goal: fg.goal, total: fg.total });
   const brea = FEAT_THEMES[f.theme]?.forge === 'brea';
+  // La brea se gasta al cauterizar: lo que cuenta es lo que queda en la fragua
+  const inForge = fg.total - (brea ? (fg.used ?? 0) : 0);
+  const pct = Math.min(100, Math.round((inForge / fg.goal) * 100));
+  const bonus = forgeBonus({ goal: fg.goal, total: fg.total });
   // La lava solo la escupe Tifón
   const lava = f.kind === 'tifon';
   const now = brea
@@ -344,12 +346,12 @@ function forgeSection(view, f) {
       <div class="payload">${F.resources.map((r) => `<label title="${RESOURCES[r].name}">${RESOURCES[r].icon}<input type="number" name="fg-${r}" min="0" placeholder="0" inputmode="numeric" /></label>`).join('')}</div>
       <button class="primary wide" data-action="feat-forge" data-site="${escapeHtml(view.id)}">🔥 Ofrendar en la fragua</button>`
     : open
-      ? `<p class="muted small">${fg.total >= fg.goal ? 'La fragua está llena.' : 'Ya has ofrendado todo lo que puedes en esta gesta.'}</p>`
+      ? `<p class="muted small">${inForge >= fg.goal ? 'La fragua está llena.' : 'Ya has ofrendado todo lo que puedes en esta gesta.'}</p>`
       : '';
   return `<div class="section feat-forge">
     <h5>🔥 ${brea ? 'Brea de la fragua' : 'Fragua de Hefesto'} · ${pct} %</h5>
     <div class="progress"><i style="width:${pct}%"></i></div>
-    <p class="muted small">${fmtNum(fg.total)} / ${fmtNum(fg.goal)} en valor · ${fg.givers} ${fg.givers === 1 ? 'imperio ha' : 'imperios han'} ofrendado · tú, ${fmtNum(fg.mine)}. ${brea ? '' : `Cada cuarto da +${num(F.atk * 100)} % de ataque${lava ? ` y quita un ${Math.round(F.lava * 100)} % de la lava` : ''}. `}${now}</p>
+    <p class="muted small">${fmtNum(inForge)} / ${fmtNum(fg.goal)} en valor${brea && fg.used ? ` (ya se han gastado ${fmtNum(fg.used)} cauterizando: se puede volver a llenar)` : ''} · ${fg.givers} ${fg.givers === 1 ? 'imperio ha' : 'imperios han'} ofrendado · tú, ${fmtNum(fg.mine)}. ${brea ? '' : `Cada cuarto da +${num(F.atk * 100)} % de ataque${lava ? ` y quita un ${Math.round(F.lava * 100)} % de la lava` : ''}. `}${now}</p>
     ${form}
   </div>`;
 }

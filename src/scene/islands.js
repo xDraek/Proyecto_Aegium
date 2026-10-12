@@ -942,6 +942,14 @@ const SERPENT_BELLY = '#c9b36a';
 
 /** La estatua dorada de una gesta ganada, sobre su pedestal, en una plaza de la ciudad. */
 function featStatue(g, R, theme) {
+  const s = featStatueModel(theme);
+  s.position.copy(polar(R * 0.22, 135));
+  s.scale.setScalar(1.6);
+  g.add(s);
+}
+
+/** La estatua de una gesta (pedestal, figura dorada y la gema de su tema), sin colocar. */
+export function featStatueModel(theme) {
   const s = new THREE.Group();
   s.add(box(0.9, 0.5, 0.9, C.marble, 0, 0, 0));
   s.add(box(0.7, 0.15, 0.7, C.wallDark, 0, 0.5, 0));
@@ -952,9 +960,7 @@ function featStatue(g, R, theme) {
   const gem = mesh(new THREE.OctahedronGeometry(0.16, 0), mark, { emissive: mark, emissiveIntensity: 0.8 });
   gem.position.set(0, 1.95, 0);
   s.add(gem);
-  s.position.copy(polar(R * 0.22, 135));
-  s.scale.setScalar(1.6);
-  g.add(s);
+  return s;
 }
 
 /** Hacia dónde sale el volcán: en el mayor hueco entre los asentamientos del continente. */

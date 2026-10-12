@@ -1467,7 +1467,7 @@ export class Game extends EventTarget {
       waves: f.waves ?? [],
       waiting: f.waiting ?? null,
       truceUntil: f.truceUntil ?? null,
-      forge: f.forge ? { goal: f.forge.goal ?? 0, total: f.forge.total ?? 0, mine: f.forge.by?.[this.userId] ?? 0, room: me ? Math.floor(forgeRoom(f.forge, this.userId, me.prod)) : 0, givers: f.forge.givers ?? Object.keys(f.forge.by ?? {}).length } : null,
+      forge: f.forge ? { goal: f.forge.goal ?? 0, total: f.forge.total ?? 0, used: f.forge.used ?? 0, mine: f.forge.by?.[this.userId] ?? 0, room: me ? Math.floor(forgeRoom(f.forge, this.userId, me.prod)) : 0, givers: f.forge.givers ?? Object.keys(f.forge.by ?? {}).length } : null,
       myProd: me?.prod ?? 0,
       top,
     };
