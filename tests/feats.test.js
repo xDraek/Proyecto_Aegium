@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { clock, universe } from '../src/config.js';
-import { combineGroups } from '../src/game/combat.js';
+import { combineGroups, count } from '../src/game/combat.js';
 import { FEATS, UNITS } from '../src/game/data.js';
 import { capByRest, effectiveEmpires, featAt, featBoss, featCoop, featCycle, featHours, featPeriod, featPower, featRewards, forgeBonus, forgeGoal, forgeRoom, pledgeEmpires } from '../src/game/feats.js';
 import { upgradeState } from '../src/game/Game.js';
@@ -618,4 +618,135 @@ test('quien llega a Oro en una victoria gana el emblema del rayo para su estanda
   // No se repite
   A.receiveFeatReward({ bag: {}, theme: 'tifon', won: true, emblem: '⚡', report: { t: clock.now(), kind: 'gesta', title: 'x', outcome: 'victoria' } }, clock.now());
   assert.deepEqual(A.state.emblems, ['⚡']);
+});
+
+// ── Arreglos de la revisión ──────────────────────────────────────────────────
+
+test('los mercenarios caídos en la gesta no vuelven como heridos', async () => {
+  const { env, site, f, players } = await featWorld(4);
+  const [A] = players;
+  // Todos los hoplitas de A son mercenarios
+  A.state.mercs = [{ id: 'm1', unit: 'hoplita', count: ARMY.hoplita, until: clock.now() + featHours(24 * 30) }];
+  pledgeAndSend(env, site, players);
+  env.until(f.start);
+  env.until(f.nextWave);
+  const lost = ARMY.hoplita - (fleetAt(A, site)?.units.hoplita ?? 0);
+  assert.ok(lost > 0, 'cayeron hoplitas');
+  assert.equal(f.fallen[A.userId]?.hoplita ?? 0, 0, 'no cuentan como bajas propias');
+});
+
+test('quien llevó su flota a oleadas sin combate y la retira no es perjuro', async () => {
+  const { env, site, f, players } = await featWorld(4);
+  const [A, B, C, D] = players;
+  for (const g of players) assert.equal(g.pledgeFeat(site).ok, true);
+  for (const g of [B, C, D]) assert.equal(g.sendMission('atacar', site, ARMY).ok, true);
+  // A va sola a una oleada (la coraza no cede) y luego se retira
+  assert.equal(A.sendMission('atacar', site, ARMY).ok, true);
+  for (const g of [B, C, D]) for (const m of g.state.missions) m.arrive = f.start + featHours(20);
+  env.until(f.start);
+  env.until(f.nextWave);
+  assert.equal(f.waves.at(-1).players, 1);
+  A.recall(fleetAt(A, site).id);
+  env.until(f.start + featHours(FEATS.perjuryHours));
+  assert.ok(!f.perjurers.includes(A.userId));
+  assert.ok(!(A.state.buffs.ceniza > clock.now()));
+});
+
+test('mandar una flota a última hora y retirarla no libra del perjurio', async () => {
+  const { env, site, f, players } = await featWorld(4);
+  const [A, B, C, D] = players;
+  for (const g of players) assert.equal(g.pledgeFeat(site).ok, true);
+  for (const g of [A, B, C]) assert.equal(g.sendMission('atacar', site, ARMY).ok, true);
+  env.until(f.start);
+  // D zarpa justo antes del juicio y su flota aún va de camino
+  env.until(f.start + featHours(FEATS.perjuryHours) - 60_000);
+  assert.equal(D.sendMission('atacar', site, { dromon: 1 }).ok, true);
+  fleetAt(D, site).arrive = f.end - 60_000;
+  env.until(f.start + featHours(FEATS.perjuryHours));
+  assert.ok(!f.perjurers.includes(D.userId), 'a la hora del juicio iba de camino');
+  D.recall(fleetAt(D, site).id);
+  env.until(f.end);
+  assert.ok(f.perjurers.includes(D.userId), 'al acabar se vuelve a mirar');
+  assert.ok(D.state.perjuryUntil > clock.now());
+});
+
+test('la lava solo quema mientras quedan cabezas, y las cabezas no rebrotan', async () => {
+  const { env, site, f, players } = await featWorld(4);
+  for (const g of players) assert.equal(g.pledgeFeat(site).ok, true);
+  env.until(f.start);
+  // Sin flotas: oleada vacía en la fase de las cabezas
+  Object.assign(f.boss, { sierpe: 0, gigante: 0, phase: 2, cabeza: 30 });
+  env.until(f.nextWave);
+  assert.equal(f.boss.cabeza, 30, 'no se curan');
+  // Con flotas: 1 cabeza en furia y una lava enorme; al morir la cabeza en el primer asalto se acaba
+  for (const g of players) assert.equal(g.sendMission('atacar', site, ARMY).ok, true);
+  env.until(Math.max(...players.map((g) => fleetAt(g, site).arrive)));
+  f.boss.cabeza = 1;
+  f.boss.lava = 1e9;
+  env.until(f.nextWave);
+  assert.equal(f.result, 'victoria');
+  for (const g of players) {
+    const m = fleetAt(g, site);
+    assert.ok(m && count(m.units) > 0, 'vuelven supervivientes');
+  }
+});
+
+test('la tregua vale desde que emerge aunque el bucle no haya pasado por la gesta', async () => {
+  const { site, f, players, W } = await featWorld(4);
+  const [A, B, C] = players;
+  for (const g of [A, B, C]) assert.equal(g.pledgeFeat(site).ok, true);
+  // Sin dar vueltas al bucle: la gesta sigue en presagios en el estado
+  assert.equal(f.stage, 'presagio');
+  assert.equal(W.truce(A.userId, B.userId, f.start - 1), false);
+  assert.equal(W.truce(A.userId, B.userId, f.start + 1), true);
+  assert.equal(W.truce(A.userId, B.userId, f.end + featHours(1)), true, 'hasta unas horas después del final');
+  assert.equal(W.truce(A.userId, B.userId, f.end + featHours(FEATS.truceAfterHours) + 1), false);
+});
+
+test('un aliado que juró la misma gesta que el defensor no se suma al ataque conjunto', async () => {
+  const env = await makeWorld(NAMES.slice(0, 5));
+  const W = env.world;
+  const [A, B, C, D, L] = env.players;
+  for (const g of env.players) Object.assign(g.state.units, ARMY, { mercante: 4 });
+  const site = [...W.islands.values()].find((i) => i.type === 'continente').id;
+  assert.ok(W.startFeat(site, { players: [A, B, C, D].map((g) => g.userId) }, clock.now()));
+  const f = W.islandStates.get(site).feat;
+  for (const g of [A, B, C]) assert.equal(g.pledgeFeat(site).ok, true);
+  // L y B en la misma alianza; L ataca a A y B se une
+  W.sameAlliance = (x, y) => [x, y].every((u) => u === L.userId || u === B.userId);
+  const rel = W.relation.bind(W);
+  W.relation = (x, y) => (W.sameAlliance(x, y) && x !== y ? 'aliado' : rel(x, y));
+  env.until(f.start - 60_000);
+  assert.equal(L.sendMission('atacar', A.state.home, { dromon: 5, hoplita: 50 }).ok, true);
+  const lm = L.state.missions.at(-1);
+  lm.arrive = f.start + featHours(1);
+  const res = B.sendMission('atacar', A.state.home, { dromon: 5, hoplita: 50 }, null, { join: `${L.userId}-${lm.id}` });
+  assert.equal(res.ok, true, res.reason);
+  env.until(lm.arrive);
+  assert.ok(B.state.reports.some((r) => /tregua sagrada/.test(r.text ?? '')), 'B se da la vuelta');
+  assert.ok(!B.state.reports.some((r) => r.kind === 'ataque' && r.battle), 'B no combate');
+});
+
+test('nadie está convocado a dos gestas a la vez', async () => {
+  const env = await makeWorld(NAMES.slice(0, 4));
+  const W = env.world;
+  const conts = [...W.islands.values()].filter((i) => i.type === 'continente');
+  const ids = env.players.map((g) => g.userId);
+  assert.ok(W.startFeat(conts[0].id, { players: ids }, clock.now()));
+  assert.ok(W.startFeat(conts[1].id, { players: ids }, clock.now()));
+  assert.deepEqual(W.islandStates.get(conts[1].id).feat.convoked, []);
+  assert.equal(env.players[0].state.feat.site, conts[0].id);
+});
+
+test('una flota que llega cuando la gesta ya ha acabado vuelve con el motivo de la gesta', async () => {
+  const { env, site, f, players } = await featWorld(4);
+  const [A, B] = players;
+  for (const g of [A, B]) assert.equal(g.pledgeFeat(site).ok, true);
+  assert.equal(A.sendMission('atacar', site, ARMY).ok, true);
+  fleetAt(A, site).arrive = f.start + featHours(1);
+  env.until(f.start + 60_000);
+  assert.equal(f.result, 'dormido');
+  env.until(fleetAt(A, site).arrive);
+  assert.ok(A.state.reports.some((r) => r.kind === 'gesta' && /terminado|Nada que hacer/.test(`${r.title} ${r.text}`)));
+  assert.ok(!A.state.reports.some((r) => /horda/i.test(`${r.title} ${r.text}`)));
 });

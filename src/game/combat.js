@@ -20,7 +20,8 @@ export function battle(attacker, defender, rand = Math.random) {
   const def = prepare(defender);
   let rounds = 0;
   const log = []; // lo que queda de cada bando tras cada asalto (para las repeticiones)
-  while (rounds < MAX_ROUNDS && count(att.left) > 0 && (count(def.left) > 0 || def.extraAtk > 0)) {
+  // El daño fijo del defensor (torres) sigue aunque no le queden tropas, salvo si va con ellas (`extraOnlyAlive`, la lava de Tifón)
+  while (rounds < MAX_ROUNDS && count(att.left) > 0 && (count(def.left) > 0 || (def.extraAtk > 0 && !def.extraOnlyAlive))) {
     rounds++;
     const toDef = damage(att, rand);
     const toAtt = damage(def, rand);
@@ -37,7 +38,7 @@ export function battle(attacker, defender, rand = Math.random) {
 function prepare(side) {
   const start = {};
   for (const [id, n] of Object.entries(side.units)) if (n > 0) start[id] = Math.floor(n);
-  return { start, left: { ...start }, atkMul: side.atkMul ?? 1, hpMul: side.hpMul ?? 1, extraAtk: side.extraAtk ?? 0 };
+  return { start, left: { ...start }, atkMul: side.atkMul ?? 1, hpMul: side.hpMul ?? 1, extraAtk: side.extraAtk ?? 0, extraOnlyAlive: !!side.extraOnlyAlive };
 }
 
 function summary(side) {
@@ -186,7 +187,7 @@ export function assault(attacker, defender, { rand = Math.random, needLanding = 
     const support = power(seaLeft, atkMul) * NAVAL_SUPPORT;
     land = battle(
       { units: aboard, atkMul, hpMul, extraAtk: support },
-      { units: D.land, atkMul: dAtk, hpMul: dHp + (defender.wallHp ?? 0), extraAtk: defender.extraAtk ?? 0 },
+      { units: D.land, atkMul: dAtk, hpMul: dHp + (defender.wallHp ?? 0), extraAtk: defender.extraAtk ?? 0, extraOnlyAlive: defender.extraOnlyAlive },
       rand,
     );
     landLeft = land.att.left;
