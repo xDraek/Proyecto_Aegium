@@ -5,6 +5,23 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-14h',
+    date: '2026-10-14',
+    title: 'Nuevo logo',
+    items: [
+      '🏛️ <b>Imperivm</b> estrena logo: la columna dorada entre laureles. También es el icono de la pestaña del navegador.',
+      'Las imágenes del juego se guardan en tu navegador y ya no se descargan en cada visita: entra más rápido.',
+    ],
+  },
+  {
+    id: '2026-10-14g',
+    date: '2026-10-14',
+    title: 'El Coloso de Rodas',
+    items: [
+      '🗽 El <b>Coloso</b> estrena aspecto: a horcajadas sobre dos torres almenadas, con la antorcha en alto, corona de rayos, banda al pecho y el manto en la mano. Terminado (nivel 10), luce el bronce verdoso de la pátina y se adorna de oro.',
+    ],
+  },
+  {
     id: '2026-10-14f',
     date: '2026-10-14',
     title: 'El juego va más fluido',

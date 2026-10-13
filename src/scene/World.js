@@ -1080,8 +1080,8 @@ export class World {
       if (id !== 'ayuntamiento') root.rotation.y = Math.atan2(-pos.x, -pos.z);
       this.scene.add(root);
 
-      // La granja no tiene solar: la casa y la era están sobre la hierba
-      if (id !== 'ayuntamiento' && id !== 'puerto' && id !== 'muralla' && id !== 'granja') {
+      // La granja y el Coloso no tienen solar: están sobre la hierba
+      if (id !== 'ayuntamiento' && id !== 'puerto' && id !== 'muralla' && id !== 'granja' && id !== 'coloso') {
         const plot = cyl(2.3, 2.4, 0.12, 28, C.dirt);
         plot.castShadow = false;
         root.add(plot);

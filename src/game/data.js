@@ -201,7 +201,7 @@ export const BUILDINGS = {
   coloso: {
     name: 'Coloso',
     icon: '🗽',
-    description: 'Una maravilla que vigila el mar y nunca deja de crecer. Cada nivel aumenta un 5 % toda la producción; al nivel 10 su bronce se vuelve oro.',
+    description: 'Una maravilla que vigila el mar y nunca deja de crecer. Cada nivel aumenta un 5 % toda la producción; al nivel 10, ya terminado, se adorna de oro y enciende su antorcha.',
     baseCost: { madera: 5000, piedra: 8000, hierro: 2000, cristal: 3000, oro: 2000, comida: 3000 },
     costFactor: 1.45,
     baseTime: 3600,

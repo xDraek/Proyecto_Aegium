@@ -467,6 +467,8 @@ const TYPES = {
   '.css': 'text/css; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.jpg': 'image/jpeg',
   '.ico': 'image/x-icon',
   '.json': 'application/json',
   '.woff2': 'font/woff2',
@@ -481,8 +483,9 @@ async function serveStatic(req, res, url) {
   } catch {
     file = join(DIST, 'index.html'); // la página es una sola
   }
+  let info;
   try {
-    await stat(file);
+    info = await stat(file);
   } catch {
     res.writeHead(404);
     return res.end('Falta compilar el juego: npm run build');
@@ -490,11 +493,19 @@ async function serveStatic(req, res, url) {
   const immutable = file.includes(`${join('dist', 'assets')}`);
   const type = TYPES[extname(file)] ?? 'application/octet-stream';
   const media = type.startsWith('audio/');
-  const cache = immutable ? 'public, max-age=31536000, immutable' : media ? 'public, max-age=86400' : 'no-cache';
-  const headers = { 'content-type': type, 'cache-control': cache, vary: 'accept-encoding' };
+  // Las imágenes y el audio se guardan un día; la página, nada. Pasado ese tiempo el navegador
+  // pregunta si han cambiado (ETag) y, si no, no se vuelven a mandar (304)
+  const keep = media || type.startsWith('image/');
+  const cache = immutable ? 'public, max-age=31536000, immutable' : keep ? 'public, max-age=86400' : 'no-cache';
+  const etag = `W/"${info.size.toString(36)}-${Math.floor(info.mtimeMs).toString(36)}"`;
+  const headers = { 'content-type': type, 'cache-control': cache, vary: 'accept-encoding', etag };
+  if (req.headers['if-none-match'] === etag) {
+    res.writeHead(304, { 'cache-control': cache, etag });
+    return res.end();
+  }
   // La música y los sonidos se piden por trozos (Safari no los reproduce sin esto)
   if (media) {
-    const size = (await stat(file)).size;
+    const size = info.size;
     const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
     if (range) {
       const start = range[1] ? Number(range[1]) : Math.max(0, size - Number(range[2]));

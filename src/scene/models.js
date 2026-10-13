@@ -1682,71 +1682,172 @@ function templo(level) {
   return g;
 }
 
-const BRONZE = { metalness: 0.55, roughness: 0.45 };
-
-/** El Coloso se levanta por fases: pedestal, piernas, torso, cabeza y antorcha. */
+/**
+ * El Coloso de Rodas, a horcajadas sobre dos torres: un pie en cada torre almenada, el brazo derecho
+ * en alto con la antorcha y el izquierdo abajo sujetando el manto; corona de rayos, banda cruzada
+ * al pecho y paño en la cintura. Se levanta por fases: torres, piernas, cintura, torso y cabeza,
+ * brazos. Al nivel 10 luce el bronce verdoso de la pátina, se adorna de oro y enciende la antorcha.
+ */
 function coloso(level) {
   const g = new THREE.Group();
   const done = level >= 10;
-  const metal = done ? C.gold : '#a8743a';
-  // Pedestal escalonado
-  g.add(box(3.6, 0.5, 3.6, C.stone, 0, 0, 0), box(2.8, 0.6, 2.8, C.stoneDark, 0, 0.5, 0), box(2.2, 0.35, 2.2, C.stone, 0, 1.1, 0));
-  const y0 = 1.45;
+  const skin = done ? '#6fa58a' : '#a8743a';
+  const cloth = done ? '#c39a4e' : '#8f6232';
+  const trim = done ? C.gold : '#b07c3c';
+  const metal = { metalness: 0.5, roughness: 0.42 };
+  const stone = '#bfae8c';
+  const stoneDark = '#9a8a6c';
+
+  // ── Las dos torres sobre las rocas ──
+  const X = 1.22; // mitad de la separación entre las torres
+  const TOP = 1.95; // donde apoya los pies
+  for (const sx of [-1, 1]) {
+    const x = sx * X;
+    for (let k = 0; k < 6; k++) {
+      const a = (k / 6) * Math.PI * 2 + sx;
+      const rock = mesh(new THREE.DodecahedronGeometry(0.28 + (k % 3) * 0.06), k % 2 ? stoneDark : '#8d8070');
+      rock.position.set(x + Math.cos(a) * 0.82, 0.12, Math.sin(a) * 0.82);
+      rock.scale.y = 0.6;
+      g.add(rock);
+    }
+    if (level >= 1) {
+      // Baluarte y muro hacia fuera
+      g.add(box(1.45, 0.62, 1.45, stone, x, 0, 0), box(0.75, 0.45, 1.1, stoneDark, x + sx * 0.95, 0, 0));
+      for (let k = -1; k <= 1; k++) g.add(box(0.16, 0.14, 0.16, stone, x + sx * 1.2, 0.45, k * 0.38));
+    }
+    if (level >= 2) {
+      // Torre octogonal con cornisa, almenas y ventanas
+      g.add(cyl(0.58, 0.62, 1.2, 8, stone, x, 0.62, 0), cyl(0.68, 0.62, 0.13, 8, stoneDark, x, 1.82, 0));
+      for (let k = 0; k < 8; k++) {
+        const a = (k / 8) * Math.PI * 2 + Math.PI / 8;
+        const merlon = box(0.17, 0.16, 0.12, stone, x + Math.sin(a) * 0.6, 1.95, Math.cos(a) * 0.6);
+        merlon.rotation.y = a;
+        g.add(merlon);
+      }
+      for (const [a, y] of [[0, 1.35], [Math.PI / 2, 1.35], [-Math.PI / 2, 1.35], [Math.PI, 1.35], [0.4, 0.95], [-0.4, 0.95]]) {
+        const win = box(0.09, 0.2, 0.05, C.dark, x + Math.sin(a) * 0.6, y, Math.cos(a) * 0.6);
+        win.rotation.y = a;
+        g.add(win);
+      }
+    }
+  }
+  // ── La figura (mira hacia el mar, -Z). Se modela con la antorcha en +X y al final se refleja,
+  // para que, vista de frente, la lleve en la mano derecha como en Rodas ──
   const fig = new THREE.Group();
-  fig.position.y = y0;
-  // La figura mira hacia el mar (-Z)
+  fig.position.y = TOP;
   fig.rotation.y = Math.PI;
   g.add(fig);
-  const part = (geo, x, y, z, rx = 0, rz = 0) => {
-    const m = mesh(geo, metal, BRONZE);
+  const put = (geo, color, x, y, z, extra = metal) => {
+    const m = mesh(geo, color, extra);
     m.position.set(x, y, z);
-    m.rotation.set(rx, 0, rz);
     fig.add(m);
     return m;
   };
-  if (level >= 1) {
-    part(new THREE.BoxGeometry(0.45, 0.3, 0.7), -0.45, 0.15, 0.1);
-    part(new THREE.BoxGeometry(0.45, 0.3, 0.7), 0.45, 0.15, 0.1);
-  }
+  const up = new THREE.Vector3(0, 1, 0);
+  /** Miembro (o palo) de `a` a `b`, más grueso por un extremo, con su articulación redonda al final. */
+  const limb = (a, b, r1, r2, color = skin) => {
+    const from = new THREE.Vector3(...a);
+    const to = new THREE.Vector3(...b);
+    const dir = to.clone().sub(from);
+    const m = put(new THREE.CylinderGeometry(r2, r1, dir.length(), 8), color, 0, 0, 0);
+    m.position.copy(from).addScaledVector(dir, 0.5);
+    m.quaternion.setFromUnitVectors(up, dir.normalize());
+    put(new THREE.SphereGeometry(Math.max(r1, r2) * 1.02, 8, 6), color, ...b);
+    return m;
+  };
+  /** Paño colgante: una tela fina con pliegues que se abre hacia abajo desde (x, y, z). */
+  const drape = (x, y, z, w, h, rz = 0, ry = 0) => {
+    const geo = new THREE.BoxGeometry(w, h, 0.07, 3, 6, 1);
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const v = pos.getY(i);
+      pos.setZ(i, pos.getZ(i) + Math.sin(pos.getX(i) * 9 + v * 3) * 0.05);
+      pos.setX(i, pos.getX(i) * (1 + (0.5 - v / h) * 0.35));
+    }
+    geo.computeVertexNormals();
+    const m = put(geo, cloth, x, y - h / 2, z);
+    m.rotation.set(0.05, ry, rz);
+    return m;
+  };
+
+  const footL = [-X, 0.06, 0.05];
+  const footR = [X, 0.06, 0.05];
   if (level >= 2) {
-    part(new THREE.CylinderGeometry(0.22, 0.26, 2.0, 7), -0.45, 1.3, 0);
-    part(new THREE.CylinderGeometry(0.22, 0.26, 2.0, 7), 0.45, 1.3, 0);
+    // Pies sobre las torres y las espinillas
+    put(new THREE.BoxGeometry(0.26, 0.12, 0.5), skin, footL[0], 0.06, 0.12);
+    put(new THREE.BoxGeometry(0.26, 0.12, 0.5), skin, footR[0], 0.06, 0.12);
+    limb(footL, [-0.84, 1.2, 0.1], 0.14, 0.2);
+    limb(footR, [0.84, 1.2, 0.1], 0.14, 0.2);
   }
   if (level >= 4) {
-    // Túnica y torso
-    part(new THREE.CylinderGeometry(0.7, 0.95, 1.4, 8), 0, 2.6, 0);
-    part(new THREE.CylinderGeometry(0.55, 0.7, 1.4, 8), 0, 3.95, 0);
+    // Muslos, cadera y el paño de la cintura (con su vuelo hacia el lado izquierdo)
+    limb([-0.84, 1.2, 0.1], [-0.3, 2.35, 0], 0.2, 0.3);
+    limb([0.84, 1.2, 0.1], [0.3, 2.35, 0], 0.2, 0.3);
+    put(new THREE.SphereGeometry(0.42, 10, 8), skin, 0, 2.42, 0).scale.set(1.15, 0.8, 0.85);
+    put(new THREE.CylinderGeometry(0.44, 0.52, 0.42, 10), cloth, 0, 2.38, 0);
+    put(new THREE.TorusGeometry(0.43, 0.07, 6, 14), cloth, 0, 2.6, 0).rotation.x = Math.PI / 2;
+    drape(-0.38, 2.5, 0.05, 0.5, 1.15, 0.22);
+    drape(0.12, 2.45, 0.34, 0.42, 0.5, -0.1);
   }
   if (level >= 6) {
-    part(new THREE.CylinderGeometry(0.18, 0.2, 0.35, 7), 0, 4.8, 0);
-    part(new THREE.SphereGeometry(0.42, 10, 8), 0, 5.25, 0);
-    // Corona de rayos
-    for (let i = 0; i < 7; i++) {
-      const a = (i / 7) * Math.PI * 2;
-      const ray = part(new THREE.ConeGeometry(0.06, 0.45, 4), Math.sin(a) * 0.38, 5.55, Math.cos(a) * 0.38);
-      ray.rotation.set(Math.cos(a) * 0.5, 0, -Math.sin(a) * 0.5);
+    // Torso: vientre, pecho, hombros, la banda cruzada, cuello y cabeza con su corona de rayos
+    put(new THREE.CylinderGeometry(0.4, 0.38, 0.6, 10), skin, 0, 2.95, 0);
+    put(new THREE.SphereGeometry(0.5, 12, 9), skin, 0, 3.5, 0).scale.set(1.25, 0.95, 0.75);
+    for (const sx of [-1, 1]) {
+      put(new THREE.SphereGeometry(0.2, 8, 6), skin, sx * 0.24, 3.55, 0.28).scale.set(1.1, 0.8, 0.5);
+      put(new THREE.SphereGeometry(0.22, 8, 6), skin, sx * 0.62, 3.78, 0);
+    }
+    for (let k = 0; k < 3; k++) for (const sx of [-1, 1]) put(new THREE.SphereGeometry(0.085, 6, 5), skin, sx * 0.1, 2.82 + k * 0.17, 0.33).scale.set(1, 0.8, 0.5);
+    const sash = put(new THREE.BoxGeometry(0.15, 1.45, 0.06), trim, 0.02, 3.3, 0.36);
+    sash.rotation.z = -0.62;
+    put(new THREE.CylinderGeometry(0.14, 0.16, 0.28, 8), skin, 0, 4.02, 0);
+    const head = put(new THREE.SphereGeometry(0.27, 10, 8), skin, 0, 4.36, 0.02);
+    head.scale.set(0.9, 1.08, 1);
+    put(new THREE.SphereGeometry(0.28, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), skin, 0, 4.4, -0.03).scale.set(0.95, 0.85, 1);
+    put(new THREE.BoxGeometry(0.07, 0.12, 0.06), skin, 0, 4.33, 0.28);
+    put(new THREE.TorusGeometry(0.26, 0.035, 5, 14), trim, 0, 4.5, 0).rotation.x = Math.PI / 2 - 0.15;
+    for (let k = 0; k < 9; k++) {
+      // Rayos en abanico por arriba y los lados
+      const a = -Math.PI * 0.62 + (k / 8) * Math.PI * 1.24;
+      const dir = new THREE.Vector3(Math.sin(a), Math.cos(a) * 0.9 + 0.25, -0.15).normalize();
+      const ray = put(new THREE.ConeGeometry(0.05, 0.5, 4), trim, 0, 0, 0);
+      ray.position.set(0, 4.52, -0.02).addScaledVector(dir, 0.48);
+      ray.quaternion.setFromUnitVectors(up, dir);
     }
   }
   if (level >= 8) {
-    // Brazo izquierdo abajo con escudo; brazo derecho alzado con la antorcha
-    part(new THREE.CylinderGeometry(0.14, 0.16, 1.5, 6), -0.75, 3.7, 0, 0, -0.15);
-    part(new THREE.CylinderGeometry(0.42, 0.42, 0.08, 10), -0.95, 3.4, 0.15, Math.PI / 2, 0);
-    part(new THREE.CylinderGeometry(0.14, 0.16, 1.6, 6), 0.75, 5.0, 0, 0, 0.25);
-    part(new THREE.CylinderGeometry(0.12, 0.08, 0.6, 6), 0.95, 6.05, 0);
+    // Brazo derecho en alto con la antorcha; el izquierdo abajo, sujetando el manto
+    limb([0.62, 3.8, 0], [0.98, 4.62, 0.08], 0.17, 0.13);
+    limb([0.98, 4.62, 0.08], [1.06, 5.45, 0.08], 0.13, 0.11);
+    put(new THREE.SphereGeometry(0.13, 8, 6), skin, 1.06, 5.52, 0.08);
+    put(new THREE.CylinderGeometry(0.06, 0.05, 0.75, 8), trim, 1.06, 5.85, 0.08);
+    put(new THREE.CylinderGeometry(0.22, 0.09, 0.26, 10), trim, 1.06, 6.3, 0.08);
+    limb([-0.62, 3.75, 0], [-0.86, 3.05, 0.12], 0.17, 0.13);
+    limb([-0.86, 3.05, 0.12], [-0.92, 2.35, 0.2], 0.13, 0.11);
+    put(new THREE.SphereGeometry(0.12, 8, 6), skin, -0.93, 2.28, 0.21);
+    // El manto: por el hombro izquierdo y colgando de la mano hasta casi la torre
+    drape(-0.66, 3.9, -0.18, 0.38, 1.0, 0.12, 0.3);
+    drape(-0.98, 2.3, 0.12, 0.5, 1.55, 0.1, -0.2);
   }
   if (done) {
-    const flame = mesh(new THREE.ConeGeometry(0.22, 0.6, 7), '#ffcf5a', { emissive: '#ff9a00', emissiveIntensity: 2 });
-    flame.position.set(0.95, 6.6, 0);
+    const flame = mesh(new THREE.ConeGeometry(0.2, 0.62, 7), '#ffcf5a', { emissive: '#ff9a00', emissiveIntensity: 2 });
+    flame.position.set(1.06, 6.7, 0.08);
     flame.userData.flicker = true;
     fig.add(flame);
-  } else {
-    // Andamio permanente mientras la maravilla no esté terminada
-    const h = 1 + Math.min(level, 9) * 0.65;
-    const s = 1.5;
-    for (const [x, z] of [[-s, -s], [s, -s], [-s, s], [s, s]]) g.add(box(0.1, h + y0 - 0.5, 0.1, C.woodLight, x, 0.5, z));
-    for (let y = y0 + 0.9; y < y0 + h; y += 1.1) {
-      g.add(box(2 * s, 0.07, 0.07, C.woodLight, 0, y, s), box(2 * s, 0.07, 0.07, C.woodLight, 0, y, -s));
-      g.add(box(0.07, 0.07, 2 * s, C.woodLight, s, y, 0), box(0.07, 0.07, 2 * s, C.woodLight, -s, y, 0));
+  }
+  for (const m of fig.children) {
+    m.position.x *= -1;
+    m.quaternion.set(m.quaternion.x, -m.quaternion.y, -m.quaternion.z, m.quaternion.w);
+  }
+  if (!done) {
+    // Andamio alrededor de la figura mientras la maravilla no esté terminada
+    const h = 1.2 + Math.min(level, 9) * 0.6;
+    const sx = 0.62;
+    const sz = 0.72;
+    for (const [x, z] of [[-sx, -sz], [sx, -sz], [-sx, sz], [sx, sz]]) g.add(box(0.09, TOP + h, 0.09, C.woodLight, x, 0.1, z));
+    for (let y = TOP + 0.6; y < TOP + h; y += 1.0) {
+      g.add(box(2 * sx, 0.07, 0.07, C.woodLight, 0, y, sz), box(2 * sx, 0.07, 0.07, C.woodLight, 0, y, -sz));
+      g.add(box(0.07, 0.07, 2 * sz, C.woodLight, sx, y, 0), box(0.07, 0.07, 2 * sz, C.woodLight, -sx, y, 0));
     }
   }
   return g;
