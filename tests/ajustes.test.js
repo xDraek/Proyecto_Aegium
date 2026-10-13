@@ -114,9 +114,10 @@ test('al saquear una ciudad se lleva todo lo que no protege el almacén, si cabe
   }
 });
 
-test('todas las tropas y los barcos cobran paga en oro (la élite, más)', () => {
+test('las tropas y los barcos cobran paga en oro (la élite, más), salvo la milicia', () => {
   const s = newState({ home: 'x', name: 'Prueba' });
-  for (const id of ['lancero', 'hoplita', 'mercante', 'trirreme', 'dromon']) assert.ok(UNITS[id].pay > 0, `${id} cobra`);
+  for (const id of ['arquero', 'hoplita', 'mercante', 'trirreme', 'dromon']) assert.ok(UNITS[id].pay > 0, `${id} cobra`);
+  for (const id of ['lancero', 'hondero']) assert.ok(!UNITS[id].pay && UNITS[id].upkeep > 1, `${id} solo come`);
   assert.ok(UNITS.espartano.pay > UNITS.hoplita.pay);
   s.units.trirreme = 100;
   assert.ok(payPerHour(s) > 0, 'una flota sola también cuesta oro');

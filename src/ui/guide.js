@@ -262,7 +262,7 @@ const TOPICS = {
         <li><b>Construye el almacén</b> antes de que se llene: lo que no cabe se pierde.</li>
         <li><b>Ayuntamiento 2</b> desbloquea la academia, el cuartel, el puerto y la mina de cristal.</li>
         <li><b>Investiga</b> las mejoras de producción y, con el puerto, manda un <b>bote</b> a explorar las islas cercanas.</li>
-        <li>Entrena unos <b>lanceros</b>, súbelos a un mercante y saquea un campamento bárbaro 🪓.</li>
+        <li>Entrena algo de <b>milicia con lanza</b>, súbela a un mercante y saquea un campamento bárbaro 🪓.</li>
         <li>Antes del <b>ayuntamiento 3</b> prepara defensas: a partir de ahí llegan ${see('defensa', 'piratas')}.</li>
       </ol>
       ${tip('Sigue las <b>misiones</b> 📋: marcan el camino y cada una da una recompensa. Si te pierdes, vuelve aquí con la tecla <b>?</b>.')}`,
@@ -303,7 +303,7 @@ const TOPICS = {
       <p>Cada recurso tiene un <b>máximo</b>: lo que se produce con el almacén lleno se pierde. Además, el almacén <b>esconde</b> una parte de cada recurso que nadie puede robar ni quemar (ni piratas, ni saqueadores, ni saboteadores). Logística sube el máximo un 10 % por nivel.</p>
       ${storageTable()}
       <h5>La comida</h5>
-      <p>Las tropas y los barcos <b>comen</b> cada hora, estén en casa o en el mar. Si la comida llega a cero hay <b>hambruna</b>: el resto de la producción cae a la mitad. La taberna reduce lo que comen (−4 % por nivel, hasta −40 %). Las ${see('unidades', 'tropas de élite')} además cobran una paga en oro.</p>
+      <p>Las tropas y los barcos <b>comen</b> cada hora, estén en casa o en el mar. Si la comida llega a cero hay <b>hambruna</b>: el resto de la producción cae a la mitad. La taberna reduce lo que comen (−4 % por nivel, hasta −40 %). Casi todas, además, cobran una ${see('unidades', 'paga en oro')} (la milicia no; la élite, más).</p>
       ${tip('La barra de arriba ya descuenta lo que comen y cobran tus tropas: si una cifra sale en rojo, ese recurso está bajando.')}`,
   },
   trabajadores: {
@@ -345,7 +345,7 @@ const TOPICS = {
       ${landTable()}
       <h5>Barcos</h5>
       ${shipTable()}
-      <p><b>🪙 Paga</b>: todas las tropas y los barcos, además de comer, cobran una <b>paga en oro</b> cada hora, estén en casa o en el mar. Si el oro se acaba, desertan los que más cobran hasta que la paga cuadre.</p>
+      <p><b>🪙 Paga</b>: las tropas y los barcos, además de comer, cobran una <b>paga en oro</b> cada hora, estén en casa o en el mar. La <b>milicia</b> (Milicia con lanza y Hondero miliciano) no cobra, pero come el doble. Si el oro se acaba, desertan los que más cobran hasta que la paga cuadre.</p>
       <p><b>⭐ Tropas de élite</b>: mucho más fuertes, pero cobran bastante más. Se desbloquean con <b>Táctica militar</b>. La caballería pide <b>Equitación 2</b> y los elefantes, la <b>Doma de elefantes</b> (que se investiga con Equitación 4).</p>
       ${tip('Los mercantes no combaten, pero llevan muchas tropas y mucho botín. Los botes son rápidos y solo sirven para explorar, espiar y sabotear.')}`,
   },

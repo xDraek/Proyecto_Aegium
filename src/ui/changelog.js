@@ -5,6 +5,15 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-14e',
+    date: '2026-10-14',
+    title: 'La milicia',
+    items: [
+      '🔱 El lancero ahora es la <b>Milicia con lanza</b> y el hondero, el <b>Hondero miliciano</b>: ya no cobran paga en oro, pero comen el doble (🥖 2/h).',
+      '🪙 Arqueros, espadachines, hoplitas, caballeros y arqueros cretenses cobran <b>0,2 de oro más por hora</b>, y las catapultas, 0,4 más.',
+    ],
+  },
+  {
     id: '2026-10-14d',
     date: '2026-10-14',
     title: 'Ajustes contra trampas',

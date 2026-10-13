@@ -213,37 +213,35 @@ export const BUILDING_KEYS = Object.keys(BUILDINGS);
 
 // ── Unidades ─────────────────────────────────────────────────────────────────
 // atk: daño por asalto · hp: vida · upkeep: comida por hora · size: plazas en barco
-// pay: oro por hora (la paga de las tropas de élite; si no hay oro, desertan)
+// pay: oro por hora (la paga; si no hay oro, desertan). La milicia no cobra: solo come
 // Barcos: speed (multiplicador), cargo (botín que cargan), capacity (plazas para tropas)
 
 export const UNITS = {
   lancero: {
-    name: 'Lancero',
+    name: 'Milicia con lanza',
     icon: '🔱',
     kind: 'tierra',
     building: 'cuartel',
-    description: 'Infantería barata y dura. La base de cualquier defensa.',
+    description: 'Ciudadanos armados con lanza: baratos y duros, la base de cualquier defensa. No cobran paga en oro, pero comen más.',
     cost: { madera: 40, comida: 30 },
     time: 40,
     atk: 5,
     hp: 18,
-    upkeep: 1,
-    pay: 0.2,
+    upkeep: 2,
     size: 1,
     requires: { cuartel: 1 },
   },
   hondero: {
-    name: 'Hondero',
+    name: 'Hondero miliciano',
     icon: '🪨',
     kind: 'tierra',
     building: 'cuartel',
-    description: 'Pastores con honda: baratos, rápidos de entrenar y certeros. Se pagan con piedra.',
+    description: 'Pastores de la milicia con honda: baratos, rápidos de entrenar y certeros. Se entrenan con piedra y no cobran paga en oro, pero comen más.',
     cost: { piedra: 30, comida: 25 },
     time: 35,
     atk: 7,
     hp: 8,
-    upkeep: 1,
-    pay: 0.2,
+    upkeep: 2,
     size: 1,
     requires: { cuartel: 1 },
   },
@@ -258,7 +256,7 @@ export const UNITS = {
     atk: 11,
     hp: 9,
     upkeep: 1,
-    pay: 0.3,
+    pay: 0.5,
     size: 1,
     requires: { cuartel: 2 },
   },
@@ -273,7 +271,7 @@ export const UNITS = {
     atk: 15,
     hp: 24,
     upkeep: 2,
-    pay: 0.4,
+    pay: 0.6,
     size: 1,
     requires: { cuartel: 3, herreria: 1 },
   },
@@ -288,7 +286,7 @@ export const UNITS = {
     atk: 10,
     hp: 42,
     upkeep: 2,
-    pay: 0.5,
+    pay: 0.7,
     size: 1,
     requires: { cuartel: 4, armaduras: 1 },
   },
@@ -303,7 +301,7 @@ export const UNITS = {
     atk: 28,
     hp: 38,
     upkeep: 3,
-    pay: 1,
+    pay: 1.2,
     size: 2,
     requires: { cuartel: 5, equitacion: 2 },
   },
@@ -318,7 +316,7 @@ export const UNITS = {
     atk: 40,
     hp: 25,
     upkeep: 3,
-    pay: 1,
+    pay: 1.4,
     size: 3,
     siege: 0.06,
     requires: { cuartel: 6, asedio: 1 },
@@ -352,7 +350,7 @@ export const UNITS = {
     atk: 37,
     hp: 30,
     upkeep: 2,
-    pay: 2,
+    pay: 2.2,
     size: 1,
     requires: { cuartel: 7, tactica: 2 },
   },
@@ -917,7 +915,7 @@ export const QUESTS = [
   { id: 'q-academia', title: 'Amor al saber', text: 'Construye la academia.', goal: lvl('academia', 1), reward: { madera: 250, piedra: 250 } },
   { id: 'q-silvi', title: 'Primeros sabios', text: 'Investiga Silvicultura.', goal: res('silvicultura', 1), reward: { madera: 400 } },
   { id: 'q-cuartel', title: 'Hombres de armas', text: 'Construye el cuartel.', goal: lvl('cuartel', 1), reward: { comida: 300, madera: 200 } },
-  { id: 'q-lanceros', title: 'La primera guardia', text: 'Ten 10 lanceros en tu ejército.', goal: (g) => [Math.min(g.armyCount('lancero'), 10), 10], reward: { comida: 300, madera: 300 } },
+  { id: 'q-lanceros', title: 'La primera guardia', text: 'Ten 10 milicianos con lanza en tu ejército.', goal: (g) => [Math.min(g.armyCount('lancero'), 10), 10], reward: { comida: 300, madera: 300 } },
   { id: 'q-puerto', title: 'Rumbo al mar', text: 'Construye el puerto.', goal: lvl('puerto', 1), reward: { madera: 400, piedra: 200 } },
   { id: 'q-explora', title: 'Tierra a la vista', text: 'Explora una isla del archipiélago.', goal: (g) => [Math.min(g.exploredCount(), 1), 1], reward: { madera: 300, comida: 300 } },
   { id: 'q-fundicion', title: 'Edad del bronce', text: 'Construye la fundición.', goal: lvl('fundicion', 1), reward: { piedra: 400, comida: 200 } },
@@ -983,7 +981,7 @@ export const HORDE = {
 // Cada compañía se puede contratar una vez al día.
 
 export const MERCENARIES = {
-  honderos: { name: 'Banda de honderos', icon: '🪨', unit: 'hondero', base: 15, per: 5, price: { oro: 6, comida: 4 } },
+  honderos: { name: 'Banda de honderos milicianos', icon: '🪨', unit: 'hondero', base: 15, per: 5, price: { oro: 6, comida: 4 } },
   hoplitas: { name: 'Compañía de hoplitas', icon: '🛡️', unit: 'hoplita', base: 6, per: 2.5, price: { oro: 20, hierro: 6 } },
   jinetes: { name: 'Jinetes de Tesalia', icon: '🐎', unit: 'caballero', base: 3, per: 1.2, price: { oro: 45, comida: 20 } },
 };
