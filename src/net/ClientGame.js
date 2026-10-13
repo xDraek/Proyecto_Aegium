@@ -196,6 +196,10 @@ export class ClientGame extends Game {
     return this.#act('watchCity', id);
   }
 
+  dismissUnits(id, n) {
+    return this.#act('dismissUnits', id, n);
+  }
+
   startVacation() {
     return this.#act('startVacation');
   }

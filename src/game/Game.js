@@ -7,6 +7,7 @@ import {
   BUILDINGS,
   BUILDING_KEYS,
   CANCEL_REFUND,
+  DISMISS_REFUND,
   COLONY,
   DAILY_REWARDS,
   DAILY_TASKS,
@@ -768,6 +769,32 @@ export class Game extends EventTarget {
       }
     }
     this.state.mercs = this.state.mercs.filter((c) => c.count > 0);
+  }
+
+  /**
+   * Dar de baja tropas o barcos que están en casa: dejan de comer y de cobrar, y se recupera el
+   * DISMISS_REFUND (20 %) de la madera, la comida y el bronce que costaron (de lo demás, nada).
+   * Si hay mercenarios de esa unidad, se van ellos primero, y por ellos no se recupera nada.
+   */
+  dismissUnits(id, n, now = this.now()) {
+    this.#advance(now);
+    if (!PLAYER_UNITS.includes(id)) return this.#fail('Esa unidad no existe.');
+    const have = this.state.units[id] ?? 0;
+    n = Math.floor(Number(n));
+    if (!(n >= 1)) return this.#fail('Elige cuántas das de baja.');
+    if (n > have) return this.#fail(`Solo tienes ${have} × ${UNITS[id].name} en casa.`);
+    this.state.units[id] = have - n;
+    const mercs = (this.state.mercs ?? []).filter((c) => c.unit === id).reduce((a, c) => a + c.count, 0);
+    this.#mercsLost({ [id]: n });
+    const own = n - Math.min(n, mercs);
+    const back = {};
+    for (const r of DISMISS_REFUND.resources) {
+      const k = Math.floor((UNITS[id].cost?.[r] ?? 0) * own * DISMISS_REFUND.share);
+      if (k > 0) back[r] = k;
+    }
+    for (const [r, k] of Object.entries(back)) this.state.resources[r] += k;
+    this.#note(`${UNITS[id].icon} Das de baja ${n} × ${UNITS[id].name}${Object.keys(back).length ? `: recuperas ${fmtBag(back)}` : ''}`, 'info');
+    return this.#done();
   }
 
   /** Se acaba el contrato: se van los que queden (primero los de casa, luego los de las flotas). */

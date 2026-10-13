@@ -5559,3 +5559,16 @@ kbd {
     display: none;
   }
 }
+
+/* Dar de baja tropas o barcos desde la ventana del ejército */
+.army-card .dismiss-btn {
+  flex: none;
+  margin-left: auto;
+  opacity: 0.55;
+}
+
+.army-card .dismiss-btn:hover,
+.army-card .dismiss-btn:focus-visible {
+  opacity: 1;
+  color: var(--bad);
+}

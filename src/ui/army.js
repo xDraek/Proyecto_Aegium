@@ -26,6 +26,7 @@ function unitGrid(game, ids, empty, recruitIn) {
       return `<div class="army-card" title="${u.name}">
         ${unitIcon(id, 'army-art')}
         <div><b>${fmtNum(game.units[id])}</b><span>${u.elite ? '⭐ ' : ''}${u.name}</span><span class="muted small">⚔️ ${u.atk} · ❤️ ${u.hp}${u.pay ? ` · 🪙 ${u.pay}/h` : ''}</span></div>
+        <button class="icon-btn tiny dismiss-btn" data-action="dismiss" data-unit="${id}" title="Dar de baja" aria-label="Dar de baja ${u.name}">✖</button>
       </div>`;
     })
     .join('');

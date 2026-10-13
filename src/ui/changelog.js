@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-14b',
+    date: '2026-10-14',
+    title: 'Dar de baja tropas y barcos',
+    items: ['Puedes <b>dar de baja</b> tropas y barcos desde la ventana del ⚔️ ejército (la ✖ de cada tarjeta): dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bronce que costaron (del resto, nada). Si tienes mercenarios de esa unidad, se van ellos primero, y por ellos no se recupera nada.'],
+  },
+  {
     id: '2026-10-14',
     date: '2026-10-14',
     title: 'El oro escasea y vuelven los elefantes',

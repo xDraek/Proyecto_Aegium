@@ -112,6 +112,7 @@ const ACTIONS = {
   upgradeColony: (g, [id]) => (typeof id === 'string' ? g.upgradeColony(id) : bad()),
   abandonColony: (g, [id]) => (typeof id === 'string' ? g.abandonColony(id) : bad()),
   watchCity: (g, [id]) => (typeof id === 'string' ? g.watchCity(id) : bad()),
+  dismissUnits: (g, [id, n]) => (typeof id === 'string' && Number.isFinite(n) ? g.dismissUnits(id, n) : bad()),
   setWork: (g, [id, pct]) => (typeof id === 'string' && Number.isFinite(pct) ? g.setWork(id, pct) : bad()),
   hireMercenaries: (g, [id]) => (typeof id === 'string' ? g.hireMercenaries(id) : bad()),
   setTitle: (g, [id]) => (typeof id === 'string' ? g.setTitle(id) : bad()),

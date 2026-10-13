@@ -177,6 +177,17 @@ export class Hud {
       if (task && !task.disabled) return this.#run(task, () => game.claimTask(task.dataset.id), null, 'coins');
       // Ventana del ejército: retirar flotas, abrir el simulador o ir a un edificio o isla
       if (this.modalKind === 'army') {
+        const dismiss = e.target.closest('[data-action="dismiss"]');
+        if (dismiss) {
+          const id = dismiss.dataset.unit;
+          const u = UNITS[id];
+          const have = game.units[id] ?? 0;
+          const answer = prompt(`${u.icon} ${u.name}: ¿cuántas unidades das de baja? Tienes ${have} en casa.
+Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bronce que costaron.`, String(have));
+          const n = Math.floor(Number(answer));
+          if (answer == null || !(n >= 1)) return;
+          return this.#run(dismiss, () => game.dismissUnits(id, Math.min(n, have)), null, null);
+        }
         const recall = e.target.closest('[data-action="recall"]');
         if (recall) return this.#run(recall, () => game.recall(Number(recall.dataset.mission)), 'La flota da media vuelta.', 'sail');
         const plunder = e.target.closest('[data-action="plunder"]');

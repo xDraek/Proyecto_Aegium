@@ -754,6 +754,9 @@ export const SPY_TIERS = [
 /** Qué parte de lo pagado se recupera al cancelar una obra, una investigación o un reclutamiento. */
 export const CANCEL_REFUND = 0.7;
 
+/** Al dar de baja tropas o barcos se recupera esta parte de lo que costaron, solo de estos recursos. */
+export const DISMISS_REFUND = { share: 0.2, resources: ['madera', 'comida', 'hierro'] };
+
 /** Cuántos aliados pueden unirse a un mismo ataque conjunto. */
 export const JOINT_MAX = 4;
 
