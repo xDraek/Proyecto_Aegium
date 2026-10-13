@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { BLOCKADE, COLONY, FEATS, FEAT_THEMES, ISLAND_TYPES, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, RESOURCES, RESOURCE_KEYS, SPY_TIERS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
 import { colonyUpgrade, colonyYield, playerCombat, spyRisk } from '../game/rules.js';
 import { featCoop, forceOf, forgeBonus } from '../game/feats.js';
-import { NEWBIE_POINTS } from '../game/Game.js';
+import { NEWBIE_POINTS, neutralsOf } from '../game/Game.js';
 import { createIslandBase, createIslandFeature, islandLook } from '../scene/islands.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
 import { bag, costList, escapeHtml, fmtAgo, fmtNum, fmtTime, intelRows, unitList } from './format.js';
@@ -443,10 +443,20 @@ function infoSectionFor(game, view, t) {
       ? '<p class="desc">Las ruinas ya han sido saqueadas. Solo quedan piedras y lagartijas.</p>'
       : `<p class="desc">Entre las columnas caídas brilla algo. Quien desembarque se llevará el tesoro:</p><div class="info-row"><span>Tesoro</span><span>${bag(view.treasure)}</span></div>`;
   }
-  const lines = [
-    `<div class="info-row"><span>Guarnición</span><span>${unitList(view.garrison)}</span></div>`,
-    `<div class="info-row"><span>Botín acumulado</span><span>${bag(view.stock)}</span></div>`,
-  ];
+  // Lo que sabes de ellos es lo que vio tu último bote (o tu último ataque), no lo que tienen ahora
+  const intel = view.intel;
+  const lines = [];
+  if (view.rebuildUntil) {
+    lines.push(`<div class="hint">🔨 ${neutralsOf(view)} se están reconstruyendo tras el último saqueo: no se sabe cuántos son ni qué tienen, y no se les puede atacar hasta dentro de <span class="q-time" data-until="${view.rebuildUntil}"></span>.</div>`);
+  } else if (intel) {
+    lines.push(
+      `<h4>Lo último que sabes <span class="muted small">(${fmtAgo(intel.t)})</span></h4>`,
+      `<div class="info-row"><span>Guarnición</span><span>${intel.rebuildUntil ? 'reconstruyéndose' : unitList(intel.garrison)}</span></div>`,
+      `<div class="info-row"><span>Botín acumulado</span><span>${intel.rebuildUntil ? '—' : bag(intel.stock)}</span></div>`,
+    );
+    if (view.foughtAt > intel.t) lines.push('<p class="hint">⚔️ Desde tu último informe ha habido combates aquí: envía un bote explorador para saber cómo están.</p>');
+    else lines.push('<p class="desc small">Con el tiempo se rearman y juntan más botín: envía un bote explorador para ver cómo están ahora.</p>');
+  }
   if (view.wall) lines.push(`<div class="info-row"><span>🏰 Fortificación</span><b>+${Math.round(view.wall * 100)} % de vida</b></div>`);
   const flavor = {
     barbaros: 'Una tribu de bárbaros ha levantado aquí su campamento. Acumulan lo que roban y se rearman con el tiempo.',

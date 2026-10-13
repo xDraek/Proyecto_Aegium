@@ -84,7 +84,8 @@ export function createWater(shores, level) {
     shader.vertexShader = common + shader.vertexShader.replace(
       '#include <begin_vertex>',
       /* glsl */ `#include <begin_vertex>
-      vec2 p = position.xz;
+      // (en coordenadas del mundo: de lejos el mar sigue a la cámara y se estira)
+      vec2 p = (modelMatrix * vec4(position, 1.0)).xz;
       float calm = smoothstep(0.0, 10.0, shoreDistance(p));
       float wave = sin(p.x * 0.21 + uTime * 1.1) * 0.12
                  + cos(p.y * 0.17 - uTime * 0.9) * 0.10

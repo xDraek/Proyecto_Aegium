@@ -2013,7 +2013,12 @@ export class WorldServer {
     const players = {};
     for (const isl of islands) {
       const rt = this.islandStates.get(isl.id);
-      if (rt) states[isl.id] = rt.feat ? { ...rt, feat: this.#publicFeat(rt.feat, userId, isl.id) } : rt;
+      if (rt?.feat) states[isl.id] = { ...rt, feat: this.#publicFeat(rt.feat, userId, isl.id) };
+      else if (rt && isl.loot) {
+        // Cuántos defienden y cuánto botín tienen solo se sabe espiando (o atacando)
+        const { garrison, stock, ...open } = rt;
+        states[isl.id] = open;
+      } else if (rt) states[isl.id] = rt;
       for (const uid of [isl.owner, rt?.colonizedBy]) {
         if (uid != null && !players[uid]) players[uid] = { ...this.playerInfo(uid), rel: this.relation(userId, uid), hitMe: uid !== userId && this.attackedBy(userId, uid) };
       }

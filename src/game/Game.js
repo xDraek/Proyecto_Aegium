@@ -1051,8 +1051,11 @@ export class Game extends EventTarget {
       colonizedBy,
       colonistName: colonizedBy != null ? (this.world.playerInfo(colonizedBy)?.name ?? '¿?') : null,
       looted: !!rt?.looted,
-      garrison: rt ? garrisonAt(isl, rt, t) : {},
-      stock: rt ? stockAt(isl, rt, t) : {},
+      // (el navegador no recibe la guarnición ni el botín de las islas neutrales: solo lo que hayas visto)
+      garrison: rt?.garrison ? garrisonAt(isl, rt, t) : {},
+      stock: rt?.stock ? stockAt(isl, rt, t) : {},
+      rebuildUntil: rebuilding(isl, rt, t) ? rt.stockAt : null,
+      foughtAt: isl.loot && rt ? (rt.garrisonAt ?? 0) : 0,
     });
     return view;
   }
@@ -1344,6 +1347,7 @@ export class Game extends EventTarget {
       reason ||= 'En el Mar de las Brumas solo caben expediciones.';
     } else if (type === 'atacar') {
       if (rt?.colonizedBy != null) reason ||= rt.colonizedBy === this.userId ? 'Es tu colonia.' : `Es una colonia de ${view.colonistName}.`;
+      else if (rebuilding(isl, rt, this.now())) reason ||= rebuildText(isl, rt, this.now());
       else if (view.explored && (isl.type === 'libre' || isl.type === 'ruinas')) reason ||= 'Aquí no hay nada que atacar.';
       if (!hasCombat(sent)) reason ||= 'Envía al menos una unidad de combate.';
     } else if (type === 'colonizar') {
@@ -1367,6 +1371,7 @@ export class Game extends EventTarget {
       if (isl.type !== 'ciudadela') reason ||= 'Solo se pueden conquistar las ciudades bárbaras de los continentes.';
       else if (!view.explored) reason ||= 'Espía la ciudad antes de intentar conquistarla.';
       else if (rt?.colonizedBy != null) reason ||= rt.colonizedBy === this.userId ? 'Ya es tuya.' : `${view.colonistName} ya la ha conquistado.`;
+      else if (rebuilding(isl, rt, this.now())) reason ||= rebuildText(isl, rt, this.now());
       else if (s.missions.some((m) => m.type === 'conquistar' && m.target === target)) reason ||= 'Ya va una flota a conquistarla.';
       else if (max === 0) reason ||= 'Investiga Cartografía para poder gobernar otras tierras.';
       else if (colonies + pendingColonies >= max) reason ||= `Ya tienes ${colonies + pendingColonies}/${max} colonias. Investiga más Cartografía.`;
@@ -2249,6 +2254,7 @@ export class Game extends EventTarget {
 
   #intel(isl, rt, t) {
     const intel = { t, garrison: garrisonAt(isl, rt, t), stock: stockAt(isl, rt, t) };
+    if (rebuilding(isl, rt, t)) intel.rebuildUntil = rt.stockAt;
     this.#know(isl.id, { intel });
     return intel;
   }
@@ -2270,6 +2276,8 @@ export class Game extends EventTarget {
       text += ' ¡Entre los escombros había un tesoro!';
     } else if (isl.type === 'ruinas') {
       text += ' Alguien se llevó ya el tesoro.';
+    } else if (intel.rebuildUntil) {
+      text += ' Alguien la ha arrasado hace poco: se están reconstruyendo y no hay nada que llevarse.';
     } else if (isl.type === 'libre') {
       text += rt.colonizedBy != null
         ? ` Ya es una colonia de ${this.world.playerInfo(rt.colonizedBy)?.name ?? 'otro imperio'}.`
@@ -2796,6 +2804,7 @@ export class Game extends EventTarget {
 
   #arriveAttack(m, isl, t) {
     const rt = this.world.islandState(isl.id);
+    if (this.#rebuildingOnArrival(m, isl, rt, t)) return;
     if (isl.type === 'ruinas' && !rt.looted) {
       rt.looted = true;
       this.state.stats.treasures++;
@@ -2868,8 +2877,26 @@ export class Game extends EventTarget {
     }
   }
 
+  /** Si la isla se está reconstruyendo (alguien la arrasó), la flota vuelve sin combatir. */
+  #rebuildingOnArrival(m, isl, rt, t) {
+    if (!rebuilding(isl, rt, t)) return false;
+    this.#intel(isl, rt, t);
+    this.#report({
+      t,
+      kind: 'ataque',
+      island: isl.id,
+      islandName: isl.name,
+      outcome: 'empate',
+      title: `${isl.name} está arrasada`,
+      text: `${rebuildText(isl, rt, t)} Tu flota vuelve a casa sin combatir.`,
+    });
+    return true;
+  }
+
   /** Asalto a una ciudad bárbara: si cae toda la guarnición, los colonos se quedan con ella. */
   #arriveConquer(m, isl, t) {
+    // (los colonos vuelven con lo que llevaban)
+    if (this.#rebuildingOnArrival(m, isl, this.world.islandState(isl.id), t)) return;
     const cost = { ...m.cargo };
     m.cargo = {};
     this.#arriveAttack(m, isl, t);
@@ -3231,12 +3258,31 @@ export class Game extends EventTarget {
 
 // ── Islas neutrales: guarnición y botín que se regeneran con el tiempo ──────
 
+/**
+ * Si quien defiende la isla se está reconstruyendo: alguien acabó con toda la guarnición y, hasta
+ * que se rearme del todo (`rt.stockAt`), no hay nada que atacar ni que saquear.
+ */
+export function rebuilding(isl, rt, t) {
+  return !!isl.loot && !!rt && rt.colonizedBy == null && (rt.stockAt ?? 0) > t;
+}
+
+/** Quiénes viven en una isla neutral (para los textos). */
+export function neutralsOf(isl) {
+  return { piratas: 'Los piratas', kraken: 'Los corsarios del Kraken' }[isl.type] ?? 'Los bárbaros';
+}
+
+function rebuildText(isl, rt, t) {
+  const min = Math.max(1, Math.ceil((rt.stockAt - t) / 60_000));
+  const left = min >= 60 ? `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}` : `${min} min`;
+  return `${neutralsOf(isl)} se están reconstruyendo tras el último saqueo: no se les puede atacar hasta dentro de ${left}.`;
+}
+
 export function garrisonAt(isl, rt, t) {
   const out = {};
   if (rt.colonizedBy != null) return out; // conquistada: ya no hay bárbaros
   const regen = hours(isl.regenHours ?? 1);
   for (const [id, full] of Object.entries(isl.garrison ?? {})) {
-    const n = Math.min(full, (rt.garrison[id] ?? 0) + (full * Math.max(0, t - rt.garrisonAt)) / regen);
+    const n = Math.min(full, (rt.garrison?.[id] ?? 0) + (full * Math.max(0, t - rt.garrisonAt)) / regen);
     if (n >= 1) out[id] = Math.floor(n);
   }
   return out;
@@ -3247,7 +3293,7 @@ export function stockAt(isl, rt, t) {
   if (!isl.loot) return out;
   const h = Math.max(0, t - rt.stockAt) / HOUR_MS;
   for (const [res, k] of Object.entries(isl.loot.mix)) {
-    out[res] = Math.floor(Math.min(isl.loot.max * k, (rt.stock[res] ?? 0) + isl.loot.rate * k * universe.speed * h));
+    out[res] = Math.floor(Math.min(isl.loot.max * k, (rt.stock?.[res] ?? 0) + isl.loot.rate * k * universe.speed * h));
   }
   return out;
 }

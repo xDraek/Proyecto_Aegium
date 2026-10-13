@@ -2771,6 +2771,18 @@ export class World {
     const dist = this.camera.position.distanceTo(this.controls.target);
     this.scene.fog.near = dist * 0.9 + 25;
     this.scene.fog.far = dist * 2.6 + 160;
+    // De lejos (en el mapa puedes alejarte mucho de tu isla) el mar sigue a lo que miras y se
+    // estira, para que nunca se le vea el borde. Cerca se queda quieto en tu isla, con todo su detalle
+    if (dist > VIEWS.isla.max + 10) {
+      const k = 2 ** Math.ceil(Math.log2(Math.max(1, dist / 300)));
+      const step = 25 * k;
+      this.water.position.x = Math.round(this.controls.target.x / step) * step;
+      this.water.position.z = Math.round(this.controls.target.z / step) * step;
+      this.water.scale.set(k, 1, k);
+    } else if (this.water.scale.x !== 1 || this.water.position.x || this.water.position.z) {
+      this.water.position.x = this.water.position.z = 0;
+      this.water.scale.set(1, 1, 1);
+    }
     this.homeLabel.visible = this.view === 'mapa';
 
     this.waterTime.value = t;

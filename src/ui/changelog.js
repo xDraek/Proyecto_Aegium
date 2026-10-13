@@ -5,6 +5,24 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-14j',
+    date: '2026-10-14',
+    title: 'Bárbaros que se reconstruyen',
+    items: [
+      '🪓 De los campamentos, ciudades bárbaras, piratas y el Kraken ya no ves en directo su guarnición ni su botín: solo <b>lo último que sabes</b> (tu último bote explorador o tu último ataque) y hace cuánto. Si ha habido combates desde entonces, te avisa.',
+      '🔨 Si alguien acaba con toda la guarnición, <b>se están reconstruyendo</b>: no se ve qué tienen y nadie puede atacarlos hasta que se rearman. Las flotas que lleguen mientras tanto vuelven sin combatir.',
+    ],
+  },
+  {
+    id: '2026-10-14i',
+    date: '2026-10-14',
+    title: 'Mapas',
+    items: [
+      '🌊 Al alejar mucho la vista del archipiélago ya no se ve el borde del mar.',
+      '🧭 En el mapa del mundo, el círculo marca ahora hasta dónde llegan tus flotas de guerra (300 leguas). Con <b>Cartas náuticas</b> desaparece y el mapa te recuerda que llegas a cualquier ciudad.',
+    ],
+  },
+  {
     id: '2026-10-14h',
     date: '2026-10-14',
     title: 'Nuevo logo',

@@ -73,6 +73,11 @@ export class WorldMap {
     const legend = Object.entries(REL)
       .map(([, r]) => `<span><i style="background:${r.color}"></i>${r.name}</span>`)
       .join('');
+    // Con Cartas náuticas tus flotas llegan a cualquier ciudad: no hay círculo que marque el límite
+    this.charts = this.game.researchLevel('cartas') >= 1;
+    const reach = this.charts
+      ? '<span class="wm-charts">🧭 Tienes las <b>Cartas náuticas</b>: tus flotas llegan a cualquier ciudad</span>'
+      : `<span><i class="ring"></i>Hasta donde llegan tus flotas de guerra (${PVP_RANGE} leguas; más lejos, con Cartas náuticas)</span>`;
     const names = cities.map((c) => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.city)}</option>`).join('');
     this.hud.showModal(
       'worldmap',
@@ -85,7 +90,7 @@ export class WorldMap {
           <button class="ghost small" data-wm="out" title="Alejar">－</button>
         </div>
         <div class="wm-wrap"><canvas></canvas><div class="wm-tip" hidden></div></div>
-        <div class="wm-legend">${legend}<span><i style="background:#5f9a4a"></i>Continente</span>${this.data.feats?.length ? '<span>🌋 Gesta en marcha</span>' : ''}<span><i style="background:#d0663e"></i>Ciudad bárbara</span><span><i class="ring"></i>Lo que ves desde tu ciudad</span><span>🏖️ De vacaciones</span><span>💤 Inactivo</span><span>⛓️ Puerto bloqueado</span><span>🦅 Ocupada</span></div>
+        <div class="wm-legend">${legend}<span><i style="background:#5f9a4a"></i>Continente</span>${this.data.feats?.length ? '<span>🌋 Gesta en marcha</span>' : ''}<span><i style="background:#d0663e"></i>Ciudad bárbara</span>${reach}<span>🏖️ De vacaciones</span><span>💤 Inactivo</span><span>⛓️ Puerto bloqueado</span><span>🦅 Ocupada</span></div>
         <div class="wm-info"><p class="muted small">Arrastra para moverte, usa la rueda para acercarte y pulsa una ciudad para ver quién vive en ella.</p></div>
       </div>`,
     );
@@ -384,14 +389,16 @@ export class WorldMap {
     }
     ctx.stroke();
 
-    // Lo que ves desde tu ciudad
-    const [hx, hy] = this.#toScreen(this.home.x, this.home.z);
-    ctx.setLineDash([6, 6]);
-    ctx.strokeStyle = 'rgba(242,201,76,0.45)';
-    ctx.beginPath();
-    ctx.arc(hx, hy, this.data.viewRadius * scale, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    // Hasta donde llegan tus flotas de guerra (sin Cartas náuticas)
+    if (!this.charts) {
+      const [hx, hy] = this.#toScreen(this.home.x, this.home.z);
+      ctx.setLineDash([6, 6]);
+      ctx.strokeStyle = 'rgba(242,201,76,0.45)';
+      ctx.beginPath();
+      ctx.arc(hx, hy, PVP_RANGE * scale, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
 
     const inView = (x, y, m = 40) => x > -m && y > -m && x < w + m && y < h + m;
 

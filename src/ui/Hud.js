@@ -1025,7 +1025,8 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
           this.social.openSimulator(featSimPreset(game, view, attacker));
           break;
         }
-        const defender = view?.type === 'jugador' ? (view.intel?.garrison ?? {}) : view?.type === 'continente' ? (view.horde?.garrison ?? {}) : (view?.garrison ?? {});
+        // Contra una isla neutral, lo que vio tu último bote (no se sabe cuántos son ahora)
+        const defender = view?.type === 'continente' ? (view.horde?.garrison ?? {}) : (view?.intel?.garrison ?? {});
         const { atkMul, hpMul } = game.combatBonus();
         const wall = view?.type === 'jugador' ? 0.1 * (view.intel?.wall ?? 0) : (view?.wall ?? 0);
         const towers = view?.type === 'jugador' ? 10 * (view.intel?.wall ?? 0) : 0;

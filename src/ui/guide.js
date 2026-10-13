@@ -428,7 +428,7 @@ const TOPICS = {
     title: 'El archipiélago',
     body: () => `<p>Cada jugador nuevo abre un <b>sector</b> con su isla y una docena de islas neutrales alrededor. Entre los sectores hay ${see('continentes', 'continentes')}.</p>
       ${islandsTable()}
-      <p>Los campamentos, las fortalezas y las ciudades bárbaras <b>se rearman con el tiempo</b> y van acumulando botín. Solo te lo llevas si acabas con toda su guarnición; si no queda nadie, la isla queda arrasada hasta que se recupera.</p>`,
+      <p>Los campamentos, las fortalezas y las ciudades bárbaras <b>se rearman con el tiempo</b> y van acumulando botín. Solo te lo llevas si acabas con toda su guarnición; si no queda nadie, la isla queda arrasada: <b>se están reconstruyendo</b> y nadie puede atacarla hasta que se rearman del todo. Lo que tienen solo lo sabes por tu último bote explorador (o tu último ataque): envía otro para ver cómo están ahora.</p>`,
   },
   expediciones: {
     icon: '🧭',
