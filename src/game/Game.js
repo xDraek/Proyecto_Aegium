@@ -28,6 +28,7 @@ import {
   PLAYER_UNITS,
   POWERS,
   PVP_RANGE,
+  WATCH_MAX,
   PROTECTION,
   QUESTS,
   RELICS,
@@ -48,6 +49,7 @@ import {
   WORK,
 } from './data.js';
 import { featHours, featPower, featProd, forgeRoom, forgeValue } from './feats.js';
+import { withoutGold } from './world.js';
 import { assault, attackOf, battle, combineGroups, count, hasCombat, keepAboard, seatsOf, shareSurvivors, splitBag, splitForces } from './combat.js';
 import {
   HOUR_MS,
@@ -182,30 +184,32 @@ export function upgradeState(saved) {
     stats: { ...base.stats, ...saved.stats },
     daily: { ...base.daily, ...saved.daily },
     quests: { claimed: saved.quests?.claimed ?? [] },
+    // Ya no hay colonias de oro: las de antes dan cristal
+    colonies: (saved.colonies ?? base.colonies).map(withoutGold),
     ...migrateResearch(saved),
   };
 }
 
 /**
- * Investigaciones que han cambiado: la Doma de elefantes es ahora el nivel 4 de Equitación y la
- * caballería pide Equitación 2 (quien ya la tenía no la pierde). Si se estaba investigando la doma,
- * se devuelve lo pagado.
+ * Investigaciones que han cambiado:
+ * - Equitación tiene niveles y la caballería pide el 2: quien ya la tenía (el único nivel de antes,
+ *   en partidas sin Cartas náuticas) la conserva.
+ * - La Doma de elefantes se quitó unos días (los elefantes pasaron a Equitación 4) y ha vuelto: a
+ *   quien llegó entonces a Equitación 4 se le da hecha, para que no pierda los elefantes.
  */
 function migrateResearch(saved) {
   const research = { ...saved.research };
-  if (!('elefantes' in research) && !(saved.researchQueue?.id === 'elefantes')) return {};
-  const out = {};
-  if ((research.equitacion ?? 0) >= 1) research.equitacion = Math.max(research.equitacion, 2);
-  if ((research.elefantes ?? 0) >= 1) research.equitacion = 4;
-  delete research.elefantes;
-  out.research = { ...newState({ now: saved.lastUpdate, home: saved.home, name: saved.name }).research, ...research };
-  if (saved.researchQueue?.id === 'elefantes') {
-    const resources = { ...saved.resources };
-    for (const [r, n] of Object.entries(saved.researchQueue.cost ?? {})) resources[r] = (resources[r] ?? 0) + n;
-    out.resources = resources;
-    out.researchQueue = null;
+  let changed = false;
+  if (!('cartas' in research) && research.equitacion === 1) {
+    research.equitacion = 2;
+    changed = true;
   }
-  return out;
+  if (!('elefantes' in research) && (research.equitacion ?? 0) >= 4) {
+    research.elefantes = 1;
+    changed = true;
+  }
+  if (!changed) return {};
+  return { research: { ...newState({ now: saved.lastUpdate, home: saved.home, name: saved.name }).research, ...research } };
 }
 
 /**
@@ -904,6 +908,21 @@ export class Game extends EventTarget {
     this.state.wonderBonus = this.world.wonderBonusFor?.(this.state.colonies) ?? this.state.wonderBonus;
     this.world.decolonize?.(id, this.userId, now);
     this.#note(`🏳️ Abandonas ${col.name}: los colonos vuelven a casa`, 'info');
+    return this.#done();
+  }
+
+  /**
+   * Traer a tu mapa una ciudad lejana (fuera de lo que ves) para atacarla, espiarla o mandarle
+   * algo. Hacen falta Cartas náuticas, salvo para las ciudades de tu alianza.
+   */
+  watchCity(id) {
+    const isl = this.world.island(id);
+    if (!isl || isl.type !== 'jugador') return this.#fail('Esa ciudad no existe.');
+    if (isl.owner === this.userId) return this.#fail('Es tu ciudad.');
+    if (this.researchLevel('cartas') < 1 && !this.world.sameAlliance?.(this.userId, isl.owner)) {
+      return this.#fail('Sin Cartas náuticas tus barcos no saben llegar tan lejos. Investígalas en la academia.');
+    }
+    this.state.watched = [id, ...(this.state.watched ?? []).filter((x) => x !== id)].slice(0, WATCH_MAX);
     return this.#done();
   }
 
@@ -2814,7 +2833,8 @@ export class Game extends EventTarget {
       return;
     }
     // Lo que más se producía allí es lo que mandará la ciudad conquistada
-    const specialty = Object.entries(isl.loot?.mix ?? { hierro: 1 }).sort((a, b) => b[1] - a[1])[0][0];
+    // (nunca oro: ninguna colonia lo da)
+    const specialty = Object.entries(isl.loot?.mix ?? { hierro: 1 }).filter(([r]) => r !== 'oro').sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'hierro';
     const colonyYieldBase = Math.round(60 + (isl.tier ?? 4) * 30);
     this.state.colonies.push({ id: isl.id, name: isl.name, specialty, yield: colonyYieldBase, conquered: true });
     this.state.wonderBonus = this.world.wonderBonusFor?.(this.state.colonies) ?? this.state.wonderBonus;

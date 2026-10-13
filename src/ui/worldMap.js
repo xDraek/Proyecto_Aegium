@@ -1,4 +1,4 @@
-import { ISLAND_TYPES, UNITS } from '../game/data.js';
+import { ISLAND_TYPES, PVP_RANGE, UNITS } from '../game/data.js';
 import { travelSeconds } from '../game/rules.js';
 import { escapeHtml, fmtNum, fmtTime } from './format.js';
 
@@ -322,13 +322,20 @@ export class WorldMap {
       const rel = this.#relation(c.uid, c.aid);
       const me = rel === 'yo';
       const visible = !!this.game.world.island(c.id);
+      // Lejos de tu mapa: con Cartas náuticas (o si es de tu alianza) se trae a él para ir
+      const reach = me || visible || this.game.researchLevel('cartas') >= 1 || rel === 'aliado';
+      const go = visible
+        ? `<button class="primary small" data-action="goto" data-island="${escapeHtml(c.id)}">${me ? '⚜ Ir a casa' : '⚓ Ir'}</button>`
+        : reach
+          ? `<button class="primary small" data-action="watch-city" data-island="${escapeHtml(c.id)}">⚓ Ir</button>`
+          : `<span class="muted small">Sin Cartas náuticas tus barcos solo llegan a ${PVP_RANGE} leguas</span>`;
       this.info.innerHTML = `<div class="wm-card">
         <div><b>${c.emblem ?? '🏰'} ${escapeHtml(c.city)}</b> <span class="rel-chip" style="--rel:${REL[rel].color}">${REL[rel].name}</span>
           <div class="small">${me ? 'Tu capital' : `de <b>${escapeHtml(c.name)}</b>`}${c.tag ? ` <span class="tag">[${escapeHtml(c.tag)}]</span>` : ''} · ${fmtNum(c.points)} puntos${c.protected ? ' · 🛡️ novato' : ''}${c.vacation ? ' · 🏖️ de vacaciones' : c.inactive ? ' · 💤 inactivo' : ''}${escapeHtml(portText(c))}</div>
           ${me ? '' : far}</div>
         <div class="row-actions">
           ${me ? '' : `<button class="ghost small" data-action="profile" data-name="${escapeHtml(c.name)}">👤 Perfil</button><button class="ghost small" data-action="mail-to" data-name="${escapeHtml(c.name)}">✉️</button>`}
-          ${visible ? `<button class="primary small" data-action="goto" data-island="${escapeHtml(c.id)}">${me ? '⚜ Ir a casa' : '⚓ Ir'}</button>` : '<span class="muted small">Fuera del alcance de tus barcos</span>'}
+          ${go}
         </div></div>`;
     } else if (hit.kind === 'feat') {
       const f = hit.item;

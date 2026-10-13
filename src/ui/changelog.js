@@ -5,6 +5,27 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-14',
+    date: '2026-10-14',
+    title: 'El oro escasea y vuelven los elefantes',
+    items: [
+      '<b>Ninguna colonia da oro</b>. Las tierras y colonias que lo daban pasan a dar 💎 cristal, con una producción equivalente.',
+      'El <b>mercado</b> da la mitad de oro por hora que antes.',
+      '<b>Comercio</b>, <b>Herrería</b> y <b>Armaduras</b> dan la mitad de bonificación: +5 % por nivel (Comercio también mejora menos los cambios del mercado).',
+      'Vuelve la <b>Doma de elefantes</b> 🐘: hace falta para entrenar elefantes de guerra y se investiga con Equitación 4. Cuesta bastante más que antes. Si ya tenías Equitación 4, la tienes hecha.',
+      'Todas las <b>investigaciones</b> cuestan un 25 % más, salvo el <b>oro</b>, que ahora escasea: de oro piden menos que antes.',
+    ],
+  },
+  {
+    id: '2026-10-13e',
+    date: '2026-10-13',
+    title: 'Cartas náuticas: a cualquier rincón',
+    items: [
+      'Con <b>Cartas náuticas</b> ya puedes llegar de verdad a cualquier ciudad del archipiélago: en el 🌍 mapa del mundo, pulsa una ciudad lejana y luego <b>⚓ Ir</b>. Aparece en tu mapa y puedes atacarla, espiarla, invadirla o bloquearla. Antes las que estaban fuera de lo que ves decían «Fuera del alcance de tus barcos».',
+      'Las ciudades de tu alianza se pueden traer igual, aunque no tengas las cartas.',
+    ],
+  },
+  {
     id: '2026-10-13d',
     date: '2026-10-13',
     title: 'Espionaje por botes',

@@ -9,6 +9,8 @@ import {
   PLAYER_UNITS,
   RESEARCH,
   RESEARCH_COST_FACTOR,
+  RESEARCH_COST_MULT,
+  RESEARCH_GOLD_MULT,
   RESOURCES,
   RESOURCE_KEYS,
   SPY,
@@ -82,7 +84,9 @@ export function townSpeedup(townLevel) {
 // ── Investigación ────────────────────────────────────────────────────────────
 
 export function researchCost(id, level) {
-  return scaleCost(RESEARCH[id].baseCost, RESEARCH_COST_FACTOR, level);
+  const cost = scaleCost(RESEARCH[id].baseCost, RESEARCH_COST_FACTOR, level, RESEARCH_COST_MULT);
+  if (cost.oro) cost.oro = Math.floor(cost.oro * RESEARCH_GOLD_MULT);
+  return cost;
 }
 
 export function researchSeconds(state, id, level) {
@@ -107,8 +111,8 @@ export function unitSeconds(state, id) {
 /** Multiplicadores de combate de tus tropas. */
 export function playerCombat(state) {
   return {
-    atkMul: 1 + 0.1 * lvl(state, 'herreria') + 0.03 * lvl(state, 'forja') + 0.03 * lvl(state, 'tactica') + wonderBonus(state, 'ataque') + relicBonus(state, 'ataque'),
-    hpMul: 1 + 0.1 * lvl(state, 'armaduras') + 0.03 * lvl(state, 'tactica') + relicBonus(state, 'defensa'),
+    atkMul: 1 + 0.05 * lvl(state, 'herreria') + 0.03 * lvl(state, 'forja') + 0.03 * lvl(state, 'tactica') + wonderBonus(state, 'ataque') + relicBonus(state, 'ataque'),
+    hpMul: 1 + 0.05 * lvl(state, 'armaduras') + 0.03 * lvl(state, 'tactica') + relicBonus(state, 'defensa'),
   };
 }
 
@@ -206,7 +210,8 @@ export function workTaxes(id, level, share) {
 }
 
 export function researchBonus(state, res) {
-  return 0.1 * lvl(state, RESOURCE_RESEARCH[res]);
+  // Comercio (el oro) da la mitad que las demás: el oro escasea
+  return (res === 'oro' ? 0.05 : 0.1) * lvl(state, RESOURCE_RESEARCH[res]);
 }
 
 /** Lo que da una colonia (o una isla libre si la colonizaras) por hora. */
@@ -411,7 +416,7 @@ export function storageCapacity(state) {
 export function tradeRate(state, from, to, t = state.lastUpdate) {
   const fair = worldEventAt(t).event?.trade ?? 0;
   // El mercado cobra impuestos altos (entre el 75 % y el 40 %): sale más a cuenta comerciar con otros jugadores
-  const efficiency = Math.min(0.6 + fair, 0.25 + 0.02 * lvl(state, 'mercado') + 0.02 * lvl(state, 'comercio') + fair);
+  const efficiency = Math.min(0.6 + fair, 0.25 + 0.02 * lvl(state, 'mercado') + 0.01 * lvl(state, 'comercio') + fair);
   return (RESOURCES[from].value / RESOURCES[to].value) * efficiency;
 }
 

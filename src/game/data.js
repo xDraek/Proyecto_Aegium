@@ -93,7 +93,8 @@ export const BUILDINGS = {
     icon: '⚖️',
     description: 'Los comerciantes pagan impuestos en oro y te dejan cambiar unos recursos por otros.',
     produces: 'oro',
-    baseProduction: 15,
+    // El oro escasea: el mercado da la mitad que antes
+    baseProduction: 7.5,
     baseCost: { madera: 150, piedra: 100, cristal: 40 },
     costFactor: 1.6,
     baseTime: 75,
@@ -385,7 +386,7 @@ export const UNITS = {
     upkeep: 10,
     pay: 10,
     size: 4,
-    requires: { cuartel: 10, academia: 7, equitacion: 4, tactica: 2 },
+    requires: { cuartel: 10, academia: 7, elefantes: 1, tactica: 2 },
   },
   bote: {
     name: 'Bote explorador',
@@ -592,7 +593,7 @@ export const RESEARCH = {
     name: 'Comercio',
     icon: '📜',
     description: 'Contratos, letras de cambio y rutas comerciales.',
-    effect: (n) => `+${n * 10} % de oro y mejores cambios en el mercado`,
+    effect: (n) => `+${n * 5} % de oro y mejores cambios en el mercado`,
     baseCost: { madera: 300, cristal: 250, oro: 50 },
     baseTime: 240,
     requires: { academia: 3, mercado: 1 },
@@ -601,7 +602,7 @@ export const RESEARCH = {
     name: 'Herrería',
     icon: '⚒️',
     description: 'Armas de bronce bien forjado. El nivel 1 permite entrenar espadachines.',
-    effect: (n) => `+${n * 10} % de ataque`,
+    effect: (n) => `+${n * 5} % de ataque`,
     baseCost: { madera: 150, hierro: 200, cristal: 120, oro: 30 },
     baseTime: 200,
     requires: { academia: 2, fundicion: 1 },
@@ -610,7 +611,7 @@ export const RESEARCH = {
     name: 'Armaduras',
     icon: '🦺',
     description: 'Cotas de malla y escudos reforzados.',
-    effect: (n) => `+${n * 10} % de vida de tus tropas`,
+    effect: (n) => `+${n * 5} % de vida de tus tropas`,
     baseCost: { piedra: 150, hierro: 250, cristal: 150, oro: 50 },
     baseTime: 220,
     requires: { academia: 3, herreria: 1 },
@@ -618,8 +619,8 @@ export const RESEARCH = {
   equitacion: {
     name: 'Equitación',
     icon: '🐎',
-    description: 'Cría y doma de animales de guerra. Nivel 2: caballeros y catafractos. Nivel 4: elefantes de guerra traídos de África y la India.',
-    effect: (n) => (n >= 4 ? 'Caballería y elefantes de guerra' : n >= 2 ? 'Caballería (caballeros y catafractos)' : 'Cuadras y potros: aún sin caballería'),
+    description: 'Cría y doma de animales de guerra. Nivel 2: caballeros y catafractos. Nivel 4: permite investigar la Doma de elefantes.',
+    effect: (n) => (n >= 4 ? 'Caballería, y se puede investigar la Doma de elefantes' : n >= 2 ? 'Caballería (caballeros y catafractos)' : 'Cuadras y potros: aún sin caballería'),
     baseCost: { hierro: 300, cristal: 250, oro: 120 },
     baseTime: 400,
     maxLevel: 4,
@@ -674,6 +675,16 @@ export const RESEARCH = {
     maxLevel: 5,
     requires: { academia: 5, herreria: 2 },
   },
+  elefantes: {
+    name: 'Doma de elefantes',
+    icon: '🐘',
+    description: 'Elefantes traídos de África y la India, y cornacas que saben guiarlos en la batalla. Hace falta para entrenar elefantes de guerra.',
+    effect: () => 'Desbloquea el elefante de guerra',
+    baseCost: { comida: 2200, cristal: 800, oro: 950 },
+    baseTime: 1100,
+    maxLevel: 1,
+    requires: { academia: 7, equitacion: 4, tactica: 2 },
+  },
 };
 
 export const RESEARCH_KEYS = Object.keys(RESEARCH);
@@ -683,7 +694,17 @@ export const RESEARCH_KEYS = Object.keys(RESEARCH);
  * las ciudades a menos de estas leguas de la tuya.
  */
 export const PVP_RANGE = 300;
+
+/**
+ * En tu mapa ves las islas cercanas. Con Cartas náuticas puedes traer a él ciudades lejanas para
+ * atacarlas o espiarlas: se recuerdan las últimas WATCH_MAX.
+ */
+export const WATCH_MAX = 8;
 export const RESEARCH_COST_FACTOR = 1.9;
+/** Todas las investigaciones cuestan esto más que su `baseCost` (en todos los niveles). */
+export const RESEARCH_COST_MULT = 1.25;
+/** …salvo el oro, que escasea: de oro piden un 35 % menos de lo que saldría. */
+export const RESEARCH_GOLD_MULT = 0.65;
 
 // ── Archipiélago ─────────────────────────────────────────────────────────────
 // Las islas se generan por sectores en game/world.js.

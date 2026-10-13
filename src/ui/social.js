@@ -708,6 +708,17 @@ export class Social {
         this.hud.closeModal();
         this.hud.toggleChat(true, 'alianza');
         return true;
+      case 'watch-city': {
+        // Una ciudad lejana: se trae a tu mapa (hacen falta Cartas náuticas) y se abre su panel
+        const res = await this.game.watchCity(btn.dataset.island);
+        if (!res?.ok) {
+          this.hud.toast(res?.reason ?? 'No se ha podido.', 'error');
+          return true;
+        }
+        this.hud.closeModal();
+        this.hud.onSelect(btn.dataset.island);
+        return true;
+      }
       case 'goto':
         // Una isla lejana que no está en tu parte del mapa: se busca en el mapa del mundo
         if (!this.game.world.island(btn.dataset.island)) {

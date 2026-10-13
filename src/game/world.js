@@ -9,6 +9,16 @@ export const SECTOR_SPACING = 430;
 
 const SPECIALTY_YIELD = { madera: 150, comida: 160, piedra: 130, hierro: 110, cristal: 90, oro: 70 };
 
+/**
+ * Ya no hay tierras que den oro (escasea a propósito). Las que lo daban, en mundos y partidas de
+ * antes, pasan a dar cristal con una producción equivalente. Vale para islas y colonias.
+ */
+export const NO_GOLD = 'cristal';
+export function withoutGold(x) {
+  if (x?.specialty !== 'oro') return x;
+  return { ...x, specialty: NO_GOLD, yield: Math.round((x.yield * SPECIALTY_YIELD[NO_GOLD]) / SPECIALTY_YIELD.oro) };
+}
+
 const TEMPLATE = [
   { type: 'barbaros', tier: 1, dist: 68, size: 6, garrison: { barbaro: 8 }, regenHours: 6, loot: { max: 1500, rate: 150, mix: { madera: 0.5, comida: 0.5 } } },
   { type: 'ruinas', dist: 82, size: 4.5, treasure: { piedra: 600, cristal: 300, oro: 150 } },
@@ -23,7 +33,7 @@ const TEMPLATE = [
     loot: { max: 7000, rate: 450, mix: { madera: 0.25, piedra: 0.25, hierro: 0.25, cristal: 0.25 } },
   },
   { type: 'ruinas', dist: 128, size: 5, treasure: { hierro: 1200, cristal: 800, oro: 500 } },
-  { type: 'libre', dist: 146, size: 7.5, specialties: ['oro', 'cristal', 'hierro'] },
+  { type: 'libre', dist: 146, size: 7.5, specialties: ['cristal', 'hierro'] },
   {
     type: 'piratas', tier: 4, dist: 160, size: 8, garrison: { pirata: 45, corsario: 6 }, wall: 0.2, regenHours: 10,
     loot: { max: 14000, rate: 700, mix: { hierro: 0.3, cristal: 0.3, oro: 0.4 } },
@@ -207,7 +217,7 @@ export function generateContinent(v, worldSeed = 1, obstacles = []) {
     const z = Math.round(v.z + Math.cos(a) * d);
     const base = { id: `${id}-${i}`, land: id, x, z, size: 4.2 };
     if (type === 'libre') {
-      const specialty = pick(['madera', 'piedra', 'hierro', 'cristal', 'oro', 'comida']);
+      const specialty = pick(['madera', 'piedra', 'hierro', 'cristal', 'comida']);
       return { ...base, type, name: `${pick(SITE_HEADS)} ${pick(LAND_TAILS)}`, specialty, yield: Math.round(SPECIALTY_YIELD[specialty] * 1.3) };
     }
     const t = CITADELS[i === 0 || rand() < 0.6 ? 0 : 1];

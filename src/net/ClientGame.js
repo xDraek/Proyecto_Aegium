@@ -192,6 +192,10 @@ export class ClientGame extends Game {
     return this.#act('abandonColony', id);
   }
 
+  watchCity(id) {
+    return this.#act('watchCity', id);
+  }
+
   startVacation() {
     return this.#act('startVacation');
   }

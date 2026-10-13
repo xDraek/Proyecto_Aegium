@@ -297,7 +297,7 @@ const TOPICS = {
       .map((r) => `${r.icon} ${r.name.toLowerCase()}`)
       .join(', ')}. La isla da por sí sola un poco de madera, piedra y comida; los <b>edificios productores</b> dan mucho más, y cada nivel rinde algo más que el anterior:</p>
       ${productionTable()}
-      <p>A eso se suman las ${see('investigacion', 'investigaciones')} (+10 % por nivel), tus ${see('colonias', 'colonias')}, el Coloso (+5 % de todo por nivel), las ${see('eventos', 'temporadas')} y algunas ${see('reliquias', 'reliquias')}.</p>
+      <p>A eso se suman las ${see('investigacion', 'investigaciones')} (+10 % por nivel; Comercio, +5 % de oro), tus ${see('colonias', 'colonias')}, el Coloso (+5 % de todo por nivel), las ${see('eventos', 'temporadas')} y algunas ${see('reliquias', 'reliquias')}.</p>
       <h5>El almacén</h5>
       <p>Cada recurso tiene un <b>máximo</b>: lo que se produce con el almacén lleno se pierde. Además, el almacén <b>esconde</b> una parte de cada recurso que nadie puede robar ni quemar (ni piratas, ni saqueadores, ni saboteadores). Logística sube el máximo un 20 % por nivel.</p>
       ${storageTable()}
@@ -328,7 +328,7 @@ const TOPICS = {
     icon: '⚖️',
     title: 'Mercado y comercio',
     body: () => `${list([
-      '<b>Cambiar en el mercado</b>: cambias un recurso por otro al momento. Cada recurso vale distinto (el oro y el cristal valen más) y el mercader se queda una comisión: empiezas recibiendo la mitad de lo justo, y cada nivel de mercado y de Comercio mejora el cambio un 4 %, hasta el 92 %. La Gran feria lo mejora otro 15 %.',
+      '<b>Cambiar en el mercado</b>: cambias un recurso por otro al momento. Cada recurso vale distinto (el oro y el cristal valen más) y el mercader se queda una comisión: empiezas recibiendo una cuarta parte de lo justo; cada nivel de mercado mejora el cambio un 2 % y cada nivel de Comercio un 1 %, hasta el 60 %. La Gran feria lo mejora otro 15 %. Con otros jugadores no hay impuestos.',
       '<b>Ofertas entre jugadores</b>: en el mercado publicas qué das y qué pides (hasta 5 ofertas, que caducan a los 3 días). Lo que ofreces queda apartado hasta que alguien acepta o la retiras.',
       '<b>Transportes</b>: manda mercantes con recursos a la ciudad de cualquier jugador. Si no eliges barcos, salen los que hagan falta.',
       `<b>Mercader ambulante</b>: de vez en cuando atraca uno que compra lo que te sobra y paga mejor que el mercado (ver ${see('visitantes', 'Visitantes')}).`,
@@ -345,7 +345,7 @@ const TOPICS = {
       <h5>Barcos</h5>
       ${shipTable()}
       <p><b>🪙 Paga</b>: todas las tropas y los barcos, además de comer, cobran una <b>paga en oro</b> cada hora, estén en casa o en el mar. Si el oro se acaba, desertan los que más cobran hasta que la paga cuadre.</p>
-      <p><b>⭐ Tropas de élite</b>: mucho más fuertes, pero cobran bastante más. Se desbloquean con <b>Táctica militar</b>. La caballería pide <b>Equitación 2</b> y los elefantes, <b>Equitación 4</b>.</p>
+      <p><b>⭐ Tropas de élite</b>: mucho más fuertes, pero cobran bastante más. Se desbloquean con <b>Táctica militar</b>. La caballería pide <b>Equitación 2</b> y los elefantes, la <b>Doma de elefantes</b> (que se investiga con Equitación 4).</p>
       ${tip('Los mercantes no combaten, pero llevan muchas tropas y mucho botín. Los botes son rápidos y solo sirven para explorar, espiar y sabotear.')}`,
   },
   combate: {
@@ -361,9 +361,9 @@ const TOPICS = {
       ${table(
         ['Mejora', 'Efecto'],
         [
-          [`${RESEARCH.herreria.icon} ${RESEARCH.herreria.name} (investigación)`, '+10 % de ataque por nivel'],
+          [`${RESEARCH.herreria.icon} ${RESEARCH.herreria.name} (investigación)`, '+5 % de ataque por nivel'],
           [`${BUILDINGS.forja.icon} ${BUILDINGS.forja.name}`, '+3 % de ataque por nivel'],
-          [`${RESEARCH.armaduras.icon} ${RESEARCH.armaduras.name} (investigación)`, '+10 % de vida por nivel'],
+          [`${RESEARCH.armaduras.icon} ${RESEARCH.armaduras.name} (investigación)`, '+5 % de vida por nivel'],
           [`${RESEARCH.tactica.icon} ${RESEARCH.tactica.name} (investigación)`, '+3 % de ataque y de vida por nivel'],
           ['🏰 Muralla (al defender)', '+10 % de vida y 10 de daño de sus torres por nivel'],
           ['👁️ Torre de vigía (al defender)', '8 de daño de sus arqueros por nivel'],
@@ -456,7 +456,7 @@ const TOPICS = {
     body: () => `${list([
       '<b>Cartografía</b> te deja tener una colonia por nivel (hasta 4).',
       `Para fundarla, explora una isla libre 🌴 y manda un <b>mercante</b> con los colonos y sus recursos: ${bag(COLONY_COST)} la primera, y cada colonia más cuesta un 50 % más. El mercante se queda en la colonia.`,
-      'Cada colonia <b>manda un recurso a tu capital</b> cada hora.',
+      'Cada colonia <b>manda un recurso a tu capital</b> cada hora (madera, piedra, comida, bronce o cristal: ninguna da oro).',
       `Se amplían desde su panel hasta el nivel ${COLONY.maxLevel}: cada nivel produce un ${pct(COLONY.yieldPerLevel)} más de lo que daba al fundarla. Solo una ampliación a la vez.`,
       `También cuentan como colonias las <b>ciudades bárbaras conquistadas</b> (ver ${see('continentes', 'Continentes')}).`,
     ])}

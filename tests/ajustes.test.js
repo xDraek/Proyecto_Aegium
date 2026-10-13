@@ -136,7 +136,7 @@ test('una bendición no se puede volver a invocar hasta que pasa su tiempo de es
   assert.equal(A.castPower('cosecha').ok, true);
 });
 
-test('Equitación por niveles: caballería con el 2 y elefantes con el 4', async () => {
+test('Equitación por niveles: caballería con el 2; los elefantes piden además la Doma de elefantes', async () => {
   const { players } = await makeWorld();
   const [A] = players;
   Object.assign(A.state.buildings, { cuartel: 10, academia: 7 });
@@ -144,21 +144,60 @@ test('Equitación por niveles: caballería con el 2 y elefantes con el 4', async
   assert.equal(A.train('caballero', 1).ok, false);
   A.state.research.equitacion = 2;
   assert.equal(A.train('caballero', 1).ok, true);
-  assert.equal(A.train('elefante', 1).ok, false);
   A.state.research.equitacion = 4;
   A.state.resources.comida = 100_000;
+  assert.equal(A.train('elefante', 1).ok, false, 'sin la doma, no');
+  A.state.research.elefantes = 1;
   assert.equal(A.train('elefante', 1).ok, true);
 });
 
-test('una partida guardada con la vieja Doma de elefantes pasa a Equitación 4', () => {
+test('la Doma de elefantes pide Equitación 4 y quien llegó a Equitación 4 sin ella la conserva', async () => {
+  const { players } = await makeWorld();
+  const [A] = players;
+  Object.assign(A.state.buildings, { academia: 10 });
+  Object.assign(A.state.research, { equitacion: 3, tactica: 2, elefantes: 0 });
+  assert.equal(A.research('elefantes').ok, false);
+  A.state.research.equitacion = 4;
+  assert.equal(A.research('elefantes').ok, true);
+
   const base = newState({ home: 'x', name: 'Prueba' });
-  const doma = upgradeState({ ...base, research: { ...base.research, equitacion: 1, elefantes: 1 } });
-  assert.equal(doma.research.equitacion, 4);
-  assert.ok(!('elefantes' in doma.research));
-  const caballeria = upgradeState({ ...base, research: { ...base.research, equitacion: 1, elefantes: 0 } });
-  assert.equal(caballeria.research.equitacion, 2, 'quien ya tenía caballería la conserva');
-  const queued = upgradeState({ ...base, research: { ...base.research, elefantes: 0 }, researchQueue: { id: 'elefantes', cost: { oro: 600 } } });
-  assert.equal(queued.researchQueue, null);
-  assert.equal(queued.resources.oro, base.resources.oro + 600, 'se devuelve lo pagado');
+  const { elefantes, ...sinDoma } = base.research;
+  assert.equal(elefantes, 0);
+  assert.equal(upgradeState({ ...base, research: { ...sinDoma, equitacion: 4 } }).research.elefantes, 1, 'conserva los elefantes');
+  assert.equal(upgradeState({ ...base, research: { ...sinDoma, equitacion: 2 } }).research.elefantes, 0);
+  const viejo = { ...sinDoma, equitacion: 1 };
+  delete viejo.cartas;
+  assert.equal(upgradeState({ ...base, research: viejo }).research.equitacion, 2, 'quien ya tenía caballería la conserva');
 });
 
+test('con Cartas náuticas se puede traer a tu mapa y atacar una ciudad lejana', async () => {
+  const names = Array.from({ length: 14 }, (_, i) => `Jugador${i}`);
+  const env = await makeWorld(names);
+  const [A, ...rest] = env.players;
+  const far = rest.reduce((a, b) => (A.distanceTo(b.state.home) > A.distanceTo(a.state.home) ? b : a));
+  const id = far.state.home;
+  assert.ok(A.distanceTo(id) > 700, `la más lejana está a ${Math.round(A.distanceTo(id))} leguas`);
+  assert.ok(!env.world.snapshot(A.userId).world.islands.some((i) => i.id === id), 'no está en su mapa');
+  // Sin las cartas no se puede traer
+  A.state.research.cartas = 0;
+  assert.match(A.watchCity(id).reason, /Cartas náuticas/);
+  // Con ellas, sí: aparece en su mapa y se puede atacar
+  A.state.research.cartas = 1;
+  assert.equal(A.watchCity(id).ok, true);
+  assert.ok(env.world.snapshot(A.userId).world.islands.some((i) => i.id === id), 'ya está en su mapa');
+  Object.assign(A.state.units, { trirreme: 5, hoplita: 20 });
+  assert.equal(A.planMission('atacar', id, { trirreme: 5, hoplita: 20 }).ok, true);
+  assert.equal(A.watchCity(A.state.home).ok, false, 'la tuya no');
+});
+
+test('ninguna colonia da oro: las de antes pasan a dar cristal', async () => {
+  const { withoutGold } = await import('../src/game/world.js');
+  const env = await makeWorld();
+  for (const isl of env.world.islands.values()) assert.notEqual(isl.specialty, 'oro', `${isl.name} no da oro`);
+  const old = withoutGold({ id: 'x', specialty: 'oro', yield: 70 });
+  assert.equal(old.specialty, 'cristal');
+  assert.equal(old.yield, 90);
+  const base = newState({ home: 'x', name: 'Prueba' });
+  const st = upgradeState({ ...base, colonies: [{ id: 'c', name: 'C', specialty: 'oro', yield: 91 }, { id: 'd', name: 'D', specialty: 'madera', yield: 150 }] });
+  assert.deepEqual(st.colonies.map((c) => c.specialty), ['cristal', 'madera']);
+});

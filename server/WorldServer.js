@@ -5,7 +5,7 @@ import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, feat
 import { Game, newState } from '../src/game/Game.js';
 import { ACHIEVEMENTS, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, UNITS, WONDERS } from '../src/game/data.js';
 import { playerCombat, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
-import { footprint, freshIslandState, generateContinent, generateSector, homeIsland, sectorCenter, sectorVertices } from '../src/game/world.js';
+import { footprint, freshIslandState, generateContinent, generateSector, homeIsland, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { hashPassword, newRecoveryCode, newSecret, normalizeCode, verifyPassword } from './auth.js';
 
@@ -96,7 +96,8 @@ export class WorldServer {
     // Semilla del calendario de eventos (aparte de la del mapa: el navegador la conoce)
     this.meta.eventSeed ??= Math.floor(Math.random() * 2 ** 31);
     universe.eventSeed = this.meta.eventSeed;
-    for (const isl of data.islands) this.islands.set(isl.id, isl);
+    // (las tierras que daban oro, de mundos de antes, ahora dan cristal)
+    for (const isl of data.islands) this.islands.set(isl.id, withoutGold(isl));
     for (const [id, st] of Object.entries(data.islandStates)) this.islandStates.set(id, st);
     for (const isl of this.islands.values()) {
       if (isl.type !== 'jugador' && !this.islandStates.has(isl.id)) this.islandStates.set(isl.id, freshIslandState(isl, clock.now()));
@@ -2000,6 +2001,8 @@ export class WorldServer {
     }
     // Y el continente de la gesta a la que te han convocado (puede quedar lejos)
     if (game.state.feat?.site) ids.add(game.state.feat.site);
+    // Y las ciudades lejanas que has traído a tu mapa con las Cartas náuticas
+    for (const id of game.state.watched ?? []) ids.add(id);
     const islands = [...ids].map((id) => this.islands.get(id)).filter(Boolean);
     const states = {};
     const players = {};
