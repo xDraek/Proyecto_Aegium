@@ -1993,11 +1993,19 @@ export function createGull() {
     spot.position.set(s * 0.44, 0, -0.07);
     outer.add(hand, tip, spot);
     outer.rotation.y = s * 0.28;
+    // Cada pieza que se mueve, fundida en una sola malla (de 17 a 5 por gaviota)
+    bakeStatic(outer);
+    outer.userData.rig = true;
     wing.add(outer);
+    bakeStatic(wing);
+    wing.userData.rig = true;
     wing.userData.side = s;
     wing.userData.outer = outer;
     g.add(wing);
   }
+  bakeStatic(g);
+  // Vuelan alto: su sombra apenas se ve
+  g.traverse((m) => (m.castShadow = false));
   return g;
 }
 

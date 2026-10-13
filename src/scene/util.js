@@ -231,26 +231,60 @@ export function surfaceDetail(material, kind, { masonry = true } = {}) {
 // `rig`: piezas que mueve su dueño (las ruedas y las patas del carro de bueyes)
 const ANIMATED = ['spin', 'swing', 'wave', 'smoke', 'flicker', 'bob', 'wiggle', 'sparks', 'rig'];
 
+// Las piezas de estos se mueven cada una por su cuenta: lo de dentro no se funde
+const LOOSE = ['smoke', 'sparks'];
+
 /**
  * Funde en una sola malla las piezas de `root` que no se mueven ni brillan
- * (las ventanas que se encienden de noche van en otra). Lo animado, lo
- * transparente y lo que emite luz se queda como estaba. Devuelve `root`.
+ * (las ventanas que se encienden de noche van en otra). Lo transparente se queda
+ * como estaba; lo que emite luz se funde aparte, una malla por material. Cada
+ * pieza animada (un aspa, una rueda, una barca) se funde igual por dentro, y se
+ * mueve entera. Devuelve `root`.
  */
 export function bakeStatic(root, glowMaterial = null) {
   root.updateMatrixWorld(true);
   const inverse = new THREE.Matrix4().copy(root.matrixWorld).invert();
   const batch = new Batch(glowMaterial);
   const baked = [];
+  const lit = new Map();
+  const moving = [];
   const visit = (obj) => {
-    if (obj !== root && ANIMATED.some((k) => obj.userData[k])) return;
-    if (obj.isMesh) {
+    if (obj !== root && ANIMATED.some((k) => obj.userData[k])) {
+      if (!LOOSE.some((k) => obj.userData[k])) moving.push(obj);
+      return;
+    }
+    // (si `root` es una malla, se queda: se fundirían sus hijas y desaparecería ella)
+    if (obj.isMesh && obj !== root) {
       const m = obj.material;
-      const keep = Array.isArray(m) || m.transparent || (m.vertexColors && !obj.geometry.attributes.color) || (m !== glowMaterial && m.emissive && m.emissiveIntensity > 0 && m.emissive.getHex() !== 0);
-      if (!keep) baked.push(obj);
+      const keep = Array.isArray(m) || m.transparent || (m.vertexColors && !obj.geometry.attributes.color);
+      const glows = !keep && m !== glowMaterial && m.emissive && m.emissiveIntensity > 0 && m.emissive.getHex() !== 0;
+      if (glows) lit.set(m, [...(lit.get(m) ?? []), obj]);
+      else if (!keep) baked.push(obj);
     }
     for (const child of obj.children) visit(child);
   };
   visit(root);
+  for (const obj of moving) bakeStatic(obj, glowMaterial);
+  // Lo que brilla, junto si comparte material (los cristales de la mina, las brasas…)
+  for (const [material, meshes] of lit) {
+    if (meshes.length < 2) continue;
+    const parts = meshes.map((mesh) => {
+      const g = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone();
+      for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal' && !(k === 'color' && material.vertexColors)) g.deleteAttribute(k);
+      return g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inverse, mesh.matrixWorld));
+    });
+    const merged = mergeGeometries(parts);
+    if (!merged) continue;
+    const one = new THREE.Mesh(merged, material);
+    one.castShadow = meshes.some((m) => m.castShadow);
+    one.receiveShadow = meshes.some((m) => m.receiveShadow);
+    for (const mesh of meshes) {
+      mesh.geometry.dispose();
+      mesh.parent.remove(mesh);
+    }
+    for (const g of parts) g.dispose();
+    root.add(one);
+  }
   if (baked.length < 2) return root;
   for (const mesh of baked) {
     const g = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone();

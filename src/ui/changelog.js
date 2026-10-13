@@ -5,6 +5,15 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-14f',
+    date: '2026-10-14',
+    title: 'El juego va más fluido',
+    items: [
+      '⚡ La ciudad y el mapa se dibujan con muchas menos piezas (más de la mitad menos en la isla y unas cinco veces menos en el mapa): el juego va más suelto, sobre todo en el móvil.',
+      'En el mapa, de lejos, ya no se dibujan la hierba, las flores, los animales ni los vecinos (no se distinguían). En calidad baja hay la mitad de hierba.',
+    ],
+  },
+  {
     id: '2026-10-14e',
     date: '2026-10-14',
     title: 'La milicia',

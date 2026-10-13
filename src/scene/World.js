@@ -119,6 +119,8 @@ const VIEWS = {
   isla: { offset: new THREE.Vector3(44, 48, 64), min: 16, max: 150 },
   mapa: { offset: new THREE.Vector3(0, 420, 250), min: 60, max: 900 },
 };
+/** Más lejos de esto (cámara-objetivo) la hierba, las flores, los animales y los vecinos no se distinguen: no se dibujan. */
+const DETAIL_DIST = 200;
 const SHIP_PRIORITY = ['dromon', 'galeon', 'liburna', 'trirreme', 'brulote', 'mercante', 'bote'];
 
 // Clima: cada media hora real cambia (igual para todos, sale de la hora)
@@ -427,6 +429,7 @@ export class World {
       composer.addPass(new OutputPass());
       this.composer = composer;
     }
+    this.#grassDensity();
     if (this.composer) {
       this.composer.setPixelRatio(r.getPixelRatio());
       this.composer.setSize(this.container.clientWidth || 1, this.container.clientHeight || 1);
@@ -1262,6 +1265,7 @@ export class World {
     });
     grass.receiveShadow = true;
     this.scene.add(grass);
+    this.grass = grass;
 
     const petal = new THREE.IcosahedronGeometry(0.06, 0);
     petal.translate(0, 0.24, 0);
@@ -1279,6 +1283,17 @@ export class World {
       field.setColorAt(i, color.set(flowers[Math.floor(rand() * flowers.length)]));
     });
     this.scene.add(field);
+    this.flowers = field;
+    this.#grassDensity();
+  }
+
+  /** En calidad baja, la mitad de las matas y de las flores (están repartidas al azar, así que basta con dibujar las primeras). */
+  #grassDensity() {
+    for (const m of [this.grass, this.flowers]) {
+      if (!m) continue;
+      m.userData.full ??= m.count;
+      m.count = this.high === false ? Math.ceil(m.userData.full / 2) : m.userData.full;
+    }
   }
 
   #buildHomeLabel() {
@@ -1297,14 +1312,18 @@ export class World {
     const material = new THREE.MeshStandardMaterial({ color: '#ffffff', flatShading: true, roughness: 1, transparent: true, opacity: 0.95 });
     this.cloudMaterial = material;
     for (let i = 0; i < 22; i++) {
-      const cloud = new THREE.Group();
+      // Las bolas de cada nube, en una sola malla
       const puffs = 3 + Math.floor(rand() * 3);
+      const parts = [];
       for (let k = 0; k < puffs; k++) {
-        const puff = new THREE.Mesh(geo, material);
-        puff.position.set(k * 1.3 - puffs * 0.6, rand() * 0.6, (rand() - 0.5) * 1.2);
-        puff.scale.setScalar(1 + rand() * 0.9);
-        cloud.add(puff);
+        const x = k * 1.3 - puffs * 0.6;
+        const y = rand() * 0.6;
+        const z = (rand() - 0.5) * 1.2;
+        const size = 1 + rand() * 0.9;
+        parts.push(geo.clone().scale(size, size, size).translate(x, y, z));
       }
+      const cloud = new THREE.Mesh(mergeGeometries(parts), material);
+      for (const g of parts) g.dispose();
       const near = i < 8;
       cloud.position.set((rand() - 0.5) * (near ? 140 : 560), 18 + rand() * 12, (rand() - 0.5) * (near ? 100 : 500));
       if (!near) cloud.scale.setScalar(2 + rand() * 1.5);
@@ -2758,7 +2777,10 @@ export class World {
     this.#updateWeather(dt, now, dist);
     this.#updateFx(dt);
     this.#updateSky(now);
-    this.#updateLife(dt, t);
+    // Lo pequeño, de lejos, ni se dibuja ni se mueve
+    const near = dist < DETAIL_DIST;
+    for (const o of [this.grass, this.flowers, this.lifeGroup, ...this.flock, ...this.gulls]) if (o) o.visible = near;
+    if (near) this.#updateLife(dt, t);
 
     for (const cloud of this.clouds) {
       cloud.position.x += cloud.userData.speed * dt;
@@ -3110,6 +3132,11 @@ function sheep() {
     leg.position.set(x, 0.24, z);
     const shin = cyl(0.022, 0.02, 0.22, 5, dark, 0, -0.24, 0);
     leg.add(shin, cyl(0.026, 0.026, 0.03, 5, '#1c1915', 0, -0.24, 0));
+    // Cada pieza que se mueve, fundida en una sola malla (son muchas ovejas)
+    bakeStatic(leg);
+    // (la sombra de las patas ni se ve)
+    leg.traverse((m) => (m.castShadow = false));
+    leg.userData.rig = true;
     g.add(leg);
     legs.push(leg);
   }
@@ -3132,10 +3159,12 @@ function sheep() {
   tuft.position.set(0, 0.05, 0.04);
   head.add(tuft);
   head.rotation.x = 0.9;
+  bakeStatic(head);
+  head.userData.rig = true;
   g.add(head);
   g.userData.head = head;
   g.userData.legs = legs;
-  return g;
+  return bakeStatic(g);
 }
 
 function dolphin() {

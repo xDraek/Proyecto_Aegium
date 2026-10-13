@@ -9,7 +9,7 @@ import * as THREE from 'three';
 
 export const MAX_SHORES = 24;
 const SIZE = 900; // mitad del lado
-const SEGMENTS = 320;
+const SEGMENTS = 256;
 
 /** Reparte los vértices: 0,8 de separación en el centro, varias unidades en los bordes. */
 function remap(u) {

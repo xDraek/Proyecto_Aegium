@@ -396,13 +396,16 @@ function mist(g, R, rand) {
 function fogBank(g, R, rand) {
   const material = new THREE.MeshStandardMaterial({ color: '#e9eef3', flatShading: true, roughness: 1, transparent: true, opacity: 0.75 });
   for (let ring = 0; ring < 2; ring++) {
-    const bank = new THREE.Group();
+    // Cada anillo, en una sola malla que gira entera
+    const puffs = [];
     for (let i = 0; i < 14; i++) {
-      const puff = new THREE.Mesh(new THREE.IcosahedronGeometry(2 + rand() * 2.5, 0), material);
-      puff.position.copy(polar(R * (1.2 + ring * 1.3 + rand() * 0.8), (i / 14) * 360 + rand() * 20, SEA + 0.8 + rand() * 1.5));
-      puff.scale.y = 0.55;
-      bank.add(puff);
+      const geo = new THREE.IcosahedronGeometry(2 + rand() * 2.5, 0);
+      const p = polar(R * (1.2 + ring * 1.3 + rand() * 0.8), (i / 14) * 360 + rand() * 20, SEA + 0.8 + rand() * 1.5);
+      geo.scale(1, 0.55, 1).translate(p.x, p.y, p.z);
+      puffs.push(geo);
     }
+    const bank = new THREE.Mesh(mergeGeometries(puffs), material);
+    for (const geo of puffs) geo.dispose();
     bank.userData.spin = { axis: 'y', speed: ring ? -0.05 : 0.08 };
     g.add(bank);
   }
