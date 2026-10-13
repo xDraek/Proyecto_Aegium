@@ -6,7 +6,8 @@ import { featAt, featCycle } from '../game/feats.js';
 import { api } from '../net/api.js';
 import { armyHtml, armySummary, featWait } from './army.js';
 import { buildingPanel } from './buildingPanel.js';
-import { bag, costItems, escapeHtml, fmtNum, fmtShort, fmtTime, unitList } from './format.js';
+import { bag, costItems, escapeHtml, fmtNum, fmtShort, fmtTime, richText, unitList } from './format.js';
+import { installResPickers, syncResPickers } from './resPicker.js';
 import { featSimPreset, fleetFor, islandPanel, readFleet, readPayload, readOpts } from './islandPanel.js';
 import { questsHtml, rankingHtml } from './modals.js';
 import { openGuide } from './guide.js';
@@ -102,6 +103,7 @@ export class Hud {
     this.worldMap = new WorldMap(this);
 
     this.#buildResources();
+    installResPickers();
 
     this.panel.addEventListener('click', (e) => this.#onPanelClick(e));
     this.panel.addEventListener('input', () => this.#refreshPanel());
@@ -363,6 +365,10 @@ export class Hud {
     const fitBottom = () => document.documentElement.style.setProperty('--bottom', `${Math.max(0, innerHeight - actionbar.getBoundingClientRect().top) + 10}px`);
     new ResizeObserver(fitBottom).observe(actionbar);
     addEventListener('resize', fitBottom);
+    // En el móvil la lista de la izquierda va abajo: lo demás se apila encima según lo que mida
+    // (desplegada, plegada o con la cabecera en dos líneas)
+    const sidebar = $('#sidebar');
+    new ResizeObserver(() => document.documentElement.style.setProperty('--side', `${Math.ceil(sidebar.getBoundingClientRect().height)}px`)).observe(sidebar);
 
     // La lista de la izquierda (edificios o islas) también se pliega, y se recuerda
     this.sideHead = $('#sidebar > .side-head');
@@ -403,7 +409,7 @@ export class Hud {
     while (wrap.children.length >= 5) wrap.firstChild.remove();
     const el = document.createElement('div');
     el.className = `toast ${kind}`;
-    el.textContent = text;
+    el.innerHTML = richText(text);
     wrap.appendChild(el);
     setTimeout(() => el.classList.add('out'), 3800);
     setTimeout(() => el.remove(), 4300);
@@ -798,6 +804,7 @@ export class Hud {
     this.panelId = id;
     if (same) {
       for (const el of this.panel.querySelectorAll('input[name], select[name]')) if (el.name in saved) el.value = saved[el.name];
+      syncResPickers(this.panel);
       this.panel.scrollTop = scroll;
       if (focused) this.panel.querySelector(`[name="${focused}"]`)?.focus();
     } else {
@@ -1335,7 +1342,7 @@ export class Hud {
       .map((m) => {
         const time = new Date(m.t).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
         return m.system
-          ? `<div class="msg system"><span>${escapeHtml(m.text)}</span><time>${time}</time></div>`
+          ? `<div class="msg system"><span>${richText(m.text)}</span><time>${time}</time></div>`
           : `<div class="msg${m.name === this.game.username ? ' mine' : ''}"><b data-profile="${escapeHtml(m.name)}">${escapeHtml(m.name)}</b>${m.title ? `<em class="msg-title">${escapeHtml(m.title)}</em>` : ''} <span>${escapeHtml(m.text)}</span>${
               m.report ? `<button class="link small" data-shared="${m.id}">Ver informe ▶</button>` : ''
             }<time>${time}</time>${

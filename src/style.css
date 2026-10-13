@@ -5384,20 +5384,178 @@ kbd {
     right: auto;
   }
 
-  /* Encima de la lista (que ahora lleva su cabecera), desplegada o plegada */
-  #sidebar ~ #dock {
-    bottom: calc(var(--bottom) + 104px);
-  }
-
+  /* Encima de la lista, mida lo que mida (--side, desplegada o plegada), con sitio para los
+     adornos de los marcos, que sobresalen */
+  #sidebar ~ #dock,
   #sidebar ~ #panel {
-    bottom: calc(var(--bottom) + 96px);
+    bottom: calc(var(--bottom) + var(--side, 98px) + 16px);
   }
 
-  #sidebar.collapsed ~ #dock {
-    bottom: calc(var(--bottom) + 62px);
+  #sidebar ~ #cam-controls {
+    bottom: calc(var(--bottom) + var(--side, 98px) + 12px);
   }
 
-  #sidebar.collapsed ~ #panel {
-    bottom: calc(var(--bottom) + 56px);
+  /* Los avisos salen arriba, bajo los recursos: abajo taparían el cuadro de lo que está en marcha */
+  #sidebar ~ #toasts {
+    top: calc(var(--top, 170px) - 20px);
+    bottom: auto;
+  }
+
+  /* Con un panel, el chat, las opciones o el cuadro de lo que está en marcha, los botones de la
+     cámara se quitan: no hay sitio y asomarían por detrás */
+  #panel:not([hidden]) ~ #cam-controls,
+  #dock:not([hidden]) ~ #cam-controls,
+  #chat:not([hidden]) ~ #cam-controls,
+  #menu:not([hidden]) ~ #cam-controls {
+    display: none;
+  }
+}
+
+/* ── Desplegable de recursos con iconos (el bronce es una imagen y un <select> no la muestra) ── */
+
+.res-pick {
+  display: block;
+  min-width: 0;
+}
+
+.res-pick-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.res-pick-btn > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.res-pick-btn > i {
+  font-style: normal;
+  opacity: 0.7;
+}
+
+.res-pick-btn[aria-expanded='true'],
+.res-pick-btn:focus-visible {
+  outline: 2px solid rgba(242, 201, 76, 0.5);
+  outline-offset: 1px;
+}
+
+.res-pop {
+  position: fixed;
+  z-index: 200;
+  display: grid;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(242, 201, 76, 0.35);
+  background: var(--panel-solid);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.res-pop > button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.res-pop > button:hover,
+.res-pop > button:focus-visible {
+  background: rgba(242, 201, 76, 0.16);
+  outline: none;
+}
+
+.res-pop > button.on {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+/* Qué averiguan los espías según cuántos botes mandas */
+.spy-help {
+  margin: 6px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.spy-help summary {
+  cursor: pointer;
+  color: var(--text);
+}
+
+.spy-help ul {
+  margin: 6px 0 4px;
+  padding-left: 18px;
+}
+
+/* ── El botón de cerrar, siempre a mano ──────────────────────────────────── */
+
+/* La cabecera (con la ✕) se queda arriba al desplazar el contenido del panel o de la ventana */
+#panel > .scroll > .panel-head:first-child {
+  position: sticky;
+  top: -12px;
+  z-index: 4;
+}
+
+.modal-card > .panel-head:first-child {
+  position: sticky;
+  top: -44px;
+  z-index: 4;
+}
+
+@media (max-width: 800px) {
+  /* En el móvil, 100vh no cuenta la barra de direcciones del navegador: con ella a la vista, el
+     panel crecía por debajo de los recursos y la ✕ quedaba tapada. Se mide con el alto visible
+     (dvh) y descontando lo que hay abajo. */
+  #panel {
+    max-height: calc(100vh - var(--top) - var(--bottom) - var(--side, 98px) - 20px);
+    max-height: calc(100dvh - var(--top) - var(--bottom) - var(--side, 98px) - 20px);
+  }
+
+  .modal-card > .panel-head:first-child {
+    top: -44px;
+  }
+}
+
+/* En el escritorio, igual: el alto visible de verdad (dvh) si el navegador lo sabe */
+@media (min-width: 801px) {
+  #sidebar,
+  #panel {
+    max-height: calc(100dvh - var(--top) - 26px);
+  }
+}
+
+/* Pantallas muy bajas (el móvil en horizontal): no caben los recursos, la lista y el panel uno
+   encima de otro, así que el panel se abre por encima de todo, de arriba abajo, con la ✕ a mano */
+@media (max-width: 800px) and (max-height: 560px), (max-height: 420px) {
+  #panel,
+  #sidebar ~ #panel {
+    top: 8px;
+    bottom: var(--bottom);
+    max-height: none;
+    z-index: 5;
+  }
+
+  #panel:not([hidden]) ~ #cam-controls,
+  #panel:not([hidden]) ~ #dock {
+    display: none;
   }
 }

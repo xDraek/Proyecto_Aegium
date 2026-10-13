@@ -1,7 +1,8 @@
 import { universe } from '../config.js';
-import { ACHIEVEMENTS, BANNER_COLORS, BANNER_EMBLEMS, DAILY_REWARDS, RESOURCES, RESOURCE_KEYS, VACATION } from '../game/data.js';
+import { ACHIEVEMENTS, BANNER_COLORS, BANNER_EMBLEMS, DAILY_REWARDS, RESOURCES, VACATION } from '../game/data.js';
 import { api } from '../net/api.js';
 import { bag, escapeHtml, fmtAgo, fmtDec, fmtNum, fmtTime } from './format.js';
+import { resPicker } from './resPicker.js';
 import { runSimulation, simulatorHtml } from './simulator.js';
 
 /** Ventanas que gestiona este módulo. */
@@ -14,7 +15,6 @@ const head = (icon, title, sub, guide = '') => `
   <div class="panel-head"><span class="panel-icon">${icon}</span><div><h3>${title}</h3><div class="panel-lvl">${sub}</div></div>
   ${guide ? `<button class="icon-btn help-btn" data-guide="${guide}" title="Qué es esto (guía)">?</button>` : ''}<button class="icon-btn" data-action="close-modal" title="Cerrar">✕</button></div>`;
 
-const resOptions = (sel) => RESOURCE_KEYS.map((r) => `<option value="${r}" ${r === sel ? 'selected' : ''}>${RESOURCES[r].emoji} ${RESOURCES[r].name}</option>`).join('');
 
 export class Social {
   constructor(hud) {
@@ -578,8 +578,8 @@ export class Social {
     return `<h4>Mercado del archipiélago</h4>
       <p class="desc small">Ofertas de otros jugadores. Lo que ofreces queda apartado hasta que alguien acepta (o caduca a los 3 días).</p>
       <div class="offer-form">
-        <label>Doy <select name="o-give">${resOptions('madera')}</select><input type="number" name="o-give-n" min="1" value="500" inputmode="numeric" /></label>
-        <label>Pido <select name="o-want">${resOptions('cristal')}</select><input type="number" name="o-want-n" min="1" value="200" inputmode="numeric" /></label>
+        <label>Doy ${resPicker('o-give', 'madera', 'Recurso que das')}<input type="number" name="o-give-n" min="1" value="500" inputmode="numeric" /></label>
+        <label>Pido ${resPicker('o-want', 'cristal', 'Recurso que pides')}<input type="number" name="o-want-n" min="1" value="200" inputmode="numeric" /></label>
         <button class="primary small" data-action="offer-post">Publicar oferta</button>
       </div>
       ${rows ? `<ul class="offers">${rows}</ul>` : '<p class="muted small">No hay ofertas ahora mismo.</p>'}`;

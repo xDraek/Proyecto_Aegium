@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { clock } from '../src/config.js';
 import { CANCEL_REFUND, PVP_RANGE, RESOURCES, UNITS } from '../src/game/data.js';
 import { newState, upgradeState } from '../src/game/Game.js';
-import { costFor, payPerHour, protectedAmount } from '../src/game/rules.js';
+import { costFor, payPerHour, protectedAmount, worldEventAt } from '../src/game/rules.js';
 import { makeWorld, sendAndArrive } from './world.js';
 
 // Ajustes de equilibrio: cancelar con penalización, impuestos del mercado, abandonar colonias,
@@ -39,8 +39,10 @@ test('el mercado cobra impuestos altos: no compensa cambiar y deshacer', async (
   A.state.research.comercio = 10;
   const rate = A.tradeRate('madera', 'piedra');
   const fair = RESOURCES.madera.value / RESOURCES.piedra.value;
-  assert.ok(rate <= fair * 0.6 + 1e-9, 'como mucho se recupera el 60 % del valor');
-  assert.ok(A.tradeRate('madera', 'piedra') * A.tradeRate('piedra', 'madera') < 0.4);
+  // (la Gran feria, si coincide, mejora el cambio)
+  const feria = worldEventAt(A.now()).event?.trade ?? 0;
+  assert.ok(rate <= fair * (0.6 + feria) + 1e-9, 'como mucho se recupera el 60 % del valor');
+  assert.ok(A.tradeRate('madera', 'piedra') * A.tradeRate('piedra', 'madera') < (0.6 + feria) ** 2 + 1e-9);
 });
 
 test('una colonia se puede abandonar y la isla queda libre', async () => {

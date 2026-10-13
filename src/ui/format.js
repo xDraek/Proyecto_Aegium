@@ -1,5 +1,5 @@
 import { clock } from '../config.js';
-import { RESOURCES, UNITS } from '../game/data.js';
+import { RESOURCES, SPY_TIERS, UNITS } from '../game/data.js';
 
 const nf = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 });
 const nf1 = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 });
@@ -74,6 +74,47 @@ export function unitList(units) {
   return parts.join(' ') || '<span class="muted">ninguna</span>';
 }
 
+/**
+ * Lo que vieron los espías en una ciudad, y lo que se les quedó sin ver por mandar pocos botes.
+ * Los informes de exploración de islas (y los de espionaje de antes) no tienen `level`: solo
+ * guarnición y botín.
+ */
+export function intelRows(intel) {
+  const row = (label, value) => `<div class="info-row"><span>${label}</span><span>${value}</span></div>`;
+  if (intel.level == null) {
+    const out = [row('Guarnición vista', unitList(intel.garrison))];
+    if (Object.keys(intel.stock ?? {}).length) out.push(row('Botín acumulado', bag(intel.stock)));
+    if (intel.wall != null) out.push(row('🏰 Muralla', `Nivel ${intel.wall}`));
+    return out.join('');
+  }
+  const unseen = (level) => `<span class="muted small">sin ver: hacen falta ${SPY_TIERS[level - 1].boats} botes</span>`;
+  const out = [row('Recursos', bag(intel.stock)), row('🏰 Muralla · 🏛️ Ayuntamiento', `Nv ${intel.wall ?? 0} · Nv ${intel.town ?? 1}`)];
+  out.push(row('⛵ Barcos en el puerto', intel.ships ? unitList(intel.ships) : unseen(2)));
+  out.push(row('⚔️ Tropas de tierra', intel.troops ? unitList(intel.troops) : unseen(3)));
+  const d = intel.defenses;
+  out.push(
+    d
+      ? row('👁️ Torre de vigía · 🗼 Faro', `Nv ${d.torre} · Nv ${d.faro}`) + row('🔒 A salvo en el almacén', `${fmtNum(d.safe)} de cada recurso`)
+      : row('Defensas', unseen(4)),
+  );
+  if (intel.support) {
+    out.push(row('🛡️ Refuerzos aliados', intel.support.length ? intel.support.map((s) => `${escapeHtml(s.from)}: ${unitList(s.units)}`).join('<br />') : '<span class="muted">ninguno</span>'));
+  } else {
+    out.push(row('🛡️ Refuerzos aliados', unseen(5)));
+  }
+  const u = intel.upgrades;
+  out.push(row('⚒️ Mejoras militares', u ? `Forja ${u.forja} · Herrería ${u.herreria} · Armaduras ${u.armaduras}` : unseen(5)));
+  return out.join('');
+}
+
 export function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
+/**
+ * Texto del juego (informes, avisos, mensajes del sistema) escapado y con el lingote en lugar del
+ * emoji del bronce: los textos guardan 🥉 (o 🔩, de cuando era hierro) porque viajan como texto.
+ */
+export function richText(s) {
+  return escapeHtml(s).replace(/🥉|🔩/g, RESOURCES.hierro.icon);
 }

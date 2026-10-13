@@ -11,6 +11,8 @@ import {
   RESEARCH_COST_FACTOR,
   RESOURCES,
   RESOURCE_KEYS,
+  SPY,
+  SPY_TIERS,
   UNITS,
   RELICS,
   WONDERS,
@@ -116,6 +118,27 @@ export function playerCombat(state) {
  */
 export function watchRange(level) {
   return 40 + 30 * level;
+}
+
+/** Lo que la torre de vigía añade a la probabilidad de descubrir espías y saboteadores: 2,5 % por nivel, hasta el 50 %. */
+export function spyGuard(torreLevel) {
+  return Math.min(SPY.guardMax, SPY.guardPerLevel * torreLevel);
+}
+
+/**
+ * Probabilidad de que descubran a `boats` botes espía en una ciudad con la torre de vigía a
+ * `torreLevel`. Cada bote de más es más fácil de ver, aunque no tanto como el primero.
+ * `stealth`: lo que reducen el riesgo las reliquias de sigilo.
+ */
+export function spyRisk(torreLevel, boats, stealth = 0) {
+  const each = SPY.base + spyGuard(torreLevel);
+  const n = 1 + SPY.extraBoat * (Math.max(1, boats) - 1);
+  return (1 - (1 - each) ** n) * (1 - stealth);
+}
+
+/** Cuánta información sacan `boats` botes espía (0 a SPY_TIERS.length). */
+export function spyTier(boats) {
+  return Math.max(0, Math.min(SPY_TIERS.length, Math.floor(boats)));
 }
 
 /** Vida extra de tus barcos cuando defienden tu ciudad: el faro guía a los tuyos (+4 % por nivel). */

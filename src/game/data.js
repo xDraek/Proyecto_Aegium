@@ -173,7 +173,7 @@ export const BUILDINGS = {
   torre: {
     name: 'Torre de vigía',
     icon: '👁️',
-    description: 'Vigila el horizonte: distingue qué tropas trae una flota enemiga desde 40 leguas, y 30 más por nivel (antes solo se sabe que viene). Cada nivel da también un 4 % más de probabilidad de hundir botes espía y sus arqueros añaden 8 de daño por asalto cuando defiendes la isla.',
+    description: 'Vigila el horizonte: distingue qué tropas trae una flota enemiga desde 40 leguas, y 30 más por nivel (antes solo se sabe que viene). Cada nivel da también un 2,5 % más de probabilidad de descubrir espías y saboteadores (hasta un 50 %, en el nivel 20) y sus arqueros añaden 8 de daño por asalto cuando defiendes la isla.',
     baseCost: { madera: 120, piedra: 220 },
     costFactor: 1.65,
     baseTime: 80,
@@ -712,6 +712,23 @@ export const COLONY = {
   upgradeMinutes: 20,
   timeFactor: 1.45,
 };
+
+/**
+ * Espionaje. Cada bote espía corre un riesgo `base` de que lo vean, más lo que vigila la torre de
+ * vigía del espiado (`guardPerLevel` por nivel, como mucho `guardMax`). Mandar más botes saca más
+ * información (SPY_TIERS) pero también es más fácil que los vean: cada bote de más cuenta como
+ * `extraBoat` botes a la hora de que los descubran.
+ */
+export const SPY = { base: 0.05, guardPerLevel: 0.025, guardMax: 0.5, extraBoat: 0.5 };
+
+/** Lo que averiguan los espías según cuántos botes llegan (cada nivel incluye los anteriores). */
+export const SPY_TIERS = [
+  { boats: 1, text: 'Recursos, muralla y ayuntamiento' },
+  { boats: 2, text: 'Los barcos que tiene en el puerto' },
+  { boats: 3, text: 'Sus tropas de tierra' },
+  { boats: 4, text: 'Sus defensas: torre de vigía, faro y lo que esconde el almacén' },
+  { boats: 5, text: 'Los refuerzos de sus aliados y sus mejoras militares' },
+];
 
 /** Qué parte de lo pagado se recupera al cancelar una obra, una investigación o un reclutamiento. */
 export const CANCEL_REFUND = 0.7;

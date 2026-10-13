@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import { BLOCKADE, COLONY, FEATS, FEAT_THEMES, ISLAND_TYPES, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, RESOURCES, RESOURCE_KEYS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
-import { colonyUpgrade, colonyYield, playerCombat } from '../game/rules.js';
+import { BLOCKADE, COLONY, FEATS, FEAT_THEMES, ISLAND_TYPES, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, RESOURCES, RESOURCE_KEYS, SPY_TIERS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
+import { colonyUpgrade, colonyYield, playerCombat, spyRisk } from '../game/rules.js';
 import { featCoop, forceOf, forgeBonus } from '../game/feats.js';
 import { NEWBIE_POINTS } from '../game/Game.js';
 import { createIslandBase, createIslandFeature, islandLook } from '../scene/islands.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
-import { bag, costList, escapeHtml, fmtAgo, fmtNum, fmtTime, unitList } from './format.js';
+import { bag, costList, escapeHtml, fmtAgo, fmtNum, fmtTime, intelRows, unitList } from './format.js';
 
 // Panel de una isla del archipiélago: lo que se sabe de ella y el formulario
 // para mandar una flota (explorar, atacar o colonizar).
@@ -38,11 +38,10 @@ function playerSection(game, view) {
   }
   const intel = view.intel;
   const spy = intel
-    ? `<h4>Informe de tus espías <span class="muted small">(${fmtAgo(intel.t)})</span></h4>
-      <div class="info-row"><span>Tropas en casa</span><span>${unitList(intel.garrison)}</span></div>
-      <div class="info-row"><span>Recursos</span><span>${bag(intel.stock)}</span></div>
-      <div class="info-row"><span>🏰 Muralla</span><b>Nivel ${intel.wall ?? 0}</b></div>`
-    : '<p class="desc small">Manda un bote explorador para espiar sus tropas y sus recursos antes de atacar.</p>';
+    ? `<h4>Informe de tus espías <span class="muted small">(${fmtAgo(intel.t)}${intel.level ? `, ${intel.level} ${intel.level === 1 ? 'bote' : 'botes'}` : ''})</span></h4>${intelRows(intel)}`
+    : ally
+      ? ''
+      : '<p class="desc small">No sabes qué defiende la ciudad: puedes atacarla a ciegas o mandar antes botes exploradores a espiarla.</p>';
   const intro = view.port?.by === game.userId
     ? view.port.kind === 'invadir'
       ? 'Una ciudad que ocupan tus tropas.'
@@ -548,6 +547,7 @@ function fleetForm(hud, game, view) {
         (r) => `<label title="${RESOURCES[r].name}">${RESOURCES[r].icon}<input type="number" name="p-${r}" min="0" placeholder="0" inputmode="numeric" /></label>`,
       ).join('')}</div><p class="hint">Si no eliges barcos, salen los mercantes que hagan falta.</p>`
     : '';
+  const spyHint = view.type === 'jugador' && types.includes('explorar') && !view.mine ? spyHelp(view) : '';
   const colony = types.includes('colonizar')
     ? `<div class="hint">Los colonos viajan en un mercante y se quedan con él. Llevan:</div>${costList(game.planMission('colonizar', view.id, { mercante: 1 }).cost ?? {}, game.resources)}`
     : types.includes('conquistar')
@@ -562,6 +562,7 @@ function fleetForm(hud, game, view) {
     <div class="fleet-summary" data-fleet-summary></div>
     ${cargoForm}
     ${colony}
+    ${spyHint}
     <div class="mission-buttons">${buttons}</div>
     ${warHint}
     ${armada ? postSelect(game, view, feat) : ''}
@@ -623,6 +624,17 @@ export function readPayload(root) {
     if (n > 0) out[input.name.slice(2)] = n;
   }
   return out;
+}
+
+/** Qué averiguan los espías según cuántos botes mandes, y el riesgo si se conoce su torre de vigía. */
+function spyHelp(view) {
+  const tiers = SPY_TIERS.map((s) => `<li><b>${s.boats} ${s.boats === 1 ? 'bote' : 'botes'}</b>: ${s.boats > 1 ? 'además, ' : ''}${s.text.charAt(0).toLowerCase() + s.text.slice(1)}</li>`).join('');
+  const torre = view.intel?.defenses?.torre;
+  const risk =
+    torre != null
+      ? `Con su torre de vigía a nivel ${torre}, los descubren: ${SPY_TIERS.map((s) => `${s.boats} ${s.boats === 1 ? 'bote' : 'botes'}, ${Math.round(spyRisk(torre, s.boats) * 100)} %`).join(' · ')}.`
+      : 'Su torre de vigía da hasta un 50 % de probabilidad de descubrirlos (lo sabrás espiando con 4 botes).';
+  return `<details class="spy-help"><summary>🔭 Espiar: cuantos más botes, más averiguan… y más fácil es que los hundan</summary><ul>${tiers}</ul><p class="muted small">${risk}</p></details>`;
 }
 
 /**

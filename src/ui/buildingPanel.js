@@ -1,8 +1,9 @@
-import { BUILDINGS, HERO, HERO_SKILLS, OCCUPATION, RELIC_RARITY, RELIC_SLOTS, POWERS, POWER_KEYS, RESEARCH, RESEARCH_KEYS, RESOURCES, RESOURCE_KEYS, UNITS, UNIT_KEYS, WORK } from '../game/data.js';
+import { BUILDINGS, HERO, HERO_SKILLS, OCCUPATION, RELIC_RARITY, RELIC_SLOTS, POWERS, POWER_KEYS, RESEARCH, RESEARCH_KEYS, RESOURCES, UNITS, UNIT_KEYS, WORK } from '../game/data.js';
 import { favorMax, favorRate, hasWorkers, producerOutput, protectedAmount, requirementName, storageCapacity, townSpeedup, wallBonus, workShare, workTaxes } from '../game/rules.js';
 import { splitForces } from '../game/combat.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
 import { bag, costList, escapeHtml, fmtDec, fmtNum, fmtTime, unitList } from './format.js';
+import { resPicker } from './resPicker.js';
 
 const unitArt = (id) => unitIcon(id, 'card-art');
 
@@ -265,16 +266,15 @@ function portSection(game) {
 
 function marketSection(game) {
   if (game.level('mercado') < 1) return '';
-  const opts = (sel) => RESOURCE_KEYS.map((r) => `<option value="${r}" ${r === sel ? 'selected' : ''}>${RESOURCES[r].emoji} ${RESOURCES[r].name}</option>`).join('');
   const closed = game.portClosed() ? '<p class="hint warn">⛓️ Tu puerto está en manos enemigas: los mercaderes no pueden entrar.</p>' : '';
   return `<h4>Cambiar recursos</h4>${closed}
     <div class="trade">
-      <label>Das <select name="t-from">${opts('madera')}</select></label>
+      <label>Das ${resPicker('t-from', 'madera', 'Recurso que das')}</label>
       <div class="train-row">
         <input type="number" name="t-amount" min="1" value="100" inputmode="numeric" aria-label="Cantidad a cambiar" />
         <button class="ghost small" data-action="trade-max">Todo</button>
       </div>
-      <label>Recibes <select name="t-to">${opts('oro')}</select></label>
+      <label>Recibes ${resPicker('t-to', 'oro', 'Recurso que recibes')}</label>
       <div class="hint" data-trade-preview></div>
       <button class="primary" data-action="trade">Cambiar</button>
     </div>`;

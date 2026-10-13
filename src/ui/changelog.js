@@ -5,6 +5,20 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-13d',
+    date: '2026-10-13',
+    title: 'Espionaje por botes',
+    items: [
+      'Ya <b>no hace falta espiar</b> una ciudad para atacarla (aunque a ciegas te puedes llevar un susto).',
+      'Cuantos <b>más botes</b> mandes a espiar, más averiguan: con 1, recursos y muralla; con 2, sus barcos; con 3, sus tropas; con 4, sus defensas; con 5, los refuerzos de sus aliados y sus mejoras militares. Pero también es <b>más fácil que los vean</b>, y si los descubren los hunden todos.',
+      'La <b>torre de vigía</b> protege contra los espías poco a poco: un 2,5 % por nivel, hasta un 50 % en el nivel 20. La muralla ya no cuenta para descubrir espías (sí para los saboteadores).',
+      'A los <b>saboteadores</b> los pillan como mucho un 65 % de las veces (antes, un 85 %).',
+      'En el <b>móvil</b> ya no se montan los menús de abajo: los botones de la cámara, el cuadro «En marcha» y los paneles quedan siempre encima de la lista, y los avisos salen arriba, bajo los recursos.',
+      'El botón <b>✕ de cerrar</b> ya no se pierde en el móvil: la cabecera de paneles y ventanas se queda fija al desplazar, el panel ya no crece por debajo de los recursos cuando se ve la barra del navegador, y con el móvil en horizontal se abre a pantalla completa.',
+      'El lingote de <b>bronce</b> se ve bien en el mercado (los desplegables de recursos son nuevos, con sus iconos), en los informes y en los avisos.',
+    ],
+  },
+  {
     id: '2026-10-13c',
     date: '2026-10-13',
     title: 'Lista de la izquierda plegable',

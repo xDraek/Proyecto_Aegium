@@ -1,6 +1,6 @@
 import { UNITS } from '../game/data.js';
 import { unitIcon } from '../scene/portraits.js';
-import { bag, escapeHtml, fmtAgo, fmtNum, unitList } from './format.js';
+import { bag, escapeHtml, fmtAgo, fmtNum, intelRows, richText, unitList } from './format.js';
 
 // Informes de combate, exploración y colonias.
 
@@ -116,7 +116,7 @@ function phasesHtml(r) {
 
 function reportBody(r) {
   const parts = [];
-  if (r.text) parts.push(`<p>${escapeHtml(r.text)}</p>`);
+  if (r.text) parts.push(`<p>${richText(r.text)}</p>`);
   if (r.battle && 'seaWon' in r.battle) parts.push(...phasesHtml(r));
   else if (r.battle) {
     const { attTitle, defTitle } = sideTitles(r);
@@ -130,10 +130,7 @@ function reportBody(r) {
     if (r.wall) notes.push(`fortificación enemiga +${Math.round(r.wall * 100)} %`);
     if (notes.length) parts.push(`<p class="muted small">${notes.join(' · ')}</p>`);
   }
-  if (r.intel) {
-    parts.push(`<div class="info-row"><span>Guarnición vista</span><span>${unitList(r.intel.garrison)}</span></div>`);
-    if (Object.keys(r.intel.stock).length) parts.push(`<div class="info-row"><span>Botín acumulado</span><span>${bag(r.intel.stock)}</span></div>`);
-  }
+  if (r.intel) parts.push(intelRows(r.intel));
   if (r.loot && Object.keys(r.loot).length) {
     const label = r.kind === 'defensa' ? 'Se han llevado' : 'Botín';
     parts.push(`<div class="info-row"><span>${label}</span><span>${bag(r.loot)}</span></div>`);

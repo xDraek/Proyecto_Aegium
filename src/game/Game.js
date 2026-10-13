@@ -37,6 +37,7 @@ import {
   RESEARCH_KEYS,
   RESOURCES,
   RESOURCE_KEYS,
+  SPY_TIERS,
   STARTING_RESOURCES,
   UNITS,
   VACATION,
@@ -83,6 +84,9 @@ import {
   unitSeconds,
   wallBonus,
   navalDefense,
+  spyGuard,
+  spyRisk,
+  spyTier,
 } from './rules.js';
 
 export const SAVE_VERSION = 6;
@@ -919,7 +923,8 @@ export class Game extends EventTarget {
       ...isl,
       typeName: isl.land && isl.type === 'libre' ? 'Tierra libre' : ISLAND_TYPES[isl.type].name,
       dist: this.distanceTo(id),
-      explored: isl.type === 'brumas' || isl.type === 'continente' || isl.owner === this.userId || !!known?.explored,
+      // Las ciudades de los jugadores están a la vista: se pueden atacar sin espiarlas antes
+      explored: isl.type === 'brumas' || isl.type === 'continente' || isl.type === 'jugador' || isl.owner === this.userId || !!known?.explored,
       intel: known?.intel ?? null,
       inbound: this.state.missions.filter((m) => m.target === id),
       mine: isl.owner != null && isl.owner === this.userId,
@@ -1673,7 +1678,7 @@ export class Game extends EventTarget {
 
   // ── Llamadas del mundo (otros jugadores) ───────────────────────────────────
 
-  /** Lo que ve un espía en tu isla. */
+  /** Todo lo que podría ver un espía en tu isla (lo que ve de verdad depende de cuántos botes mande). */
   spyReport() {
     return {
       units: Object.fromEntries(Object.entries(this.state.units).filter(([, n]) => n > 0)),
@@ -1681,6 +1686,10 @@ export class Game extends EventTarget {
       wall: this.level('muralla'),
       watch: this.level('torre'),
       town: this.level('ayuntamiento'),
+      faro: this.level('faro'),
+      safe: protectedAmount(this.state),
+      support: (this.world.supportersAt?.(this.state.home, this.userId) ?? []).map(({ game, mission }) => ({ from: game.name, units: { ...mission.units } })),
+      upgrades: { forja: this.level('forja'), herreria: this.researchLevel('herreria'), armaduras: this.researchLevel('armaduras') },
     };
   }
 
@@ -2216,7 +2225,7 @@ export class Game extends EventTarget {
 
   /** Te sabotean la ciudad. Muralla y torre de vigía ayudan a pillarlos. */
   receiveSabotage({ attackerName, stealth = 0 }, t) {
-    const chance = Math.min(0.85, 0.15 + 0.08 * this.level('muralla') + 0.05 * this.level('torre')) * (1 - stealth);
+    const chance = Math.min(0.65, 0.15 + 0.08 * this.level('muralla') + spyGuard(this.level('torre'))) * (1 - stealth);
     if (Math.random() < chance) {
       this.#report({ t, kind: 'defensa', outcome: 'victoria', title: 'Saboteadores capturados', text: `Tus vigías han capturado a los saboteadores de ${attackerName} antes de que hicieran nada.` });
       this.#note(`🔥 Tus vigías han capturado a unos saboteadores de ${attackerName}`, 'success');
@@ -2304,25 +2313,28 @@ export class Game extends EventTarget {
       this.#report({ t, kind: 'exploracion', island: isl.id, islandName: isl.name, title: `Sin noticias de ${isl.name}`, text: 'El bote no ha podido acercarse.' });
       return;
     }
-    // Los vigías de la muralla pueden descubrir el bote (8 % por nivel, como mucho 60 %)
-    if (Math.random() < Math.min(0.7, 0.08 * info.wall + 0.04 * (info.watch ?? 0)) * (1 - relicBonus(this.state, 'sigilo'))) {
+    // La torre de vigía puede descubrir los botes: cuantos más se mandan, más fácil es verlos
+    const boats = count(m.units);
+    if (Math.random() < spyRisk(info.watch ?? 0, boats, relicBonus(this.state, 'sigilo'))) {
       const lost = { ...m.units };
       m.units = {};
-      this.#report({ t, kind: 'exploracion', island: isl.id, islandName: isl.name, outcome: 'derrota', title: `Espía descubierto en ${isl.name}`, text: 'Los vigías de la muralla han visto el bote y lo han hundido.', lostUnits: lost });
-      this.#note(`🔭 Han descubierto a tu espía en ${isl.name}`, 'error');
-      this.world.hostNews?.(isl.owner, `🔭 Tus vigías han hundido un bote espía de ${this.state.name}`);
+      const them = boats === 1 ? 'el bote y lo han hundido' : `los ${boats} botes y los han hundido`;
+      this.#report({ t, kind: 'exploracion', island: isl.id, islandName: isl.name, outcome: 'derrota', title: `Espías descubiertos en ${isl.name}`, text: `Los vigías de ${info.name} han visto ${them}.`, lostUnits: lost });
+      this.#note(`🔭 Han descubierto a tus espías en ${isl.name}`, 'error');
+      this.world.hostNews?.(isl.owner, `🔭 Tus vigías han hundido ${boats === 1 ? 'un bote espía' : `${boats} botes espía`} de ${this.state.name}`);
       return;
     }
     this.state.stats.explorations = (this.state.stats.explorations ?? 0) + 1;
-    const intel = { t, garrison: info.units, stock: info.resources, wall: info.wall, town: info.town };
+    const intel = spyIntel(info, spyTier(boats), t);
     this.#know(isl.id, { intel });
+    const more = intel.level < SPY_TIERS.length ? ' Con más botes habrían averiguado más, aunque es más fácil que los vean.' : '';
     this.#report({
       t,
       kind: 'exploracion',
       island: isl.id,
       islandName: isl.name,
       title: `Espionaje: ${isl.name}`,
-      text: `Ciudad de ${info.name}. Ayuntamiento nivel ${info.town}, muralla nivel ${info.wall}.`,
+      text: `Ciudad de ${info.name}, espiada con ${boats} ${boats === 1 ? 'bote' : 'botes'}. Ayuntamiento nivel ${info.town}, muralla nivel ${info.wall}.${more}`,
       intel,
     });
     this.#note(`🔭 Tus espías vuelven de ${isl.name}`, 'success');
@@ -3218,6 +3230,31 @@ function clean(units) {
 
 function cargoOf(units) {
   return Object.entries(units).reduce((s, [id, n]) => s + n * (UNITS[id].cargo ?? 0), 0);
+}
+
+/**
+ * Lo que cuentan los espías de una ciudad según cuánta información sacaron (`level`, ver
+ * SPY_TIERS). Lo que no llegaron a ver queda en null. `garrison` junta las tropas y los barcos que
+ * vieron (lo usa el simulador).
+ */
+function spyIntel(info, level, t) {
+  const ships = {};
+  const troops = {};
+  for (const [id, n] of Object.entries(info.units)) (UNITS[id]?.kind === 'barco' ? ships : troops)[id] = n;
+  const intel = {
+    t,
+    level,
+    stock: info.resources,
+    wall: info.wall,
+    town: info.town,
+    ships: level >= 2 ? ships : null,
+    troops: level >= 3 ? troops : null,
+    defenses: level >= 4 ? { torre: info.watch ?? 0, faro: info.faro ?? 0, safe: info.safe ?? 0 } : null,
+    support: level >= 5 ? (info.support ?? []) : null,
+    upgrades: level >= 5 ? (info.upgrades ?? null) : null,
+  };
+  intel.garrison = { ...(intel.ships ?? {}), ...(intel.troops ?? {}) };
+  return intel;
 }
 
 function fmtBag(bag) {

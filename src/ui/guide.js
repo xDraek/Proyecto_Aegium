@@ -9,8 +9,8 @@ import {
   CONTEST_DAYS,
   CONTEST_PRIZES,
   DIPLOMACY,
-  FEATS,
   FEAT_THEMES,
+  FEATS,
   HERO,
   HERO_SKILLS,
   HORDE,
@@ -23,19 +23,21 @@ import {
   OCCUPATION,
   POWERS,
   PROTECTION,
-  RELICS,
   RELIC_RARITY,
   RELIC_SLOTS,
+  RELICS,
   RESEARCH,
   RESOURCES,
   SHIP_UNITS,
+  SPY,
+  SPY_TIERS,
   UNITS,
   VACATION,
-  WONDERS,
   WONDER_LEVELS,
   WONDER_RESOURCES,
-  WORLD_EVENTS,
+  WONDERS,
   WORLD_EVENT_HOURS,
+  WORLD_EVENTS,
 } from '../game/data.js';
 import { producerOutput, protectedAmount, storageCapacity } from '../game/rules.js';
 import { bag, escapeHtml, fmtDec, fmtNum } from './format.js';
@@ -131,7 +133,7 @@ function productionTable() {
 
 function missionsTable() {
   const rows = [
-    ['explorar', 'Uno o más botes', 'Descubre qué hay en una isla. En una ciudad, espía sus tropas, sus recursos y su muralla.'],
+    ['explorar', 'Uno o más botes', 'Descubre qué hay en una isla. En una ciudad, la espía: cuantos más botes, más averiguan (y más fácil es que los vean).'],
     ['atacar', 'Tropas y barcos', 'Combate contra lo que haya y, si ganas, carga el botín que quepa en las bodegas.'],
     ['invadir', 'Tropas de tierra y barcos', `Como un ataque, pero si acabas con su ejército te quedas ocupando la ciudad (hasta ${OCCUPATION.hours} h).`],
     ['bloquear', 'Solo barcos de guerra', `Si vences a su flota, cierras su puerto (hasta ${BLOCKADE.hours} h).`],
@@ -370,7 +372,7 @@ const TOPICS = {
           [`🎖️ ${see('almirante', 'Almirante')}, 🏺 ${see('reliquias', 'reliquias')} y ${see('continentes', 'maravillas')}`, 'Más ataque, vida, carga o velocidad'],
         ],
       )}
-      ${tip('Antes de atacar, espía y pulsa <b>🎲 Simular el combate</b> en el panel de la isla. En los informes 📜 puedes ver la repetición de cada batalla y compartirla en el chat.')}`,
+      ${tip('Antes de atacar conviene espiar y pulsar <b>🎲 Simular el combate</b> en el panel de la isla. En los informes 📜 puedes ver la repetición de cada batalla y compartirla en el chat.')}`,
   },
   defensa: {
     icon: '🏴‍☠️',
@@ -488,15 +490,17 @@ const TOPICS = {
         'El defensor ve venir tu flota: aviso arriba, la flota en su mapa y ⚔️ en el título de su pestaña.',
         `<b>Límite de ataques</b>: como mucho ${PROTECTION.attacksPerDay} ataques, invasiones o bloqueos contra el mismo jugador cada 24 h, para que nadie acose a otro sin descanso. Entre alianzas en guerra no hay límite. En el panel de su ciudad ves cuántos llevas.`,
       ])}
-      ${tip(`Espía antes de atacar (${see('espionaje', 'Espionaje y sabotaje')}) y usa el simulador. Para quedarte con su ciudad, mira ${see('invasiones', 'Invasiones')}.`)}`,
+      ${tip(`No hace falta espiar para atacar, pero a ciegas puedes llevarte un susto: espía antes (${see('espionaje', 'Espionaje y sabotaje')}) y usa el simulador. Para quedarte con su ciudad, mira ${see('invasiones', 'Invasiones')}.`)}`,
   },
   espionaje: {
     icon: '🔭',
     title: 'Espionaje y sabotaje',
     body: () => `<h5>Espiar</h5>
-      <p>Manda un <b>bote</b> a explorar una ciudad: vuelve con sus tropas en casa, sus recursos y el nivel de su muralla. Sus vigías pueden hundirlo: un 8 % por nivel de muralla y un 4 % por nivel de torre de vigía (como mucho, un 70 %).</p>
+      <p>Manda <b>botes exploradores</b> a espiar una ciudad (no hace falta para atacarla, pero así sabes a qué te enfrentas). Cuantos más botes, más averiguan:</p>
+      ${list(SPY_TIERS.map((t) => `<b>${t.boats} ${t.boats === 1 ? 'bote' : 'botes'}</b>: ${t.boats > 1 ? 'además, ' : ''}${t.text.charAt(0).toLowerCase() + t.text.slice(1)}.`))}
+      <p>Pero también es más fácil que los vean. Cada bote corre un ${pct(SPY.base)} de riesgo, más un ${pct1(SPY.guardPerLevel)} por nivel de la <b>torre de vigía</b> del espiado (como mucho, un ${pct(SPY.guardMax)}, en el nivel ${Math.round(SPY.guardMax / SPY.guardPerLevel)}); cada bote de más suma la mitad de ese riesgo. Si los descubren, los hunden todos y no averiguas nada.</p>
       <h5>Sabotear</h5>
-      <p>Los saboteadores también van en botes. Si no los pillan, o <b>retrasan la obra</b> en marcha (un 30 % de lo que le queda, como mucho una hora) o <b>queman</b> parte de lo que no esconde su almacén. Son más fáciles de pillar que los espías: un 15 % de base, más un 8 % por nivel de muralla y un 5 % por nivel de torre (como mucho, un 85 %). Si los pillan, pierdes los botes.</p>
+      <p>Los saboteadores también van en botes. Si no los pillan, o <b>retrasan la obra</b> en marcha (un 30 % de lo que le queda, como mucho una hora) o <b>queman</b> parte de lo que no esconde su almacén. La probabilidad de que los pillen es de un 15 % de base, más un 8 % por nivel de muralla y lo que vigile su torre (como mucho, un 65 %). Si los pillan, pierdes los botes.</p>
       ${tip('El <b>Yelmo de Hades</b> hace que tus espías y saboteadores se dejen ver la mitad de veces.')}`,
   },
   bloqueos: {
