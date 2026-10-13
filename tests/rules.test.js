@@ -44,8 +44,11 @@ test('una ciudad ocupada paga su parte de tributo de todo lo que produce', () =>
 test('el almacén sube el máximo y esconde más cuanto más nivel tiene', () => {
   const at = (n) => ({ buildings: { almacen: n }, research: {} });
   assert.ok(storageCapacity(at(5)) > storageCapacity(at(1)));
-  assert.equal(protectedAmount(at(0)), 100);
+  assert.equal(protectedAmount(at(0)), 120);
   assert.equal(protectedAmount(at(4)), 1100);
+  // Con el almacén alto, esconde un 8 % de lo que cabe
+  assert.equal(protectedAmount(at(14)), Math.floor(storageCapacity(at(14)) * 0.08));
+  assert.ok(protectedAmount(at(14)) > 100 + 250 * 14);
 });
 
 test('una batalla muy desigual la gana el más fuerte', () => {

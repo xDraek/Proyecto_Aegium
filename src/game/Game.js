@@ -92,7 +92,7 @@ import {
   spyTier,
 } from './rules.js';
 
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 const MAX_REPORTS = 40;
 const MAX_NOTES = 30;
 
@@ -110,7 +110,8 @@ const VISIT_MIN_H = 3;
 const VISIT_MAX_H = 6;
 const ACTIVE_QUESTS = 3;
 /** Por debajo de estos puntos nadie te puede atacar (ni tú a otros jugadores). */
-export const NEWBIE_POINTS = 100;
+export const NEWBIE_POINTS = PROTECTION.newbiePoints;
+export const NEWBIE_DAYS = PROTECTION.newbieDays;
 
 const hours = (h) => (h * HOUR_MS) / universe.speed;
 
@@ -209,8 +210,16 @@ function migrateResearch(saved) {
     research.elefantes = 1;
     changed = true;
   }
-  if (!changed) return {};
-  return { research: { ...newState({ now: saved.lastUpdate, home: saved.home, name: saved.name }).research, ...research } };
+  // Versión 7: las investigaciones largas pasan a 20 niveles con la mitad de efecto cada uno; se
+  // duplica el nivel para conservar lo ganado (y el de la que se esté investigando)
+  const out = {};
+  if ((saved.version ?? 0) < 7) {
+    for (const [id, r] of Object.entries(RESEARCH)) if (r.long && research[id] > 0) research[id] = Math.min(r.maxLevel, research[id] * 2);
+    if (RESEARCH[saved.researchQueue?.id]?.long) out.researchQueue = { ...saved.researchQueue, level: Math.min(RESEARCH[saved.researchQueue.id].maxLevel, saved.researchQueue.level * 2) };
+    changed = true;
+  }
+  if (!changed) return out;
+  return { ...out, research: { ...newState({ now: saved.lastUpdate, home: saved.home, name: saved.name }).research, ...research } };
 }
 
 /**
@@ -570,9 +579,25 @@ export class Game extends EventTarget {
     return scoreOf(this.state.stats.spent);
   }
 
-  /** Protección de novato: con pocos puntos nadie te ataca. */
-  isProtected() {
-    return this.score() < NEWBIE_POINTS;
+  /** Protección de novato: con pocos puntos y en los primeros días nadie te ataca (se acaba con lo que llegue antes). */
+  isProtected(now = this.now()) {
+    return this.score() < NEWBIE_POINTS && now - (this.state.startedAt ?? 0) < NEWBIE_DAYS * 86_400_000;
+  }
+
+  /**
+   * Si `view` (la ciudad de otro jugador) es demasiado débil para atacarla: tiene menos del 20 %
+   * de tus puntos, no estáis en guerra y no te ha atacado él hace poco.
+   */
+  tooWeak(view) {
+    if (view?.type !== 'jugador' || view.relation === 'guerra') return false;
+    if (!(view.score < this.score() * PROTECTION.weakRatio)) return false;
+    return !this.world.attackedBy?.(this.userId, view.owner);
+  }
+
+  /** Ataques, invasiones y bloqueos que has lanzado contra `uid` en las últimas `h` horas. */
+  hitsOn(uid, h, now = this.now()) {
+    const since = now - hours(h);
+    return (this.state.hits ?? []).filter((x) => x.uid === uid && x.t > since).length;
   }
 
   economy() {
@@ -1259,7 +1284,8 @@ export class Game extends EventTarget {
         else if (view.relation === 'pacto') reason ||= `Tu alianza tiene un pacto de no agresión con la de ${view.ownerName}.`;
         else if (view.vacation) reason ||= `${view.ownerName} está de vacaciones.`;
         else if (view.protected) reason ||= `${view.ownerName} está bajo protección de novato.`;
-        else if (this.isProtected()) reason ||= `Mientras tengas menos de ${NEWBIE_POINTS} puntos no puedes sabotear a otros jugadores.`;
+        else if (this.isProtected()) reason ||= `Mientras tengas protección de novato no puedes sabotear a otros jugadores.`;
+        else if (this.tooWeak(view)) reason ||= weakText(view.ownerName);
       } else if (type === 'transporte') {
         load = this.#cleanPayload(payload);
         const total = sum(load);
@@ -1275,8 +1301,9 @@ export class Game extends EventTarget {
         if (this.world.sameAlliance?.(this.userId, isl.owner)) reason ||= `${view.ownerName} es de tu alianza.`;
         else if (view.relation === 'pacto') reason ||= `Tu alianza tiene un pacto de no agresión con la de ${view.ownerName}.`;
         else if (view.vacation) reason ||= `${view.ownerName} está de vacaciones: su isla no se puede atacar.`;
-        else if (view.protected) reason ||= `${view.ownerName} está bajo protección de novato (menos de ${NEWBIE_POINTS} puntos).`;
-        else if (this.isProtected()) reason ||= `Mientras tengas menos de ${NEWBIE_POINTS} puntos no puedes atacar a otros jugadores.`;
+        else if (view.protected) reason ||= `${view.ownerName} está bajo protección de novato.`;
+        else if (this.isProtected()) reason ||= `Mientras tengas protección de novato no puedes atacar a otros jugadores.`;
+        else if (this.tooWeak(view)) reason ||= weakText(view.ownerName);
         // Una ciudad ocupada es de quien la ocupa: nadie más la puede atacar
         const port = view.port;
         if (port?.kind === 'invadir') reason ||= port.by === this.userId ? 'Ya ocupas esta ciudad: saquéala desde la ocupación.' : `${port.name} ocupa esta ciudad.`;
@@ -1310,7 +1337,7 @@ export class Game extends EventTarget {
       if (Object.keys(sent).some((id) => !UNITS[id].explorer)) reason ||= 'Para explorar envía solo botes exploradores.';
     } else if (type === 'expedicion') {
       if (isl.type !== 'brumas') reason ||= 'Las expediciones zarpan hacia el Mar de las Brumas.';
-      else if (this.researchLevel('navegacion') < 2) reason ||= 'Investiga Navegación 2 para aventurarte en la niebla.';
+      else if (this.researchLevel('navegacion') < 4) reason ||= 'Investiga Navegación 4 para aventurarte en la niebla.';
     } else if (isl.type === 'brumas') {
       reason ||= 'En el Mar de las Brumas solo caben expediciones.';
     } else if (type === 'atacar') {
@@ -1585,7 +1612,7 @@ export class Game extends EventTarget {
     const s = this.state;
     if (s.vacation) return this.#fail('De vacaciones no puedes jurar una gesta.');
     if ((s.perjuryUntil ?? 0) > now) return this.#fail('Rompiste tu juramento en la última gesta: aún no puedes volver a jurar.');
-    if (this.isProtected()) return this.#fail(`Con menos de ${NEWBIE_POINTS} puntos aún no puedes jurar gestas.`);
+    if (this.isProtected()) return this.#fail('Con protección de novato aún no puedes jurar gestas.');
     const power = featPower(s);
     if (!(power.f > 0)) return this.#fail('Necesitas un ejército para jurar una gesta.');
     const prod = featProd(s, now);
@@ -3302,6 +3329,11 @@ function spyIntel(info, level, t) {
   };
   intel.garrison = { ...(intel.ships ?? {}), ...(intel.troops ?? {}) };
   return intel;
+}
+
+/** Por qué no se puede atacar a alguien mucho más débil. */
+function weakText(name) {
+  return `${name} tiene menos del ${Math.round(PROTECTION.weakRatio * 100)} % de tus puntos: no se puede atacar a alguien tan débil, salvo en guerra o si te ha atacado en las últimas ${PROTECTION.revengeHours} h.`;
 }
 
 function fmtBag(bag) {

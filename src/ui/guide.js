@@ -1,4 +1,4 @@
-import { NEWBIE_POINTS } from '../game/Game.js';
+import { NEWBIE_DAYS, NEWBIE_POINTS } from '../game/Game.js';
 import {
   ACHIEVEMENTS,
   BLOCKADE,
@@ -297,9 +297,9 @@ const TOPICS = {
       .map((r) => `${r.icon} ${r.name.toLowerCase()}`)
       .join(', ')}. La isla da por sí sola un poco de madera, piedra y comida; los <b>edificios productores</b> dan mucho más, y cada nivel rinde algo más que el anterior:</p>
       ${productionTable()}
-      <p>A eso se suman las ${see('investigacion', 'investigaciones')} (+10 % por nivel; Comercio, +5 % de oro), tus ${see('colonias', 'colonias')}, el Coloso (+5 % de todo por nivel), las ${see('eventos', 'temporadas')} y algunas ${see('reliquias', 'reliquias')}.</p>
+      <p>A eso se suman las ${see('investigacion', 'investigaciones')} (+5 % por nivel; Comercio, +2,5 % de oro), tus ${see('colonias', 'colonias')}, el Coloso (+5 % de todo por nivel), las ${see('eventos', 'temporadas')} y algunas ${see('reliquias', 'reliquias')}.</p>
       <h5>El almacén</h5>
-      <p>Cada recurso tiene un <b>máximo</b>: lo que se produce con el almacén lleno se pierde. Además, el almacén <b>esconde</b> una parte de cada recurso que nadie puede robar ni quemar (ni piratas, ni saqueadores, ni saboteadores). Logística sube el máximo un 20 % por nivel.</p>
+      <p>Cada recurso tiene un <b>máximo</b>: lo que se produce con el almacén lleno se pierde. Además, el almacén <b>esconde</b> una parte de cada recurso que nadie puede robar ni quemar (ni piratas, ni saqueadores, ni saboteadores). Logística sube el máximo un 10 % por nivel.</p>
       ${storageTable()}
       <h5>La comida</h5>
       <p>Las tropas y los barcos <b>comen</b> cada hora, estén en casa o en el mar. Si la comida llega a cero hay <b>hambruna</b>: el resto de la producción cae a la mitad. La taberna reduce lo que comen (−4 % por nivel, hasta −40 %). Las ${see('unidades', 'tropas de élite')} además cobran una paga en oro.</p>
@@ -314,7 +314,7 @@ const TOPICS = {
   edificios: {
     icon: '🏛️',
     title: 'Edificios',
-    body: () => `<p>Solo se construye <b>una obra a la vez</b>. El ayuntamiento acelera las obras un 10 % por nivel y Arquitectura otro 8 %. Si cancelas una obra recuperas lo que costó. Cada edificio pide otros (o investigaciones) para poder construirse:</p>
+    body: () => `<p>Solo se construye <b>una obra a la vez</b>. El ayuntamiento acelera las obras un 10 % por nivel y Arquitectura otro 4 % por nivel. Si cancelas una obra recuperas lo que costó. Cada edificio pide otros (o investigaciones) para poder construirse:</p>
       ${buildingsTable()}
       <p class="muted small">Al subir de nivel ganan detalle: enlosado y cipreses (nivel 5), pebeteros y estatua (10) y remate dorado con estandartes (15). El Coloso no tiene tope: cada nivel suma producción y cada cinco se anuncia a todo el archipiélago.</p>`,
   },
@@ -328,7 +328,7 @@ const TOPICS = {
     icon: '⚖️',
     title: 'Mercado y comercio',
     body: () => `${list([
-      '<b>Cambiar en el mercado</b>: cambias un recurso por otro al momento. Cada recurso vale distinto (el oro y el cristal valen más) y el mercader se queda una comisión: empiezas recibiendo una cuarta parte de lo justo; cada nivel de mercado mejora el cambio un 2 % y cada nivel de Comercio un 1 %, hasta el 60 %. La Gran feria lo mejora otro 15 %. Con otros jugadores no hay impuestos.',
+      '<b>Cambiar en el mercado</b>: cambias un recurso por otro al momento. Cada recurso vale distinto (el oro y el cristal valen más) y el mercader se queda una comisión: empiezas recibiendo una cuarta parte de lo justo; cada nivel de mercado mejora el cambio un 2 % y cada nivel de Comercio un 0,5 %, hasta el 60 %. La Gran feria lo mejora otro 15 %. Con otros jugadores no hay impuestos.',
       '<b>Ofertas entre jugadores</b>: en el mercado publicas qué das y qué pides (hasta 5 ofertas, que caducan a los 3 días). Lo que ofreces queda apartado hasta que alguien acepta o la retiras.',
       '<b>Transportes</b>: manda mercantes con recursos a la ciudad de cualquier jugador. Si no eliges barcos, salen los que hagan falta.',
       `<b>Mercader ambulante</b>: de vez en cuando atraca uno que compra lo que te sobra y paga mejor que el mercado (ver ${see('visitantes', 'Visitantes')}).`,
@@ -388,7 +388,7 @@ const TOPICS = {
         `Pide <b>tropas de apoyo</b> a tu ${see('alianzas', 'alianza')} o contrata ${see('mercenarios', 'mercenarios')}.`,
         'Sube el almacén: lo que esconde no se lo lleva nadie.',
       ])}
-      <p>Con menos de <b>${NEWBIE_POINTS} puntos</b> tienes <b>protección de novato</b>: ningún jugador te puede atacar (los piratas, sí).</p>
+      <p>Mientras tengas menos de <b>${fmtNum(NEWBIE_POINTS)} puntos</b>, y como mucho tus primeros <b>${NEWBIE_DAYS} días</b>, tienes <b>protección de novato</b>: ningún jugador te puede atacar (los piratas, sí). Después, nadie te puede atacar si tienes menos del ${pct(PROTECTION.weakRatio)} de sus puntos, salvo en guerra o si le atacaste tú antes.</p>
       ${tip(`Si te bloquean el puerto o te ocupan la ciudad, mira ${see('invasiones', 'Invasiones y ocupación')}.`)}`,
   },
   almirante: {
@@ -415,7 +415,7 @@ const TOPICS = {
       ${missionsTable()}
       <h5>Viajes</h5>
       ${list([
-        'La flota va a la velocidad de su <b>barco más lento</b>. Navegación (+10 % por nivel), el faro (+4 %), el almirante, las reliquias y el Templo de Poseidón la aceleran. El poder <b>Viento favorable</b> ahorra media travesía a las flotas que ya navegan.',
+        'La flota va a la velocidad de su <b>barco más lento</b>. Navegación (+5 % por nivel), el faro (+4 %), el almirante, las reliquias y el Templo de Poseidón la aceleran. El poder <b>Viento favorable</b> ahorra media travesía a las flotas que ya navegan.',
         'El <b>puerto</b> limita cuántas flotas tienes en el mar a la vez: una por nivel.',
         'Puedes <b>retirar</b> una flota que aún no ha llegado: deshace lo andado. Las tropas de apoyo, los bloqueos y las ocupaciones se retiran cuando quieras.',
         'Las islas que no conoces hay que <b>explorarlas</b> primero con un bote.',
@@ -432,7 +432,7 @@ const TOPICS = {
   expediciones: {
     icon: '🧭',
     title: 'Expediciones',
-    body: () => `<p>Con <b>Navegación 2</b> puedes mandar flotas al <b>Mar de las Brumas</b> 🌫️. Cuanta más bodega lleves, más botín puedes traer. Lo que puede pasar:</p>
+    body: () => `<p>Con <b>Navegación 4</b> puedes mandar flotas al <b>Mar de las Brumas</b> 🌫️. Cuanta más bodega lleves, más botín puedes traer. Lo que puede pasar:</p>
       ${table(
         ['Suceso', 'Probabilidad'],
         [
@@ -483,7 +483,8 @@ const TOPICS = {
     title: 'Atacar a otros jugadores',
     body: () => `<p>Puedes atacar la ciudad de cualquier jugador que no sea de tu alianza ni tenga un pacto con ella. Si ganas, te llevas lo que quepa en tus barcos, salvo lo que esconde su almacén.</p>
       ${list([
-        `<b>Protección de novato</b>: con menos de ${NEWBIE_POINTS} puntos nadie te ataca, pero tú tampoco puedes atacar, sabotear, bloquear ni invadir a otros jugadores.`,
+        `<b>Protección de novato</b>: con menos de ${fmtNum(NEWBIE_POINTS)} puntos y en tus primeros ${NEWBIE_DAYS} días (se acaba con lo que llegue antes) nadie te ataca, pero tú tampoco puedes atacar, sabotear, bloquear ni invadir a otros jugadores.`,
+        `<b>Contra los débiles, no</b>: no puedes atacar, sabotear, bloquear ni invadir a quien tenga menos del ${pct(PROTECTION.weakRatio)} de tus puntos, salvo si estáis en guerra o si te ha atacado él en las últimas ${PROTECTION.revengeHours} h.`,
         '<b>Vacaciones</b>: a quien está de vacaciones no se le puede atacar ni espiar.',
         `<b>Guerra</b>: si vuestras alianzas están en guerra, tus barcos cargan un ${pct(DIPLOMACY.warLoot)} más de botín y las bajas cuentan en el marcador de la guerra.`,
         `<b>Ataques conjuntos</b>: hasta ${JOINT_MAX} aliados pueden sumar su flota al ataque de otro y combatir como un solo ejército. El botín se reparte según la bodega de cada uno.`,

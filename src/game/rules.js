@@ -1,15 +1,19 @@
 import { universe } from '../config.js';
 import {
   BASE_PRODUCTION,
+  BUILD_COST,
   BUILDINGS,
   COLONY,
   COLONY_COST,
   FEATS,
   OCCUPATION,
   PLAYER_UNITS,
+  PROTECTED_SHARE,
   RESEARCH,
   RESEARCH_COST_FACTOR,
   RESEARCH_COST_MULT,
+  RESEARCH_LATE,
+  RESEARCH_LONG,
   RESEARCH_GOLD_MULT,
   RESOURCES,
   RESOURCE_KEYS,
@@ -67,13 +71,23 @@ export function buildingMax(id) {
 /** Coste para subir el edificio `id` hasta `level`. */
 export function costFor(id, level) {
   const b = BUILDINGS[id];
-  return scaleCost(b.baseCost, b.costFactor, level);
+  const cost = scaleCost(b.baseCost, b.costFactor, level);
+  for (const r of ['madera', 'piedra']) if (cost[r]) cost[r] = Math.floor(cost[r] * BUILD_COST.woodStone);
+  // Desde el nivel 7, además bronce y cristal (el Coloso ya los pide de por sí)
+  if (level >= BUILD_COST.fromLevel && id !== 'coloso') {
+    const ws = (cost.madera ?? 0) + (cost.piedra ?? 0);
+    for (const r of ['hierro', 'cristal']) {
+      const extra = Math.floor(ws * BUILD_COST[r]);
+      if (extra > 0) cost[r] = (cost[r] ?? 0) + extra;
+    }
+  }
+  return cost;
 }
 
 /** Segundos de obra para llevar `id` hasta `level`. */
 export function buildSeconds(state, id, level) {
   const raw = BUILDINGS[id].baseTime * TIME_FACTOR ** (level - 1);
-  const speed = (1 + TOWN_SPEEDUP * lvl(state, 'ayuntamiento')) * (1 + 0.08 * lvl(state, 'arquitectura'));
+  const speed = (1 + TOWN_SPEEDUP * lvl(state, 'ayuntamiento')) * (1 + 0.04 * lvl(state, 'arquitectura'));
   return Math.max(1, Math.round(raw / speed / universe.speed));
 }
 
@@ -84,13 +98,18 @@ export function townSpeedup(townLevel) {
 // ── Investigación ────────────────────────────────────────────────────────────
 
 export function researchCost(id, level) {
-  const cost = scaleCost(RESEARCH[id].baseCost, RESEARCH_COST_FACTOR, level, RESEARCH_COST_MULT);
+  const r = RESEARCH[id];
+  // Las largas (20 niveles): suben poco hasta el 10 y más después
+  let k = r.long ? RESEARCH_LONG.early ** (Math.min(level, 10) - 1) * RESEARCH_LONG.late ** Math.max(0, level - 10) : RESEARCH_COST_FACTOR ** (level - 1);
+  // Herrería y Armaduras: sus últimos niveles, mucho más caros
+  if (r.lateCost && level >= RESEARCH_LATE.from) k *= 1 + RESEARCH_LATE.step * (level - RESEARCH_LATE.from + 1);
+  const cost = scaleCost(r.baseCost, 1, 1, k * RESEARCH_COST_MULT);
   if (cost.oro) cost.oro = Math.floor(cost.oro * RESEARCH_GOLD_MULT);
   return cost;
 }
 
 export function researchSeconds(state, id, level) {
-  const raw = RESEARCH[id].baseTime * RESEARCH_TIME_FACTOR ** (level - 1);
+  const raw = RESEARCH[id].baseTime * (RESEARCH[id].long ? RESEARCH_LONG.time : RESEARCH_TIME_FACTOR) ** (level - 1);
   const speed = (1 + 0.1 * Math.max(0, lvl(state, 'academia') - 1)) * (1 + wonderBonus(state, 'investigacion'));
   return Math.max(1, Math.round(raw / speed / universe.speed));
 }
@@ -173,7 +192,7 @@ export function colonyCost(colonies) {
 }
 
 export function fleetSpeedBonus(state) {
-  return 1 + 0.1 * lvl(state, 'navegacion') + 0.04 * lvl(state, 'faro') + wonderBonus(state, 'velocidad') + relicBonus(state, 'velocidad');
+  return 1 + 0.05 * lvl(state, 'navegacion') + 0.04 * lvl(state, 'faro') + wonderBonus(state, 'velocidad') + relicBonus(state, 'velocidad');
 }
 
 /** Segundos de viaje (solo ida) hasta una isla con una flota a cierta velocidad. */
@@ -211,7 +230,7 @@ export function workTaxes(id, level, share) {
 
 export function researchBonus(state, res) {
   // Comercio (el oro) da la mitad que las demás: el oro escasea
-  return (res === 'oro' ? 0.05 : 0.1) * lvl(state, RESOURCE_RESEARCH[res]);
+  return (res === 'oro' ? 0.025 : 0.05) * lvl(state, RESOURCE_RESEARCH[res]);
 }
 
 /** Lo que da una colonia (o una isla libre si la colonizaras) por hora. */
@@ -383,7 +402,7 @@ export function portClosed(state) {
 
 /** Lo que el almacén esconde de cada recurso y los piratas no pueden robar. */
 export function protectedAmount(state) {
-  return 100 + 250 * lvl(state, 'almacen');
+  return Math.max(100 + 250 * lvl(state, 'almacen'), Math.floor(storageCapacity(state) * PROTECTED_SHARE));
 }
 
 // ── Templo ───────────────────────────────────────────────────────────────────
@@ -409,14 +428,14 @@ export function sum(cost) {
 }
 
 export function storageCapacity(state) {
-  return Math.floor(1500 * 1.6 ** lvl(state, 'almacen') * (1 + 0.2 * lvl(state, 'logistica')));
+  return Math.floor(1500 * 1.6 ** lvl(state, 'almacen') * (1 + 0.1 * lvl(state, 'logistica')));
 }
 
 /** Cuánto recibes por cada unidad de `from` al cambiarla por `to` en el mercado. */
 export function tradeRate(state, from, to, t = state.lastUpdate) {
   const fair = worldEventAt(t).event?.trade ?? 0;
   // El mercado cobra impuestos altos (entre el 75 % y el 40 %): sale más a cuenta comerciar con otros jugadores
-  const efficiency = Math.min(0.6 + fair, 0.25 + 0.02 * lvl(state, 'mercado') + 0.01 * lvl(state, 'comercio') + fair);
+  const efficiency = Math.min(0.6 + fair, 0.25 + 0.02 * lvl(state, 'mercado') + 0.005 * lvl(state, 'comercio') + fair);
   return (RESOURCES[from].value / RESOURCES[to].value) * efficiency;
 }
 

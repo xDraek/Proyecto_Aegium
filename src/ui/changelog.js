@@ -5,6 +5,20 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-14c',
+    date: '2026-10-14',
+    title: 'Más protección para los nuevos y obras con bronce y cristal',
+    items: [
+      '🛡️ La <b>protección de novato</b> dura hasta los 1.000 puntos (antes, 100), como mucho tus 5 primeros días.',
+      'Nadie puede atacar, sabotear, bloquear ni invadir a quien tenga <b>menos del 20 % de sus puntos</b>, salvo si estáis en guerra o si el débil le atacó primero (en las últimas 48 h).',
+      'Las obras cuestan un 15 % menos de madera y piedra, pero <b>desde el nivel 7 piden también bronce y cristal</b>: la mina y la fundición vuelven a hacer falta.',
+      'El <b>almacén</b> esconde ahora al menos el 8 % de lo que cabe en él: con un almacén grande, un saqueo ya no se lo lleva casi todo.',
+      'Los <b>arqueros cretenses</b> aguantan más: 30 de vida (antes, 17).',
+      'Las investigaciones de producción, <b>Arquitectura, Logística, Navegación y Comercio llegan al nivel 20</b>, con la mitad de efecto por nivel: al máximo dan lo mismo que antes, pero hay mucho más camino. Si ya las tenías, tu nivel se ha duplicado (no pierdes nada). Los barcos y las expediciones piden ahora el doble de nivel de Navegación (el mismo efecto).',
+      '<b>Herrería y Armaduras</b> siguen en 10 niveles, pero los últimos cuestan bastante más.',
+    ],
+  },
+  {
     id: '2026-10-14b',
     date: '2026-10-14',
     title: 'Dar de baja tropas y barcos',

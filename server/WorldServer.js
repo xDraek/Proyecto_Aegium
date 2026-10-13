@@ -3,7 +3,7 @@ import { RESOURCES } from '../src/game/data.js';
 import { assault, battle, combineGroups, count, hasCombat, shareSurvivors, splitForces } from '../src/game/combat.js';
 import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, forgeBonus, forgeGoal, forgeHours, forgeRoom, pledgeEmpires, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
 import { Game, newState } from '../src/game/Game.js';
-import { ACHIEVEMENTS, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, UNITS, WONDERS } from '../src/game/data.js';
+import { ACHIEVEMENTS, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, PROTECTION, UNITS, WONDERS } from '../src/game/data.js';
 import { playerCombat, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
 import { footprint, freshIslandState, generateContinent, generateSector, homeIsland, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
@@ -432,6 +432,11 @@ export class WorldServer {
   sameAlliance(a, b) {
     const x = this.memberOf.get(a);
     return x != null && x === this.memberOf.get(b);
+  }
+
+  /** Si `attacker` ha atacado, invadido o bloqueado a `victim` hace poco (para poder responderle aunque sea débil). */
+  attackedBy(victim, attacker) {
+    return (this.games.get(attacker)?.hitsOn(victim, PROTECTION.revengeHours) ?? 0) > 0;
   }
 
   /** Qué relación hay entre dos jugadores: 'aliado', 'pacto', 'guerra' o null. */
@@ -2010,7 +2015,7 @@ export class WorldServer {
       const rt = this.islandStates.get(isl.id);
       if (rt) states[isl.id] = rt.feat ? { ...rt, feat: this.#publicFeat(rt.feat, userId, isl.id) } : rt;
       for (const uid of [isl.owner, rt?.colonizedBy]) {
-        if (uid != null && !players[uid]) players[uid] = { ...this.playerInfo(uid), rel: this.relation(userId, uid) };
+        if (uid != null && !players[uid]) players[uid] = { ...this.playerInfo(uid), rel: this.relation(userId, uid), hitMe: uid !== userId && this.attackedBy(userId, uid) };
       }
     }
     const a = this.allianceOf(userId);

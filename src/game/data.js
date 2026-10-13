@@ -205,7 +205,7 @@ export const BUILDINGS = {
     baseCost: { madera: 5000, piedra: 8000, hierro: 2000, cristal: 3000, oro: 2000, comida: 3000 },
     costFactor: 1.45,
     baseTime: 3600,
-    requires: { ayuntamiento: 8, arquitectura: 4 },
+    requires: { ayuntamiento: 8, arquitectura: 8 },
   },
 };
 
@@ -350,7 +350,7 @@ export const UNITS = {
     cost: { madera: 120, cristal: 40, oro: 50 },
     time: 130,
     atk: 37,
-    hp: 17,
+    hp: 30,
     upkeep: 2,
     pay: 2,
     size: 1,
@@ -438,7 +438,7 @@ export const UNITS = {
     speed: 1.35,
     cargo: 120,
     capacity: 4,
-    requires: { puerto: 3, navegacion: 1 },
+    requires: { puerto: 3, navegacion: 2 },
   },
   brulote: {
     name: 'Brulote',
@@ -472,7 +472,7 @@ export const UNITS = {
     speed: 1.15,
     cargo: 400,
     capacity: 15,
-    requires: { puerto: 6, navegacion: 3 },
+    requires: { puerto: 6, navegacion: 6 },
   },
 
   dromon: {
@@ -490,7 +490,7 @@ export const UNITS = {
     speed: 1.05,
     cargo: 600,
     capacity: 20,
-    requires: { puerto: 8, astillero: 4, navegacion: 4 },
+    requires: { puerto: 8, astillero: 4, navegacion: 8 },
   },
   liburna: {
     name: 'Liburna',
@@ -508,7 +508,7 @@ export const UNITS = {
     speed: 1.6,
     cargo: 300,
     capacity: 6,
-    requires: { puerto: 7, navegacion: 3, tactica: 2 },
+    requires: { puerto: 7, navegacion: 6, tactica: 2 },
   },
 
   // Unidades que solo usan los enemigos
@@ -539,8 +539,10 @@ export const RESEARCH = {
     name: 'Silvicultura',
     icon: '🌲',
     description: 'Técnicas de tala y replantado.',
-    effect: (n) => `+${n * 10} % de madera`,
+    effect: (n) => `+${n * 5} % de madera`,
     baseCost: { madera: 180, piedra: 120, cristal: 60 },
+    long: true,
+    maxLevel: 20,
     baseTime: 120,
     requires: { academia: 1 },
   },
@@ -548,8 +550,10 @@ export const RESEARCH = {
     name: 'Ingeniería minera',
     icon: '⛏️',
     description: 'Galerías más profundas y mejores herramientas.',
-    effect: (n) => `+${n * 10} % de piedra y bronce`,
+    effect: (n) => `+${n * 5} % de piedra y bronce`,
     baseCost: { madera: 150, piedra: 150, cristal: 60 },
+    long: true,
+    maxLevel: 20,
     baseTime: 130,
     requires: { academia: 1 },
   },
@@ -557,8 +561,10 @@ export const RESEARCH = {
     name: 'Irrigación',
     icon: '💧',
     description: 'Acequias y molinos para regar los campos.',
-    effect: (n) => `+${n * 10} % de comida`,
+    effect: (n) => `+${n * 5} % de comida`,
     baseCost: { madera: 160, piedra: 80, cristal: 50 },
+    long: true,
+    maxLevel: 20,
     baseTime: 110,
     requires: { academia: 1 },
   },
@@ -566,8 +572,10 @@ export const RESEARCH = {
     name: 'Cristalografía',
     icon: '🔬',
     description: 'Los sabios aprenden a tallar el cristal sin romperlo.',
-    effect: (n) => `+${n * 10} % de cristal`,
+    effect: (n) => `+${n * 5} % de cristal`,
     baseCost: { madera: 200, cristal: 200 },
+    long: true,
+    maxLevel: 20,
     baseTime: 160,
     requires: { academia: 2, mineria: 1 },
   },
@@ -575,8 +583,10 @@ export const RESEARCH = {
     name: 'Arquitectura',
     icon: '📐',
     description: 'Planos, grúas y andamios mejores.',
-    effect: (n) => `Obras un ${n * 8} % más rápidas`,
+    effect: (n) => `Obras un ${n * 4} % más rápidas`,
     baseCost: { madera: 300, piedra: 300, cristal: 120, oro: 40 },
+    long: true,
+    maxLevel: 20,
     baseTime: 200,
     requires: { academia: 2 },
   },
@@ -584,8 +594,10 @@ export const RESEARCH = {
     name: 'Logística',
     icon: '🧺',
     description: 'Estanterías, toneles y un buen inventario.',
-    effect: (n) => `+${n * 20} % de capacidad del almacén`,
+    effect: (n) => `+${n * 10} % de capacidad del almacén`,
     baseCost: { madera: 250, piedra: 250, cristal: 100, oro: 40 },
+    long: true,
+    maxLevel: 20,
     baseTime: 180,
     requires: { academia: 2, almacen: 2 },
   },
@@ -593,8 +605,10 @@ export const RESEARCH = {
     name: 'Comercio',
     icon: '📜',
     description: 'Contratos, letras de cambio y rutas comerciales.',
-    effect: (n) => `+${n * 5} % de oro y mejores cambios en el mercado`,
+    effect: (n) => `+${(n * 2.5).toLocaleString('es-ES')} % de oro y mejores cambios en el mercado`,
     baseCost: { madera: 300, cristal: 250, oro: 50 },
+    long: true,
+    maxLevel: 20,
     baseTime: 240,
     requires: { academia: 3, mercado: 1 },
   },
@@ -604,6 +618,7 @@ export const RESEARCH = {
     description: 'Armas de bronce bien forjado. El nivel 1 permite entrenar espadachines.',
     effect: (n) => `+${n * 5} % de ataque`,
     baseCost: { madera: 150, hierro: 200, cristal: 120, oro: 30 },
+    lateCost: true,
     baseTime: 200,
     requires: { academia: 2, fundicion: 1 },
   },
@@ -613,6 +628,7 @@ export const RESEARCH = {
     description: 'Cotas de malla y escudos reforzados.',
     effect: (n) => `+${n * 5} % de vida de tus tropas`,
     baseCost: { piedra: 150, hierro: 250, cristal: 150, oro: 50 },
+    lateCost: true,
     baseTime: 220,
     requires: { academia: 3, herreria: 1 },
   },
@@ -639,9 +655,11 @@ export const RESEARCH = {
   navegacion: {
     name: 'Navegación',
     icon: '🧭',
-    description: 'Brújulas y velas latinas. Nivel 1: trirremes. Nivel 2: expediciones al Mar de las Brumas. Nivel 3: quinquerremes y liburnas.',
-    effect: (n) => `Flotas un ${n * 10} % más rápidas`,
+    description: 'Brújulas y velas latinas. Nivel 2: trirremes. Nivel 4: expediciones al Mar de las Brumas. Nivel 6: galeones y liburnas. Nivel 8: dromones.',
+    effect: (n) => `Flotas un ${n * 5} % más rápidas`,
     baseCost: { madera: 300, cristal: 180, oro: 30 },
+    long: true,
+    maxLevel: 20,
     baseTime: 220,
     requires: { academia: 2, puerto: 2 },
   },
@@ -653,7 +671,7 @@ export const RESEARCH = {
     baseCost: { madera: 500, cristal: 450, oro: 150 },
     baseTime: 360,
     maxLevel: 4,
-    requires: { academia: 3, navegacion: 1 },
+    requires: { academia: 3, navegacion: 2 },
   },
   cartas: {
     name: 'Cartas náuticas',
@@ -663,7 +681,7 @@ export const RESEARCH = {
     baseCost: { madera: 800, cristal: 600, oro: 300 },
     baseTime: 600,
     maxLevel: 1,
-    requires: { academia: 5, navegacion: 2, cartografia: 1 },
+    requires: { academia: 5, navegacion: 4, cartografia: 1 },
   },
   tactica: {
     name: 'Táctica militar',
@@ -701,6 +719,24 @@ export const PVP_RANGE = 300;
  */
 export const WATCH_MAX = 8;
 export const RESEARCH_COST_FACTOR = 1.9;
+
+/**
+ * Investigaciones largas (`long: true`, 20 niveles con la mitad de efecto por nivel que antes):
+ * el coste crece `early` por nivel hasta el 10 y `late` después, y el tiempo, `time` por nivel.
+ * Las de `lateCost` (Herrería y Armaduras, 10 niveles) encarecen mucho sus últimos niveles.
+ */
+export const RESEARCH_LONG = { early: 1.38, late: 1.6, time: 1.3 };
+export const RESEARCH_LATE = { from: 7, step: 0.75 };
+
+/**
+ * Costes de las obras: la madera y la piedra de `baseCost` cuestan `woodStone` (un poco menos), y
+ * desde el nivel `fromLevel` cada obra pide además bronce y cristal: esta parte de lo que pide de
+ * madera y piedra juntas. Así la mina y la fundición siguen sirviendo. (El Coloso ya los pide.)
+ */
+export const BUILD_COST = { woodStone: 0.85, fromLevel: 7, hierro: 0.12, cristal: 0.08 };
+
+/** El almacén esconde lo más alto de: 100 + 250 por nivel, o este porcentaje de lo que cabe. */
+export const PROTECTED_SHARE = 0.08;
 /** Todas las investigaciones cuestan esto más que su `baseCost` (en todos los niveles). */
 export const RESEARCH_COST_MULT = 1.25;
 /** …salvo el oro, que escasea: de oro piden un 35 % menos de lo que saldría. */
@@ -795,7 +831,13 @@ export const OCCUPATION = { hours: 24, tribute: 0.2, plunderHours: 4, plunderSha
  * invade). Y nadie puede lanzar más de `attacksPerDay` ataques, invasiones o bloqueos contra el
  * mismo jugador en 24 horas, salvo entre alianzas en guerra.
  */
-export const PROTECTION = { shieldHours: 12, attacksPerDay: 5 };
+/**
+ * Protección entre jugadores. Novato: hasta `newbiePoints` puntos y como mucho `newbieDays` días
+ * desde que fundó la ciudad, nadie le ataca (ni él a nadie). Débil: no se puede atacar a quien
+ * tenga menos de `weakRatio` de tus puntos, salvo en guerra o si te atacó él en las últimas
+ * `revengeHours` horas.
+ */
+export const PROTECTION = { shieldHours: 12, attacksPerDay: 5, newbiePoints: 1000, newbieDays: 5, weakRatio: 0.2, revengeHours: 48 };
 /** Misiones contra otro jugador que cuentan para el límite de ataques. */
 export const HOSTILE_MISSIONS = ['atacar', 'invadir', 'bloquear'];
 /** Misiones que se pueden lanzar desde una ciudad ocupada. */

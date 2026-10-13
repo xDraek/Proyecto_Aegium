@@ -413,7 +413,7 @@ export class Social {
           <li><span>🏛️</span><div><b>Haz crecer tu isla.</b> Pulsa un edificio para mejorarlo. Los recursos se producen solos, también con el juego cerrado.</div></li>
           <li><span>📋</span><div><b>Sigue las misiones.</b> Te guían paso a paso y te dan recompensas.</div></li>
           <li><span>🗺️</span><div><b>Explora el mapa</b> (tecla M). Con un puerto y botes descubrirás bárbaros, ruinas, tierras libres… y a tus vecinos.</div></li>
-          <li><span>🛡️</span><div><b>Tienes protección de novato</b> hasta los 100 puntos: nadie te atacará. Aprovecha para prepararte, que después llegan piratas y vecinos con hambre.</div></li>
+          <li><span>🛡️</span><div><b>Tienes protección de novato</b> hasta los 1.000 puntos (como mucho, 5 días): nadie te atacará. Aprovecha para prepararte, que después llegan piratas y vecinos con hambre.</div></li>
           <li><span>🤝</span><div><b>Únete a una alianza</b> o funda la tuya: os defenderéis, comerciaréis y tendréis chat propio.</div></li>
           <li><span>📖</span><div><b>¿Dudas?</b> La <button class="link" data-action="welcome-guide">guía del juego</button> lo explica todo (tecla <kbd>?</kbd>), y cada panel tiene su botón <b>?</b> con lo que hace falta saber.</div></li>
         </ol>

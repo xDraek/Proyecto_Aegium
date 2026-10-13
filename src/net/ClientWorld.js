@@ -53,6 +53,11 @@ export class ClientWorld {
     return this.relation(me, other) === 'aliado';
   }
 
+  /** Si `other` te ha atacado hace poco (lo calcula el servidor). */
+  attackedBy(_me, other) {
+    return !!this.players[other]?.hitMe;
+  }
+
   islands() {
     return [...this.islandMap.values()];
   }

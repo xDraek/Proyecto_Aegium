@@ -100,6 +100,7 @@ test('al saquear una ciudad se lleva todo lo que no protege el almacén, si cabe
   const env = await makeWorld();
   const [A, B] = env.players;
   for (const k of Object.keys(B.state.units)) B.state.units[k] = 0;
+  B.state.buildings.almacen = 2;
   B.state.resources = { madera: 3000, piedra: 3000, comida: 3000, hierro: 3000, cristal: 3000, oro: 3000 };
   const safe = protectedAmount(B.state);
   Object.assign(A.state.units, { galeon: 60, hoplita: 100, mercante: 10 });
@@ -200,4 +201,20 @@ test('ninguna colonia da oro: las de antes pasan a dar cristal', async () => {
   const base = newState({ home: 'x', name: 'Prueba' });
   const st = upgradeState({ ...base, colonies: [{ id: 'c', name: 'C', specialty: 'oro', yield: 91 }, { id: 'd', name: 'D', specialty: 'madera', yield: 150 }] });
   assert.deepEqual(st.colonies.map((c) => c.specialty), ['cristal', 'madera']);
+});
+
+test('las investigaciones largas llegan a 20 con la mitad de efecto, y las partidas de antes duplican su nivel', async () => {
+  const { researchCost, researchMax } = await import('../src/game/rules.js');
+  for (const id of ['silvicultura', 'navegacion', 'comercio', 'logistica']) assert.equal(researchMax(id), 20, id);
+  for (const id of ['herreria', 'armaduras']) assert.equal(researchMax(id), 10, id);
+  // Los últimos niveles de Herrería cuestan bastante más que antes
+  assert.ok(researchCost('herreria', 10).hierro > 2 * Math.floor(200 * 1.9 ** 9 * 1.25), 'más del doble que el nivel 10 de antes');
+  const base = newState({ home: 'x', name: 'Prueba' });
+  const old = upgradeState({ ...base, version: 6, research: { ...base.research, silvicultura: 10, navegacion: 3, herreria: 4 }, researchQueue: { id: 'mineria', level: 5, cost: {}, end: 1 } });
+  assert.equal(old.research.silvicultura, 20);
+  assert.equal(old.research.navegacion, 6);
+  assert.equal(old.research.herreria, 4, 'Herrería no cambia');
+  assert.equal(old.researchQueue.level, 10);
+  // Una partida ya migrada no se vuelve a tocar
+  assert.equal(upgradeState(old).research.silvicultura, 20);
 });
