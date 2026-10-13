@@ -1,0 +1,39 @@
+# Cada push a main: se pasan los tests y, si todo va bien, se publica en el servidor (Hetzner).
+# El servidor solo deja a esta llave lanzar el despliegue (/usr/local/bin/imperium-deploy),
+# que actualiza el código, compila, guarda una copia de la base de datos y reinicia el juego.
+name: Desplegar
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: desplegar
+  cancel-in-progress: false
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  desplegar:
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publicar en el servidor
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          echo '2.31.37.128 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMfW7rE7cLRXYnZmQuovPA6tB4oJUZdowUxut1AzPqiJ' > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes root@2.31.37.128 desplegar
