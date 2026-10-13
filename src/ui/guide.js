@@ -9,6 +9,7 @@ import {
   CONTEST_DAYS,
   CONTEST_PRIZES,
   DIPLOMACY,
+  EXPEDITION,
   FEAT_THEMES,
   FEATS,
   HERO,
@@ -328,7 +329,7 @@ const TOPICS = {
     icon: '⚖️',
     title: 'Mercado y comercio',
     body: () => `${list([
-      '<b>Cambiar en el mercado</b>: cambias un recurso por otro al momento. Cada recurso vale distinto (el oro y el cristal valen más) y el mercader se queda una comisión: empiezas recibiendo una cuarta parte de lo justo; cada nivel de mercado mejora el cambio un 2 % y cada nivel de Comercio un 0,5 %, hasta el 60 %. La Gran feria lo mejora otro 15 %. Con otros jugadores no hay impuestos.',
+      '<b>Cambiar en el mercado</b>: cambias un recurso por otro al momento. Cada recurso vale distinto (el oro y el cristal valen más) y el mercader se queda una comisión: empiezas recibiendo una cuarta parte de lo justo; cada nivel de mercado mejora el cambio un 2 % y cada nivel de Comercio un 0,5 %, hasta el 60 %. La Gran feria lo mejora otro 15 %. <b>Comprar oro</b>, que escasea, sale a la mitad: como mucho, un 30 %. Con otros jugadores no hay impuestos.',
       '<b>Ofertas entre jugadores</b>: en el mercado publicas qué das y qué pides (hasta 5 ofertas, que caducan a los 3 días). Lo que ofreces queda apartado hasta que alguien acepta o la retiras.',
       '<b>Transportes</b>: manda mercantes con recursos a la ciudad de cualquier jugador. Si no eliges barcos, salen los que hagan falta.',
       `<b>Mercader ambulante</b>: de vez en cuando atraca uno que compra lo que te sobra y paga mejor que el mercado (ver ${see('visitantes', 'Visitantes')}).`,
@@ -388,7 +389,7 @@ const TOPICS = {
         `Pide <b>tropas de apoyo</b> a tu ${see('alianzas', 'alianza')} o contrata ${see('mercenarios', 'mercenarios')}.`,
         'Sube el almacén: lo que esconde no se lo lleva nadie.',
       ])}
-      <p>Mientras tengas menos de <b>${fmtNum(NEWBIE_POINTS)} puntos</b>, y como mucho tus primeros <b>${NEWBIE_DAYS} días</b>, tienes <b>protección de novato</b>: ningún jugador te puede atacar (los piratas, sí). Después, nadie te puede atacar si tienes menos del ${pct(PROTECTION.weakRatio)} de sus puntos, salvo en guerra o si le atacaste tú antes.</p>
+      <p>Mientras tengas menos de <b>${fmtNum(NEWBIE_POINTS)} puntos</b>, y como mucho tus primeros <b>${NEWBIE_DAYS} días</b>, tienes <b>protección de novato</b>: ningún jugador te puede atacar (los piratas, sí). Después, nadie te puede atacar si tienes menos del ${pct(PROTECTION.weakRatio)} de sus puntos (ni siquiera en guerra), salvo si le atacaste tú antes.</p>
       ${tip(`Si te bloquean el puerto o te ocupan la ciudad, mira ${see('invasiones', 'Invasiones y ocupación')}.`)}`,
   },
   almirante: {
@@ -432,13 +433,13 @@ const TOPICS = {
   expediciones: {
     icon: '🧭',
     title: 'Expediciones',
-    body: () => `<p>Con <b>Navegación 4</b> puedes mandar flotas al <b>Mar de las Brumas</b> 🌫️. Cuanta más bodega lleves, más botín puedes traer. Lo que puede pasar:</p>
+    body: () => `<p>Con <b>Navegación 4</b> puedes mandar flotas al <b>Mar de las Brumas</b> 🌫️. Solo puedes tener <b>una expedición a la vez</b>, la flota pasa ${EXPEDITION.stayHours} h explorando la niebla antes de volver, y solo trae lo que <b>cabe en su bodega</b>. Lo que puede pasar:</p>
       ${table(
         ['Suceso', 'Probabilidad'],
         [
           ['📦 Un pecio con la bodega llena', '28 %'],
           ['🌫️ Solo niebla: vuelves sin nada', '18 %'],
-          ['⛵ Barcos abandonados que se unen a tu flota', '12 %'],
+          ['⛵ Barcos abandonados que se unen a tu flota (como mucho, tantos como barcos llevas)', '12 %'],
           ['🏴‍☠️ Emboscada pirata (hay combate)', '12 %'],
           ['💰 Un tesoro en una isla perdida', '8 %'],
           ['🧭 Perdidos: tardáis el doble en volver', '8 %'],
@@ -484,7 +485,7 @@ const TOPICS = {
     body: () => `<p>Puedes atacar la ciudad de cualquier jugador que no sea de tu alianza ni tenga un pacto con ella. Si ganas, te llevas lo que quepa en tus barcos, salvo lo que esconde su almacén.</p>
       ${list([
         `<b>Protección de novato</b>: con menos de ${fmtNum(NEWBIE_POINTS)} puntos y en tus primeros ${NEWBIE_DAYS} días (se acaba con lo que llegue antes) nadie te ataca, pero tú tampoco puedes atacar, sabotear, bloquear ni invadir a otros jugadores.`,
-        `<b>Contra los débiles, no</b>: no puedes atacar, sabotear, bloquear ni invadir a quien tenga menos del ${pct(PROTECTION.weakRatio)} de tus puntos, salvo si estáis en guerra o si te ha atacado él en las últimas ${PROTECTION.revengeHours} h.`,
+        `<b>Contra los débiles, no</b>: no puedes atacar, sabotear, bloquear ni invadir a quien tenga menos del ${pct(PROTECTION.weakRatio)} de tus puntos, ni siquiera en guerra, salvo si te ha atacado él en las últimas ${PROTECTION.revengeHours} h.`,
         '<b>Vacaciones</b>: a quien está de vacaciones no se le puede atacar ni espiar.',
         `<b>Guerra</b>: si vuestras alianzas están en guerra, tus barcos cargan un ${pct(DIPLOMACY.warLoot)} más de botín y las bajas cuentan en el marcador de la guerra.`,
         `<b>Ataques conjuntos</b>: hasta ${JOINT_MAX} aliados pueden sumar su flota al ataque de otro y combatir como un solo ejército. El botín se reparte según la bodega de cada uno.`,

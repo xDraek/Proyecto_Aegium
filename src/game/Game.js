@@ -30,6 +30,7 @@ import {
   POWERS,
   PVP_RANGE,
   WATCH_MAX,
+  EXPEDITION,
   PROTECTION,
   QUESTS,
   RELICS,
@@ -586,10 +587,10 @@ export class Game extends EventTarget {
 
   /**
    * Si `view` (la ciudad de otro jugador) es demasiado débil para atacarla: tiene menos del 20 %
-   * de tus puntos, no estáis en guerra y no te ha atacado él hace poco.
+   * de tus puntos y no te ha atacado él hace poco (vale también en guerra).
    */
   tooWeak(view) {
-    if (view?.type !== 'jugador' || view.relation === 'guerra') return false;
+    if (view?.type !== 'jugador') return false;
     if (!(view.score < this.score() * PROTECTION.weakRatio)) return false;
     return !this.world.attackedBy?.(this.userId, view.owner);
   }
@@ -1338,6 +1339,7 @@ export class Game extends EventTarget {
     } else if (type === 'expedicion') {
       if (isl.type !== 'brumas') reason ||= 'Las expediciones zarpan hacia el Mar de las Brumas.';
       else if (this.researchLevel('navegacion') < 4) reason ||= 'Investiga Navegación 4 para aventurarte en la niebla.';
+      else if (s.missions.some((x) => x.type === 'expedicion')) reason ||= 'Ya tienes una expedición en la niebla: solo puedes tener una a la vez.';
     } else if (isl.type === 'brumas') {
       reason ||= 'En el Mar de las Brumas solo caben expediciones.';
     } else if (type === 'atacar') {
@@ -2233,6 +2235,8 @@ export class Game extends EventTarget {
       m.phase = 'vuelta';
       m.turn = t;
       m.back = t + (m.arrive - m.depart) * (m.slow ?? 1);
+      // Las expediciones pasan un rato explorando la niebla antes de volver
+      if (m.type === 'expedicion') m.back += hours(EXPEDITION.stayHours);
     } else {
       this.state.missions = this.state.missions.filter((x) => x !== m);
       if (m.hero) this.#heroWounded(t);
@@ -2945,25 +2949,40 @@ export class Game extends EventTarget {
     }
     const roll = Math.random();
     const report = { t, kind: 'expedicion', island: isl.id, islandName: isl.name, outcome: null };
+    // Solo se trae lo que cabe en la bodega (lo que sobra se queda en la niebla)
+    const fit = (bag) => {
+      const total = sum(bag);
+      if (total <= capacity) return bag;
+      const k = capacity / total;
+      return Object.fromEntries(Object.entries(bag).map(([r, n]) => [r, Math.floor(n * k)]).filter(([, n]) => n > 0));
+    };
     const add = (bag) => {
       for (const [res, n] of Object.entries(bag)) m.cargo[res] = (m.cargo[res] ?? 0) + n;
     };
+    const noRoom = ' Pero vuestros barcos no tienen bodega y no os podéis llevar nada.';
     if (roll < 0.28) {
       const pool = ['madera', 'piedra', 'hierro', 'cristal', 'oro'].sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 2));
-      const total = Math.max(400, capacity * (0.4 + Math.random() * 0.6));
+      const total = capacity * (0.4 + Math.random() * 0.6);
       const bag = {};
-      for (const res of pool) bag[res] = Math.floor(total / pool.length / RESOURCES[res].value);
+      for (const res of pool) {
+        const n = Math.floor(total / pool.length / RESOURCES[res].value);
+        if (n > 0) bag[res] = n;
+      }
       add(bag);
-      Object.assign(report, { title: 'Un pecio a la deriva', text: 'Entre la niebla aparece un barco mercante abandonado con la bodega llena.', loot: bag, outcome: 'victoria' });
+      const empty = !Object.keys(bag).length;
+      Object.assign(report, { title: 'Un pecio a la deriva', text: `Entre la niebla aparece un barco mercante abandonado con la bodega llena.${empty ? noRoom : ''}`, loot: empty ? null : bag, outcome: empty ? 'empate' : 'victoria' });
     } else if (roll < 0.4) {
-      const n = 1 + Math.floor(Math.random() * 3);
+      // Hacen falta marineros para llevarlos: como mucho, tantos como barcos lleva la flota
+      const ships = Object.entries(m.units).reduce((a, [id, n]) => a + (UNITS[id].kind === 'barco' ? n : 0), 0);
+      const n = Math.min(1 + Math.floor(Math.random() * 3), ships);
       const type = Math.random() < 0.7 ? 'mercante' : 'trirreme';
       m.units[type] = (m.units[type] ?? 0) + n;
-      Object.assign(report, { title: 'Barcos sin tripulación', text: `${n} × ${UNITS[type].name} flotaban vacíos en la niebla. Ahora navegan bajo tu bandera.`, outcome: 'victoria' });
+      Object.assign(report, { title: 'Barcos sin tripulación', text: `${n} × ${UNITS[type].name} flotaban vacíos en la niebla. Tus marineros los tripulan y ahora navegan bajo tu bandera.`, outcome: 'victoria' });
     } else if (roll < 0.48) {
-      const bag = { oro: Math.floor(600 + Math.random() * 1400), cristal: Math.floor(300 + Math.random() * 700) };
+      const bag = fit({ oro: Math.floor(600 + Math.random() * 1400), cristal: Math.floor(300 + Math.random() * 700) });
       add(bag);
-      Object.assign(report, { title: 'Una isla que no sale en los mapas', text: 'En una cala escondida hay un cofre con el tesoro de algún pirata olvidado.', loot: bag, outcome: 'victoria' });
+      const empty = !Object.keys(bag).length;
+      Object.assign(report, { title: 'Una isla que no sale en los mapas', text: `En una cala escondida hay un cofre con el tesoro de algún pirata olvidado.${empty ? noRoom : ''}`, loot: empty ? null : bag, outcome: empty ? 'empate' : 'victoria' });
     } else if (roll < 0.66) {
       Object.assign(report, { title: 'Solo niebla', text: 'Días de niebla, gaviotas y silencio. La flota vuelve sin nada que contar.' });
     } else if (roll < 0.78) {
@@ -2982,7 +3001,7 @@ export class Game extends EventTarget {
       m.units = Object.fromEntries(Object.entries(left).filter(([, n]) => n > 0));
       this.#mercsLost(lostAll);
       const won = result.winner !== 'att';
-      const loot = won ? { oro: 15 * pirata } : null;
+      const loot = won ? fit({ oro: 15 * pirata }) : null;
       if (loot) add(loot);
       Object.assign(report, {
         title: won ? 'Emboscada pirata rechazada' : 'Emboscada pirata',
@@ -3040,7 +3059,8 @@ export class Game extends EventTarget {
   #spawnRaid(t) {
     const tier = this.raidTier();
     // Los corsarios llevan a los piratas (12 por barco) y escoltan con más barcos cuanto más fuerte es el asalto
-    const pirata = Math.round(5 * tier ** 1.35);
+    // Contra quien aún tiene protección de novato vienen a media fuerza
+    const pirata = Math.max(2, Math.round(5 * tier ** 1.35 * (this.isProtected(t) ? 0.5 : 1)));
     const army = { pirata, corsario: Math.ceil(pirata / 12) + Math.floor(tier / 2) };
     this.state.raid = { spawn: t, arrival: t + hours(RAID_WARNING_MIN / 60), army, tier };
     this.state.nextRaidAt = null;
@@ -3333,7 +3353,7 @@ function spyIntel(info, level, t) {
 
 /** Por qué no se puede atacar a alguien mucho más débil. */
 function weakText(name) {
-  return `${name} tiene menos del ${Math.round(PROTECTION.weakRatio * 100)} % de tus puntos: no se puede atacar a alguien tan débil, salvo en guerra o si te ha atacado en las últimas ${PROTECTION.revengeHours} h.`;
+  return `${name} tiene menos del ${Math.round(PROTECTION.weakRatio * 100)} % de tus puntos: no se puede atacar a alguien tan débil (ni en guerra), salvo si te ha atacado en las últimas ${PROTECTION.revengeHours} h.`;
 }
 
 function fmtBag(bag) {

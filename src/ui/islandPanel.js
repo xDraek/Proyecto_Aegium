@@ -21,7 +21,7 @@ function playerSection(game, view) {
   if (view.vacation) lines.push('<p class="hint ok">🏖️ Está de vacaciones: su isla no se puede atacar ni espiar.</p>');
   else if (view.inactive) lines.push('<p class="hint">💤 Lleva más de una semana sin aparecer por su ciudad.</p>');
   if (view.protected) lines.push(`<p class="hint ok">🛡️ Protección de novato: con menos de ${fmtNum(NEWBIE_POINTS)} puntos y en sus primeros días nadie puede atacar esta ciudad.</p>`);
-  else if (!ally && game.tooWeak(view)) lines.push('<p class="hint ok">🛡️ Tiene menos del 20 % de tus puntos: no le puedes atacar (salvo en guerra o si te ataca él).</p>');
+  else if (!ally && game.tooWeak(view)) lines.push('<p class="hint ok">🛡️ Tiene menos del 20 % de tus puntos: no le puedes atacar, ni siquiera en guerra (salvo si te ataca él).</p>');
   if (view.shield) lines.push(`<p class="hint ok">🛡️ Acaba de librarse de un bloqueo o una ocupación: nadie la puede bloquear ni invadir en <span data-until="${view.shield}"></span>.</p>`);
   // Límite de ataques al mismo jugador (no cuenta entre alianzas en guerra)
   if (!ally && view.relation !== 'pacto') {
@@ -427,7 +427,7 @@ function infoSectionFor(game, view, t) {
   }
   if (view.colonized) return colonySection(game, view);
   if (view.type === 'brumas') {
-    return `<p class="desc">Más allá de las islas conocidas, una niebla que nunca se levanta. Las expediciones vuelven con tesoros, barcos perdidos… o no vuelven.</p>
+    return `<p class="desc">Más allá de las islas conocidas, una niebla que nunca se levanta. Las expediciones vuelven con tesoros, barcos perdidos… o no vuelven. Solo una a la vez: pasan unas horas en la niebla y traen lo que cabe en su bodega.</p>
       <p class="desc small">Hace falta Navegación 4. Cuantos más barcos y más bodega lleves, más botín puedes traer, pero también hay piratas y monstruos.</p>`;
   }
   if (!view.explored) {

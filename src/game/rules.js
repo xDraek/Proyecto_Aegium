@@ -9,6 +9,7 @@ import {
   OCCUPATION,
   PLAYER_UNITS,
   PROTECTED_SHARE,
+  MARKET_GOLD,
   RESEARCH,
   RESEARCH_COST_FACTOR,
   RESEARCH_COST_MULT,
@@ -434,8 +435,10 @@ export function storageCapacity(state) {
 /** Cuánto recibes por cada unidad de `from` al cambiarla por `to` en el mercado. */
 export function tradeRate(state, from, to, t = state.lastUpdate) {
   const fair = worldEventAt(t).event?.trade ?? 0;
-  // El mercado cobra impuestos altos (entre el 75 % y el 40 %): sale más a cuenta comerciar con otros jugadores
-  const efficiency = Math.min(0.6 + fair, 0.25 + 0.02 * lvl(state, 'mercado') + 0.005 * lvl(state, 'comercio') + fair);
+  // El mercado cobra impuestos altos (entre el 75 % y el 40 %): sale más a cuenta comerciar con otros
+  // jugadores. Comprar oro, que escasea, sale aún peor (la mitad)
+  const gold = to === 'oro' ? MARKET_GOLD : 1;
+  const efficiency = (Math.min(0.6, 0.25 + 0.02 * lvl(state, 'mercado') + 0.005 * lvl(state, 'comercio')) + fair) * gold;
   return (RESOURCES[from].value / RESOURCES[to].value) * efficiency;
 }
 

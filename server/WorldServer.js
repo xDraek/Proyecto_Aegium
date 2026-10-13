@@ -3026,6 +3026,12 @@ export class WorldServer {
     return { [res]: n };
   }
 
+  /** Para comerciar con otros jugadores hace falta el puerto libre y no estar de vacaciones. */
+  #canTrade(game, what) {
+    if (game.state.vacation) throw new UserError(`De vacaciones no puedes ${what}.`);
+    if (game.portClosed()) throw new UserError(`Tu puerto está en manos enemigas: no puedes ${what}.`);
+  }
+
   listOffers(userId) {
     return this.meta.offers
       .map((o) => ({ ...o, sellerName: this.users.get(o.seller)?.username ?? '¿?', mine: o.seller === userId }))
@@ -3038,6 +3044,7 @@ export class WorldServer {
     want = this.#cleanOffer(want);
     if (Object.keys(give)[0] === Object.keys(want)[0]) throw new UserError('Elige dos recursos distintos.');
     const game = this.games.get(userId);
+    this.#canTrade(game, 'publicar ofertas');
     if (game.level('mercado') < 1) throw new UserError('Necesitas un mercado para comerciar.');
     if (this.meta.offers.filter((o) => o.seller === userId).length >= MAX_OFFERS) throw new UserError(`Como mucho ${MAX_OFFERS} ofertas a la vez.`);
     if (!game.takeResources(give)) throw new UserError('No tienes esos recursos.');
@@ -3057,6 +3064,9 @@ export class WorldServer {
     if (!o) throw new UserError('Alguien se te ha adelantado: esa oferta ya no existe.');
     if (o.seller === userId) throw new UserError('Es tu propia oferta.');
     const buyer = this.games.get(userId);
+    this.#canTrade(buyer, 'aceptar ofertas');
+    const owner = this.games.get(o.seller);
+    if (owner?.portClosed()) throw new UserError(`El puerto de ${owner.name} está en manos enemigas: sus mercaderes no pueden salir.`);
     if (!buyer.takeResources(o.want)) throw new UserError('No tienes lo que piden.');
     this.meta.offers = this.meta.offers.filter((x) => x !== o);
     buyer.giveResources(o.give);

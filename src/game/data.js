@@ -718,6 +718,15 @@ export const PVP_RANGE = 300;
  * atacarlas o espiarlas: se recuerdan las últimas WATCH_MAX.
  */
 export const WATCH_MAX = 8;
+
+/**
+ * Expediciones al Mar de las Brumas: solo una a la vez, y la flota pasa `stayHours` horas
+ * explorando la niebla antes de volver. Lo que encuentran tiene que caber en la bodega.
+ */
+export const EXPEDITION = { stayHours: 2 };
+
+/** Comprar oro en el mercado sale peor: el cambio se multiplica por esto (como mucho, un 30 %). */
+export const MARKET_GOLD = 0.5;
 export const RESEARCH_COST_FACTOR = 1.9;
 
 /**

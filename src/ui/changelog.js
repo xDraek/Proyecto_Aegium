@@ -5,6 +5,18 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-14d',
+    date: '2026-10-14',
+    title: 'Ajustes contra trampas',
+    items: [
+      '🌫️ <b>Expediciones</b>: solo una a la vez, la flota pasa 2 h explorando la niebla y solo trae lo que <b>cabe en su bodega</b> (un bote explorador ya no vuelve cargado de oro). Los barcos abandonados que encuentras, como mucho tantos como barcos llevas.',
+      '⚖️ <b>Comprar oro en el mercado</b> sale a la mitad (como mucho, un 30 % de su valor): el oro escasea.',
+      '🛡️ La protección de los débiles (menos del 20 % de tus puntos) se mantiene <b>también en guerra</b>.',
+      'Las <b>ofertas entre jugadores</b> no se pueden publicar ni aceptar de vacaciones o con el puerto en manos enemigas.',
+      '🏴‍☠️ Mientras tengas protección de novato, los <b>piratas</b> vienen a media fuerza.',
+    ],
+  },
+  {
     id: '2026-10-14c',
     date: '2026-10-14',
     title: 'Más protección para los nuevos y obras con bronce y cristal',

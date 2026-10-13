@@ -576,7 +576,7 @@ export class Social {
       })
       .join('');
     return `<h4>Mercado del archipiélago</h4>
-      <p class="desc small">Ofertas de otros jugadores. Lo que ofreces queda apartado hasta que alguien acepta (o caduca a los 3 días).</p>
+      <p class="desc small">Ofertas de otros jugadores, sin impuestos. Lo que ofreces queda apartado hasta que alguien acepta (o caduca a los 3 días).</p>
       <div class="offer-form">
         <label>Doy ${resPicker('o-give', 'madera', 'Recurso que das')}<input type="number" name="o-give-n" min="1" value="500" inputmode="numeric" /></label>
         <label>Pido ${resPicker('o-want', 'cristal', 'Recurso que pides')}<input type="number" name="o-want-n" min="1" value="200" inputmode="numeric" /></label>
