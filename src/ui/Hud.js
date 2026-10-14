@@ -1402,9 +1402,14 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     if (!text) return;
     input.value = '';
     try {
-      // Los moderadores pueden hacer anuncios con /anuncio
+      // Los moderadores pueden hacer anuncios con /anuncio y despertar una gesta con
+      // /gesta [continente] [minutos de presagios] (sin continente, la del libre más cercano)
       if (this.game.admin && text.startsWith('/anuncio ')) await api('POST', '/api/admin/broadcast', { text: text.slice(9) });
-      else await api('POST', '/api/chat', { text, channel: this.chatChannel });
+      else if (this.game.admin && /^\/gesta(\s|$)/.test(text)) {
+        const [, site, minutes] = /^\/gesta\s*(.*?)\s*(\d+)?$/.exec(text);
+        const res = await api('POST', '/api/admin/feat', { site: site || undefined, omenMinutes: minutes ? Number(minutes) : undefined });
+        this.toast(`🌋 Gesta en ${res.name}: ${res.players} ${res.players === 1 ? 'imperio convocado' : 'imperios convocados'}`, 'success');
+      } else await api('POST', '/api/chat', { text, channel: this.chatChannel });
       await this.#fetchChat(true);
     } catch (err) {
       input.value = text;
