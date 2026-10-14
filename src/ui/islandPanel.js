@@ -207,7 +207,7 @@ function featSection(game, view) {
       <button class="primary wide" data-action="pledge-feat" data-site="${escapeHtml(view.id)}">${f.icon} Jurar la gesta</button>`;
   } else if (f.convoked) mine = '<p class="muted small">El juramento ya está cerrado.</p>';
   else mine = '<p class="muted small">No estás convocado a esta gesta: solo los imperios cercanos al continente.</p>';
-  const forge = f.pledged && f.forge ? forgeSection(view, f) : '';
+  const forge = f.pledged && f.forge ? forgeSection(game, view, f) : '';
   const estimate = f.pledged && f.stage === 'lucha' ? estimateHint(f) : '';
   const top = f.top.length ? `<h5>Más gloria</h5><ol class="mini-rank contest-list">${f.top.map((x) => `<li class="${x.me ? 'me' : ''}"><span>${escapeHtml(x.name)}</span><b>${pct(x.share)}</b></li>`).join('')}</ol>` : '';
   const intro = f.stage === 'presagio' ? `<p class="desc small">${escapeHtml(f.themeText ?? '')} ${escapeHtml(FEAT_INTRO)}</p>` : '';
@@ -322,7 +322,7 @@ function estimateHint(f) {
 }
 
 /** La fragua de Hefesto: cuánto lleva, qué da y el formulario para ofrendar. */
-function forgeSection(view, f) {
+function forgeSection(game, view, f) {
   const F = FEATS.forge;
   const fg = f.forge;
   if (!fg.goal) return '';
@@ -344,7 +344,13 @@ function forgeSection(view, f) {
   const options = F.resources.map((r) => `${RESOURCES[r].icon} ${fmtNum(room / RESOURCES[r].value)}`).join(' · ');
   const form = canGive
     ? `<p class="muted small">Aún puedes ofrendar hasta ${options} (o una mezcla).</p>
-      <div class="payload">${F.resources.map((r) => `<label title="${RESOURCES[r].name}">${RESOURCES[r].icon}<input type="number" name="fg-${r}" min="0" placeholder="0" inputmode="numeric" /></label>`).join('')}</div>
+      <div class="payload">${F.resources
+        .map((r) => {
+          // Como mucho, lo que tienes (y lo que aún cabe en la fragua)
+          const max = Math.max(0, Math.floor(Math.min(game.resources[r] ?? 0, room / RESOURCES[r].value)));
+          return `<label title="${RESOURCES[r].name}: como mucho ${fmtNum(max)}">${RESOURCES[r].icon}<input type="number" name="fg-${r}" min="0" max="${max}" data-clamp placeholder="${fmtNum(max)}" inputmode="numeric" /></label>`;
+        })
+        .join('')}</div>
       <button class="primary wide" data-action="feat-forge" data-site="${escapeHtml(view.id)}">🔥 Ofrendar en la fragua</button>`
     : open
       ? `<p class="muted small">${inForge >= fg.goal ? 'La fragua está llena.' : 'Ya has ofrendado todo lo que puedes en esta gesta.'}</p>`

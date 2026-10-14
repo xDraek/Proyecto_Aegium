@@ -106,7 +106,12 @@ export class Hud {
     installResPickers();
 
     this.panel.addEventListener('click', (e) => this.#onPanelClick(e));
-    this.panel.addEventListener('input', () => this.#refreshPanel());
+    this.panel.addEventListener('input', (e) => {
+      // Los campos con tope (data-clamp) no dejan pasar de su máximo
+      const el = e.target;
+      if (el.matches?.('input[data-clamp]') && el.max !== '' && Number(el.value) > Number(el.max)) el.value = el.max;
+      this.#refreshPanel();
+    });
     this.panel.addEventListener('change', (e) => {
       // Cambiar el origen de la flota cambia las tropas que se pueden mandar
       if (e.target.name === 'from') {

@@ -5,6 +5,14 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15d',
+    date: '2026-10-15',
+    title: 'Ofrendas en la fragua',
+    items: [
+      '🔥 Al ofrendar en la <b>fragua de Hefesto</b>, cada casilla llega como mucho a lo que tienes de ese recurso (y a lo que aún cabe en la fragua): si escribes de más, se corrige solo. Las cifras grandes ya caben enteras.',
+    ],
+  },
+  {
     id: '2026-10-15c',
     date: '2026-10-15',
     title: 'Barras de progreso más claras',

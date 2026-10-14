@@ -2043,6 +2043,18 @@ body.landing-mode #chat {
 
 .payload input {
   width: 100%;
+  min-width: 0;
+  padding-inline: 6px;
+  font-variant-numeric: tabular-nums;
+  /* Sin las flechitas de subir y bajar: así caben cifras de cinco o seis dígitos */
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.payload input::-webkit-inner-spin-button,
+.payload input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 /* ── Perfil, logros, regalo diario, bienvenida y simulador ──────────────── */
