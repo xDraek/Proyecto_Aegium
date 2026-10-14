@@ -1003,7 +1003,16 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       case 'pledge-feat': {
         const site = btn.dataset.site;
         const f = game.island(site)?.feat;
-        if (!confirm(`¿Jurar combatir a ${f?.enemy ?? 'la bestia'}? Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y unos días sin poder jurar otra gesta.`)) break;
+        // Al jurar se dejan las guerras: ocupaciones, bloqueos y flotas contra otros jugadores
+        const { stations, fleets } = game.pledgeCosts();
+        const wars = [
+          stations.length ? `terminarán tus ${stations.length === 1 ? 'ocupación o bloqueo' : `${stations.length} ocupaciones o bloqueos`}` : '',
+          fleets.length ? `se darán la vuelta tus ${fleets.length === 1 ? 'flota que va' : `${fleets.length} flotas que van`} a por otros jugadores` : '',
+        ].filter(Boolean);
+        const leave = wars.length ? `
+
+Al jurar, ${wars.join(' y ')}.` : '';
+        if (!confirm(`¿Jurar combatir a ${f?.enemy ?? 'la bestia'}? Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y unos días sin poder jurar otra gesta.${leave}`)) break;
         await this.#run(btn, () => game.pledgeFeat(site), null, 'magic');
         break;
       }

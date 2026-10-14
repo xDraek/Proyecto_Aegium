@@ -1628,8 +1628,35 @@ export class Game extends EventTarget {
     const res = this.world.pledgeFeat?.(this.userId, site, { name: s.name, at: now, power, prod: prod.value, mix: prod.mix }, now);
     if (!res?.ok) return this.#fail(res?.reason ?? 'No se puede jurar ahora.');
     s.feat = { ...(s.feat ?? {}), k: res.k, site, theme: res.theme, pledgedAt: now };
+    // Quien jura deja sus guerras: si no, podría tener ocupada la ciudad de otro juramentado al que
+    // la tregua sagrada no deja liberarla
+    const { stations, fleets } = this.pledgeCosts();
+    for (const m of stations) this.endStation(m, now, 'gesta');
+    for (const m of fleets) {
+      m.back = now + Math.min(now - m.depart, m.trip ?? Infinity);
+      m.recalled = true;
+      m.phase = 'vuelta';
+      m.turn = now;
+    }
+    if (fleets.length) this.#note(`🌋 Has jurado la gesta: ${fleets.length === 1 ? 'tu flota que iba a por otro jugador se da la vuelta' : `tus ${fleets.length} flotas que iban a por otros jugadores se dan la vuelta`}`, 'info');
     this.#note(`${FEAT_THEMES[res.theme].icon} Has jurado combatir a ${FEAT_THEMES[res.theme].enemy}`, 'success');
     return this.#done();
+  }
+
+  /**
+   * Lo que se deja al jurar una gesta: las ocupaciones y bloqueos de ciudades de otros jugadores y
+   * las flotas que van a atacarlas, invadirlas, bloquearlas o sabotearlas.
+   */
+  pledgeCosts() {
+    const hostile = ['atacar', 'invadir', 'bloquear', 'sabotaje'];
+    const stations = [];
+    const fleets = [];
+    for (const m of this.state.missions) {
+      if (m.feat != null) continue;
+      if (m.phase === 'estacionada' && (m.type === 'invadir' || m.type === 'bloquear')) stations.push(m);
+      else if (m.phase === 'ida' && hostile.includes(m.type) && this.world.island(m.target)?.type === 'jugador') fleets.push(m);
+    }
+    return { stations, fleets };
   }
 
   /**
@@ -2680,6 +2707,7 @@ export class Game extends EventTarget {
       tiempo: `${m.type === 'invadir' ? '🦅' : '⛓️'} Se acaba el tiempo: termina ${what} y tus tropas vuelven a casa`,
       relevo: `⛓️ Tu ejército ha tomado ${m.targetName}: la flota del bloqueo vuelve a casa`,
       paz: `🕊️ Ya no estáis enfrentados: termina ${what}`,
+      gesta: `🌋 Has jurado la gesta: termina ${what} y tus tropas vuelven a casa`,
     }[reason];
     if (text) this.#note(text, 'info');
     this.#dirty = true;

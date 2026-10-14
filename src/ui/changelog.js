@@ -5,6 +5,14 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15h',
+    date: '2026-10-15',
+    title: 'Jurar una gesta',
+    items: [
+      '🌋 Al <b>jurar una gesta</b> dejas tus guerras: terminan tus ocupaciones y bloqueos de ciudades de otros jugadores y se dan la vuelta tus flotas que iban a por ellos. Así nadie se queda con su ciudad ocupada sin poder liberarla por la tregua sagrada. Antes de jurar, el juego te avisa de lo que vas a dejar.',
+    ],
+  },
+  {
     id: '2026-10-15g',
     date: '2026-10-15',
     title: 'Avisos que se pueden ocultar',

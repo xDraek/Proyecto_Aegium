@@ -636,6 +636,7 @@ const TOPICS = {
       ${list([
         `🌫️ <b>Perjuro</b>: si juras y a las ${FEATS.perjuryHours} h de lucha no has combatido, ni ofrendado, ni tienes flota en camino, los dioses cubren tu isla de ceniza (−${pct(P.ash)} de producción durante ${P.hours} h) y no podrás jurar otra gesta en ${P.days} días.`,
         `🕊️ <b>Tregua sagrada</b>: los que juran la misma gesta no se pueden atacar, espiar, sabotear, bloquear ni invadir desde que emerge el enemigo hasta ${FEATS.truceAfterHours} h después de acabar, salvo si sus alianzas están en guerra.`,
+        '⚔️ <b>Al jurar dejas tus guerras</b>: terminan tus ocupaciones y bloqueos de ciudades de otros jugadores (tus tropas vuelven con el tributo) y se dan la vuelta tus flotas que iban a atacarlos, invadirlos, bloquearlos o sabotearlos.',
       ])}
       <h5>Dónde seguirlas</h5>
       ${list([

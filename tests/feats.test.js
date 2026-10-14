@@ -750,3 +750,29 @@ test('una flota que llega cuando la gesta ya ha acabado vuelve con el motivo de 
   assert.ok(A.state.reports.some((r) => r.kind === 'gesta' && /terminado|Nada que hacer/.test(`${r.title} ${r.text}`)));
   assert.ok(!A.state.reports.some((r) => /horda/i.test(`${r.title} ${r.text}`)));
 });
+
+test('al jurar una gesta terminan tus ocupaciones y vuelven tus flotas contra otros jugadores', async () => {
+  const env = await makeWorld(NAMES.slice(0, 4));
+  const W = env.world;
+  const [A, B, C] = env.players;
+  // A invade la ciudad de B
+  Object.assign(A.state.units, { hoplita: 400, trirreme: 40, mercante: 40 });
+  B.state.units = Object.fromEntries(Object.keys(B.state.units).map((k) => [k, 0]));
+  const inv = A.sendMission('invadir', B.state.home, { hoplita: 300, trirreme: 20, mercante: 30 });
+  assert.ok(inv.ok, inv.reason);
+  env.until(A.state.missions.at(-1).arrive);
+  assert.ok(B.state.occupied, 'B está ocupada');
+  // Y manda otra flota contra C
+  const atk = A.sendMission('atacar', C.state.home, { hoplita: 50, mercante: 5 });
+  assert.ok(atk.ok, atk.reason);
+  const toC = A.state.missions.at(-1);
+  assert.equal(A.pledgeCosts().stations.length, 1);
+  assert.equal(A.pledgeCosts().fleets.length, 1);
+  // A jura una gesta
+  W.admins.add('lucio');
+  const res = W.adminStartFeat(A.userId, { omenMinutes: 60 });
+  assert.ok(A.pledgeFeat(res.site).ok);
+  assert.equal(B.state.occupied, null, 'la ciudad de B queda libre');
+  assert.equal(toC.phase, 'vuelta', 'la flota contra C se da la vuelta');
+  assert.equal(A.pledgeCosts().stations.length + A.pledgeCosts().fleets.length, 0);
+});

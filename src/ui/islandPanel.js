@@ -203,7 +203,7 @@ function featSection(game, view) {
         : '<p class="hint ok small">⚓ Tu flota espera frente a la costa: combatirá en la próxima oleada.</p>';
     mine = `<p class="hint ok small">⚔️ Has jurado esta gesta${f.stage === 'lucha' ? ` · tu gloria: ${pct(f.myGlory)} · trajiste el ${pct(f.myEffort)} de tu fuerza` : ''}.</p>${fleet}`;
   } else if (f.convoked && f.pledgeOpen) {
-    mine = `<p class="desc small">Estás convocado. Al jurar se anota tu poder (el enemigo crece con el de todos) y te comprometes a combatir (o a ofrendar en la fragua): quien jura y no hace ninguna de las dos en ${FEATS.perjuryHours} h es perjuro.</p>
+    mine = `<p class="desc small">Estás convocado. Al jurar se anota tu poder (el enemigo crece con el de todos) y te comprometes a combatir (o a ofrendar en la fragua): quien jura y no hace ninguna de las dos en ${FEATS.perjuryHours} h es perjuro. Y dejas tus guerras: terminan tus ocupaciones y bloqueos de otras ciudades y vuelven las flotas que van a por otros jugadores.</p>
       <button class="primary wide" data-action="pledge-feat" data-site="${escapeHtml(view.id)}">${f.icon} Jurar la gesta</button>`;
   } else if (f.convoked) mine = '<p class="muted small">El juramento ya está cerrado.</p>';
   else mine = '<p class="muted small">No estás convocado a esta gesta: solo los imperios cercanos al continente.</p>';
