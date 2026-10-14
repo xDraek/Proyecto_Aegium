@@ -877,39 +877,328 @@ function mercado(level) {
   return g;
 }
 
-function almacen(level) {
-  // Horreum: almacén de piedra con frontón y puerta en arco
-  const g = new THREE.Group();
-  g.add(box(3.3, 0.2, 2.6, C.marbleDark, 0, 0, -0.2));
-  g.add(box(3.0, 1.55, 2.2, C.stone, 0, 0.2, -0.2));
-  // Pilastras
-  for (const x of [-1.5, -0.5, 0.5, 1.5]) g.add(box(0.16, 1.55, 0.08, C.marble, x, 0.2, 0.92));
-  g.add(box(3.15, 0.18, 2.35, C.marbleDark, 0, 1.75, -0.2));
-  g.add(pedimentRoof(3.2, 0.7, 2.45, 0, 1.93, -0.2));
-  // Puerta en arco
-  g.add(box(0.8, 0.8, 0.05, C.woodDark, 0, 0.2, 0.92));
-  const arch = mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.05, 12, 1, false, 0, Math.PI), C.woodDark);
-  arch.rotation.set(Math.PI / 2, 0, Math.PI / 2);
-  arch.position.set(0, 1.0, 0.92);
-  g.add(arch);
-  // Ventanucos
-  for (const x of [-1.0, 1.0]) g.add(box(0.3, 0.3, 0.05, C.dark, x, 1.0, 0.92, WINDOW_GLOW));
-  // Ánforas y fardos alrededor (más con el nivel)
-  const spots = [
-    [-1.9, 0.6],
-    [1.9, 0.5],
-    [-1.85, -1.2],
-    [1.95, -1.0],
-    [-1.3, 1.45],
-    [1.3, 1.45],
-  ];
-  const n = Math.min(spots.length, level);
-  for (let i = 0; i < n; i++) {
-    const [x, z] = spots[i];
-    if (i % 2) {
-      g.add(amphora(x - 0.13, 0, z, '#b9643a'), amphora(x + 0.13, 0, z + 0.1, '#a5542f'), amphora(x, 0, z - 0.18, '#c2703f'));
-    } else g.add(box(0.5, 0.45, 0.5, '#c9b48a', x, 0, z));
+/** Caja de madera con su marco y sus esquinas de hierro. */
+function crate(g, x, y, z, s = 0.36, rot = 0) {
+  const c = new THREE.Group();
+  c.add(box(s, s, s, '#9a6a38', 0, 0, 0));
+  for (const yy of [0, s - 0.05]) c.add(box(s + 0.02, 0.05, s + 0.02, '#6b4524', 0, yy, 0));
+  for (const [a, b] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) c.add(box(0.06, s, 0.06, '#4a4440', (a * s) / 2, 0, (b * s) / 2));
+  // Aspa en la cara de delante
+  for (const k of [-1, 1]) {
+    const brace = box(0.04, s * 1.2, 0.02, '#6b4524', 0, 0, 0);
+    brace.geometry.translate(0, -s * 0.6, 0);
+    brace.rotation.z = k * 0.78;
+    brace.position.set(0, s / 2, s / 2 + 0.01);
+    c.add(brace);
   }
+  c.position.set(x, y, z);
+  c.rotation.y = rot;
+  g.add(c);
+}
+
+/** Barril abombado con sus aros de hierro. */
+function barrel(g, x, y, z, s = 1) {
+  g.add(cyl(0.17 * s, 0.14 * s, 0.22 * s, 10, '#8a5a2b', x, y, z));
+  g.add(cyl(0.14 * s, 0.17 * s, 0.22 * s, 10, '#8a5a2b', x, y + 0.22 * s, z));
+  for (const h of [0.05, 0.2, 0.37]) g.add(cyl(0.175 * s, 0.175 * s, 0.03 * s, 10, '#4a4440', x, y + h * s, z));
+}
+
+/** Saco de grano atado. */
+function sack(g, x, y, z, rot = 0) {
+  const m = mesh(new THREE.SphereGeometry(0.17, 10, 7), '#dcc08a', { flatShading: false });
+  m.scale.set(1.15, 0.74, 0.88);
+  m.position.set(x, y + 0.1, z);
+  m.rotation.y = rot;
+  g.add(m);
+}
+
+/** Pila de sacos: `rows` hileras (de `n`, n-1, ...) a lo largo de Z. */
+function sackPile(g, x, z, n, rows) {
+  for (let r = 0; r < rows; r++) for (let i = 0; i < n - r; i++) sack(g, x + (r % 2) * 0.05, r * 0.19, z + (i - (n - r - 1) / 2) * 0.34, (i + r) * 0.4);
+}
+
+/** Jardinera de piedra con un arbusto. */
+function planter(g, x, z) {
+  g.add(box(0.42, 0.24, 0.42, '#e3d6b8', x, 0, z), box(0.46, 0.04, 0.46, '#cfbf9a', x, 0.24, z));
+  for (const [dx, dz, r] of [[0, 0, 0.2], [0.09, 0.06, 0.14], [-0.08, -0.07, 0.15]]) {
+    const b = mesh(new THREE.SphereGeometry(r, 7, 5), dx ? '#6f8f3e' : '#5a7a34');
+    b.position.set(x + dx, 0.38 + r * 0.5, z + dz);
+    g.add(b);
+  }
+}
+
+/** Brasero de bronce sobre un pedestal de piedra, con su llama. */
+function brazier(g, x, z, h = 0.5) {
+  g.add(box(0.34, h, 0.34, '#e3d6b8', x, 0, z), box(0.38, 0.04, 0.38, '#cfbf9a', x, h, z));
+  g.add(cyl(0.2, 0.1, 0.12, 10, '#7a5a32', x, h + 0.04, z, { metalness: 0.4, roughness: 0.5 }));
+  g.add(cyl(0.16, 0.16, 0.02, 10, '#ff8a2a', x, h + 0.15, z, { emissive: '#ff6a00', emissiveIntensity: 1.2 }));
+  const fire = mesh(new THREE.ConeGeometry(0.11, 0.3, 6), '#ffb347', { emissive: '#ff7a00', emissiveIntensity: 1.6 });
+  fire.position.set(x, h + 0.3, z);
+  fire.userData.flicker = true;
+  g.add(fire);
+}
+
+/**
+ * Greca: banda azul con la llave griega en oro, alrededor de un bloque de w × d centrado en
+ * (x, z), de y a y + h.
+ */
+function greekKey(g, w, d, y, h, x = 0, z = 0, band = '#2a56a8', key = '#e8c25a') {
+  g.add(box(w, h, d, band, x, y, z));
+  const faces = [
+    [w, (u) => [x + u, z + d / 2], 0],
+    [w, (u) => [x - u, z - d / 2], Math.PI],
+    [d, (u) => [x + w / 2, z - u], Math.PI / 2],
+    [d, (u) => [x - w / 2, z + u], -Math.PI / 2],
+  ];
+  const step = 0.19;
+  const k = h * 0.11;
+  for (const [len, at, rot] of faces) {
+    // Filetes de oro arriba y abajo
+    for (const yy of [y + h * 0.06, y + h * 0.84]) {
+      const [px, pz] = at(0);
+      const rule = box(len, h * 0.08, 0.012, key, 0, 0, 0);
+      rule.position.set(px, yy, pz);
+      rule.rotation.y = rot;
+      rule.translateZ(0.006);
+      g.add(rule);
+    }
+    const n = Math.max(2, Math.floor(len / step));
+    for (let i = 0; i < n; i++) {
+      const u = -len / 2 + (i + 0.5) * (len / n);
+      const [px, pz] = at(u);
+      const m = new THREE.Group();
+      const s = len / n;
+      // El gancho: arriba, baja por la derecha, vuelve hacia dentro y sube un poco
+      m.add(box(s * 0.78, k, 0.012, key, 0, h * 0.3 + h * 0.36, 0));
+      m.add(box(k, h * 0.47, 0.012, key, s * 0.39 - k / 2, h * 0.27, 0));
+      m.add(box(s * 0.5, k, 0.012, key, s * 0.13, h * 0.27, 0));
+      m.add(box(k, h * 0.24, 0.012, key, -s * 0.12, h * 0.27, 0));
+      m.add(box(s * 0.62, k, 0.012, key, -s * 0.08, h * 0.15, 0));
+      m.position.set(px, y, pz);
+      m.rotation.y = rot;
+      m.translateZ(0.008);
+      g.add(m);
+    }
+  }
+}
+
+/** Carro de dos ruedas cargado de sacos (las varas hacia -X, girado `rot`). */
+function cart(g, x, z, rot = 0) {
+  const c = new THREE.Group();
+  c.add(box(0.85, 0.07, 0.5, '#8b5a2b', 0, 0.3, 0));
+  for (const s of [-1, 1]) c.add(box(0.85, 0.16, 0.04, '#6b4524', 0, 0.37, s * 0.25));
+  c.add(box(0.04, 0.16, 0.5, '#6b4524', 0.42, 0.37, 0), box(0.04, 0.16, 0.5, '#6b4524', -0.42, 0.37, 0));
+  // Varas apoyadas en el suelo
+  for (const s of [-1, 1]) {
+    const pole = box(0.75, 0.04, 0.04, '#6b4524', 0, 0, 0);
+    pole.geometry.translate(-0.375, 0, 0);
+    pole.position.set(-0.42, 0.32, s * 0.18);
+    pole.rotation.z = 0.38;
+    c.add(pole);
+  }
+  // Ruedas de radios
+  for (const s of [-1, 1]) {
+    const w = new THREE.Group();
+    w.add(mesh(new THREE.TorusGeometry(0.24, 0.035, 5, 16), '#5e3b1c'));
+    for (let k = 0; k < 4; k++) {
+      const spoke = box(0.03, 0.46, 0.025, '#7a4e26', 0, -0.23, 0);
+      spoke.rotation.z = (k * Math.PI) / 4;
+      w.add(spoke);
+    }
+    w.add(cyl(0.05, 0.05, 0.08, 8, '#4a4440', 0, -0.04, 0).rotateX(Math.PI / 2));
+    w.position.set(0.05, 0.25, s * 0.3);
+    c.add(w);
+  }
+  sack(c, -0.18, 0.37, -0.1, 0.3);
+  sack(c, 0.2, 0.37, 0.08, -0.2);
+  sack(c, 0.0, 0.54, 0.0, 1.2);
+  c.position.set(x, 0, z);
+  c.rotation.y = rot;
+  c.scale.setScalar(0.85);
+  g.add(c);
+}
+
+function almacen(level) {
+  // Almacén clásico de sillares: frontón azul, greca en oro bajo el alero,
+  // tejado de tejas de terracota y portón de madera entre columnas; al lado, un cobertizo con toldo
+  // azul donde se apilan los sacos, y alrededor cajas, barriles, ánforas y el carro de carga.
+  const g = new THREE.Group();
+  const W = 2.4;
+  const D = 2.5;
+  const cx = -0.4;
+  const cz = -0.35;
+  const base = 0.28;
+  const H = 1.3;
+  const front = cz + D / 2;
+  // Enlosado de piedra en tonos claros
+  const FLAGS = ['#e6dabd', '#d9cba9', '#ece2ca', '#d2c39f'];
+  for (let i = 0; i < 11; i++) {
+    for (let j = 0; j < 9; j++) {
+      const x = -2.1 + i * 0.42 + 0.21;
+      const z = -1.9 + j * 0.42 + 0.21;
+      g.add(box(0.4, 0.05, 0.4, FLAGS[(i * 7 + j * 3 + ((i * j) % 5)) % 4], x, 0, z));
+    }
+  }
+  // Podio y escalinata
+  g.add(box(W + 0.4, base, D + 0.6, '#e8dcc0', cx, 0, cz + 0.1));
+  g.add(box(W + 0.5, 0.04, D + 0.7, '#d8c9a6', cx, base - 0.04, cz + 0.1));
+  for (let k = 1; k <= 2; k++) g.add(box(1.5, (base * k) / 3, 0.18, k % 2 ? '#ebe0c6' : '#e0d3b4', cx, 0, front + 0.4 + (3 - k) * 0.18 - 0.09));
+  // Muros de sillares
+  g.add(box(W, H, D, C.wall, cx, base, cz));
+  ashlarFace(g, { x: cx + W / 2, z: cz, len: D, y0: base, y1: base + H, alongZ: true, out: 1, course: 0.22, block: 0.42 });
+  ashlarFace(g, { x: cx - W / 2, z: cz, len: D, y0: base, y1: base + H, alongZ: true, out: -1, course: 0.22, block: 0.42 });
+  ashlarFace(g, { x: cx, z: cz - D / 2, len: W, y0: base, y1: base + H, out: -1, course: 0.22, block: 0.42 });
+  // Pilastras en las esquinas y en medio del costado largo
+  for (const z of [cz - D / 2 + 0.08, cz, cz + D / 2 - 0.08]) {
+    for (const s of [-1, 1]) g.add(box(0.2, H, 0.2, C.marble, cx + s * (W / 2 + 0.01), base, z));
+  }
+  // Fachada: cuatro columnas, portón de dos hojas con aldabas y estandartes azules
+  const colZ = front + 0.17;
+  for (const dx of [-(W / 2 - 0.14), -0.52, 0.52, W / 2 - 0.14]) g.add(column(cx + dx, base, colZ, H, 0.12));
+  g.add(box(1.0, 1.05, 0.08, C.marble, cx, base, front + 0.01));
+  for (const s of [-1, 1]) {
+    g.add(box(0.38, 0.96, 0.06, '#7a4e26', cx + s * 0.195, base, front + 0.04));
+    for (const y of [0.18, 0.5, 0.8]) g.add(box(0.36, 0.05, 0.02, '#4a4440', cx + s * 0.195, base + y, front + 0.08));
+    const ring = mesh(new THREE.TorusGeometry(0.055, 0.014, 4, 10), '#3a3632', { metalness: 0.5, roughness: 0.5 });
+    ring.position.set(cx + s * 0.09, base + 0.45, front + 0.09);
+    g.add(ring);
+  }
+  g.add(box(1.12, 0.1, 0.1, C.marble, cx, base + 1.05, front + 0.03));
+  if (level >= 3) {
+    for (const s of [-1, 1]) {
+      const bx = cx + s * 0.8;
+      g.add(cyl(0.015, 0.015, 0.42, 5, C.gold, bx, base + 1.13 - 0.21, front + 0.06).rotateZ(Math.PI / 2));
+      g.add(box(0.34, 0.78, 0.02, '#2a56a8', bx, base + 0.34, front + 0.05));
+      g.add(box(0.34, 0.04, 0.025, C.gold, bx, base + 0.34, front + 0.05), box(0.34, 0.03, 0.025, C.gold, bx, base + 1.08, front + 0.05));
+    }
+  }
+  // Entablamento: arquitrabe de mármol, greca azul y oro, y cornisa
+  const eD = D + 0.42;
+  const eZ = cz + 0.13;
+  g.add(box(W + 0.24, 0.12, eD, C.marble, cx, base + H, eZ));
+  greekKey(g, W + 0.2, eD - 0.04, base + H + 0.12, 0.22, cx, eZ);
+  g.add(box(W + 0.34, 0.08, eD + 0.1, C.marbleDark, cx, base + H + 0.34, eZ));
+  // Tejado de tejas a dos aguas con frontón azul
+  const top = base + H + 0.42;
+  const rw = W + 0.4;
+  const rh = 0.78;
+  const rd = eD + 0.16;
+  const roof = new THREE.Group();
+  roof.add(gableRoof(rw, rh, rd, '#9e3f22', 0, 0, 0));
+  const half = rw / 2;
+  const L = Math.hypot(half, rh);
+  const phi = Math.atan2(half, rh);
+  const nRib = Math.floor((rd - 0.1) / 0.15);
+  for (const s of [-1, 1]) {
+    for (let i = 0; i < nRib; i++) {
+      const z = -rd / 2 + 0.1 + (i + 0.5) * ((rd - 0.2) / nRib);
+      const rib = mesh(new THREE.CylinderGeometry(0.062, 0.07, L * 0.98, 8), i % 4 ? '#cf6038' : '#c05532', { flatShading: false });
+      rib.position.set(s * (half / 2 + (rh / L) * 0.015), rh / 2 + (half / L) * 0.015, z);
+      rib.rotation.z = s * phi;
+      roof.add(rib);
+    }
+    // Hiladas de tejas: escalones a lo largo de la pendiente
+    for (const t of [0.25, 0.5, 0.75]) {
+      const course = box(0.06, 0.035, rd - 0.12, '#a9452a', 0, 0, 0);
+      course.position.set(s * half * (1 - t), rh * t + 0.02, 0);
+      course.rotation.z = s * (Math.PI / 2 - phi);
+      roof.add(course);
+    }
+  }
+  const ridge = cyl(0.07, 0.07, rd + 0.04, 7, '#a9452a', 0, 0, 0);
+  ridge.rotation.x = Math.PI / 2;
+  ridge.position.y = rh;
+  roof.add(ridge);
+  for (const s of [-1, 1]) {
+    roof.add(gableRoof(rw * 0.97, rh * 0.94, 0.08, C.marble, 0, 0.01, s * (rd / 2 + 0.02)));
+    // Acroterias en el vértice y en las esquinas
+    roof.add(box(0.16, 0.18, 0.12, C.marble, 0, rh - 0.02, s * (rd / 2 + 0.02)));
+    for (const k of [-1, 1]) roof.add(box(0.16, 0.16, 0.14, C.marble, k * (half - 0.1), 0, s * (rd / 2 + 0.02)));
+  }
+  roof.add(gableRoof(rw * 0.76, rh * 0.68, 0.03, '#2a56a8', 0, 0.09, rd / 2 + 0.07));
+  roof.position.set(cx, top, eZ);
+  g.add(roof);
+  // Cipreses detrás
+  for (const [x, z, s] of [[-1.95, -1.55, 0.62], [1.95, -1.6, 0.7]]) {
+    const t = cypress('#2f5e34');
+    t.scale.setScalar(s);
+    t.position.set(x, 0.05, z);
+    g.add(t);
+  }
+  // Cobertizo con toldo azul y sacos de grano
+  if (level >= 2) {
+    const x0 = cx + W / 2 + 0.11;
+    const x1 = 1.9;
+    const z0 = -1.1;
+    const z1 = 0.35;
+    const zc = (z0 + z1) / 2;
+    const len = z1 - z0 + 0.2;
+    const yWall = 1.32;
+    const yPost = 1.0;
+    for (const z of [z0, z1]) {
+      g.add(box(0.1, yPost, 0.1, '#7a4e26', x1, 0.05, z));
+      const strut = box(0.05, 0.42, 0.05, '#7a4e26', 0, 0, 0);
+      strut.geometry.translate(0, -0.21, 0);
+      strut.position.set(x1, yPost + 0.02, z);
+      strut.rotation.z = -0.75;
+      g.add(strut);
+    }
+    g.add(box(0.12, 0.09, z1 - z0 + 0.12, '#6b4524', x1, yPost, zc));
+    // Lona a franjas azules con ribetes de oro, que baja de la pared a los postes
+    const run = x1 + 0.14 - x0;
+    const drop = yWall - yPost - 0.08;
+    const slope = Math.atan2(drop, run);
+    const awnW = Math.hypot(run, drop);
+    const n = 6;
+    for (let i = 0; i < n; i++) {
+      const strip = box(awnW, 0.03, len / n + 0.005, i % 2 ? '#2a56a8' : '#22478c', 0, 0, 0);
+      strip.position.set((x0 + x1 + 0.14) / 2, (yWall + yPost + 0.08) / 2, z0 - 0.1 + (i + 0.5) * (len / n));
+      strip.rotation.z = -slope;
+      g.add(strip);
+    }
+    for (const z of [z0 - 0.1, z1 + 0.1]) {
+      const edge = box(awnW, 0.04, 0.05, C.gold, 0, 0, 0);
+      edge.position.set((x0 + x1 + 0.14) / 2, (yWall + yPost + 0.08) / 2 + 0.005, z);
+      edge.rotation.z = -slope;
+      g.add(edge);
+    }
+    // Faldón festoneado al frente
+    const xe = x1 + 0.15;
+    const ye = yPost + 0.08;
+    g.add(box(0.03, 0.06, len, C.gold, xe, ye - 0.04, zc));
+    const nS = 7;
+    for (let i = 0; i < nS; i++) {
+      const sc = mesh(new THREE.CylinderGeometry(len / nS / 2, len / nS / 2, 0.02, 10, 1, false, 0, Math.PI), '#2a56a8');
+      sc.rotation.set(0, 0, -Math.PI / 2);
+      sc.position.set(xe, ye - 0.04, z0 - 0.1 + (i + 0.5) * (len / nS));
+      g.add(sc);
+    }
+    const piles = Math.min(3, level - 1);
+    const at = [[1.38, -0.4, 4, 3], [1.75, -0.85, 2, 2], [1.75, 0.05, 2, 1]];
+    for (let i = 0; i < piles; i++) sackPile(g, at[i][0], at[i][1], at[i][2], at[i][3]);
+  }
+  // Braseros a los lados de la escalinata
+  if (level >= 3) for (const s of [-1, 1]) brazier(g, cx + s * 0.98, front + 0.6);
+  if (level >= 4) cart(g, 1.55, 0.95, Math.PI / 2);
+  // Mercancías alrededor (más con el nivel)
+  const goods = [
+    () => crate(g, -1.95, 0, 0.35, 0.38, 0.1),
+    () => g.add(amphora(-1.95, 0.05, -1.0, '#b9643a', 1.1), amphora(-1.92, 0.05, -0.72, '#a5542f')),
+    () => planter(g, -1.9, 1.4),
+    () => (crate(g, -1.95, 0.38, 0.35, 0.32, -0.2), crate(g, -1.9, 0, -0.25, 0.34, 0.3)),
+    () => barrel(g, 1.0, 0.05, 1.6),
+    () => crate(g, 1.02, 0.05, 1.15, 0.28, 0.4),
+    () => {
+      // Tinaja pintada con un olivo
+      g.add(cyl(0.2, 0.15, 0.36, 10, '#b9643a', -1.95, 0.05, 0.85), cyl(0.205, 0.205, 0.09, 10, '#2b2620', -1.95, 0.2, 0.85));
+      const tree = olive();
+      tree.scale.setScalar(0.38);
+      tree.position.set(-1.95, 0.4, 0.85);
+      g.add(tree);
+    },
+    () => barrel(g, 1.0, 0.05, -1.8, 0.95),
+  ];
+  for (let i = 0; i < Math.min(goods.length, level + 1); i++) goods[i]();
   return g;
 }
 

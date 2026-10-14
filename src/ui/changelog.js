@@ -5,6 +5,14 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15i',
+    date: '2026-10-15',
+    title: 'Almacén nuevo',
+    items: [
+      '📦 El <b>almacén</b> estrena aspecto: muros de sillares, tejado de tejas, frontón azul, greca de oro y portón entre columnas. A su lado, un cobertizo con toldo azul lleno de sacos, y con los niveles llegan estandartes, braseros, el carro de carga y más cajas, barriles y ánforas.',
+    ],
+  },
+  {
     id: '2026-10-15h',
     date: '2026-10-15',
     title: 'Jurar una gesta',
