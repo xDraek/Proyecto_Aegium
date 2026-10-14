@@ -1533,7 +1533,8 @@ export class Game extends EventTarget {
     s.favor -= p.cost;
     s.powerReady = { ...(s.powerReady ?? {}), [id]: now + hours(p.cooldown ?? 0) };
     s.stats.powers++;
-    this.#note(`${p.icon} ${p.name}`, 'success');
+    // Con cuánto falta para poder volver a invocarla
+    this.#note(`${p.icon} ${p.name} · podrás volver a invocarla en ${fmtWait(hours(p.cooldown ?? 0))}`, 'success');
     return this.#done();
   }
 

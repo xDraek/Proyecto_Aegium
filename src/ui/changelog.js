@@ -5,6 +5,14 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15f',
+    date: '2026-10-15',
+    title: 'Bendiciones',
+    items: [
+      '🙏 Al invocar un <b>poder divino</b>, el aviso te dice cuánto falta para poder volver a invocarlo.',
+    ],
+  },
+  {
     id: '2026-10-15e',
     date: '2026-10-15',
     title: 'Tifón sale del volcán',
