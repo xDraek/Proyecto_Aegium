@@ -253,8 +253,9 @@ export function bakeStatic(root, glowMaterial = null) {
       if (!LOOSE.some((k) => obj.userData[k])) moving.push(obj);
       return;
     }
-    // (si `root` es una malla, se queda: se fundirían sus hijas y desaparecería ella)
-    if (obj.isMesh && obj !== root) {
+    // (si `root` es una malla, se queda: se fundirían sus hijas y desaparecería ella; y las que
+    // llevan `solo` tienen su propio material, ya fundido, que no se cambia)
+    if (obj.isMesh && obj !== root && !obj.userData.solo) {
       const m = obj.material;
       const keep = Array.isArray(m) || m.transparent || (m.vertexColors && !obj.geometry.attributes.color);
       const glows = !keep && m !== glowMaterial && m.emissive && m.emissiveIntensity > 0 && m.emissive.getHex() !== 0;

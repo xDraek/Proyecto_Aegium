@@ -5,6 +5,14 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15e',
+    date: '2026-10-15',
+    title: 'Tifón sale del volcán',
+    items: [
+      '🌋 En la gesta de <b>Tifón</b>, el gigante sale del cráter en cuanto empieza la lucha, y está vivo: respira, se balancea, agita los brazos y mueve la cabeza. Piel de roca volcánica recorrida por venas de lava, melena y barba salvajes, ojos y fauces de fuego, garras y serpientes de boca abierta que le brotan de los hombros (muchas más en la fase de las cien cabezas). El volcán, una montaña de basalto agrietada de lava, echa rocas y ceniza.',
+    ],
+  },
+  {
     id: '2026-10-15d',
     date: '2026-10-15',
     title: 'Ofrendas en la fragua',

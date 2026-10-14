@@ -937,7 +937,6 @@ function tentacle(rand) {
 
 // ── Gestas: Tifón ────────────────────────────────────────────────────────────
 
-const BASALT = '#3d3532';
 const BASALT_DARK = '#2a2422';
 const LAVA = { emissive: '#ff4500', emissiveIntensity: 2.2 };
 const SERPENT = '#2f6b5a';
@@ -1001,37 +1000,47 @@ function typhonRise(g, isl, R, rand, code) {
   const top = R * 0.3;
   const out = (r, da = 0, y = 0) => polar(r, deg + da, y);
 
-  // El volcán: un cono de basalto con hombros y rocas sueltas
-  const cone = mesh(new THREE.ConeGeometry(vr, top, 9, 2), BASALT);
-  cone.position.set(c.x, top / 2 - 0.3, c.z);
-  g.add(cone);
-  for (let i = 0; i < 4; i++) {
-    const p = polar(vr * (0.75 + rand() * 0.3), i * 90 + rand() * 40, 0);
-    const shoulder = mesh(new THREE.ConeGeometry(vr * 0.45, top * (0.4 + rand() * 0.2), 7), i % 2 ? BASALT : BASALT_DARK);
-    shoulder.position.set(c.x + p.x, top * 0.18, c.z + p.z);
+  // La base del volcán (algo más estrecha que su sitio en la costa)
+  const vb = vr * 0.75;
+  // El volcán: una montaña de basalto irregular, con venas de lava en la piedra
+  const mountain = new THREE.Mesh(volcanoGeometry(vb, top, rand() * 100), volcanicSkin(code === 'p' ? 0.6 : code.endsWith('f') ? 1.4 : 0.9, { flat: true, scale: FEATURE_SCALE }));
+  mountain.position.set(c.x, 0, c.z);
+  mountain.castShadow = mountain.receiveShadow = true;
+  mountain.userData.solo = true;
+  g.add(mountain);
+  for (let i = 0; i < 3; i++) {
+    // Hombros de la montaña
+    const p = polar(vb * (0.85 + rand() * 0.25), i * 120 + rand() * 50, 0);
+    const shoulder = new THREE.Mesh(volcanoGeometry(vb * 0.5, top * (0.35 + rand() * 0.15), rand() * 100), volcanicSkin(0.5, { flat: true, scale: FEATURE_SCALE }));
+    shoulder.position.set(c.x + p.x, 0, c.z + p.z);
+    shoulder.userData.solo = true;
     g.add(shoulder);
   }
   for (let i = 0; i < 10; i++) {
-    const p = polar(vr * (1.05 + rand() * 0.6), rand() * 360, 0);
-    const rock = mesh(new THREE.DodecahedronGeometry(0.4 + rand() * 0.6, 0), BASALT_DARK);
+    const p = polar(vb * (1.05 + rand() * 0.6), rand() * 360, 0);
+    const rock = mesh(new THREE.DodecahedronGeometry(0.3 + rand() * 0.45, 0), BASALT_DARK);
     rock.position.set(c.x + p.x, 0.2, c.z + p.z);
     g.add(rock);
   }
-  // Cráter con lava que late
-  g.add(cyl(vr * 0.24, vr * 0.32, top * 0.08, 9, BASALT_DARK, c.x, top * 0.9 - 0.3, c.z));
-  const pool = cyl(vr * 0.2, vr * 0.2, 0.15, 9, '#ff6a1a', c.x, top * 0.97 - 0.3, c.z, LAVA);
+  // Cráter con lava que late y el borde al rojo
+  g.add(cyl(vb * 0.24, vb * 0.32, top * 0.08, 9, BASALT_DARK, c.x, top * 0.9 - 0.3, c.z));
+  const rim = mesh(new THREE.TorusGeometry(vb * 0.27, vb * 0.035, 6, 18), '#ff6a1a', { ...LAVA, emissiveIntensity: 1.4 });
+  rim.rotation.x = Math.PI / 2;
+  rim.position.set(c.x, top * 0.97 - 0.3, c.z);
+  g.add(rim);
+  const pool = cyl(vb * 0.2, vb * 0.2, 0.15, 9, '#ff6a1a', c.x, top * 0.97 - 0.3, c.z, LAVA);
   pool.userData.flicker = true;
   g.add(pool);
   // Ríos de lava por las laderas (una sola pieza)
   const rivers = [];
-  const n = code === 'p' ? 2 : 4;
+  const n = code === 'p' ? 2 : 6;
   for (let i = 0; i < n; i++) {
     const a = THREE.MathUtils.degToRad(rand() * 360);
-    const len = Math.hypot(top, vr) * 0.9;
-    const geo = new THREE.BoxGeometry(0.5, 0.45, len);
+    const len = Math.hypot(top, vb) * (0.6 + rand() * 0.35);
+    const geo = new THREE.BoxGeometry(0.45 + rand() * 0.45, 0.45, len);
     // Algo levantada sobre la ladera para que asome
     geo.translate(0, 0.18, len / 2);
-    geo.rotateX(Math.atan2(top, vr));
+    geo.rotateX(Math.atan2(top, vb));
     geo.rotateY(a);
     geo.translate(c.x, top * 0.9 - 0.3, c.z);
     rivers.push(geo);
@@ -1039,6 +1048,14 @@ function typhonRise(g, isl, R, rand, code) {
   const lava = new THREE.Mesh(mergeGeometries(rivers), mat('#ff5a1a', { ...LAVA, emissiveIntensity: code.endsWith('f') ? 3 : 1.6 }));
   for (const geo of rivers) geo.dispose();
   g.add(lava);
+  // Nubes de ceniza al pie del volcán
+  for (let i = 0; i < (code === 'p' ? 4 : 8); i++) {
+    const p = polar(vb * (0.9 + rand() * 0.5), rand() * 360, 0);
+    const puff = mesh(new THREE.DodecahedronGeometry(vb * (0.16 + rand() * 0.14), 1), i % 2 ? '#5a4a42' : '#7a6658');
+    puff.position.set(c.x + p.x, top * (0.15 + rand() * 0.35), c.z + p.z);
+    puff.scale.y = 0.7;
+    g.add(puff);
+  }
   // Humo
   for (let i = 0; i < (code === 'p' ? 2 : 3); i++) {
     const smoke = smokeColumn(c.x + (i - 1) * vr * 0.12, top * 0.95 - 0.3, c.z, i * 1.7);
@@ -1046,6 +1063,26 @@ function typhonRise(g, isl, R, rand, code) {
     g.add(smoke);
   }
   if (code === 'p') return;
+
+  // Tifón sale del cráter: más serpientes en la fase de las cien cabezas, y en furia arde más
+  const fury = code.endsWith('f');
+  // (las venas de su piel, del mismo tamaño que las del volcán: su escala respecto a la isla)
+  const giant = typhonGiant(rand, { snakes: code.startsWith('2') ? 9 : 5, fury, rockScale: vr * 0.26 * FEATURE_SCALE });
+  giant.position.set(c.x, top * 0.82 - 0.3, c.z);
+  giant.rotation.y = THREE.MathUtils.degToRad(deg);
+  giant.scale.setScalar(vr * 0.26);
+  // Respira: sube y baja despacio y se balancea un poco
+  giant.userData.bob = { amp: vr * 0.05, speed: 0.7, base: giant.position.y };
+  g.add(giant);
+  // Rocas encendidas que el volcán escupe y flotan alrededor
+  for (let i = 0; i < 5; i++) {
+    const p = polar(vr * (0.8 + rand() * 0.6), rand() * 360, 0);
+    const y = top * (1 + rand() * 0.9);
+    const rock = mesh(new THREE.DodecahedronGeometry(0.22 + rand() * 0.25, 0), BASALT_DARK);
+    rock.position.set(c.x + p.x, y, c.z + p.z);
+    rock.userData.bob = { amp: 0.6, speed: 0.6 + rand() * 0.6, base: y };
+    g.add(rock);
+  }
 
   if (code === '0') {
     // El mar hierve: sierpes que asoman entre las olas frente al volcán
@@ -1075,15 +1112,7 @@ function typhonRise(g, isl, R, rand, code) {
     }
     return;
   }
-  // Las cien cabezas: cuellos de serpiente que salen del cráter y se mecen
-  const necks = code.endsWith('f') ? 9 : 7;
-  for (let i = 0; i < necks; i++) {
-    const neck = typhonNeck(rand, code.endsWith('f'));
-    const p = polar(vr * 0.22, (i / necks) * 360 + rand() * 20, 0);
-    neck.position.set(c.x + p.x, top * 0.85 - 0.3, c.z + p.z);
-    neck.rotation.y = THREE.MathUtils.degToRad((i / necks) * 360);
-    g.add(neck);
-  }
+  // Las cien cabezas: las serpientes que brotan de Tifón (arriba). En furia, además, chispas
   if (code.endsWith('f')) {
     // Furia: chispas de lava que saltan del cráter
     const sparks = new THREE.Group();
@@ -1127,14 +1156,15 @@ function serpent(rand) {
 }
 
 /** Un cuello de Tifón: segmentos encadenados que se mecen y una cabeza de dragón. */
-function typhonNeck(rand, fury) {
+function typhonNeck(rand, fury, colors = [SERPENT, '#3a7d68', SERPENT_BELLY]) {
+  const [scale, scale2, belly] = colors;
   const root = new THREE.Group();
   let parent = root;
   const segments = 6;
   for (let i = 0; i < segments; i++) {
     const r = 0.6 * (1 - i / segments) + 0.22;
     const seg = new THREE.Group();
-    seg.add(cyl(r * 0.85, r, 1.4, 7, i % 2 ? SERPENT : '#3a7d68'));
+    seg.add(cyl(r * 0.85, r, 1.4, 7, i % 2 ? scale : scale2));
     seg.position.y = i === 0 ? 0 : 1.3;
     seg.userData.wiggle = { base: i === 0 ? -0.35 : -0.12, amp: fury ? 0.22 : 0.14, speed: (fury ? 1.6 : 0.9) + rand() * 0.4, phase: i * 0.6 + rand() * 3 };
     parent.add(seg);
@@ -1142,11 +1172,11 @@ function typhonNeck(rand, fury) {
   }
   const head = new THREE.Group();
   head.position.y = 1.4;
-  const skull = mesh(new THREE.ConeGeometry(0.45, 1.3, 6), SERPENT);
+  const skull = mesh(new THREE.ConeGeometry(0.45, 1.3, 6), scale);
   skull.rotation.x = Math.PI / 2;
   skull.position.z = 0.4;
   head.add(skull);
-  const jaw = mesh(new THREE.ConeGeometry(0.3, 0.9, 6), SERPENT_BELLY);
+  const jaw = mesh(new THREE.ConeGeometry(0.3, 0.9, 6), belly);
   jaw.rotation.x = Math.PI / 2.2;
   jaw.position.set(0, -0.25, 0.45);
   head.add(jaw);
@@ -1161,6 +1191,465 @@ function typhonNeck(rand, fury) {
     horn.rotation.x = -0.6;
     head.add(horn);
   }
+  parent.add(head);
+  return root;
+}
+
+/**
+ * Piel de roca volcánica para Tifón y su volcán: suave, con el grano de la piedra y una red de
+ * venas finas de lava que brillan (ruido calculado en la GPU a partir de la posición). `veins`:
+ * cuánto brillan (en furia, más). Usa los colores por vértice de la malla.
+ */
+const volcanicSkins = new Map();
+function volcanicSkin(veins, { flat = false, scale = 1 } = {}) {
+  const key = `${veins}-${flat}-${scale.toFixed(3)}`;
+  if (volcanicSkins.has(key)) return volcanicSkins.get(key);
+  const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.88, metalness: 0.04, flatShading: flat });
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.uVeins = { value: veins };
+    shader.uniforms.uRockScale = { value: scale };
+    // En coordenadas de la propia pieza (escaladas a leguas): las venas se mueven con ella
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vRockPos;\nuniform float uRockScale;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRockPos = transformed * uRockScale;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <common>',
+        `#include <common>
+        uniform float uVeins;
+        varying vec3 vRockPos;
+        float rHash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+        float rNoise(vec3 x) {
+          vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(mix(rHash(i), rHash(i + vec3(1, 0, 0)), f.x), mix(rHash(i + vec3(0, 1, 0)), rHash(i + vec3(1, 1, 0)), f.x), f.y),
+                     mix(mix(rHash(i + vec3(0, 0, 1)), rHash(i + vec3(1, 0, 1)), f.x), mix(rHash(i + vec3(0, 1, 1)), rHash(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+        }`,
+      )
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+        float rGrain = rNoise(vRockPos * 3.1) * 0.6 + rNoise(vRockPos * 11.0) * 0.4;
+        diffuseColor.rgb *= 0.78 + 0.42 * rGrain;`,
+      )
+      .replace(
+        '#include <emissivemap_fragment>',
+        `#include <emissivemap_fragment>
+        {
+          // Venas: donde el ruido cruza por la mitad sale una línea fina; dos escalas, y se apagan
+          // en lo que mira hacia arriba (la ceniza las tapa)
+          float a = 1.0 - abs(rNoise(vRockPos * 0.55) * 2.0 - 1.0);
+          float b = 1.0 - abs(rNoise(vRockPos * 1.6 + 7.3) * 2.0 - 1.0);
+          float vein = max(smoothstep(0.955, 0.99, a), smoothstep(0.972, 0.994, b) * 0.55);
+          totalEmissiveRadiance += vec3(1.0, 0.33, 0.05) * vein * uVeins;
+        }`,
+      );
+  };
+  m.customProgramCacheKey = () => `imperium-volcanic-${flat}`;
+  volcanicSkins.set(key, m);
+  return m;
+}
+
+/**
+ * Funde las piezas de `root` (todas, salvo lo que brilla) en dos mallas suaves: la piel de roca con
+ * venas y lo demás (pelo, dientes, garras) sin ellas. Cada pieza conserva sus normales: se ven
+ * redondas, no a caras. Llevan `solo` para que bakeStatic no las vuelva a fundir a caras planas.
+ */
+function fuseVolcanic(root, veins, plainColors, scale = 1) {
+  root.updateMatrixWorld(true);
+  const inverse = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  const groups = { skin: [], plain: [] };
+  const done = [];
+  // Las piezas que se mueven (un brazo, la cabeza) se funden aparte, dentro de sí mismas
+  const moving = (o) => {
+    for (let p = o; p && p !== root; p = p.parent) if (p.userData.wiggle || p.userData.bob || p.userData.swing) return p;
+    return null;
+  };
+  const parts = new Set();
+  root.traverse((o) => {
+    const m = o !== root && moving(o);
+    if (m && moving(m.parent) === null) parts.add(m);
+  });
+  root.traverse((o) => {
+    if (!o.isMesh || o.userData.solo || moving(o)) return;
+    const m = o.material;
+    if (Array.isArray(m) || m.transparent || (m.emissive && m.emissiveIntensity > 0 && m.emissive.getHex() !== 0)) return;
+    const hex = `#${m.color.getHexString()}`;
+    const geo = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone()).applyMatrix4(new THREE.Matrix4().multiplyMatrices(inverse, o.matrixWorld));
+    for (const k of Object.keys(geo.attributes)) if (k !== 'position' && k !== 'normal') geo.deleteAttribute(k);
+    const n = geo.attributes.position.count;
+    const colors = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) m.color.toArray(colors, i * 3);
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    groups[plainColors.has(hex) ? 'plain' : 'skin'].push(geo);
+    done.push(o);
+  });
+  for (const o of done) {
+    o.geometry.dispose();
+    o.parent.remove(o);
+  }
+  for (const [kind, pieces] of Object.entries(groups)) {
+    if (!pieces.length) continue;
+    const material = kind === 'skin' ? volcanicSkin(veins, { scale }) : volcanicSkin(0, { scale });
+    const one = new THREE.Mesh(mergeGeometries(pieces), material);
+    one.castShadow = one.receiveShadow = true;
+    one.userData.solo = true;
+    root.add(one);
+    for (const p of pieces) p.dispose();
+  }
+  for (const p of parts) fuseVolcanic(p, veins, plainColors, scale);
+}
+
+/**
+ * El volcán: una montaña de basalto con las laderas irregulares, hombros, el cráter hundido y las
+ * venas de lava en la piedra. De `vr` de radio y `top` de alto, con la base en y = -0.3.
+ */
+function volcanoGeometry(vr, top, seed) {
+  const prof = [
+    [vr * 1.3, -0.3], [vr * 1.15, top * 0.12], [vr * 0.92, top * 0.32], [vr * 0.68, top * 0.55],
+    [vr * 0.48, top * 0.76], [vr * 0.34, top * 0.93], [vr * 0.3, top * 0.98], [vr * 0.24, top * 0.9], [0.01, top * 0.82],
+  ].map(([r, y]) => new THREE.Vector2(r, y));
+  const geo = new THREE.LatheGeometry(prof, 22).toNonIndexed();
+  const pos = geo.attributes.position;
+  // Ruido que depende de la posición (no del vértice), para que las costuras no se abran
+  const h = (x, y, z) => {
+    const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.7 + seed) * 43758.5453;
+    return s - Math.floor(s);
+  };
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    const r = Math.hypot(x, z);
+    if (r < 0.05 || y < -0.29) continue;
+    const a = Math.atan2(x, z);
+    const k = 1 + (h(Math.round(a * 4), Math.round(y * 1.5), 0) - 0.5) * 0.32 + Math.sin(a * 3 + seed) * 0.08;
+    pos.setXYZ(i, x * k, y + (h(Math.round(x * 3), Math.round(y * 3), Math.round(z * 3)) - 0.5) * 0.25, z * k);
+  }
+  geo.computeVertexNormals();
+  const colors = new Float32Array(pos.count * 3);
+  const col = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i);
+    // Basalto, más oscuro abajo y rojizo junto al cráter
+    col.set(y > top * 0.88 ? '#5a2a1a' : y > top * 0.6 ? '#3a2e2a' : '#2e2724');
+    col.toArray(colors, i * 3);
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return geo;
+}
+
+/**
+ * Tifón: un gigante de roca volcánica que sale del cráter hasta la cintura. Músculos marcados con
+ * grietas de lava que se ramifican, melena y barba salvajes, ojos y fauces de fuego con hileras de
+ * dientes, un brazo en alto y el otro extendido con dedos y garras, y serpientes de boca abierta que
+ * le brotan de los hombros y la espalda. Mira hacia +Z; el origen es la cintura (lo de abajo queda
+ * dentro del volcán). Unas 7 unidades de alto.
+ */
+function typhonGiant(rand, { snakes = 5, fury = false, rockScale = 1 } = {}) {
+  const g = new THREE.Group();
+  const SKIN = '#4d3a30';
+  const SKIN_DARK = '#35281f';
+  const SKIN_LIGHT = '#644a3b';
+  const HAIR = '#2a1d17';
+  const glow = { emissive: '#ff4a00', emissiveIntensity: fury ? 2.8 : 1.9 };
+  const crack = mat('#ff7a1f', glow);
+  const up = new THREE.Vector3(0, 1, 0);
+  const V = (...a) => new THREE.Vector3(...a);
+  // Dónde van las piezas: el cuerpo o, mientras se construye, el brazo que se mueve
+  let into = g;
+  const put = (geo, color, x, y, z, extra) => {
+    const m = mesh(geo, color, extra);
+    m.position.set(x, y, z);
+    into.add(m);
+    return m;
+  };
+  /**
+   * Una pieza que se mueve girando sobre `pivot` (hombro, cuello): lo que se construya dentro
+   * se coloca con las coordenadas del cuerpo. `wiggle`: cómo se mueve.
+   */
+  const joint = (pivot, wiggle, build) => {
+    const p = new THREE.Group();
+    p.position.set(...pivot);
+    p.userData.wiggle = wiggle;
+    const inner = new THREE.Group();
+    inner.position.set(-pivot[0], -pivot[1], -pivot[2]);
+    p.add(inner);
+    g.add(p);
+    const before = into;
+    into = inner;
+    build();
+    into = before;
+    return p;
+  };
+  /** Bulto de músculo: una esfera achatada en `s`. */
+  const blob = (r, color, at, s = [1, 1, 1], rot = [0, 0, 0]) => {
+    const m = put(new THREE.SphereGeometry(r, 12, 9), color, ...at);
+    m.scale.set(...s);
+    m.rotation.set(...rot);
+    return m;
+  };
+  /** Cilindro de `a` a `b` (más grueso en `a`), con su articulación redonda al final. */
+  const limb = (a, b, r1, r2, color = SKIN, joint = true) => {
+    const from = V(...a);
+    const dir = V(...b).sub(from);
+    const m = put(new THREE.CylinderGeometry(r2, r1, dir.length(), 10), color, 0, 0, 0);
+    m.position.copy(from).addScaledVector(dir, 0.5);
+    m.quaternion.setFromUnitVectors(up, dir.clone().normalize());
+    if (joint) put(new THREE.SphereGeometry(Math.max(r1, r2) * 1.04, 10, 8), color, ...b);
+    return m;
+  };
+  /** Un tramo de grieta de lava entre dos puntos. */
+  const seam = (a, b, w) => {
+    const dir = b.clone().sub(a);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, dir.length() + w, w), crack);
+    m.position.copy(a).addScaledVector(dir, 0.5);
+    m.quaternion.setFromUnitVectors(up, dir.normalize());
+    into.add(m);
+  };
+  /**
+   * Grieta que trepa por una superficie: `surf(x, y)` da el punto de la piel; avanza a saltos
+   * desde (x, y) hacia arriba, torciéndose, y a veces echa una rama.
+   */
+  const crackWalk = (surf, x, y, steps, w = 0.08, branch = 0.3) => {
+    let p = surf(x, y);
+    for (let i = 0; i < steps; i++) {
+      x += (rand() - 0.5) * 0.45;
+      y += 0.22 + rand() * 0.18;
+      const q = surf(x, y);
+      if (!q) break;
+      seam(p, q, w);
+      if (rand() < branch && steps > 2) crackWalk(surf, x, y, Math.ceil((steps - i) / 2), w * 0.7, 0);
+      p = q;
+    }
+  };
+  // Piel del pecho (elipsoide) y del vientre (cilindro), un pelo por fuera
+  const chest = (x, y) => {
+    const k = 1 - (x / 1.95) ** 2 - ((y - 2.55) / 1.5) ** 2;
+    return k > 0.05 ? V(x, y, 1.22 * Math.sqrt(k) + 0.04) : null;
+  };
+  const belly = (x, y) => (Math.abs(x) < 1.1 && y < 1.95 ? V(x, y, Math.sqrt(1.2 ** 2 - x * x) + 0.04) : chest(x, y));
+  /** Mano con cuatro dedos de dos falanges, pulgar y garras curvas, que apunta hacia `dir`. */
+  const hand = (at, dir, open = 0.4) => {
+    const d = V(...dir).normalize();
+    const side = V().crossVectors(d, Math.abs(d.y) > 0.9 ? V(0, 0, 1) : up).normalize();
+    const palm = blob(0.42, SKIN, at, [1.15, 0.7, 1]);
+    palm.quaternion.setFromUnitVectors(up, d);
+    const base = V(...at).addScaledVector(d, 0.3);
+    for (let k = 0; k < 5; k++) {
+      const thumb = k === 4;
+      const off = thumb ? -0.42 : (k - 1.5) * 0.2;
+      const root = base.clone().addScaledVector(side, off).addScaledVector(d, thumb ? -0.15 : 0);
+      const bend = d.clone().addScaledVector(side, off * 0.6).addScaledVector(V().crossVectors(side, d), open).normalize();
+      const mid = root.clone().addScaledVector(bend, thumb ? 0.28 : 0.36);
+      limb(root.toArray(), mid.toArray(), 0.1, 0.09, SKIN);
+      // La falange de la punta se curva hacia dentro y acaba en garra
+      const curl = bend.clone().addScaledVector(V().crossVectors(side, d), -0.7).normalize();
+      const tip = mid.clone().addScaledVector(curl, 0.26);
+      limb(mid.toArray(), tip.toArray(), 0.09, 0.075, SKIN);
+      const nail = put(new THREE.ConeGeometry(0.075, 0.42, 6), '#e2d6b8', 0, 0, 0);
+      const nd = curl.clone().addScaledVector(V().crossVectors(side, d), -0.6).normalize();
+      nail.position.copy(tip).addScaledVector(nd, 0.18);
+      nail.quaternion.setFromUnitVectors(up, nd);
+      // Los nudillos arden
+      put(new THREE.SphereGeometry(0.06, 6, 4), '#ff7a1f', ...mid.toArray(), glow);
+    }
+  };
+
+  // ── Tronco ──
+  put(new THREE.CylinderGeometry(1.15, 1.35, 1.6, 12), SKIN_DARK, 0, -0.1, 0);
+  put(new THREE.CylinderGeometry(1.25, 1.15, 1.4, 12), SKIN, 0, 1.25, 0);
+  blob(1.45, SKIN, [0, 2.55, -0.05], [1.35, 1.03, 0.84]);
+  for (const sx of [-1, 1]) {
+    // Pectorales, dorsales, serratos, trapecios y deltoides
+    blob(0.72, SKIN_LIGHT, [sx * 0.66, 2.72, 0.72], [1.15, 0.72, 0.62], [0.1, 0, sx * -0.15]);
+    blob(0.8, SKIN_DARK, [sx * 1.2, 2.3, -0.45], [0.8, 1.35, 0.8]);
+    for (let k = 0; k < 3; k++) blob(0.2, SKIN, [sx * 1.15, 1.55 + k * 0.32, 0.62], [0.7, 0.85, 0.6], [0, 0, sx * 0.4]);
+    blob(0.55, SKIN, [sx * 0.75, 3.45, -0.15], [1.2, 0.7, 0.9]);
+    blob(0.78, SKIN_LIGHT, [sx * 1.75, 3.12, 0.02], [1, 0.95, 1]);
+  }
+  // Abdominales: tres filas y la línea del centro
+  for (let k = 0; k < 3; k++) for (const sx of [-1, 1]) blob(0.3, SKIN_LIGHT, [sx * 0.34, 0.72 + k * 0.42, 1.1], [1, 0.8, 0.5]);
+  // Grietas de lava por el pecho y el vientre
+  crackWalk(belly, 0, 0.2, 9, 0.07, 0.45);
+  crackWalk(belly, 0.55, 0.3, 6, 0.05, 0.35);
+  crackWalk(belly, -0.6, 0.4, 6, 0.05, 0.35);
+  crackWalk(chest, 1.2, 2.1, 4, 0.06, 0.3);
+  crackWalk(chest, -1.25, 2.0, 4, 0.06, 0.3);
+
+  // ── Cabeza: cráneo, cejas, pómulos, ojos de fuego y fauces abiertas ──
+  put(new THREE.CylinderGeometry(0.52, 0.66, 0.55, 10), SKIN, 0, 3.6, 0.02);
+  const head = new THREE.Group();
+  head.position.set(0, 4.25, 0.15);
+  head.rotation.x = -0.12;
+  head.userData.wiggle = { base: 0, amp: 0.1, speed: 0.55, phase: rand() * 6 };
+  g.add(head);
+  const hput = (geo, color, x, y, z, extra) => {
+    const m = mesh(geo, color, extra);
+    m.position.set(x, y, z);
+    head.add(m);
+    return m;
+  };
+  hput(new THREE.SphereGeometry(0.75, 14, 11), SKIN, 0, 0.1, -0.05).scale.set(0.92, 1, 1);
+  hput(new THREE.BoxGeometry(1.05, 0.22, 0.4), SKIN_DARK, 0, 0.3, 0.55).rotation.x = 0.25;
+  for (const sx of [-1, 1]) {
+    hput(new THREE.SphereGeometry(0.22, 8, 6), SKIN_LIGHT, sx * 0.42, -0.08, 0.5).scale.set(1, 0.8, 0.8);
+    hput(new THREE.SphereGeometry(0.13, 8, 6), '#ffd23a', sx * 0.27, 0.15, 0.66, { emissive: fury ? '#ff2a00' : '#ffb000', emissiveIntensity: 3 });
+  }
+  hput(new THREE.ConeGeometry(0.12, 0.35, 5), SKIN_LIGHT, 0, 0.0, 0.78).rotation.x = Math.PI / 2 + 0.4;
+  // Fauces: la mandíbula abierta, el fuego dentro y dos hileras de dientes
+  const jaw = new THREE.Group();
+  jaw.position.set(0, -0.32, 0.12);
+  jaw.rotation.x = 0.45;
+  head.add(jaw);
+  const jawBone = mesh(new THREE.BoxGeometry(0.72, 0.2, 0.72), SKIN);
+  jawBone.position.set(0, -0.12, 0.3);
+  jaw.add(jawBone);
+  const throat = hput(new THREE.SphereGeometry(0.34, 10, 8), '#ff6a12', 0, -0.35, 0.45, glow);
+  throat.scale.set(1, 0.85, 0.7);
+  for (let k = 0; k < 7; k++) {
+    const x = (k - 3) * 0.085;
+    const top = hput(new THREE.ConeGeometry(0.035, 0.16, 4), '#efe6d0', x, -0.24, 0.64 - Math.abs(k - 3) * 0.03);
+    top.rotation.x = Math.PI;
+    const low = mesh(new THREE.ConeGeometry(0.035, 0.14, 4), '#efe6d0');
+    low.position.set(x, 0.03, 0.58 - Math.abs(k - 3) * 0.03);
+    jaw.add(low);
+  }
+  for (const sx of [-1, 1]) {
+    const fang = hput(new THREE.ConeGeometry(0.06, 0.32, 5), '#f5ecd6', sx * 0.3, -0.3, 0.55);
+    fang.rotation.x = Math.PI;
+  }
+  // Melena: mechones gruesos de dos tramos, hacia atrás, a los lados y alguno hacia arriba
+  for (let k = 0; k < 30; k++) {
+    const a = -Math.PI * 0.95 + (k / 29) * Math.PI * 1.9;
+    const root = V(Math.sin(a) * 0.62, 0.35 + rand() * 0.35, -0.12 + Math.cos(a) * 0.48);
+    const wild = rand() < 0.25;
+    const d1 = V(Math.sin(a) * 1.1, wild ? 0.5 : -0.25 - rand() * 0.3, -0.7 + Math.cos(a) * 0.35).normalize();
+    const d2 = d1.clone().add(V(0, -0.8, -0.2)).normalize();
+    const l1 = 0.9 + rand() * 0.7;
+    const l2 = 0.8 + rand() * 0.9;
+    const color = k % 4 === 0 ? '#4a3426' : HAIR;
+    const s1 = hput(new THREE.CylinderGeometry(0.14, 0.24, l1, 6), color, 0, 0, 0);
+    s1.position.copy(root).addScaledVector(d1, l1 / 2);
+    s1.quaternion.setFromUnitVectors(up, d1.clone().negate());
+    const mid = root.clone().addScaledVector(d1, l1);
+    const s2 = hput(new THREE.ConeGeometry(0.15, l2, 6), color, 0, 0, 0);
+    s2.position.copy(mid).addScaledVector(d2, l2 / 2);
+    s2.quaternion.setFromUnitVectors(up, d2.clone().negate());
+  }
+  // Barba: mechones largos que caen sobre el pecho
+  for (let k = 0; k < 11; k++) {
+    const x = (k - 5) * 0.1;
+    const len = 1.3 + rand() * 0.7 - Math.abs(k - 5) * 0.12;
+    const d = V(x * 0.25, -1, 0.35 + rand() * 0.15).normalize();
+    const root = V(x, -0.45, 0.5 - Math.abs(k - 5) * 0.04);
+    const b = mesh(new THREE.ConeGeometry(0.13, len, 6), k % 3 ? HAIR : '#3d2b20');
+    b.position.copy(root).addScaledVector(d, len / 2);
+    b.quaternion.setFromUnitVectors(up, d.clone().negate());
+    jaw.add(b);
+  }
+
+  // ── Brazos: uno en alto y el otro extendido, con bíceps y antebrazos fuertes ──
+  // (el de la derecha, +X, en alto: se agita)
+  joint([1.75, 3.1, 0], { base: 0, amp: 0.14, speed: 0.8, phase: rand() * 6 }, () => {
+    limb([1.75, 3.1, 0], [2.6, 4.65, 0.4], 0.62, 0.5);
+    blob(0.42, SKIN_LIGHT, [2.3, 4.0, 0.62], [0.8, 1.3, 0.7], [0, 0, -0.5]);
+    limb([2.6, 4.65, 0.4], [2.5, 6.0, 0.65], 0.52, 0.36);
+    hand([2.48, 6.32, 0.72], [0, 1, 0.25], 0.5);
+    crackWalk((x, y) => (y < 4.5 ? V(2.15 + (y - 3.3) * 0.45 + x * 0.2, y, 0.62 + x) : null), 0, 3.3, 5, 0.06, 0.3);
+    crackWalk((x, y) => (y < 5.9 ? V(2.6 + x * 0.2, y, 0.95 + x * 0.3) : null), 0, 4.8, 4, 0.05, 0.2);
+  });
+  // (el de la izquierda, −X, extendido hacia fuera: sube y baja)
+  joint([-1.75, 3.1, 0], { base: 0, amp: 0.18, speed: 0.6, phase: rand() * 6 }, () => {
+    limb([-1.75, 3.1, 0], [-3.2, 2.9, 0.65], 0.62, 0.5);
+    blob(0.42, SKIN_LIGHT, [-2.5, 3.25, 0.55], [1.3, 0.8, 0.7]);
+    limb([-3.2, 2.9, 0.65], [-4.55, 2.4, 1.15], 0.52, 0.36);
+    hand([-4.88, 2.3, 1.28], [-1, -0.05, 0.35], 0.55);
+    crackWalk((x, y) => (y < 3.4 ? V(-2.0 - (y - 2.6) * 2.2 + x * 0.3, y, 0.62) : null), 0, 2.7, 4, 0.05, 0.3);
+  });
+
+  // Todo el cuerpo, suave y con venas de lava (las grietas grandes y los ojos siguen aparte)
+  fuseVolcanic(g, fury ? 1.5 : 0.95, new Set([HAIR, '#4a3426', '#3d2b20', '#e2d6b8', '#efe6d0', '#f5ecd6']), rockScale);
+
+  // ── Serpientes que le brotan de los hombros y la espalda ──
+  for (let k = 0; k < snakes; k++) {
+    const side = k % 2 ? 1 : -1;
+    const i = Math.floor(k / 2);
+    const snake = typhonSerpent(rand, fury);
+    snake.position.set(side * (0.95 + i * 0.3), 2.2 + (i % 3) * 0.5, -0.6 - (i % 2) * 0.3);
+    snake.rotation.set(-0.3 - rand() * 0.35, side * (0.4 + rand() * 0.7), side * -(0.5 + i * 0.13));
+    snake.scale.setScalar(0.5 + rand() * 0.15);
+    g.add(snake);
+  }
+  return g;
+}
+
+/**
+ * Serpiente de Tifón: un cuello de escamas que se estrecha y se mece, y una cabeza de víbora con la
+ * boca abierta (fuego dentro), colmillos, lengua bífida y ojos que brillan. Sale hacia +Y.
+ */
+function typhonSerpent(rand, fury) {
+  const root = new THREE.Group();
+  const SCALE = '#3b3226';
+  const SCALE2 = '#52432f';
+  const BELLY = '#c9a34a';
+  let parent = root;
+  const segments = 7;
+  for (let i = 0; i < segments; i++) {
+    const r = 0.5 * (1 - i / segments) + 0.2;
+    const seg = new THREE.Group();
+    seg.add(cyl(r * 0.88, r, 1.25, 9, i % 2 ? SCALE : SCALE2));
+    // La tripa clara, por delante
+    const belly = cyl(r * 0.5, r * 0.56, 1.2, 7, BELLY, 0, 0, r * 0.55);
+    belly.scale.z = 0.6;
+    seg.add(belly);
+    seg.position.y = i === 0 ? 0 : 1.15;
+    // Curvadas en S: primero hacia fuera, luego se alzan y la cabeza se asoma hacia delante
+    const bend = [-0.55, -0.4, 0.1, 0.45, 0.5, 0.3, -0.25][i] ?? 0;
+    seg.userData.wiggle = { base: bend, amp: fury ? 0.2 : 0.12, speed: (fury ? 1.7 : 1) + rand() * 0.4, phase: i * 0.7 + rand() * 3 };
+    parent.add(seg);
+    parent = seg;
+  }
+  const head = new THREE.Group();
+  head.position.y = 1.25;
+  head.rotation.x = 1.15;
+  head.scale.setScalar(1.8);
+  const skull = mesh(new THREE.SphereGeometry(0.42, 10, 8), SCALE);
+  skull.scale.set(1, 0.6, 1.5);
+  skull.position.z = 0.25;
+  head.add(skull);
+  const snout = mesh(new THREE.ConeGeometry(0.3, 0.6, 8), SCALE2);
+  snout.rotation.x = Math.PI / 2;
+  snout.scale.set(1, 1, 0.6);
+  snout.position.set(0, 0.04, 0.8);
+  head.add(snout);
+  // Mandíbula abierta hacia abajo, con el fuego dentro
+  const jaw = mesh(new THREE.ConeGeometry(0.26, 0.85, 8), BELLY);
+  jaw.rotation.x = Math.PI / 2 + 0.55;
+  jaw.scale.set(1, 1, 0.45);
+  jaw.position.set(0, -0.28, 0.55);
+  head.add(jaw);
+  const mouth = mesh(new THREE.SphereGeometry(0.14, 8, 6), '#c8361a', { emissive: '#ff3000', emissiveIntensity: 0.9 });
+  mouth.scale.set(1, 0.6, 1.3);
+  mouth.position.set(0, -0.14, 0.55);
+  head.add(mouth);
+  for (const x of [-0.12, 0.12]) {
+    const fang = mesh(new THREE.ConeGeometry(0.035, 0.24, 5), '#f5ecd6');
+    fang.rotation.x = Math.PI - 0.3;
+    fang.position.set(x, -0.1, 0.85);
+    head.add(fang);
+    const eye = mesh(new THREE.SphereGeometry(0.06, 6, 5), fury ? '#ff5a1a' : '#ffe14a', { emissive: fury ? '#ff2a00' : '#ffcc00', emissiveIntensity: 1.6 });
+    eye.position.set(x * 2.1, 0.17, 0.5);
+    head.add(eye);
+    // Lengua bífida
+    const fork = mesh(new THREE.BoxGeometry(0.025, 0.025, 0.3), '#d1202a');
+    fork.position.set(x * 0.4, -0.25, 1.15);
+    fork.rotation.y = x * 2.5;
+    head.add(fork);
+  }
+  const tongue = mesh(new THREE.BoxGeometry(0.035, 0.03, 0.45), '#d1202a');
+  tongue.position.set(0, -0.22, 0.9);
+  tongue.rotation.x = 0.35;
+  head.add(tongue);
   parent.add(head);
   return root;
 }
