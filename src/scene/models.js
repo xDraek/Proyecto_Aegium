@@ -942,7 +942,7 @@ function brazier(g, x, z, h = 0.5) {
  * Greca: banda azul con la llave griega en oro, alrededor de un bloque de w × d centrado en
  * (x, z), de y a y + h.
  */
-function greekKey(g, w, d, y, h, x = 0, z = 0, band = '#2a56a8', key = '#e8c25a') {
+export function greekKey(g, w, d, y, h, x = 0, z = 0, band = '#2a56a8', key = '#e8c25a') {
   g.add(box(w, h, d, band, x, y, z));
   const faces = [
     [w, (u) => [x + u, z + d / 2], 0],

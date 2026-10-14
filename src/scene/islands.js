@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { C, box, colonnade, createShip, createSoldier, cyl, dome, figure, gableRoof, hipRoof, mat, mediterraneanTree, mesh, palmTree, smokeColumn, statue, stylobate } from './models.js';
+import { C, box, colonnade, column, createShip, createSoldier, cyl, cypress, dome, figure, gableRoof, greekKey, hipRoof, mat, mediterraneanTree, mesh, palmTree, smokeColumn, stylobate } from './models.js';
 import { wonderLevel, wonderOf } from '../game/rules.js';
 import { FEAT_THEMES } from '../game/data.js';
 import { Batch, bakeStatic, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng } from './util.js';
@@ -946,22 +946,294 @@ const SERPENT_BELLY = '#c9b36a';
 function featStatue(g, R, theme) {
   const s = featStatueModel(theme);
   s.position.copy(polar(R * 0.22, 135));
-  s.scale.setScalar(1.6);
+  s.scale.setScalar(0.95);
   g.add(s);
 }
 
-/** La estatua de una gesta (pedestal, figura dorada y la gema de su tema), sin colocar. */
+/**
+ * Funde las piezas de una figura en dos mallas con sombreado suave: piedra (mármol, madera) y metal
+ * (el oro, que brilla). Lo que se enciende se queda aparte; el resto de la escena no las toca.
+ */
+function fuseSmooth(root) {
+  root.updateMatrixWorld(true);
+  const inverse = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  const groups = { stone: [], metal: [] };
+  const done = [];
+  root.traverse((o) => {
+    if (!o.isMesh || o.userData.solo) return;
+    const m = o.material;
+    if (m.emissive && m.emissiveIntensity > 0 && m.emissive.getHex() !== 0) return;
+    const geo = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone()).applyMatrix4(new THREE.Matrix4().multiplyMatrices(inverse, o.matrixWorld));
+    for (const k of Object.keys(geo.attributes)) if (k !== 'position' && k !== 'normal') geo.deleteAttribute(k);
+    const n = geo.attributes.position.count;
+    const colors = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) m.color.toArray(colors, i * 3);
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    groups[m.metalness > 0.2 ? 'metal' : 'stone'].push(geo);
+    done.push(o);
+  });
+  for (const o of done) {
+    o.geometry.dispose();
+    o.parent.remove(o);
+  }
+  const materials = {
+    stone: () => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.72, side: THREE.DoubleSide }),
+    metal: () => new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 0.6, roughness: 0.32 }),
+  };
+  for (const [kind, pieces] of Object.entries(groups)) {
+    if (!pieces.length) continue;
+    const one = new THREE.Mesh(mergeGeometries(pieces), materials[kind]());
+    one.castShadow = one.receiveShadow = true;
+    one.userData.solo = true;
+    root.add(one);
+    for (const p of pieces) p.dispose();
+  }
+}
+
+/** Cilindro de `a` a `b` (radios r1 en a y r2 en b): un miembro de la estatua. */
+function limb(g, a, b, r1, r2, color, extra, seg = 8) {
+  const d = new THREE.Vector3().subVectors(b, a);
+  const m = mesh(new THREE.CylinderGeometry(r2, r1, d.length(), seg), color, extra);
+  m.position.copy(a).addScaledVector(d, 0.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+  g.add(m);
+  return m;
+}
+
+/** Esfera escalada (músculos, hombros, manos). */
+function blob(g, r, color, x, y, z, sx = 1, sy = 1, sz = 1, extra) {
+  const m = mesh(new THREE.SphereGeometry(r, 10, 8), color, extra);
+  m.position.set(x, y, z);
+  m.scale.set(sx, sy, sz);
+  g.add(m);
+  return m;
+}
+
+/** Brasero de bronce sobre un pilar con paneles azules y su greca; arde siempre. */
+function statueBrazier(g, x, z, y = 0) {
+  g.add(box(0.28, 0.06, 0.28, '#e3d6b8', x, y, z));
+  g.add(box(0.22, 0.5, 0.22, '#efe5cf', x, y + 0.06, z));
+  for (const [dx, dz, rot] of [[0, 0.112, 0], [0, -0.112, 0], [0.112, 0, Math.PI / 2], [-0.112, 0, Math.PI / 2]]) {
+    const panel = box(0.16, 0.3, 0.01, '#2a56a8', 0, 0, 0);
+    panel.position.set(x + dx, y + 0.14, z + dz);
+    panel.rotation.y = rot;
+    g.add(panel);
+    const trim = box(0.17, 0.025, 0.012, C.gold, 0, 0, 0, { metalness: 0.5, roughness: 0.4 });
+    trim.position.set(x + dx, y + 0.44, z + dz);
+    trim.rotation.y = rot;
+    g.add(trim);
+  }
+  g.add(box(0.27, 0.05, 0.27, '#e3d6b8', x, y + 0.56, z));
+  g.add(cyl(0.05, 0.07, 0.07, 8, '#a8843a', x, y + 0.61, z, { metalness: 0.55, roughness: 0.4 }));
+  g.add(cyl(0.17, 0.08, 0.1, 12, '#b8913e', x, y + 0.68, z, { metalness: 0.55, roughness: 0.4 }));
+  g.add(cyl(0.14, 0.14, 0.02, 12, '#ff8a2a', x, y + 0.77, z, { emissive: '#ff6a00', emissiveIntensity: 1.2 }));
+  const fire = mesh(new THREE.ConeGeometry(0.1, 0.28, 6), '#ffb347', { emissive: '#ff7a00', emissiveIntensity: 1.6 });
+  fire.position.set(x, y + 0.92, z);
+  fire.userData.flicker = true;
+  g.add(fire);
+}
+
+/**
+ * La estatua de una gesta ganada: un hoplita de mármol con casco de penacho, capa al viento, lanza
+ * en alto y el gran escudo redondo de oro (con la gema del tema en el centro: el rayo de Zeus, la
+ * tiara del Gran Rey o la cabeza de la Hidra), sobre un pedestal con columnas, greca y estandarte
+ * azul, en una plataforma escalonada con braseros encendidos, arbustos y cipreses. Mira hacia +Z.
+ */
 export function featStatueModel(theme) {
   const s = new THREE.Group();
-  s.add(box(0.9, 0.5, 0.9, C.marble, 0, 0, 0));
-  s.add(box(0.7, 0.15, 0.7, C.wallDark, 0, 0.5, 0));
-  s.add(statue(0, 0, C.gold, 1.2, { metalness: 0.55, roughness: 0.35 }));
-  s.children.at(-1).position.y += 0.65;
-  // Lo que la distingue: el rayo de Zeus, la tiara del Gran Rey o la cabeza de la Hidra
+  const M = '#ece1c8';
+  const M2 = '#dccdab';
+  const GOLD = { metalness: 0.55, roughness: 0.35 };
   const mark = { tifon: '#ffd34a', armada: '#7a3fa0', hidra: '#2f6b5a' }[theme] ?? C.gold;
-  const gem = mesh(new THREE.OctahedronGeometry(0.16, 0), mark, { emissive: mark, emissiveIntensity: 0.8 });
-  gem.position.set(0, 1.95, 0);
-  s.add(gem);
+
+  // Plataforma de tres gradas
+  for (let i = 0; i < 3; i++) s.add(box(2.0 - i * 0.22, 0.12, 2.0 - i * 0.22, i % 2 ? '#e3d6b8' : '#ebe0c6', 0, i * 0.12, 0));
+  const top = 0.36;
+  // Pedestal con columnas en las esquinas, greca y cornisa
+  const pw = 1.05;
+  const pd = 0.85;
+  const ph = 0.72;
+  s.add(box(pw + 0.12, 0.08, pd + 0.12, M2, 0, top, 0));
+  s.add(box(pw, ph, pd, M, 0, top + 0.08, 0));
+  for (const x of [-1, 1]) for (const z of [-1, 1]) s.add(column(x * (pw / 2), top + 0.08, z * (pd / 2), ph - 0.12, 0.06, '#f4efe4'));
+  greekKey(s, pw + 0.08, pd + 0.08, top + 0.08 + ph - 0.16, 0.14);
+  s.add(box(pw + 0.16, 0.07, pd + 0.16, M2, 0, top + 0.08 + ph - 0.02, 0));
+  // Delante: estandarte azul con su greca, y un medallón de oro con la gema del tema
+  const front = pd / 2 + 0.012;
+  s.add(box(0.3, 0.46, 0.015, '#2a56a8', -0.24, top + 0.12, front));
+  s.add(box(0.3, 0.03, 0.02, C.gold, -0.24, top + 0.12, front, GOLD), box(0.3, 0.03, 0.02, C.gold, -0.24, top + 0.56, front, GOLD));
+  s.add(cyl(0.012, 0.012, 0.36, 5, C.gold, -0.24, top + 0.6 - 0.18, front + 0.02, GOLD).rotateZ(Math.PI / 2));
+  const medal = cyl(0.12, 0.12, 0.03, 16, C.gold, 0.24, top + 0.32, front, GOLD);
+  medal.rotation.x = Math.PI / 2;
+  medal.position.y = top + 0.4;
+  s.add(medal);
+  const medalGem = mesh(new THREE.OctahedronGeometry(0.06, 0), mark, { emissive: mark, emissiveIntensity: 0.8 });
+  medalGem.position.set(0.24, top + 0.4, front + 0.03);
+  s.add(medalGem);
+  // La roca sobre la que pisa
+  const rockY = top + 0.08 + ph + 0.05;
+  s.add(box(0.78, 0.12, 0.6, M2, 0, rockY, 0));
+  const ledge = box(0.32, 0.16, 0.3, M2, 0.22, rockY + 0.1, 0.12);
+  ledge.rotation.set(0.08, 0.4, -0.1);
+  s.add(ledge);
+
+  // ── El hoplita (unos 2 de alto; los pies en y = 0 del grupo). La lanza va a su derecha (-X,
+  // a la izquierda de quien lo mira de frente) y el escudo a su izquierda (+X) ──
+  const h = new THREE.Group();
+  const v = (x, y, z) => new THREE.Vector3(x, y, z);
+  const SM = { flatShading: false };
+  const GS = { ...GOLD, flatShading: false };
+  const S = -1;
+  // Piernas: la derecha atrás, la izquierda adelantada y en alto sobre la roca
+  const legs = [
+    { hip: v(S * 0.1, 1.0, -0.01), knee: v(S * 0.17, 0.55, -0.05), foot: v(S * 0.21, 0.06, -0.12) },
+    { hip: v(0.1, 1.0, 0.02), knee: v(0.19, 0.64, 0.17), foot: v(0.21, 0.2, 0.13) },
+  ];
+  for (const { hip, knee, foot } of legs) {
+    limb(h, hip, knee, 0.115, 0.08, M, SM, 10);
+    limb(h, knee, foot, 0.082, 0.056, M2, SM, 10);
+    blob(h, 0.072, M, knee.x, knee.y, knee.z + 0.01, 1, 1, 1, SM);
+    // Greba con filete de oro y sandalia
+    const k = mesh(new THREE.TorusGeometry(0.07, 0.013, 5, 14), C.gold, GS);
+    k.position.copy(knee).lerp(foot, 0.1);
+    k.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3().subVectors(foot, knee).normalize());
+    h.add(k);
+    h.add(box(0.1, 0.06, 0.22, M2, foot.x, foot.y - 0.06, foot.z + 0.05));
+  }
+  // Falda de tiras (pteruges) y cinturón de oro con su hebilla
+  h.add(cyl(0.17, 0.23, 0.28, 16, M, 0, 0.8, 0, SM));
+  for (let k = 0; k < 16; k++) {
+    const a = (k / 16) * Math.PI * 2;
+    const strip = box(0.075, 0.27, 0.02, k % 2 ? M2 : M, 0, -0.27, 0);
+    strip.position.set(Math.sin(a) * 0.19, 1.06, Math.cos(a) * 0.19);
+    strip.rotation.set(-0.24, a, 0, 'YXZ');
+    h.add(strip);
+  }
+  h.add(cyl(0.185, 0.185, 0.06, 16, C.gold, 0, 1.05, 0, GS));
+  const buckle = cyl(0.045, 0.045, 0.03, 12, C.gold, 0, 0, 0, GS);
+  buckle.rotation.x = Math.PI / 2;
+  buckle.position.set(0, 1.08, 0.18);
+  h.add(buckle);
+  // Torso musculoso: tronco en uve, pectorales, abdominales y hombros
+  blob(h, 0.22, M, 0, 1.33, 0, 1.18, 1.22, 0.68, SM);
+  limb(h, v(0, 1.05, 0), v(0, 1.25, 0), 0.165, 0.2, M, SM, 14).scale.z = 0.72;
+  for (const sx of [-1, 1]) {
+    blob(h, 0.1, M, sx * 0.09, 1.42, 0.07, 1.2, 0.62, 0.42, SM);
+    blob(h, 0.105, M, sx * 0.27, 1.5, 0, 1, 1, 1, SM);
+  }
+  for (let r = 0; r < 3; r++) for (const sx of [-1, 1]) blob(h, 0.04, M, sx * 0.047, 1.15 + r * 0.075, 0.115, 1.1, 0.85, 0.55, SM);
+  // Tahalí de oro cruzado al pecho
+  const strap = box(0.045, 0.62, 0.02, C.gold, 0, 0, 0, GOLD);
+  strap.position.set(0, 1.32, 0.155);
+  strap.rotation.z = -0.75;
+  h.add(strap);
+  // Cuello y cabeza con nariz, cejas y barbilla
+  limb(h, v(0, 1.53, 0), v(0, 1.65, 0.01), 0.075, 0.06, M, SM, 10);
+  blob(h, 0.11, M, 0, 1.74, 0.01, 0.9, 1.1, 1, SM);
+  h.add(box(0.03, 0.06, 0.04, M2, 0, 1.71, 0.11));
+  blob(h, 0.05, M, 0, 1.64, 0.06, 1, 0.8, 0.8, SM);
+  // Casco: calota, filete de oro, carrilleras y el penacho alto de delante atrás
+  const cap = mesh(new THREE.SphereGeometry(0.125, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), M2, SM);
+  cap.position.set(0, 1.77, 0);
+  cap.scale.y = 1.15;
+  h.add(cap);
+  h.add(cyl(0.128, 0.13, 0.035, 14, C.gold, 0, 1.755, 0, GS));
+  for (const sx of [-1, 1]) {
+    const cheek = box(0.03, 0.12, 0.09, M2, sx * 0.1, 1.64, 0.04);
+    cheek.rotation.z = sx * -0.12;
+    h.add(cheek);
+  }
+  h.add(box(0.05, 0.06, 0.14, C.gold, 0, 1.89, 0, GOLD));
+  const crest = mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.11, 20, 1, false, -Math.PI / 2, Math.PI), M, SM);
+  crest.rotation.z = Math.PI / 2;
+  crest.position.set(0, 1.9, -0.03);
+  h.add(crest);
+  // Brazo derecho en alto con la lanza
+  const shR = v(S * 0.3, 1.5, 0);
+  const elR = v(S * 0.46, 1.36, 0.06);
+  const haR = v(S * 0.48, 1.74, 0.1);
+  limb(h, shR, elR, 0.075, 0.06, M, SM, 10);
+  limb(h, elR, haR, 0.058, 0.046, M, SM, 10);
+  blob(h, 0.066, M, haR.x, haR.y, haR.z, 1, 1.25, 1, SM);
+  h.add(cyl(0.068, 0.068, 0.05, 12, C.gold, S * 0.37, 1.39, 0.03, GS));
+  h.add(cyl(0.024, 0.024, 2.0, 6, '#7a5a32', haR.x, 0.0, haR.z, { metalness: 0.3, roughness: 0.6 }));
+  h.add(cyl(0.042, 0.032, 0.12, 8, C.gold, haR.x, 2.02, haR.z, GOLD));
+  const tip = mesh(new THREE.ConeGeometry(0.065, 0.32, 4), C.gold, GOLD);
+  tip.position.set(haR.x, 2.3, haR.z);
+  h.add(tip);
+  // Brazo izquierdo abajo, embrazando el escudo
+  const shL = v(0.3, 1.5, 0);
+  const elL = v(0.42, 1.24, 0.08);
+  const haL = v(0.42, 1.06, 0.22);
+  limb(h, shL, elL, 0.075, 0.06, M, SM, 10);
+  limb(h, elL, haL, 0.058, 0.046, M, SM, 10);
+  h.add(cyl(0.068, 0.068, 0.05, 12, C.gold, 0.37, 1.39, 0.03, GS));
+  // Escudo redondo de oro (aspis), vuelto hacia delante y algo hacia fuera
+  const shield = new THREE.Group();
+  const disc = mesh(new THREE.CylinderGeometry(0.44, 0.44, 0.05, 28), '#c9a24a', GS);
+  disc.rotation.x = Math.PI / 2;
+  shield.add(disc);
+  const rim = mesh(new THREE.TorusGeometry(0.44, 0.032, 6, 32), '#e8c25a', GS);
+  rim.position.z = 0.02;
+  shield.add(rim);
+  const inner = mesh(new THREE.TorusGeometry(0.21, 0.013, 5, 24), '#e8c25a', GS);
+  inner.position.z = 0.03;
+  shield.add(inner);
+  // Rayos de sol alrededor de la gema del tema
+  for (let k = 0; k < 12; k++) {
+    const ray = box(0.035, 0.15, 0.015, '#e8c25a', 0, 0, 0, GOLD);
+    ray.geometry.translate(0, 0.12, 0);
+    ray.rotation.z = (k / 12) * Math.PI * 2;
+    ray.position.z = 0.03;
+    shield.add(ray);
+  }
+  const gem = mesh(new THREE.OctahedronGeometry(0.09, 0), mark, { emissive: mark, emissiveIntensity: 0.8 });
+  gem.position.z = 0.06;
+  shield.add(gem);
+  shield.position.set(0.55, 1.02, 0.26);
+  shield.scale.setScalar(0.9);
+  shield.rotation.y = 0.5;
+  h.add(shield);
+  // Capa: sobre los hombros, broche de oro, y cae ondeando por detrás hacia el lado de la lanza
+  for (const sx of [-1, 1]) blob(h, 0.12, M2, sx * 0.24, 1.55, -0.03, 1.1, 0.6, 1, SM);
+  const brooch = cyl(0.05, 0.05, 0.03, 12, C.gold, 0, 0, 0, GS);
+  brooch.rotation.x = Math.PI / 2;
+  brooch.position.set(S * 0.2, 1.55, 0.1);
+  h.add(brooch);
+  const capeGeo = new THREE.PlaneGeometry(0.6, 1.5, 10, 16);
+  const cp = capeGeo.attributes.position;
+  for (let i = 0; i < cp.count; i++) {
+    const x = cp.getX(i);
+    const t = (0.75 - cp.getY(i)) / 1.5;
+    cp.setX(i, x * (1 + t * 0.7) + S * t * t * 0.4);
+    cp.setZ(i, -t * 0.38 + Math.sin(x * 12 + t * 5) * 0.05 * (0.3 + t));
+  }
+  capeGeo.computeVertexNormals();
+  const cape = mesh(capeGeo, M2, { side: THREE.DoubleSide, flatShading: false });
+  cape.position.set(0, 1.55 - 0.75, -0.17);
+  h.add(cape);
+
+  h.position.y = rockY + 0.06;
+  h.scale.setScalar(1.1);
+  fuseSmooth(h);
+  s.add(h);
+
+  // Braseros, arbustos y cipreses alrededor
+  for (const [x, z] of [[-0.82, 0.82], [0.82, 0.82], [-0.82, -0.82]]) statueBrazier(s, x, z, 0.12);
+  for (const [x, z, r] of [[-0.62, 0.45, 0.11], [0.62, 0.45, 0.11], [0.62, -0.5, 0.1], [-0.6, -0.48, 0.1], [0, -0.55, 0.12]]) {
+    const b = mesh(new THREE.SphereGeometry(r, 7, 5), '#5f8a3a');
+    b.position.set(x, top + r * 0.6, z);
+    s.add(b);
+    const b2 = mesh(new THREE.SphereGeometry(r * 0.7, 7, 5), '#7a9c45');
+    b2.position.set(x + r * 0.6, top + r * 0.5, z + r * 0.3);
+    s.add(b2);
+  }
+  for (const [x, z, k] of [[0.82, -0.86, 0.55], [0.6, -0.95, 0.42], [-0.98, -0.5, 0.4]]) {
+    const t = cypress('#2f5e34');
+    t.scale.setScalar(k);
+    t.position.set(x, 0.06, z);
+    s.add(t);
+  }
   return s;
 }
 

@@ -645,7 +645,7 @@ export class World {
     const rand = rng(7);
     const blockers = [
       { p: new THREE.Vector3(), r: 4.2 },
-      { p: polar(STATUE_SPOT.r, STATUE_SPOT.angle), r: 1.6 },
+      { p: polar(STATUE_SPOT.r, STATUE_SPOT.angle), r: 1.9 },
       ...Object.entries(L)
         .filter(([id]) => id !== 'ayuntamiento' && id !== 'puerto' && id !== 'muralla')
         .map(([, l]) => ({ p: polar(l.r, l.angle), r: 2.8 })),
@@ -2126,12 +2126,15 @@ export class World {
       this.statue = null;
     }
     if (!key) return;
-    const s = featStatueModel(key);
+    // Lo fijo en una sola malla; los braseros siguen ardiendo aparte
+    const s = bakeStatic(featStatueModel(key));
     s.position.copy(polar(STATUE_SPOT.r, STATUE_SPOT.angle));
-    s.rotation.y = THREE.MathUtils.degToRad(STATUE_SPOT.angle + 180);
+    // De cara a la cámara, girada un poco hacia el ayuntamiento
+    s.rotation.y = THREE.MathUtils.degToRad(-35);
     s.scale.setScalar(1.2);
     this.scene.add(s);
     this.statue = s;
+    this.#collectAnimated();
   }
 
   /** Color de las banderas de tu ciudad: el tuyo o, si te han ocupado, el del invasor. */
@@ -2736,6 +2739,7 @@ export class World {
     collect(this.siegeGroup);
     for (const f of this.fleets.values()) collect(f.group);
     collect(this.raidGroup);
+    collect(this.statue);
   }
 
   // ── Bucle ─────────────────────────────────────────────────────────────────

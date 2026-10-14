@@ -5,6 +5,14 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15j',
+    date: '2026-10-15',
+    title: 'Estatua de la gesta',
+    items: [
+      '🏆 La <b>estatua</b> que ganas al vencer una gesta es ahora un gran hoplita de mármol: casco de penacho, capa al viento, lanza en alto y escudo de oro con la gema de su gesta. Se alza sobre un pedestal con columnas, greca y estandarte azul, rodeado de braseros encendidos y cipreses.',
+    ],
+  },
+  {
     id: '2026-10-15i',
     date: '2026-10-15',
     title: 'Almacén nuevo',
