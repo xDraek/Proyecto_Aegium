@@ -140,11 +140,18 @@ function reportBody(r) {
   return parts.join('');
 }
 
+/** El nombre de la isla del informe, como enlace que te lleva a ella en el mapa. */
+function placeLink(r) {
+  const name = escapeHtml(r.islandName ?? (r.island ? 'Una isla' : 'Tu isla'));
+  if (!r.island) return name;
+  return `<button type="button" class="link" data-action="goto" data-island="${escapeHtml(r.island)}" title="Ver en el mapa">🗺️ ${name}</button>`;
+}
+
 /** Un informe que otro jugador ha compartido en el chat. */
 export function sharedReportHtml(m) {
   const r = { ...m.report, shared: true };
   return `<div class="modal-card">
-    <div class="panel-head"><span class="panel-icon">📜</span><div><h3>${escapeHtml(r.title)}</h3><div class="panel-lvl">Informe compartido por ${escapeHtml(m.name)}${r.islandName ? ` · ${escapeHtml(r.islandName)}` : ''}</div></div>
+    <div class="panel-head"><span class="panel-icon">📜</span><div><h3>${escapeHtml(r.title)}</h3><div class="panel-lvl">Informe compartido por ${escapeHtml(m.name)}${r.island ? ` · ${placeLink(r)}` : ''}</div></div>
     <button class="icon-btn" data-action="close-modal" title="Cerrar">✕</button></div>
     <div class="r-body">${reportBody(r)}</div>
   </div>`;
@@ -154,7 +161,7 @@ export function reportsHtml(reports) {
   const items = reports.length
     ? reports
         .map((r) => {
-          const where = escapeHtml(r.islandName ?? (r.island ? 'Una isla' : 'Tu isla'));
+          const where = placeLink(r);
           return `<details class="report ${r.outcome ?? ''} ${r.read ? '' : 'unread'}">
             <summary>
               <span class="r-icon">${KIND_ICON[r.kind] ?? '📜'}</span>

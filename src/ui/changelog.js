@@ -5,6 +5,14 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15',
+    date: '2026-10-15',
+    title: 'Informes con enlace',
+    items: [
+      '🗺️ En los <b>informes</b> (espionaje, ataques, exploraciones…), el nombre de la isla es un enlace: púlsalo y te lleva a ella en el mapa. También en los informes que se comparten en el chat.',
+    ],
+  },
+  {
     id: '2026-10-14k',
     date: '2026-10-14',
     title: 'El favor de los dioses',
