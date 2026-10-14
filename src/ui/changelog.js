@@ -5,6 +5,14 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15c',
+    date: '2026-10-15',
+    title: 'Barras de progreso más claras',
+    items: [
+      '⏳ Las <b>barras de progreso</b> (lo que está en marcha, obras e investigaciones) resaltan más: relleno dorado brillante sobre un fondo oscuro con filo dorado. Y los navegadores con «modo oscuro automático» (algunas tablets) ya no le cambian los colores al juego.',
+    ],
+  },
+  {
     id: '2026-10-15b',
     date: '2026-10-15',
     title: 'Tablet, ciudades lejanas y sonido de la isla',

@@ -1,4 +1,5 @@
 :root {
+  color-scheme: dark;
   --panel: rgba(24, 20, 16, 0.84);
   --panel-solid: #1d1813;
   --panel-border: rgba(242, 201, 76, 0.28);
@@ -873,7 +874,8 @@ select:focus {
   height: 6px;
   margin-top: 8px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(242, 201, 76, 0.22);
   overflow: hidden;
 }
 
@@ -883,7 +885,8 @@ select:focus {
   display: block;
   height: 100%;
   width: 0;
-  background: linear-gradient(90deg, #d9a92e, #f6d36b);
+  background: linear-gradient(90deg, #e8b53a, #ffe08a);
+  box-shadow: 0 0 6px rgba(255, 214, 102, 0.55);
 }
 
 .train-queue,
@@ -1038,11 +1041,13 @@ select:focus {
   white-space: nowrap;
 }
 
+/* Barra de lo que está en marcha: fondo oscuro con un filo dorado, para que el relleno resalte */
 .q-bar {
   grid-column: 1;
-  height: 5px;
+  height: 6px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(242, 201, 76, 0.22);
   overflow: hidden;
 }
 
@@ -4574,7 +4579,14 @@ body.landing-mode #cam-controls {
 }
 
 :is(.card, .army-card, .quest, .report, .offer, .daily li, .medals li, .skill, .relic, .friend, .post, .diplo-row) :is(.progress, .q-bar, .favor-bar) {
-  background: rgba(80, 52, 20, 0.18);
+  background: rgba(80, 52, 20, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(120, 82, 30, 0.35);
+}
+
+/* Sobre el pergamino claro, el relleno va en un dorado más oscuro para que se distinga */
+:is(.card, .army-card, .quest, .report, .offer, .daily li, .medals li, .skill, .relic, .friend, .post, .diplo-row) :is(.progress, .q-bar) i {
+  background: linear-gradient(90deg, #a8721a, #d9a22e);
+  box-shadow: none;
 }
 
 :is(.card, .army-card, .quest, .report, .offer, .daily li, .medals li, .skill, .relic, .friend, .post, .diplo-row) :is(input, select) {
