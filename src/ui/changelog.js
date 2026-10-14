@@ -5,6 +5,14 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15g',
+    date: '2026-10-15',
+    title: 'Avisos que se pueden ocultar',
+    items: [
+      '⚔️ La banda roja de <b>avisos</b> (ataques, piratas, bloqueos, hordas, gestas) tiene una <b>✕</b> para ocultarla. Queda una pastilla pequeña con cuántos avisos hay: púlsala para volver a verlos. Si llega un aviso nuevo, la banda se vuelve a abrir sola.',
+    ],
+  },
+  {
     id: '2026-10-15f',
     date: '2026-10-15',
     title: 'Bendiciones',

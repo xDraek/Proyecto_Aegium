@@ -135,7 +135,19 @@ export class Hud {
       const li = e.target.closest('[data-id], [data-select]');
       if (li) this.onSelect(li.dataset.id ?? li.dataset.select);
     });
-    this.alert.addEventListener('click', () => this.onSelect(this.alertTarget ?? 'muralla'));
+    // La banda de avisos se puede ocultar con su ✕: queda una pastilla que la vuelve a abrir
+    this.alertDismissed = new Set();
+    this.alert.addEventListener('click', (e) => {
+      if (e.target.closest('.alert-close')) {
+        for (const k of this.alertKeys ?? []) this.alertDismissed.add(k);
+        return this.#renderAlert();
+      }
+      if (this.alert.classList.contains('collapsed')) {
+        this.alertDismissed.clear();
+        return this.#renderAlert();
+      }
+      this.onSelect(this.alertTarget ?? 'muralla');
+    });
     this.viewBtn.addEventListener('click', () => this.onView(this.view === 'isla' ? 'mapa' : 'isla'));
     this.actionbar = $('#actionbar');
     this.actionbar.addEventListener(
@@ -1205,6 +1217,26 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     this.alert.hidden = !raid && !incoming.length && !hordes.length && !port && !feat;
     if (this.alert.hidden) {
       this.cache.alert = '';
+      this.alertDismissed.clear();
+      return;
+    }
+    // Qué avisos hay: si todos se ocultaron, queda la pastilla; si llega uno nuevo, se vuelve a abrir
+    const keys = [
+      ...incoming.map((m) => `i${m.id}`),
+      raid ? `r${raid.spawn}` : null,
+      port ? `p${port.until}` : null,
+      ...hordes.map((x) => `h${x.id}`),
+      feat ? `f${feat.site}-${feat.title}` : null,
+    ].filter(Boolean);
+    this.alertKeys = keys;
+    for (const k of [...this.alertDismissed]) if (!keys.includes(k)) this.alertDismissed.delete(k);
+    const collapsed = keys.every((k) => this.alertDismissed.has(k));
+    this.alert.classList.toggle('collapsed', collapsed);
+    this.alert.title = collapsed ? 'Volver a ver los avisos' : '';
+    if (collapsed) {
+      const n = keys.length;
+      const icon = s.occupied ? '🦅' : s.blockade ? '⛓️' : incoming.length ? '⚔️' : raid ? '🏴‍☠️' : hordes.length ? '🔥' : feat.icon;
+      this.#setHtml(this.alert, 'alert', `<span class="alert-icon">${icon}</span><b>${n} ${n === 1 ? 'aviso' : 'avisos'}</b><span class="small">Pulsa para ${n === 1 ? 'verlo' : 'verlos'}</span>`);
       return;
     }
     this.alertTarget = port ? 'puerto' : raid || incoming.length ? 'muralla' : hordes.length ? hordes[0].id : feat.site;
@@ -1233,7 +1265,8 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
           ? 'Pulsa para ver la horda y mandar tus tropas contra ella'
           : 'Pulsa para ver la gesta en su continente';
     const html = `<span class="alert-icon">${s.occupied ? '🦅' : s.blockade ? '⛓️' : incoming.length ? '⚔️' : raid ? '🏴‍☠️' : hordes.length ? '🔥' : feat.icon}</span>
-      <div>${lines.join('')}<div class="small">${tip}</div></div>`;
+      <div>${lines.join('')}<div class="small">${tip}</div></div>
+      <span class="alert-close" role="button" aria-label="Ocultar el aviso" title="Ocultar el aviso (se vuelve a abrir con un aviso nuevo)">✕</span>`;
     this.#setHtml(this.alert, 'alert', html);
   }
 
