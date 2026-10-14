@@ -5,6 +5,16 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15b',
+    date: '2026-10-15',
+    title: 'Tablet, ciudades lejanas y sonido de la isla',
+    items: [
+      '⚙ El <b>menú de opciones</b> se abre encima de su botón y entre las dos barras: ya no tapa la barra de arriba ni el botón de cerrar del panel abierto (en tablets y pantallas bajas se desplaza por dentro).',
+      '⚓ Al ir a una <b>ciudad lejana</b> desde el mapa del mundo ves también las islas que tiene alrededor, y el mar ya no se queda liso a su alrededor.',
+      '🏝️ Nuevo <b>sonido de fondo de la isla</b>, bajito, y las <b>gaviotas</b> graznan cada 30 a 45 segundos. Se regulan con el volumen de «Ambiente» en ⚙.',
+    ],
+  },
+  {
     id: '2026-10-15',
     date: '2026-10-15',
     title: 'Informes con enlace',

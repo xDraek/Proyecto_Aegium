@@ -186,7 +186,11 @@ test('con Cartas náuticas se puede traer a tu mapa y atacar una ciudad lejana',
   // Con ellas, sí: aparece en su mapa y se puede atacar
   A.state.research.cartas = 1;
   assert.equal(A.watchCity(id).ok, true);
-  assert.ok(env.world.snapshot(A.userId).world.islands.some((i) => i.id === id), 'ya está en su mapa');
+  const seen = new Set(env.world.snapshot(A.userId).world.islands.map((i) => i.id));
+  assert.ok(seen.has(id), 'ya está en su mapa');
+  // Y también lo que tiene alrededor (sus campamentos, sus vecinos…)
+  const around = env.world.islandsNear(id, 200).filter((i) => i.id !== id);
+  assert.ok(around.length > 0 && around.every((i) => seen.has(i.id)), 'se ve lo que tiene alrededor');
   Object.assign(A.state.units, { trirreme: 5, hoplita: 20 });
   assert.equal(A.planMission('atacar', id, { trirreme: 5, hoplita: 20 }).ok, true);
   assert.equal(A.watchCity(A.state.home).ok, false, 'la tuya no');

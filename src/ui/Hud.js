@@ -294,6 +294,10 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       if (!this.menu.hidden) {
         if (!this.modal.hidden) this.closeModal();
         if (!this.chatEl.hidden) this.toggleChat(false);
+        // En pantallas anchas se abre encima de su botón y no pegado a la derecha, donde taparía
+        // la cabecera (y el botón de cerrar) del panel abierto. En el móvil ocupa todo el ancho
+        const r = e.currentTarget.getBoundingClientRect();
+        this.menu.style.right = window.innerWidth > 800 ? `${Math.max(12, Math.round(window.innerWidth - r.right - 8))}px` : '';
       }
       this.#syncActive();
       if (this.menu.hidden) return;

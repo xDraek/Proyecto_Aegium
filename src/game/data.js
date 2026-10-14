@@ -718,6 +718,9 @@ export const PVP_RANGE = 300;
  */
 export const WATCH_MAX = 8;
 
+/** Alrededor de cada ciudad lejana que traes a tu mapa también se ven las islas hasta esta distancia. */
+export const WATCH_RADIUS = 250;
+
 /**
  * Expediciones al Mar de las Brumas: solo una a la vez, y la flota pasa `stayHours` horas
  * explorando la niebla antes de volver. Lo que encuentran tiene que caber en la bodega.

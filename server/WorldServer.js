@@ -3,7 +3,7 @@ import { RESOURCES } from '../src/game/data.js';
 import { assault, battle, combineGroups, count, hasCombat, shareSurvivors, splitForces } from '../src/game/combat.js';
 import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, forgeBonus, forgeGoal, forgeHours, forgeRoom, pledgeEmpires, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
 import { Game, newState } from '../src/game/Game.js';
-import { ACHIEVEMENTS, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, PROTECTION, UNITS, WONDERS } from '../src/game/data.js';
+import { ACHIEVEMENTS, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, PROTECTION, UNITS, WATCH_RADIUS, WONDERS } from '../src/game/data.js';
 import { playerCombat, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
 import { footprint, freshIslandState, generateContinent, generateSector, homeIsland, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
@@ -2006,8 +2006,12 @@ export class WorldServer {
     }
     // Y el continente de la gesta a la que te han convocado (puede quedar lejos)
     if (game.state.feat?.site) ids.add(game.state.feat.site);
-    // Y las ciudades lejanas que has traído a tu mapa con las Cartas náuticas
-    for (const id of game.state.watched ?? []) ids.add(id);
+    // Y las ciudades lejanas que has traído a tu mapa con las Cartas náuticas, con lo que tienen alrededor
+    for (const id of game.state.watched ?? []) {
+      ids.add(id);
+      const far = this.islands.get(id);
+      if (far) for (const isl of this.islandsNear(id, WATCH_RADIUS)) ids.add(isl.id);
+    }
     const islands = [...ids].map((id) => this.islands.get(id)).filter(Boolean);
     const states = {};
     const players = {};

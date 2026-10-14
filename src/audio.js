@@ -1,5 +1,5 @@
-// Sonido con Web Audio: la música de fondo, las gaviotas y la lluvia son pistas grabadas
-// (public/audio); el mar y los efectos se sintetizan al momento.
+// Sonido con Web Audio: la música de fondo, el ambiente de la isla, las gaviotas y la lluvia son
+// pistas grabadas (public/audio); los truenos y los efectos se sintetizan al momento.
 // El navegador no deja sonar nada hasta que el jugador interactúa, así que el
 // contexto se crea en el primer clic o tecla.
 
@@ -12,9 +12,8 @@ const MUSIC_MAX = 0.65;
 
 let ctx = null;
 let master = null;
-// El mar, las gaviotas, la lluvia y los truenos pasan por aquí: su volumen lo elige el jugador
+// El ambiente de la isla, las gaviotas, la lluvia y los truenos pasan por aquí: su volumen lo elige el jugador
 let ambientBus = null;
-let ambience = null;
 let muted = readMuted();
 
 function readMuted() {
@@ -36,7 +35,7 @@ function ensure() {
   ambientBus = ctx.createGain();
   ambientBus.gain.value = ambientVolume();
   ambientBus.connect(master);
-  startAmbience();
+  startIsland();
   if (musicOn()) startMusic();
   // Los efectos grabados, ya descargados para cuando hagan falta
   loadSample('/audio/martillo.mp3');
@@ -62,9 +61,9 @@ export function setMuted(value) {
   if (master) master.gain.setTargetAtTime(muted ? 0 : 0.6, ctx.currentTime, 0.1);
 }
 
-// ── Ambiente: oleaje y gaviotas ──────────────────────────────────────────────
+// ── Ambiente ─────────────────────────────────────────────────────────────────
 
-/** Volumen del sonido ambiente (mar, gaviotas, lluvia y truenos), de 0 a 1. */
+/** Volumen del sonido ambiente (la isla, las gaviotas, la lluvia y los truenos), de 0 a 1. */
 export function ambientVolume() {
   try {
     const raw = localStorage.getItem(AMBIENT_VOLUME_KEY);
@@ -85,39 +84,39 @@ export function setAmbientVolume(v) {
   if (ambientBus) ambientBus.gain.setTargetAtTime(v, ctx.currentTime, 0.08);
 }
 
+/** Ruido para los truenos. */
 function noiseBuffer(seconds) {
   const len = Math.floor(ctx.sampleRate * seconds);
   const buf = ctx.createBuffer(1, len, ctx.sampleRate);
   const data = buf.getChannelData(0);
   let last = 0;
   for (let i = 0; i < len; i++) {
-    // Ruido marrón: más grave y suave que el blanco, suena a mar
+    // Ruido marrón: más grave y suave que el blanco
     last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02;
     data[i] = last * 3.5;
   }
   return buf;
 }
 
-function startAmbience() {
-  const src = ctx.createBufferSource();
-  src.buffer = noiseBuffer(6);
-  src.loop = true;
-  const filter = ctx.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.value = 520;
-  const gain = ctx.createGain();
-  gain.gain.value = 0.18;
-  // Las olas van y vienen
-  const lfo = ctx.createOscillator();
-  lfo.frequency.value = 0.12;
-  const lfoGain = ctx.createGain();
-  lfoGain.gain.value = 0.1;
-  lfo.connect(lfoGain).connect(gain.gain);
-  src.connect(filter).connect(gain).connect(ambientBus);
-  src.start();
-  lfo.start();
-  ambience = gain;
+// ── Ambiente de la isla: una pista grabada en bucle, bajita, debajo de todo ────
+
+let island = null;
+// Más bajo en el mapa (estás lejos de la orilla)
+let islandLevel = 1;
+
+function startIsland() {
+  island ??= track('/audio/sonido_fondo_isla.mp3', 0.09, ambientBus);
+  if (!document.hidden) fade(island, island.volume * islandLevel, 3);
 }
+
+// Con la pestaña en segundo plano se calla (y vuelve al volver)
+document.addEventListener('visibilitychange', () => {
+  if (!island) return;
+  if (document.hidden) {
+    island.el.pause();
+    island.playing = false;
+  } else fade(island, island.volume * islandLevel, 1.5);
+});
 
 // ── Gaviotas: la pista suena más o menos según las que pasen sobre la isla ────
 
@@ -296,7 +295,8 @@ export function thunder(power = 1) {
 
 /** El ambiente baja en el mapa (estás lejos de la orilla). */
 export function setAmbienceLevel(k) {
-  if (ambience) ambience.gain.setTargetAtTime(0.18 * k, ctx.currentTime, 0.5);
+  islandLevel = k;
+  if (island?.playing) island.gain.gain.setTargetAtTime(island.volume * k, ctx.currentTime, 0.8);
 }
 
 // ── Efectos ──────────────────────────────────────────────────────────────────

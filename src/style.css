@@ -5192,10 +5192,11 @@ kbd {
   }
 }
 
-/* Pantallas bajas: si el menú de opciones no cabe entre las dos barras, se desplaza */
+/* Pantallas bajas: si el menú de opciones no cabe entre las dos barras, se desplaza (sin taparlas) */
 @media (max-height: 760px) {
   .menu {
-    max-height: calc(100vh - var(--bottom) - 40px);
+    max-height: calc(100dvh - var(--top, 90px) - var(--bottom) - 40px);
+    overflow-x: hidden;
     overflow-y: auto;
   }
 }

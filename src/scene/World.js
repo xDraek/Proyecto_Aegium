@@ -2045,8 +2045,8 @@ export class World {
   }
 
   /**
-   * Las gaviotas se oyen de vez en cuando (unos segundos cada medio minuto o minuto y medio), y solo
-   * si vuelan sobre la isla cerca de donde miras (en la vista de la isla).
+   * Las gaviotas graznan cada 30 a 45 segundos, durante unos segundos: más fuerte si vuelan cerca de
+   * donde miras, y bajito en el mapa (estás lejos de la isla).
    */
   #gullSound(dt) {
     this.gullClock = (this.gullClock ?? 0) + dt;
@@ -2054,28 +2054,29 @@ export class World {
     const step = this.gullClock;
     this.gullClock = 0;
     // Entre graznido y graznido, silencio
-    const call = (this.gullCall ??= { wait: 10 + Math.random() * 20, left: 0 });
+    const call = (this.gullCall ??= { wait: 8 + Math.random() * 10, left: 0 });
     if (call.left > 0) call.left -= step;
     else {
       call.wait -= step;
       if (call.wait <= 0) {
-        call.left = 4 + Math.random() * 4;
-        call.wait = 30 + Math.random() * 60;
+        call.left = 5 + Math.random() * 4;
+        call.wait = 30 + Math.random() * 15;
       }
     }
     if (call.left <= 0) {
       setGulls(0);
       return;
     }
-    let k = 0;
+    let k = 0.3;
     if (this.view === 'isla') {
       const target = this.controls.target;
+      k = 0.6;
       for (const g of this.gulls) {
         if (Math.hypot(g.position.x, g.position.z) > this.coast(THREE.MathUtils.radToDeg(Math.atan2(g.position.x, g.position.z))) + 3) continue;
-        k += Math.max(0, 1 - g.position.distanceTo(target) / 38);
+        k += Math.max(0, 1 - g.position.distanceTo(target) / 38) * 0.3;
       }
     }
-    setGulls(Math.min(1, k / 1.5));
+    setGulls(Math.min(1, k));
   }
 
   /** Gira la cámara alrededor de lo que mira y la acerca o aleja (dentro de los límites). */
@@ -2773,7 +2774,8 @@ export class World {
     this.scene.fog.far = dist * 2.6 + 160;
     // De lejos (en el mapa puedes alejarte mucho de tu isla) el mar sigue a lo que miras y se
     // estira, para que nunca se le vea el borde. Cerca se queda quieto en tu isla, con todo su detalle
-    if (dist > VIEWS.isla.max + 10) {
+    // (también si miras lejos de tu isla, como al ir a una ciudad lejana desde el mapa del mundo)
+    if (dist > VIEWS.isla.max + 10 || Math.hypot(this.controls.target.x, this.controls.target.z) > 400) {
       const k = 2 ** Math.ceil(Math.log2(Math.max(1, dist / 300)));
       const step = 25 * k;
       this.water.position.x = Math.round(this.controls.target.x / step) * step;
