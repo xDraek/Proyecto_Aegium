@@ -120,10 +120,11 @@ export const BUILDINGS = {
   templo: {
     name: 'Templo',
     icon: '🛕',
-    description: 'Los sacerdotes ganan el favor de los dioses, que puedes gastar en poderes divinos. Cada nivel da más favor por hora y permite acumular más.',
+    description: 'Los sacerdotes ganan el favor de los dioses, que puedes gastar en poderes divinos. Cada nivel da más favor por hora y permite acumular más (hasta el nivel 10).',
     baseCost: { madera: 250, piedra: 350, cristal: 60, comida: 150 },
     costFactor: 1.7,
     baseTime: 110,
+    maxLevel: 10,
     requires: { ayuntamiento: 3, academia: 1 },
   },
   cuartel: {
@@ -852,14 +853,16 @@ export const OUTPOST_MISSIONS = ['atacar', 'explorar', 'sabotaje', 'bloquear', '
 
 // ── Templo ───────────────────────────────────────────────────────────────────
 // duration: horas de juego que dura el efecto (0 = instantáneo). cooldown: horas desde que se
-// invoca hasta que se puede volver a invocar (así no se acumulan).
+// invoca hasta que se puede volver a invocar (así no se acumulan). `templo`: el nivel del templo que
+// hace falta para invocarlo (se van desbloqueando).
 
 export const POWERS = {
   cosecha: {
     name: 'Cosecha abundante',
     icon: '🌾',
     description: '+25 % de toda la producción durante 2 horas.',
-    cost: 60,
+    templo: 1,
+    cost: 110,
     duration: 2,
     cooldown: 8,
   },
@@ -867,7 +870,8 @@ export const POWERS = {
     name: 'Inspiración',
     icon: '🦉',
     description: 'La obra y la investigación en curso terminan un 30 % antes.',
-    cost: 50,
+    templo: 2,
+    cost: 90,
     duration: 0,
     cooldown: 6,
   },
@@ -875,7 +879,8 @@ export const POWERS = {
     name: 'Viento favorable',
     icon: '🌬️',
     description: 'Tus flotas en el mar se ahorran la mitad de lo que les queda de trayecto.',
-    cost: 70,
+    templo: 4,
+    cost: 130,
     duration: 0,
     cooldown: 6,
   },
@@ -883,7 +888,8 @@ export const POWERS = {
     name: 'Égida',
     icon: '🛡️',
     description: '+50 % de vida para los defensores de tu isla durante 3 horas.',
-    cost: 80,
+    templo: 6,
+    cost: 140,
     duration: 3,
     cooldown: 10,
   },
@@ -891,7 +897,8 @@ export const POWERS = {
     name: 'Ira de los dioses',
     icon: '⚡',
     description: 'Un rayo hunde el 40 % de la flota pirata que se acerca.',
-    cost: 120,
+    templo: 8,
+    cost: 220,
     duration: 0,
     cooldown: 8,
   },
@@ -925,7 +932,7 @@ export const QUESTS = [
   { id: 'q-mercado', title: 'Comerciantes', text: 'Construye el mercado.', goal: lvl('mercado', 1), reward: { oro: 200, cristal: 150 } },
   { id: 'q-defensa', title: 'Ni un paso atrás', text: 'Rechaza un asalto pirata.', goal: stat('raidsRepelled', 1), reward: { oro: 300, hierro: 300 } },
   { id: 'q-templo', title: 'Favor divino', text: 'Construye el templo.', goal: lvl('templo', 1), reward: { cristal: 300, oro: 150 } },
-  { id: 'q-poder', title: 'Los dioses escuchan', text: 'Invoca un poder divino.', goal: stat('powers', 1), reward: { favor: 40 } },
+  { id: 'q-poder', title: 'Los dioses escuchan', text: 'Invoca un poder divino.', goal: stat('powers', 1), reward: { favor: 30 } },
   { id: 'q-tesoro', title: 'Cazatesoros', text: 'Encuentra el tesoro de unas ruinas.', goal: stat('treasures', 1), reward: { oro: 300 } },
   { id: 'q-cartografia', title: 'Cartas náuticas', text: 'Investiga Cartografía.', goal: res('cartografia', 1), reward: { madera: 800, comida: 800 } },
   { id: 'q-colonia', title: 'Nuevo mundo', text: 'Funda tu primera colonia.', goal: (g) => [Math.min(g.colonies().length, 1), 1], reward: { oro: 500, cristal: 400 } },
@@ -956,7 +963,7 @@ export const DAILY_REWARDS = [
   { cristal: 120, comida: 200 },
   { hierro: 150, oro: 60 },
   { cristal: 200, oro: 100 },
-  { oro: 250, cristal: 250, favor: 30 },
+  { oro: 250, cristal: 250, favor: 20 },
 ];
 
 // ── Logros ───────────────────────────────────────────────────────────────────
@@ -1039,7 +1046,7 @@ export const DAILY_TASKS = {
   transporte: { icon: '📦', text: () => 'Manda un transporte a otro jugador', stat: 'transports', need: () => 1, requires: { puerto: 1 } },
 };
 export const DAILY_TASK_REWARD = { madera: 250, piedra: 250, comida: 200, oro: 60 };
-export const DAILY_TASK_BONUS = { cristal: 300, oro: 200, favor: 20 };
+export const DAILY_TASK_BONUS = { cristal: 300, oro: 200, favor: 15 };
 
 // ── Competición semanal ──────────────────────────────────────────────────────
 // Cada semana se premia a los tres mejores de cada categoría por lo que han

@@ -486,8 +486,8 @@ export class Game extends EventTarget {
     if (this.state.tasks.claimed.length === this.state.tasks.picks.length) {
       const { favor, ...rest } = DAILY_TASK_BONUS;
       this.#gain(rest);
-      this.state.favor += favor;
-      text += ` · ¡y los tres de hoy! ${fmtBag(rest)} · 🙏 ${favor}`;
+      const got = this.#addFavor(favor);
+      text += ` · ¡y los tres de hoy! ${fmtBag(rest)}${got ? ` · 🙏 ${got}` : ''}`;
     }
     this.#note(text, 'success');
     return this.#done();
@@ -1463,7 +1463,7 @@ export class Game extends EventTarget {
     this.state.quests.claimed.push(id);
     const { favor, ...rest } = q.reward;
     this.#gain(rest);
-    if (favor) this.state.favor += favor;
+    if (favor) this.#addFavor(favor);
     return this.#done();
   }
 
@@ -1496,9 +1496,9 @@ export class Game extends EventTarget {
     if (!d.available) return this.#fail('Ya has recogido el regalo de hoy. ¡Vuelve mañana!');
     const { favor, ...rest } = d.reward;
     this.#gain(rest);
-    if (favor) this.state.favor += favor;
+    const got = favor ? this.#addFavor(favor) : 0;
     this.state.daily = { last: d.today, streak: d.streak, best: Math.max(this.state.daily.best ?? 0, d.streak) };
-    this.#note(`🎁 Regalo del día ${d.day}: ${fmtBag(rest)}${favor ? ` · 🙏 ${favor}` : ''}`, 'success');
+    this.#note(`🎁 Regalo del día ${d.day}: ${fmtBag(rest)}${got ? ` · 🙏 ${got}` : ''}`, 'success');
     return this.#done();
   }
 
@@ -1508,6 +1508,7 @@ export class Game extends EventTarget {
     const s = this.state;
     if (!p) return this.#fail('Poder desconocido.');
     if (this.level('templo') < 1) return this.#fail('Necesitas un templo.');
+    if (this.level('templo') < (p.templo ?? 1)) return this.#fail(`${p.name} se desbloquea con el templo a nivel ${p.templo}.`);
     const ready = this.powerReady(id, now);
     if (ready) return this.#fail(`${p.name} aún no se puede volver a invocar: faltan ${fmtWait(ready - now)}.`);
     if (s.favor < p.cost) return this.#fail('No tienes favor suficiente.');
@@ -1982,6 +1983,14 @@ export class Game extends EventTarget {
     for (const n of notes) this.dispatchEvent(new CustomEvent('notify', { detail: n }));
   }
 
+  /** Suma favor sin pasar del tope del templo. Devuelve lo que ha sumado de verdad. */
+  #addFavor(n) {
+    const s = this.state;
+    const before = s.favor;
+    s.favor = Math.max(before, Math.min(favorMax(s), before + n));
+    return Math.round(s.favor - before);
+  }
+
   /** Aviso para el jugador. En el servidor se guarda para enseñarlo cuando se conecte. */
   #note(text, kind = 'info') {
     const note = { id: this.state.seq++, t: this.state.lastUpdate, text, kind };
@@ -2118,7 +2127,7 @@ export class Game extends EventTarget {
     const h = Math.max(0, t - start) / HOUR_MS;
     s.lastUpdate = Math.max(start, t);
     if (h === 0 || s.vacation) return; // de vacaciones la isla ni produce ni gasta
-    s.favor = Math.min(Math.max(s.favor, favorMax(s)), s.favor + favorRate(s, start) * h);
+    s.favor = Math.min(favorMax(s), s.favor + favorRate(s, start) * h);
     const eco = economy(s, start);
     const cap = storageCapacity(s);
     // Si el mantenimiento se come la comida, a partir de ese momento hay hambruna
@@ -3063,8 +3072,8 @@ export class Game extends EventTarget {
         outcome: 'victoria',
       });
     } else {
-      s.favor += 50;
-      Object.assign(report, { title: 'Un altar en la niebla', text: 'Tus marineros encuentran un altar olvidado y hacen ofrendas. Los dioses te sonríen (+50 de favor).', outcome: 'victoria' });
+      const got = this.#addFavor(35);
+      Object.assign(report, { title: 'Un altar en la niebla', text: `Tus marineros encuentran un altar olvidado y hacen ofrendas. Los dioses te sonríen${got ? ` (+${got} de favor)` : ''}.`, outcome: 'victoria' });
     }
     this.#report(report);
     this.#note(`🧭 Expedición: ${report.title}`, report.outcome === 'derrota' ? 'error' : 'success');
@@ -3224,15 +3233,15 @@ export class Game extends EventTarget {
     } else if (roll < 0.85) {
       const bag = this.level('templo') ? null : { oro: Math.round(80 * scale) };
       if (bag) this.#gain(bag);
-      else s.favor += 30;
+      const got = bag ? 0 : this.#addFavor(20);
       this.#report({
         t,
         kind: 'visita',
         title: 'Llegan peregrinos',
-        text: bag ? 'Unos peregrinos de paso dejan ofrendas en la plaza.' : 'Los peregrinos rezan en tu templo: +30 de favor.',
+        text: bag ? 'Unos peregrinos de paso dejan ofrendas en la plaza.' : `Los peregrinos rezan en tu templo${got ? `: +${got} de favor` : ', pero tu favor ya está al máximo'}.`,
         loot: bag,
       });
-      this.#note(`${VISITORS.peregrinos.icon} Llegan peregrinos${bag ? '' : ' (+30 de favor)'}`, 'success');
+      this.#note(`${VISITORS.peregrinos.icon} Llegan peregrinos${got ? ` (+${got} de favor)` : ''}`, 'success');
       this.#scheduleVisit(t);
       return;
     } else {

@@ -171,8 +171,8 @@ function islandsTable() {
 
 function powersTable() {
   return table(
-    ['Poder', 'Favor', 'Efecto'],
-    Object.values(POWERS).map((p) => [`${p.icon} <b>${p.name}</b>`, `🙏 ${p.cost}`, p.description]),
+    ['Poder', 'Templo', 'Favor', 'Efecto'],
+    Object.values(POWERS).map((p) => [`${p.icon} <b>${p.name}</b>`, `Nv ${p.templo ?? 1}`, `🙏 ${p.cost}`, p.description]),
   );
 }
 
@@ -445,7 +445,7 @@ const TOPICS = {
           ['🧭 Perdidos: tardáis el doble en volver', '8 %'],
           ['🐍 Una serpiente marina hunde parte de la flota', '7 %'],
           ['🗺️ Cartas náuticas con islas nuevas', '4 %'],
-          ['🛕 Un altar olvidado: +50 de favor', '3 %'],
+          ['🛕 Un altar olvidado: +35 de favor', '3 %'],
         ],
       )}
       <p>Si la expedición sale bien, a veces aparece además una ${see('reliquias', 'reliquia')}.</p>
@@ -650,7 +650,7 @@ const TOPICS = {
   templo: {
     icon: '🛕',
     title: 'Templo y poderes',
-    body: () => `<p>El templo acumula <b>favor</b> de los dioses: 6 por hora por cada nivel, hasta un máximo de 100 más 60 por nivel (el Festival de Poseidón lo duplica). Lo gastas en poderes:</p>
+    body: () => `<p>El templo acumula <b>favor</b> de los dioses: 6 por hora por cada nivel hasta el 5 y 3 por cada nivel más, hasta un máximo de 100 más 60 por nivel (el templo llega al nivel 10; el Festival de Poseidón lo duplica). Ni las recompensas lo pasan de ese tope. Lo gastas en poderes, que se van desbloqueando al subir el templo:</p>
       ${powersTable()}
       ${tip('Inspiración rinde más en obras e investigaciones largas, y Viento favorable cuando tienes varias flotas lejos.')}`,
   },

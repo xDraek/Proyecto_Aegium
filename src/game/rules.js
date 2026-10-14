@@ -408,8 +408,10 @@ export function protectedAmount(state) {
 
 // ── Templo ───────────────────────────────────────────────────────────────────
 
+/** Favor por hora: 6 por nivel de templo hasta el 5 y 3 por cada nivel más. */
 export function favorRate(state, t = state.lastUpdate) {
-  return 6 * lvl(state, 'templo') * universe.speed * (worldEventAt(t).event?.favor ?? 1) * (1 + relicBonus(state, 'favor'));
+  const n = lvl(state, 'templo');
+  return (6 * Math.min(n, 5) + 3 * Math.max(0, n - 5)) * universe.speed * (worldEventAt(t).event?.favor ?? 1) * (1 + relicBonus(state, 'favor'));
 }
 
 export function favorMax(state) {

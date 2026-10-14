@@ -325,6 +325,14 @@ function powerCard(game, id) {
   if (id === 'rayo' && !game.raid) blocked = 'No hay piratas a la vista';
   const ready = game.powerReady(id);
   if (ready) blocked = 'Hay que esperar para volver a invocarla';
+  // Los poderes se van desbloqueando con el nivel del templo
+  if (game.level('templo') < (p.templo ?? 1)) {
+    return `<div class="card locked">
+      <div class="card-head"><span class="card-icon">${p.icon}</span><div class="card-title"><b>${p.name}</b>
+        <div class="card-sub">${p.description}</div></div></div>
+      <div class="card-row"><span class="muted small">🔒 Se desbloquea con el templo a nivel ${p.templo}</span><span class="muted small">🙏 ${p.cost}</span></div>
+    </div>`;
+  }
   return `<div class="card${until ? ' active' : ''}">
     <div class="card-head"><span class="card-icon">${p.icon}</span><div class="card-title"><b>${p.name}</b>
       ${until ? '<span class="card-lvl">activo</span>' : ''}

@@ -5,6 +5,17 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-14k',
+    date: '2026-10-14',
+    title: 'El favor de los dioses',
+    items: [
+      '🛕 El <b>templo</b> llega como mucho al <b>nivel 10</b>, y a partir del nivel 6 cada nivel da 3 de favor por hora en vez de 6.',
+      '🔓 Los poderes se <b>desbloquean con el nivel del templo</b>: Cosecha abundante (1), Inspiración (2), Viento favorable (4), Égida (6) e Ira de los dioses (8).',
+      '🙏 Los <b>poderes divinos</b> cuestan más: Cosecha 110, Inspiración 90, Viento favorable 130, Égida 140 e Ira de los dioses 220.',
+      'Las recompensas de favor bajan un poco (regalo del día 7: 20; las tres tareas del día: 15; peregrinos: 20; altar de la niebla: 35) y ya <b>no pasan del tope</b> del templo.',
+    ],
+  },
+  {
     id: '2026-10-14j',
     date: '2026-10-14',
     title: 'Bárbaros que se reconstruyen',
