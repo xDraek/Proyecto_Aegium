@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15k',
+    date: '2026-10-15',
+    title: 'Casco de la estatua',
+    items: ['🏆 Arreglado el casco de la estatua de la gesta: el penacho ya va encima, de delante atrás, y no le tapa la cara.'],
+  },
+  {
     id: '2026-10-15j',
     date: '2026-10-15',
     title: 'Estatua de la gesta',

@@ -1144,7 +1144,7 @@ export function featStatueModel(theme) {
     h.add(cheek);
   }
   h.add(box(0.05, 0.06, 0.14, C.gold, 0, 1.89, 0, GOLD));
-  const crest = mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.11, 20, 1, false, -Math.PI / 2, Math.PI), M, SM);
+  const crest = mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.11, 20, 1, false, 0, Math.PI), M, SM);
   crest.rotation.z = Math.PI / 2;
   crest.position.set(0, 1.9, -0.03);
   h.add(crest);
