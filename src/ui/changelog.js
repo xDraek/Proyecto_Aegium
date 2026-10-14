@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15l',
+    date: '2026-10-15',
+    title: 'Tejados de teja',
+    items: ['🏛️ Los <b>edificios</b> estrenan tejados de teja como el del almacén: tejas curvas en hileras, cumbreras y caballetes en las esquinas. El ayuntamiento, la academia, el cuartel, el mercado, la taberna, la forja, el aserradero, la fundición, el puerto, el astillero y el faro; y el templo, con sus tejas de oro.'],
+  },
+  {
     id: '2026-10-15k',
     date: '2026-10-15',
     title: 'Casco de la estatua',

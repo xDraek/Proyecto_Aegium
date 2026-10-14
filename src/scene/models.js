@@ -133,7 +133,7 @@ export function hipRoof(w, d, h, color = C.roofRed, x = 0, y = 0, z = 0) {
  */
 export function pedimentRoof(w, h, d, x = 0, y = 0, z = 0, roof = C.roofRed) {
   const g = new THREE.Group();
-  g.add(gableRoof(w, h, d, roof, 0, 0, 0));
+  g.add(tiledGable(w, h, d, 0, 0, 0, roof === C.gold ? TILE_GOLD : TILE));
   for (const s of [-1, 1]) {
     // Marco de mármol, tímpano pintado de azul y acroterias doradas en las esquinas
     g.add(gableRoof(w * 0.96, h * 0.92, 0.05, C.marble, 0, 0.02, s * (d / 2 + 0.02)));
@@ -143,12 +143,115 @@ export function pedimentRoof(w, h, d, x = 0, y = 0, z = 0, roof = C.roofRed) {
     g.add(apex);
     for (const k of [-1, 1]) g.add(box(0.07, 0.1, 0.07, C.gold, k * (w / 2 - 0.04), 0, s * (d / 2 + 0.02), { metalness: 0.5, roughness: 0.4 }));
   }
-  // Tejas de cumbrera y antefijas a lo largo del alero
-  const ridge = cyl(0.04, 0.04, d + 0.04, 6, '#a5502f', 0, 0, 0);
+  // Antefijas a lo largo del alero
+  for (let k = 0; k <= Math.floor(d / 0.32); k++) for (const s of [-1, 1]) g.add(box(0.05, 0.07, 0.04, C.marble, s * (w / 2 + 0.01), -0.02, -d / 2 + 0.16 + k * 0.32));
+  g.position.set(x, y, z);
+  return g;
+}
+
+// ── Tejados de teja ──────────────────────────────────────────────────────────
+// Como los de verdad: el faldón oscuro (las canales), las cobijas redondas bajando por la pendiente
+// en dos tonos, las hiladas marcadas y la cumbrera o los limatesas rematados.
+
+const TILE = { base: '#9e3f22', rib: '#cf6038', rib2: '#c05532', line: '#a9452a', end: '#b5532f' };
+const TILE_GOLD = { base: '#a8843a', rib: '#f2c94c', rib2: '#e3b23c', line: '#b8913e', end: '#c9a24a' };
+const TILE_STEP = 0.15;
+const UP = new THREE.Vector3(0, 1, 0);
+
+/** Pieza redonda de `a` a `b` (una cobija o un caballete). */
+function tileRod(g, a, b, r, color, rTop = r) {
+  const d = new THREE.Vector3().subVectors(b, a);
+  const m = mesh(new THREE.CylinderGeometry(rTop, r, d.length(), 7, 1, true), color);
+  m.position.copy(a).addScaledVector(d, 0.5);
+  m.quaternion.setFromUnitVectors(UP, d.normalize());
+  g.add(m);
+}
+
+/** Tejado de teja a dos aguas (cumbrera a lo largo de Z), del mismo tamaño que `gableRoof`. */
+export function tiledGable(w, h, d, x = 0, y = 0, z = 0, p = TILE) {
+  const g = new THREE.Group();
+  g.add(gableRoof(w, h, d, p.base, 0, 0, 0));
+  // Los hastiales, algo más claros que el faldón
+  for (const s of [-1, 1]) g.add(gableRoof(w * 0.985, h * 0.985, 0.012, p.end, 0, 0, s * (d / 2 + 0.006)));
+  const half = w / 2;
+  const L = Math.hypot(half, h);
+  const phi = Math.atan2(half, h);
+  const slope = Math.PI / 2 - phi;
+  const r = Math.min(0.062, w * 0.022);
+  const n = Math.max(2, Math.floor((d - 0.1) / TILE_STEP));
+  for (const s of [-1, 1]) {
+    for (let i = 0; i < n; i++) {
+      const zz = -d / 2 + 0.1 + (i + 0.5) * ((d - 0.2) / n);
+      const rib = mesh(new THREE.CylinderGeometry(r, r * 1.13, L * 0.98, 7, 1, true), i % 4 ? p.rib : p.rib2);
+      rib.position.set(s * (half / 2 + (h / L) * 0.015), h / 2 + (half / L) * 0.015, zz);
+      rib.rotation.z = s * phi;
+      g.add(rib);
+    }
+    // Hiladas: escalones a lo largo de la pendiente
+    for (const k of [0.25, 0.5, 0.75]) {
+      const course = box(0.06, 0.035, d - 0.12, p.line, 0, 0, 0);
+      course.position.set(s * half * (1 - k), h * k + 0.02, 0);
+      course.rotation.z = -s * slope;
+      g.add(course);
+    }
+  }
+  const ridge = cyl(r + 0.01, r + 0.01, d + 0.04, 7, p.line, 0, 0, 0);
   ridge.rotation.x = Math.PI / 2;
   ridge.position.y = h;
   g.add(ridge);
-  for (let k = 0; k <= Math.floor(d / 0.32); k++) for (const s of [-1, 1]) g.add(box(0.05, 0.07, 0.04, C.marble, s * (w / 2 + 0.01), -0.02, -d / 2 + 0.16 + k * 0.32));
+  g.position.set(x, y, z);
+  return g;
+}
+
+/** Tejado de teja a cuatro aguas (en punta), del mismo tamaño que `hipRoof`. */
+export function tiledHip(w, d, h, x = 0, y = 0, z = 0, p = TILE) {
+  const g = new THREE.Group();
+  g.add(hipRoof(w, d, h, p.base, 0, 0, 0));
+  const hw = w / 2;
+  const hd = d / 2;
+  const r = Math.min(0.055, Math.min(w, d) * 0.03);
+  const v = (a, b, c) => new THREE.Vector3(a, b, c);
+  // Faldones: delante y detrás (alero a lo largo de X) y a los lados (alero a lo largo de Z)
+  const faces = [];
+  for (const s of [-1, 1]) {
+    faces.push({ span: hw, depth: hd, at: (u, k) => v(u, h * k, s * hd * (1 - k)), nrm: v(0, hd, s * h).normalize(), course: (len) => box(len, 0.03, 0.06, p.line, 0, 0, 0), tilt: (o) => (o.rotation.x = s * Math.atan2(h, hd)) });
+    faces.push({ span: hd, depth: hw, at: (u, k) => v(s * hw * (1 - k), h * k, u), nrm: v(s * h, hw, 0).normalize(), course: (len) => box(0.06, 0.03, len, p.line, 0, 0, 0), tilt: (o) => (o.rotation.z = -s * Math.atan2(h, hw)) });
+  }
+  for (const f of faces) {
+    const n = Math.max(2, Math.floor((f.span * 2) / TILE_STEP));
+    for (let i = 0; i < n; i++) {
+      const u = -f.span + (i + 0.5) * ((f.span * 2) / n);
+      const kMax = 1 - Math.abs(u) / f.span;
+      if (kMax < 0.1) continue;
+      const lift = f.nrm.clone().multiplyScalar(r * 0.35);
+      tileRod(g, f.at(u, 0).add(lift), f.at(u, kMax * 0.97).add(lift), r * 1.1, i % 4 ? p.rib : p.rib2, r);
+    }
+    for (const k of [0.3, 0.6]) {
+      const c = f.course(f.span * 2 * (1 - k) - 0.06);
+      c.position.copy(f.at(0, k)).addScaledVector(f.nrm, 0.02);
+      f.tilt(c);
+      g.add(c);
+    }
+  }
+  // Limatesas: caballetes de las esquinas a la punta
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) tileRod(g, v(sx * hw, 0.01, sz * hd), v(0, h + 0.01, 0), r * 1.25, p.line);
+  g.position.set(x, y, z);
+  return g;
+}
+
+/** Tejado cónico de teja (base en y). */
+export function tiledCone(rad, h, x = 0, y = 0, z = 0, p = TILE) {
+  const g = new THREE.Group();
+  const base = mesh(new THREE.ConeGeometry(rad, h, 14), p.base);
+  base.position.y = h / 2;
+  g.add(base);
+  const n = Math.max(8, Math.round((Math.PI * 2 * rad) / 0.13));
+  const L = Math.hypot(rad, h);
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const out = new THREE.Vector3(Math.sin(a) * h, rad, Math.cos(a) * h).divideScalar(L).multiplyScalar(0.02);
+    tileRod(g, new THREE.Vector3(Math.sin(a) * rad, 0, Math.cos(a) * rad).add(out), new THREE.Vector3(Math.sin(a) * rad * 0.1, h * 0.9, Math.cos(a) * rad * 0.1).add(out), 0.042, i % 4 ? p.rib : p.rib2, 0.012);
+  }
   g.position.set(x, y, z);
   return g;
 }
@@ -399,7 +502,7 @@ function ayuntamiento(level) {
   frieze(g, 4.25, 4.25, y0 + h, 0.22);
   g.add(box(4.35, 0.06, 4.35, C.marble, 0, y0 + h + 0.22, 0));
   const top = y0 + h + 0.28;
-  g.add(hipRoof(4.4, 4.4, 0.7, C.roofRed, 0, top, 0));
+  g.add(tiledHip(4.4, 4.4, 0.7, 0, top, 0));
   // Cúpula desde el nivel 3 (dorada desde el 8) con su linterna de columnas a partir del 6
   let peak = top + 0.7;
   if (level >= 3) {
@@ -531,7 +634,7 @@ function aserradero(level) {
   g.add(box(2.9, 1.2, 0.3, C.stone, -0.2, 0, -1.25));
   g.add(box(0.75, 2.0, 0.75, C.stone, -1.5, 0, -1.05), box(0.85, 0.12, 0.85, C.stoneDark, -1.5, 2.0, -1.05));
   g.add(box(0.25, 0.32, 0.05, C.dark, -1.5, 1.35, -0.66, WINDOW_GLOW));
-  g.add(hipRoof(0.95, 0.95, 0.42, C.roofRed, -1.5, 2.1, -1.05));
+  g.add(tiledHip(0.95, 0.95, 0.42, -1.5, 2.1, -1.05));
   // Cobertizo: postes, vigas y tejado de teja a dos aguas (abierto por delante y los lados)
   const posts = [[-1.05, -0.95], [0.25, -0.95], [1.4, -0.95], [-1.05, 0.55], [0.25, 0.55], [1.4, 0.55]];
   for (const [px, pz] of posts) g.add(box(0.14, 1.35, 0.14, C.woodDark, px, 0, pz));
@@ -545,7 +648,7 @@ function aserradero(level) {
       g.add(brace);
     }
   }
-  const roof = gableRoof(3.2, 0.7, 2.15, C.roofRed, 0.17, 1.49, -0.2);
+  const roof = tiledGable(3.2, 0.7, 2.15, 0.17, 1.49, -0.2);
   roof.rotation.y = Math.PI / 2;
   g.add(roof);
   // Rueda que mueve la sierra (gira), con sus radios, bajo el cobertizo
@@ -849,7 +952,7 @@ function mercado(level) {
   colonnade(g, { from: -1.75, to: 1.75, at: -1.15, n: Math.min(7, 4 + Math.floor(level / 3)), y: 0.15, h: 1.35, r: 0.1 });
   g.add(box(3.8, 0.16, 1.1, C.marbleDark, 0, 1.5, -1.55));
   frieze(g, 3.8, 1.1, 1.5, 0.16, 0, -1.55);
-  const roof = gableRoof(1.25, 0.4, 3.9, C.roofRed, 0, 1.66, -1.55);
+  const roof = tiledGable(1.25, 0.4, 3.9, 0, 1.66, -1.55);
   roof.rotation.y = Math.PI / 2;
   g.add(roof);
   // Puestos
@@ -1084,31 +1187,8 @@ function almacen(level) {
   const rh = 0.78;
   const rd = eD + 0.16;
   const roof = new THREE.Group();
-  roof.add(gableRoof(rw, rh, rd, '#9e3f22', 0, 0, 0));
+  roof.add(tiledGable(rw, rh, rd));
   const half = rw / 2;
-  const L = Math.hypot(half, rh);
-  const phi = Math.atan2(half, rh);
-  const nRib = Math.floor((rd - 0.1) / 0.15);
-  for (const s of [-1, 1]) {
-    for (let i = 0; i < nRib; i++) {
-      const z = -rd / 2 + 0.1 + (i + 0.5) * ((rd - 0.2) / nRib);
-      const rib = mesh(new THREE.CylinderGeometry(0.062, 0.07, L * 0.98, 8), i % 4 ? '#cf6038' : '#c05532', { flatShading: false });
-      rib.position.set(s * (half / 2 + (rh / L) * 0.015), rh / 2 + (half / L) * 0.015, z);
-      rib.rotation.z = s * phi;
-      roof.add(rib);
-    }
-    // Hiladas de tejas: escalones a lo largo de la pendiente
-    for (const t of [0.25, 0.5, 0.75]) {
-      const course = box(0.06, 0.035, rd - 0.12, '#a9452a', 0, 0, 0);
-      course.position.set(s * half * (1 - t), rh * t + 0.02, 0);
-      course.rotation.z = s * (Math.PI / 2 - phi);
-      roof.add(course);
-    }
-  }
-  const ridge = cyl(0.07, 0.07, rd + 0.04, 7, '#a9452a', 0, 0, 0);
-  ridge.rotation.x = Math.PI / 2;
-  ridge.position.y = rh;
-  roof.add(ridge);
   for (const s of [-1, 1]) {
     roof.add(gableRoof(rw * 0.97, rh * 0.94, 0.08, C.marble, 0, 0.01, s * (rd / 2 + 0.02)));
     // Acroterias en el vértice y en las esquinas
@@ -1464,7 +1544,7 @@ function fundicion(level) {
     g.add(box(0.24, 0.08, 0.24, C.stoneDark, px, 1.22, 0.15));
   }
   g.add(box(2.6, 0.12, 0.2, C.wood, 0.55, 1.3, 0.15));
-  g.add(hipRoof(3.0, 1.85, 0.62, C.roofRed, 0.55, 1.42, -0.55));
+  g.add(tiledHip(3.0, 1.85, 0.62, 0.55, 1.42, -0.55));
   // Fraguas encendidas bajo el pórtico, con su fuelle, yunques y el herrero
   for (const [hx, hz] of [[-0.1, -0.85], [1.25, -0.85]]) {
     g.add(box(0.6, 0.45, 0.45, C.stoneDark, hx, 0, hz));
@@ -1576,7 +1656,7 @@ function cuartel(level) {
   g.add(box(2.7, 1.05, 0.85, C.wall, 0, 0.15, -1.6));
   colonnade(g, { from: -1.25, to: 1.25, at: -0.95, n: 5, y: 0.15, h: 1.05, r: 0.09 });
   g.add(box(2.95, 0.14, 1.3, C.marbleDark, 0, 1.2, -1.45));
-  g.add(hipRoof(3.0, 1.4, 0.45, C.roofRed, 0, 1.34, -1.45));
+  g.add(tiledHip(3.0, 1.4, 0.45, 0, 1.34, -1.45));
   g.add(box(0.4, 0.65, 0.05, C.woodDark, 0, 0.15, -1.17));
   // Patio de arena y muro bajo con puerta
   g.add(box(3.4, 0.03, 2.4, '#d8c49a', 0, 0, 0.5));
@@ -1877,9 +1957,7 @@ function puerto(level) {
     for (const sx of [x0, x1]) g.add(box(0.22, h, 1.4, '#e3d6b8', sx + (sx === x0 ? 0.11 : -0.11), top + 0.12, z0 + 0.72));
     colonnade(g, { from: x0 + 0.15, to: x1 - 0.15, at: z0 + 0.12, n: cols, y: top + 0.12, h, r: 0.08, color: '#ece2cc' });
     g.add(box(w + 0.1, 0.14, 1.55, '#e8dcc0', cx, top + 0.12 + h, z0 + 0.72));
-    g.add(hipRoof(w + 0.45, 1.95, 0.42, C.roofRed, cx, top + 0.26 + h, z0 + 0.72));
-    // Hileras de tejas en el alero
-    for (let k = 0; k <= Math.floor(w / 0.3); k++) g.add(box(0.05, 0.05, 0.04, '#a5502f', x0 + 0.1 + k * 0.3, top + 0.24 + h, z0 - 0.22));
+    g.add(tiledHip(w + 0.45, 1.95, 0.42, cx, top + 0.26 + h, z0 + 0.72));
   };
   stoa(-3.55, -1.05, front + 1.25, 1.05, 5);
   if (level >= 3) stoa(1.5, 3.55, front + 1.45, 0.9, 4);
@@ -2478,7 +2556,7 @@ function taberna(level) {
   g.add(box(3.2, 0.15, 2.6, C.marbleDark, 0, 0, -0.3));
   g.add(box(2.4, 1.1, 1.6, C.wall, 0, 0.15, -0.7));
   g.add(box(1.7, 0.85, 1.4, '#f3dcb0', -0.3, 1.25, -0.8));
-  g.add(hipRoof(1.95, 1.65, 0.45, C.roofRed, -0.3, 2.1, -0.8));
+  g.add(tiledHip(1.95, 1.65, 0.45, -0.3, 2.1, -0.8));
   // Azotea con barandilla a la derecha
   g.add(box(0.7, 0.2, 1.5, C.wall, 0.85, 1.25, -0.7));
   // Puerta, ventanas con contraventanas azules
@@ -2525,7 +2603,7 @@ function forja(level) {
   g.add(box(3.0, 0.15, 2.4, C.stoneDark, 0, 0, -0.2));
   // Cobertizo abierto
   for (const [x, z] of [[-1.3, -1.2], [1.3, -1.2], [-1.3, 0.6], [1.3, 0.6]]) g.add(box(0.14, 1.6, 0.14, C.woodDark, x, 0.15, z));
-  const roof = gableRoof(3.0, 0.7, 2.2, C.roofGrey, 0, 1.75, -0.3);
+  const roof = tiledGable(3.0, 0.7, 2.2, 0, 1.75, -0.3);
   roof.rotation.y = Math.PI / 2;
   g.add(roof);
   // Horno con boca encendida y chimenea
@@ -2613,7 +2691,7 @@ function faro(level) {
     g.add(r);
   }
   // Casita del farero
-  g.add(box(1.1, 0.75, 0.9, C.wall, 1.35, 0, -0.3), hipRoof(1.25, 1.05, 0.35, C.roofRed, 1.35, 0.75, -0.3));
+  g.add(box(1.1, 0.75, 0.9, C.wall, 1.35, 0, -0.3), tiledHip(1.25, 1.05, 0.35, 1.35, 0.75, -0.3));
   g.add(box(0.22, 0.22, 0.05, C.dark, 1.35, 0.32, 0.16, WINDOW_GLOW));
   const k = 1 + Math.min(level, 10) * 0.04;
   // Base cuadrada con su cornisa
@@ -2638,8 +2716,7 @@ function faro(level) {
   g.add(cyl(0.3, 0.3, 0.45, 10, '#fff2a8', 0, y + 0.05, 0, { emissive: '#ffd34a', emissiveIntensity: 1.8 }));
   const lamp = y + 0.3;
   y += 0.6;
-  g.add(mesh(new THREE.ConeGeometry(0.5, 0.35, 10), C.roofRed));
-  g.children.at(-1).position.y = y + 0.17;
+  g.add(tiledCone(0.5, 0.35, 0, y, 0));
   // Estatua de bronce en lo alto
   const god = cyl(0.06, 0.1, 0.45, 6, C.gold, 0, y + 0.3, 0, { metalness: 0.55, roughness: 0.4 });
   g.add(god);
@@ -2735,7 +2812,7 @@ function astillero(level) {
     g.add(box(2.65, 0.12, 0.12, C.woodDark, scx, top + 0.3 + ph, z));
     g.add(box(0.08, 0.55, 0.08, C.woodDark, scx, top + 0.42 + ph, z));
   }
-  g.add(gableRoof(3.25, 0.75, 3.15, C.roofRed, scx, top + 0.42 + ph, 0.15));
+  g.add(tiledGable(3.25, 0.75, 3.15, scx, top + 0.42 + ph, 0.15));
   const ridge = cyl(0.04, 0.04, 3.2, 6, '#a5502f', 0, 0, 0);
   ridge.rotation.x = Math.PI / 2;
   ridge.position.set(scx, top + 1.18 + ph, 0.15);
