@@ -1,7 +1,7 @@
 import { play } from '../audio.js';
 import { clock, universe } from '../config.js';
 import { BUILDING_KEYS, BUILDINGS, CANCEL_REFUND, FEAT_THEMES, FEATS, ISLAND_TYPES, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCE_KEYS, RESOURCES, UNITS, VISITORS } from '../game/data.js';
-import { HOUR_MS, canAfford, multiplyCost, upcomingWorldEvents } from '../game/rules.js';
+import { HOUR_MS, canAfford, colonyYield, multiplyCost, upcomingWorldEvents } from '../game/rules.js';
 import { featAt, featCycle } from '../game/feats.js';
 import { api } from '../net/api.js';
 import { armyHtml, armySummary, featWait } from './army.js';
@@ -768,7 +768,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       const heroLine = status
         ? `<p class="hero-line" data-select="ayuntamiento">🎖️ ${escapeHtml(game.hero.name)} · Nv ${game.hero.level}${game.hero.points ? ' · ⭐' : ''}<span class="muted small">${{ casa: 'en casa', mision: 'en el mar', herido: 'herido' }[status]}</span></p>`
         : '';
-      html = `${armySummary(game)}${heroLine}<ul class="list">${items}</ul>`;
+      html = `${armySummary(game)}${this.#colonyList()}${heroLine}<ul class="list">${items}</ul>`;
     } else {
       // Las 40 islas más cercanas (de todo el archipiélago, primero se eligen por su posición)
       const home = game.state.home;
@@ -794,7 +794,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
           return `<li data-id="${v.id}" class="${cls}" title="${escapeHtml(name)}"><span class="b-icon">${icon}</span><span class="b-name">${escapeHtml(name)}</span><span class="b-lvl">${tag || '·'}</span></li>`;
         })
         .join('');
-      html = `${armySummary(game)}<ul class="list">${items}</ul>
+      html = `${armySummary(game)}${this.#colonyList()}<ul class="list">${items}</ul>
         <div class="army-block">
           <p class="muted small">⛵ Flotas: ${game.missions.length}/${game.fleetSlots()} · 🚩 Colonias: ${game.colonies().length}/${game.maxColonies()}</p>
         </div>`;
@@ -808,6 +808,26 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     const busy = this.view === 'isla' && game.queue ? ` <span class="side-busy" title="En obras: ${escapeHtml(BUILDINGS[game.queue.id].name)}">🔨</span>` : '';
     this.#setHtml(this.sideHead, 'sideHead', `<span>${title}${busy}</span><span class="side-chevron">${this.sideCollapsed ? '▸' : '▾'}</span>`);
     this.sideHead.title = this.sideCollapsed ? 'Desplegar la lista' : 'Plegar la lista';
+  }
+
+  /** Tus colonias, para ir a cada una con un clic (qué dan, su nivel y si están en obras o saqueadas). */
+  #colonyList() {
+    const game = this.game;
+    const cols = game.colonies();
+    if (!cols.length) return '';
+    const now = game.now();
+    const rows = cols
+      .map((c) => {
+        const res = RESOURCES[c.specialty];
+        const raided = c.raidedUntil > now;
+        const state = c.upgradeEnd ? ' 🔨' : raided ? ' 🔥' : '';
+        const tip = `${c.name} · ${res?.name ?? ''} +${fmtNum(colonyYield(c))}/h · nivel ${c.level ?? 1}${c.upgradeEnd ? ' · ampliándose' : ''}${raided ? ' · saqueada, no produce' : ''}`;
+        const cls = [c.id === this.selected && 'active', raided && 'raided'].filter(Boolean).join(' ');
+        const line = raided ? '🔥 saqueada' : `+${fmtShort(colonyYield(c))}/h · Nv ${c.level ?? 1}${state}`;
+        return `<li data-select="${escapeHtml(c.id)}" class="${cls}" title="${escapeHtml(tip)}"><span class="b-icon">${res?.icon ?? '🚩'}</span><span class="b-name">${escapeHtml(c.name)}<small class="col-line">${line}</small></span></li>`;
+      })
+      .join('');
+    return `<div class="colony-box"><div class="colony-box-title">🚩 Colonias <span class="muted small">${cols.length}/${game.maxColonies()}</span></div><ul class="list colony-list">${rows}</ul></div>`;
   }
 
   // ── Panel de detalle ──────────────────────────────────────────────────────

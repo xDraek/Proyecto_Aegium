@@ -460,6 +460,7 @@ const TOPICS = {
       'Cada colonia <b>manda un recurso a tu capital</b> cada hora (madera, piedra, comida, bronce o cristal: ninguna da oro).',
       `Se amplían desde su panel hasta el nivel ${COLONY.maxLevel}: cada nivel produce un ${pct(COLONY.yieldPerLevel)} más de lo que daba al fundarla. Solo una ampliación a la vez.`,
       `También cuentan como colonias las <b>ciudades bárbaras conquistadas</b> (ver ${see('continentes', 'Continentes')}).`,
+      'En la barra lateral, bajo el ejército, tienes la lista de <b>tus colonias</b>: qué producen, su nivel y si se están ampliando 🔨 o las han saqueado 🔥. Pulsa una para ir a ella en el mapa.',
     ])}
       ${warn('Si te bloquean el puerto o te ocupan la ciudad, tus colonias no te pueden mandar nada mientras dure.')}`,
   },

@@ -1547,6 +1547,17 @@ select:focus {
     display: none;
   }
 
+  /* Las colonias, en fila y con su nombre (sin él no se sabría cuál es cuál) */
+  #sidebar .colony-list {
+    grid-template-columns: none;
+  }
+
+  #sidebar .colony-list .b-name {
+    display: block;
+    white-space: nowrap;
+    font-size: 12px;
+  }
+
   #panel {
     top: auto;
     bottom: 64px;
@@ -3970,6 +3981,49 @@ body.landing-mode #cam-controls {
 
 .army-summary-counts .sea {
   color: #9fd3ff;
+}
+
+/* Tus colonias en la barra lateral: un clic y vas a cada una */
+.colony-box {
+  box-sizing: border-box;
+  width: 100%;
+  margin: -4px 0 12px;
+  padding: 6px 6px 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(242, 201, 76, 0.25);
+  background: rgba(30, 60, 40, 0.22);
+}
+
+.colony-box-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 4px 4px;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--gold);
+}
+
+.colony-list {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.colony-list .b-name {
+  white-space: normal;
+  line-height: 1.25;
+}
+
+.colony-list .col-line {
+  display: block;
+  font-size: 11px;
+  color: #b9e08a;
+  font-variant-numeric: tabular-nums;
+}
+
+.colony-list li.raided .col-line {
+  color: #ff9a7a;
 }
 
 .army-stats {

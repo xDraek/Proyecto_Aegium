@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15n',
+    date: '2026-10-15',
+    title: 'Tus colonias, a mano',
+    items: ['🚩 En la barra lateral, bajo el ejército, aparece la lista de <b>tus colonias</b>: qué recurso dan y cuánto por hora, su nivel y si se están ampliando 🔨 o las han saqueado 🔥. Pulsa una y vas directo a ella en el mapa, con su panel abierto.'],
+  },
+  {
     id: '2026-10-15m',
     date: '2026-10-15',
     title: 'Todo el archipiélago a la vista',
