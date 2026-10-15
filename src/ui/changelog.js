@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15o',
+    date: '2026-10-15',
+    title: 'Murallas con más detalle',
+    items: ['🏰 Las <b>murallas</b> se renuevan: altos muros de grandes sillares con almenas seguidas y adarve, y torres cuadradas coronadas de almenas, con saeteras y estandartes azules con ribetes de oro (más torres a partir del nivel 6). La puerta es ahora un pórtico de mármol con frontón azul entre dos torres, con los portones abiertos y antorchas.'],
+  },
+  {
     id: '2026-10-15n',
     date: '2026-10-15',
     title: 'Tus colonias, a mano',

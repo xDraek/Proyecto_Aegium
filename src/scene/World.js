@@ -33,6 +33,8 @@ import {
   palmTree,
   mesh,
   wallHeight,
+  wallSegment,
+  wallTower,
   windowMaterial,
 } from './models.js';
 import { createIslandBase, createIslandFeature, featStatueModel, islandExtent, islandLook, islandProxy, islandRadius, ownerColor, shoreRadius } from './islands.js';
@@ -2236,8 +2238,9 @@ export class World {
 
   #syncWall() {
     const level = this.game.level('muralla');
-    if (this.wallLevel === level) return;
-    this.wallLevel = level;
+    const key = `${level}|${this.#homeBanner() ?? ''}`;
+    if (this.wallKey === key) return;
+    this.wallKey = key;
     for (const child of [...this.wallGroup.children]) {
       this.wallGroup.remove(child);
       disposeTree(child);
@@ -2250,32 +2253,33 @@ export class World {
     const len = 2 * WALL_R * Math.sin(THREE.MathUtils.degToRad(step / 2)) + 0.06;
     for (let a = 0; a < 360; a += step) {
       if (blocked(a)) continue;
-      const seg = box(len, h, 0.55, C.stone, 0, 0, 0);
-      seg.position.copy(polar(WALL_R, a, h / 2));
+      // Sillares, albardilla, almenas y adarve: todo se funde en una malla
+      const seg = wallSegment(len, h, level);
+      // Donde el muro se corta (la puerta, los caminos de fuera) termina en un pilar
+      for (const side of [-1, 1]) {
+        if (!blocked(a + side * step)) continue;
+        const px = side * (len / 2 - 0.4);
+        seg.add(box(0.75, h + 0.3, 0.9, C.stone, px, 0, 0.02), box(0.85, 0.1, 1.0, '#e6dcc4', px, h + 0.3, 0.02));
+      }
+      seg.position.copy(polar(WALL_R, a));
       seg.rotation.y = THREE.MathUtils.degToRad(a);
       this.wallGroup.add(seg);
-      if (level >= 2 && (a / step) % 2 === 0) {
-        const merlon = box(0.4, 0.3, 0.6, C.stone, 0, 0, 0);
-        merlon.position.copy(polar(WALL_R, a, h + 0.15));
-        merlon.rotation.y = seg.rotation.y;
-        this.wallGroup.add(merlon);
-      }
     }
     if (level >= 3) {
-      for (let a = 45; a < 360; a += 45) {
-        if (blocked(a)) continue;
-        // Torres redondas con cornisa y un tejado bajo de terracota
-        const tower = cyl(0.8, 0.9, h + 1.1, 8, C.stone);
-        tower.position.add(polar(WALL_R, a));
-        const cornice = cyl(0.98, 0.98, 0.16, 8, C.marbleDark);
-        cornice.position.add(polar(WALL_R, a, h + 1.1));
-        const roof = new THREE.Mesh(new THREE.ConeGeometry(1.05, 0.6, 8), mat(C.roofRed));
-        roof.position.copy(polar(WALL_R, a, h + 1.56));
-        roof.castShadow = true;
-        this.wallGroup.add(tower, cornice, roof);
+      // Torres cuadradas: cada 45° y, desde el nivel 6, cada 30°
+      const every = level >= 6 ? 30 : 45;
+      // (ninguna pegada a la puerta: sus torres ya ocupan ese trozo)
+      const nearGate = (a) => Math.abs(((a - GATE_ANGLE + 540) % 360) - 180) < 22;
+      for (let a = every; a < 360; a += every) {
+        if (blocked(a) || nearGate(a)) continue;
+        const tower = wallTower(h, level);
+        tower.position.copy(polar(WALL_R, a));
+        tower.rotation.y = THREE.MathUtils.degToRad(a);
+        this.wallGroup.add(tower);
       }
     }
     bakeStatic(this.wallGroup);
+    paintBanner(this.wallGroup, this.#homeBanner());
   }
 
   /** Tropas en el patio del cuartel y barcos amarrados en el puerto. */
@@ -2826,6 +2830,7 @@ export class World {
     for (const f of this.fleets.values()) collect(f.group);
     collect(this.raidGroup);
     collect(this.statue);
+    collect(this.wallGroup);
   }
 
   // ── Bucle ─────────────────────────────────────────────────────────────────

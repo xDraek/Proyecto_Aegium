@@ -1693,7 +1693,7 @@ const ASHLAR = ['#e3d6b8', '#d8c9a6', '#ebe0c6', '#cfbf9a'];
  * Paramento de sillares en hiladas a matajunta: una cara de `len` (a lo largo de X, o de Z con
  * `alongZ`) de y0 a y1, pegada a la cara del bloque en (x, z), que mira hacia `out` (±1).
  */
-function ashlarFace(g, { x, z, len, y0, y1, alongZ = false, out = 1, course = 0.2, block = 0.46 }) {
+export function ashlarFace(g, { x, z, len, y0, y1, alongZ = false, out = 1, course = 0.2, block = 0.46 }) {
   let row = 0;
   for (let y = y0; y < y1 - 0.01; y += course, row++) {
     const h = Math.min(course, y1 - y) - 0.02;
@@ -2488,23 +2488,165 @@ export function wallHeight(level) {
   return 1.0 + Math.min(level, 10) * 0.12;
 }
 
+// ── Muralla ──────────────────────────────────────────────────────────────────
+
+const WALL_BASE = '#b9ad93';
+const WALL_CAP = '#e6dcc4';
+const WALL_MERLON = '#d8cdb3';
+const WALL_BLUE = '#2a56a8';
+
+/**
+ * Un tramo recto de la muralla (a lo largo de X, con la cara de fuera hacia +Z): zócalo, grandes
+ * sillares por las dos caras, albardilla y, desde el nivel 2, almenas seguidas con su adarve.
+ */
+export function wallSegment(len, h, level) {
+  const g = new THREE.Group();
+  g.add(box(len, 0.32, 0.85, WALL_BASE, 0, 0, 0.05));
+  g.add(box(len, h, 0.6, C.stone, 0, 0, 0));
+  for (const out of [1, -1]) ashlarFace(g, { x: 0, z: out * 0.3, len, y0: 0.32, y1: h - 0.02, out, course: 0.3, block: 0.62 });
+  g.add(box(len + 0.02, 0.08, 0.72, WALL_CAP, 0, h, 0));
+  if (level >= 2) {
+    // Almenas por fuera y un pretil bajo por dentro: el adarve por donde corren los defensores
+    for (const k of [-1, 0, 1]) g.add(box(0.24, 0.36, 0.18, WALL_MERLON, (k * len) / 3, h + 0.08, 0.27));
+    g.add(box(len, 0.18, 0.1, WALL_MERLON, 0, h + 0.08, -0.29));
+  }
+  return g;
+}
+
+/** La lechuza de oro de los estandartes, de cara a +Z (unos 0,3 de alto). */
+function owl(g, x, y, z, s = 1) {
+  const gold = { metalness: 0.45, roughness: 0.4 };
+  const body = mesh(new THREE.SphereGeometry(0.1 * s, 8, 6), C.gold, gold);
+  body.scale.set(0.85, 1.25, 0.25);
+  body.position.set(x, y, z);
+  g.add(body);
+  const head = mesh(new THREE.SphereGeometry(0.075 * s, 8, 6), C.gold, gold);
+  head.scale.set(1.1, 0.9, 0.25);
+  head.position.set(x, y + 0.15 * s, z);
+  g.add(head);
+  for (const k of [-1, 1]) {
+    const ear = mesh(new THREE.ConeGeometry(0.03 * s, 0.07 * s, 4), C.gold, gold);
+    ear.position.set(x + k * 0.05 * s, y + 0.23 * s, z);
+    g.add(ear);
+    g.add(box(0.03 * s, 0.03 * s, 0.01, '#3a2a10', x + k * 0.035 * s, y + 0.14 * s, z + 0.02));
+  }
+}
+
+/** Estandarte azul colgado de una pared que mira a `dir` (±Z), con ribetes de oro. */
+function hangingBanner(g, x, top, z, w, hgt, dir = 1) {
+  g.add(cyl(0.02, 0.02, w + 0.14, 5, C.gold, x, top - (w + 0.14) / 2, z + dir * 0.06).rotateZ(Math.PI / 2));
+  g.add(box(w, hgt, 0.03, WALL_BLUE, x, top - hgt, z + dir * 0.04));
+  for (const y of [top - hgt + 0.02, top - 0.08]) g.add(box(w, 0.04, 0.035, C.gold, x, y, z + dir * 0.045, { metalness: 0.45, roughness: 0.4 }));
+  for (const k of [-1, 1]) g.add(box(0.03, hgt - 0.1, 0.035, C.gold, x + (k * (w - 0.03)) / 2, top - hgt + 0.05, z + dir * 0.045, { metalness: 0.45, roughness: 0.4 }));
+}
+
+/**
+ * Torre cuadrada de la muralla, alta y adelantada hacia fuera (+Z): zócalo, grandes sillares,
+ * una imposta, saeteras y la corona de almenas; desde el nivel 4, un estandarte azul colgado.
+ */
+export function wallTower(h, level) {
+  const g = new THREE.Group();
+  const W = 1.7;
+  const H = h + 1.7;
+  const oz = 0.35;
+  g.add(box(W + 0.3, 0.45, W + 0.3, WALL_BASE, 0, 0, oz));
+  g.add(box(W, H, W, C.stone, 0, 0, oz));
+  for (const out of [1, -1]) {
+    ashlarFace(g, { x: 0, z: oz + (out * W) / 2, len: W, y0: 0.45, y1: H - 0.02, out, course: 0.3, block: 0.56 });
+    ashlarFace(g, { x: (out * W) / 2, z: oz, len: W, y0: 0.45, y1: H - 0.02, alongZ: true, out, course: 0.3, block: 0.56 });
+  }
+  g.add(box(W + 0.08, 0.08, W + 0.08, WALL_CAP, 0, H * 0.62, oz));
+  // Saeteras por fuera y a los lados (una fila más desde el nivel 6)
+  for (const y of level >= 6 ? [H * 0.78, H * 0.38] : [H * 0.78]) {
+    g.add(box(0.09, 0.42, 0.05, C.dark, 0, y, oz + W / 2 + 0.03));
+    for (const s of [-1, 1]) g.add(box(0.05, 0.42, 0.09, C.dark, s * (W / 2 + 0.03), y, oz));
+  }
+  // Cornisa y almenas en las esquinas y en medio de cada lado
+  g.add(box(W + 0.22, 0.18, W + 0.22, WALL_CAP, 0, H, oz));
+  for (const [dx, dz] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]]) {
+    g.add(box(0.34, 0.42, 0.34, WALL_MERLON, dx * (W / 2 - 0.08), H + 0.18, oz + dz * (W / 2 - 0.08)));
+  }
+  if (level >= 4) hangingBanner(g, 0, H * 0.6 - 0.12, oz + W / 2, 0.7, 1.35);
+  return g;
+}
+
+/** Antorcha en una ménsula de hierro, pegada a una pared que mira hacia `dir` (±Z). */
+function wallTorch(g, x, y, z, dir = 1) {
+  g.add(box(0.06, 0.06, 0.22, '#3a3632', x, y, z + dir * 0.11));
+  g.add(cyl(0.05, 0.035, 0.12, 6, '#5e3b1c', x, y + 0.04, z + dir * 0.22));
+  const fire = mesh(new THREE.ConeGeometry(0.07, 0.2, 6), '#ffb347', { emissive: '#ff7a00', emissiveIntensity: 1.6 });
+  fire.position.set(x, y + 0.26, z + dir * 0.22);
+  fire.userData.flicker = true;
+  g.add(fire);
+}
+
 function muralla(level) {
-  // Puerta principal (tan ancha como la avenida: pasan los carros y la gente por las aceras);
-  // el resto del muro lo dibuja la escena alrededor de la ciudad.
+  // La puerta principal (tan ancha como la avenida: pasan los carros y la gente por las aceras):
+  // dos torres cuadradas de sillares con almenas, saeteras y estandartes azules, y
+  // entre ellas el pórtico de mármol con su frontón azul y los portones abiertos hacia la ciudad.
+  // Fuera queda hacia -Z. El resto del muro lo dibuja la escena (wallSegment, wallTower).
   const g = new THREE.Group();
   const h = wallHeight(level);
-  for (const x of [-2.15, 2.15]) {
-    g.add(box(1.0, h + 0.8, 1.0, C.stone, x, 0, 0));
-    for (const dx of [-0.35, 0, 0.35]) for (const dz of [-0.35, 0.35]) g.add(box(0.22, 0.3, 0.22, C.stone, x + dx, h + 0.8, dz));
+  const H = h + 2.0;
+  const tw = 1.7;
+  const X = 2.5;
+  const inner = X - tw / 2;
+  for (const s of [-1, 1]) {
+    const x = s * X;
+    g.add(box(tw + 0.3, 0.45, tw + 0.3, WALL_BASE, x, 0, 0));
+    g.add(box(tw, H, tw, C.stone, x, 0, 0));
+    for (const out of [1, -1]) {
+      ashlarFace(g, { x, z: (out * tw) / 2, len: tw, y0: 0.45, y1: H - 0.02, out, course: 0.3, block: 0.56 });
+      ashlarFace(g, { x: x + (out * tw) / 2, z: 0, len: tw, y0: 0.45, y1: H - 0.02, alongZ: true, out, course: 0.3, block: 0.56 });
+      g.add(box(0.09, 0.44, 0.05, C.dark, x, H * 0.8, out * (tw / 2 + 0.035)));
+    }
+    g.add(box(tw + 0.08, 0.08, tw + 0.08, WALL_CAP, x, H * 0.62, 0));
+    g.add(box(tw + 0.22, 0.18, tw + 0.22, WALL_CAP, x, H, 0));
+    for (const [dx, dz] of [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]]) {
+      g.add(box(0.34, 0.42, 0.34, WALL_MERLON, x + dx * (tw / 2 - 0.08), H + 0.18, dz * (tw / 2 - 0.08)));
+    }
+    // Estandartes azules por fuera
+    if (level >= 2) hangingBanner(g, x, H * 0.6 - 0.12, -tw / 2, 0.75, 1.5, -1);
   }
-  g.add(box(3.5, 0.5, 0.8, C.stoneDark, 0, h - 0.1, 0));
-  const pole = h + 0.8;
-  g.add(cyl(0.03, 0.03, 1.0, 5, C.dark, 2.15, pole, 0));
-  const flag = box(0.5, 0.32, 0.02, C.cloth[0], 0, 0, 0);
-  flag.geometry.translate(0.25, 0, 0);
-  flag.position.set(2.15, pole + 0.8, 0);
-  flag.userData.wave = true;
-  g.add(flag);
+  // El muro de la puerta, con el hueco del pórtico (un solo bloque extruido)
+  const r = inner - 0.25;
+  const doorH = Math.max(1.7, h + 0.35);
+  const top = H - 0.35;
+  const shape = new THREE.Shape();
+  shape.moveTo(-inner, 0);
+  shape.lineTo(-inner, top);
+  shape.lineTo(inner, top);
+  shape.lineTo(inner, 0);
+  shape.lineTo(r, 0);
+  shape.lineTo(r, doorH);
+  shape.lineTo(-r, doorH);
+  shape.lineTo(-r, 0);
+  shape.closePath();
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.9, bevelEnabled: false });
+  geo.translate(0, 0, -0.45);
+  g.add(mesh(geo, C.stone));
+  for (const out of [1, -1]) ashlarFace(g, { x: 0, z: out * 0.45, len: 2 * inner, y0: doorH + 0.75, y1: top - 0.02, out, course: 0.3, block: 0.56 });
+  g.add(box(2 * inner, 0.16, 1.05, WALL_CAP, 0, top, 0));
+  for (let k = 0; k < 5; k++) for (const out of [1, -1]) g.add(box(0.26, 0.38, 0.18, WALL_MERLON, -inner + 0.3 + k * ((2 * inner - 0.6) / 4), top + 0.16, out * 0.45));
+  // El pórtico por fuera: jambas de mármol, dintel y frontón con el tímpano azul
+  const fz = -0.45;
+  for (const s of [-1, 1]) g.add(box(0.26, doorH, 0.16, C.marble, s * (r + 0.13), 0, fz - 0.06));
+  g.add(box(2 * r + 0.6, 0.22, 0.2, C.marble, 0, doorH, fz - 0.08));
+  g.add(box(2 * r + 0.7, 0.08, 0.24, C.marbleDark, 0, doorH + 0.22, fz - 0.09));
+  g.add(gableRoof(2 * r + 0.7, 0.5, 0.16, C.marble, 0, doorH + 0.3, fz - 0.09));
+  g.add(gableRoof(2 * r + 0.1, 0.3, 0.03, WALL_BLUE, 0, doorH + 0.36, fz - 0.18));
+  owl(g, 0, doorH + 0.43, fz - 0.2, 0.7);
+  // Portones de madera abiertos hacia dentro (+Z, la ciudad), con sus bandas de hierro
+  for (const s of [-1, 1]) {
+    const hinge = new THREE.Group();
+    hinge.position.set(s * r, 0, 0.42);
+    hinge.add(box(r, doorH - 0.05, 0.08, '#7a4e26', (-s * r) / 2, 0, 0));
+    for (const y of [0.2, doorH * 0.5, doorH - 0.25]) hinge.add(box(r, 0.06, 0.1, '#3a3632', (-s * r) / 2, y, 0));
+    hinge.rotation.y = s * 1.25;
+    g.add(hinge);
+  }
+  // Antorchas a los lados del pórtico, por fuera
+  if (level >= 3) for (const s of [-1, 1]) wallTorch(g, s * (inner + 0.4), doorH * 0.7, -tw / 2, -1);
   return g;
 }
 
