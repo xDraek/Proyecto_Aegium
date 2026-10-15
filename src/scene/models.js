@@ -955,76 +955,179 @@ function cantera(level) {
   return g;
 }
 
+/** Racimo de cristales azules clavados en la roca, inclinados hacia fuera (de tamaño `s`). */
+function crystalCluster(g, x, y, z, s = 1, n = 5, seed = 0) {
+  const look = { emissive: '#2aa8d8', emissiveIntensity: 0.6, roughness: 0.25 };
+  for (let k = 0; k < n; k++) {
+    const big = k === 0;
+    const h = s * (big ? 1 : 0.5 + ((k * 37 + seed) % 5) * 0.09);
+    const c = mesh(new THREE.OctahedronGeometry(0.32), k % 3 === 2 ? '#a8e4ff' : C.crystal, look);
+    c.scale.set(h * 0.85, h * 2.4, h * 0.85);
+    const a = (k / n) * Math.PI * 2 + seed;
+    const d = big ? 0 : s * 0.24;
+    c.position.set(x + Math.cos(a) * d, y + h * 0.3, z + Math.sin(a) * d * 0.6);
+    c.rotation.set(0.25 + (big ? 0 : 0.3), seed + k, big ? 0 : Math.cos(a) * 0.55);
+    g.add(c);
+  }
+}
+
+/** Vagoneta de madera con ruedas de hierro, llena de cristales, a lo largo de Z. */
+function mineCart(g, x, z, rot = 0) {
+  const c = new THREE.Group();
+  c.add(box(0.5, 0.3, 0.62, '#8b5a2b', 0, 0.1, 0));
+  for (const s of [-1, 1]) c.add(box(0.52, 0.04, 0.04, '#3a3632', 0, 0.36, s * 0.3), box(0.04, 0.04, 0.64, '#3a3632', s * 0.25, 0.36, 0));
+  for (const sx of [-0.2, 0.2]) {
+    for (const sz of [-0.2, 0.2]) {
+      const w = cyl(0.09, 0.09, 0.05, 10, '#3a3632', 0, 0, 0);
+      w.rotation.z = Math.PI / 2;
+      w.position.set(sx * 1.4, 0.09, sz);
+      c.add(w);
+    }
+  }
+  crystalCluster(c, 0, 0.32, 0, 0.45, 5, x);
+  c.position.set(x, 0, z);
+  c.rotation.y = rot;
+  g.add(c);
+}
+
+/** Bloque de caliza clara, algo ladeado (las peñas de la mina). */
+function boulder(g, x, y, z, s, k = 0) {
+  const b = box(s * 1.15, s * 0.85, s, ['#d8ccb0', '#cdbf9f', '#e2d7bd'][k % 3], 0, 0, 0);
+  b.position.set(x, y, z);
+  b.rotation.set(Math.sin(k * 3.1) * 0.12, k * 0.7, Math.cos(k * 2.3) * 0.1);
+  g.add(b);
+}
+
+/**
+ * La mina de cristal: un roquedal de caliza en la falda del monte con un gran racimo de cristales
+ * azules que pica un minero, la boca de la galería con su entibado y la vía por donde salen las
+ * vagonetas cargadas; a la izquierda, una terraza de sillares con la greca azul, escalera, un toldo
+ * sobre las mesas donde se clasifica el cristal y una grúa de madera que sube las cajas. El monte
+ * queda detrás (-Z).
+ */
 function mina(level) {
   const g = new THREE.Group();
-  // La boca de la galería, abierta en la pared de roca de la falda del monte
-  rockFlank(g, [
-    [-1.25, 0.7, -0.7, 0.95],
-    [1.25, 0.65, -0.7, 0.9],
-    [-0.75, 1.55, -1.05, 0.85],
-    [0.75, 1.5, -1.05, 0.85],
-    [0, 1.95, -1.25, 0.9],
-    [-1.8, 0.4, 0.0, 0.6],
-    [1.8, 0.35, 0.05, 0.55],
-    [-1.5, 1.7, -1.8, 1.0],
-    [1.5, 1.6, -1.8, 1.0],
-    [0, 2.6, -2.2, 1.2, 0.8],
-  ]);
-  // Hueco oscuro de la galería con su entibado de madera
-  g.add(box(0.85, 1.05, 0.9, '#120f0c', 0, 0, -0.35));
-  for (const x of [-0.5, 0.5]) g.add(box(0.15, 1.15, 0.16, C.wood, x, 0, 0.12));
-  g.add(box(1.3, 0.18, 0.22, C.wood, 0, 1.12, 0.12));
-  g.add(box(1.0, 0.1, 0.18, C.woodDark, 0, 1.3, 0.05));
-  // Farol junto a la entrada
-  g.add(box(0.03, 0.25, 0.03, C.dark, 0.62, 0.95, 0.24));
-  g.add(box(0.1, 0.12, 0.1, '#ffcf6a', 0.62, 0.8, 0.24, { emissive: '#ffb347', emissiveIntensity: 1.4 }));
-  // Vía que sale de la galería y la vagoneta
-  g.add(box(0.06, 0.05, 2.2, C.stoneDark, -0.2, 0, 0.9));
-  g.add(box(0.06, 0.05, 2.2, C.stoneDark, 0.2, 0, 0.9));
-  for (let k = 0; k < 6; k++) g.add(box(0.55, 0.03, 0.08, C.woodDark, 0, 0, -0.1 + k * 0.38));
-  g.add(box(0.55, 0.35, 0.6, '#5d646d', 0, 0.08, 1.55));
-  for (const sx of [-0.2, 0.2]) {
-    for (const sz of [1.35, 1.75]) {
-      const w = cyl(0.06, 0.06, 0.04, 8, C.dark, 0, 0, 0);
-      w.rotation.z = Math.PI / 2;
-      w.position.set(sx, 0.06, sz);
-      g.add(w);
-    }
-  }
-  // Escombrera de roca sacada de la mina
-  rockFlank(g, [[1.25, 0.15, 1.2, 0.32, 0.6], [1.5, 0.12, 1.45, 0.26, 0.6], [1.15, 0.1, 1.55, 0.22, 0.6]], '#7a736a');
-
-  // Vetas de cristal que asoman de la roca alrededor de la boca (más con el nivel)
-  const spots = [
-    [-0.85, 0.5, -0.15],
-    [0.9, 0.45, -0.15],
-    [-0.6, 1.35, -0.45],
-    [0.65, 1.3, -0.45],
-    [0.0, 1.85, -0.6],
-    [-1.55, 0.35, 0.35],
-    [1.6, 0.3, 0.4],
+  const BLUE = '#2a56a8';
+  const tunic = '#e8e2d0';
+  // El roquedal: peñas de caliza amontonadas, más altas hacia el monte
+  const rocks = [
+    [-0.15, 0.5, -1.2, 1.1], [1.45, 0.55, -1.5, 1.0], [2.0, 0.45, -0.2, 0.85], [-0.6, 0.45, -1.6, 0.95],
+    [0.8, 1.35, -1.6, 1.05], [1.8, 1.2, -1.2, 0.9], [-0.1, 1.4, -1.9, 0.95], [1.3, 2.05, -1.9, 0.9],
+    [0.3, 2.2, -2.2, 0.85], [2.1, 0.35, 0.6, 0.6], [-1.6, 0.55, -1.8, 0.9], [-1.0, 1.4, -2.2, 0.8],
   ];
-  const n = Math.min(spots.length, 1 + level);
-  const size = 0.8 + Math.min(level, 10) * 0.05;
-  // Cada veta es un racimo de tres cristales clavados en la roca, inclinados hacia fuera
-  const crystal = { emissive: '#2aa8d8', emissiveIntensity: 0.6, roughness: 0.25 };
-  for (let i = 0; i < n; i++) {
-    const [x, y, z] = spots[i];
-    for (let k = 0; k < 3; k++) {
-      const s = size * (k ? 0.6 : 0.85);
-      const c = mesh(new THREE.OctahedronGeometry(0.22), C.crystal, crystal);
-      c.scale.set(s, s * 2.2, s);
-      c.position.set(x + (k - 1) * 0.12, y + 0.18 * s, z + 0.05);
-      c.rotation.set(0.35, (i + k) * 0.9, (k - 1) * 0.45 + (x > 0 ? -0.2 : 0.2));
-      g.add(c);
-    }
+  rocks.forEach(([x, y, z, s], k) => boulder(g, x, y, z, s, k));
+  for (const [x, y, z] of [[1.6, 1.75, -1.0], [-0.5, 1.95, -1.9], [2.2, 0.95, 0.1]]) {
+    const b = mesh(new THREE.SphereGeometry(0.22, 7, 5), '#6f8f3e');
+    b.position.set(x, y, z);
+    g.add(b);
   }
-  // Un cristal en la vagoneta
-  const ore = mesh(new THREE.OctahedronGeometry(0.15), C.crystal, { emissive: '#2aa8d8', emissiveIntensity: 0.6 });
-  ore.position.set(0, 0.55, 1.55);
-  g.add(ore);
-  // Minero picando la veta junto a la entrada
-  g.add(worker('pico', -1.05, 0.55, -0.85, -0.1, { color: '#55606b', speed: 4.5, phase: 2, base: 0.1 }));
+  // La boca de la galería, con el entibado de madera y herrajes
+  const tx = 1.0;
+  const tz = -0.45;
+  // El hueco, negro y sin recibir la luz del sol (si no, de día se vería gris): va justo detrás del
+  // entibado, delante de la ladera del monte, que si no asomaría por dentro. Va aparte, sin fundirse
+  const hole = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.05, 0.12), new THREE.MeshBasicMaterial({ color: '#050403' }));
+  hole.position.set(tx, 0.525, tz - 0.02);
+  hole.userData.solo = true;
+  g.add(hole);
+  // El entibado de madera con sus herrajes
+  for (const s of [-1, 1]) g.add(box(0.16, 1.15, 0.18, '#7a4e26', tx + s * 0.52, 0, tz + 0.12));
+  g.add(box(1.36, 0.2, 0.24, '#6b4524', tx, 1.12, tz + 0.12));
+  for (const s of [-1, 1]) g.add(box(0.06, 0.06, 0.03, '#3a3632', tx + s * 0.5, 1.2, tz + 0.25), box(0.05, 0.05, 0.03, '#3a3632', tx + s * 0.52, 0.85, tz + 0.22));
+  // Un farol junto a la boca (se enciende de noche)
+  g.add(box(0.03, 0.25, 0.03, C.dark, tx + 0.64, 0.95, tz + 0.24), box(0.1, 0.12, 0.1, C.dark, tx + 0.64, 0.8, tz + 0.24, WINDOW_GLOW));
+  // Las peñas que abrazan la boca: a los lados, encima del dintel y su roca colgada
+  const hug = [
+    [tx - 0.98, 0.45, tz - 0.12, 0.62, 21], [tx + 0.98, 0.42, tz - 0.12, 0.6, 22],
+    [tx - 0.8, 1.12, tz - 0.22, 0.55, 23], [tx + 0.82, 1.08, tz - 0.22, 0.52, 24],
+    [tx - 0.05, 1.55, tz - 0.32, 0.72, 25], [tx + 0.35, 1.45, tz - 0.12, 0.42, 26],
+  ];
+  for (const [x, y, z, s, k] of hug) boulder(g, x, y, z, s, k);
+  // Piedras sueltas a la entrada, a los lados de la vía
+  for (const [dx, dz, s] of [[-0.55, 0.35, 0.16], [0.6, 0.3, 0.14], [-0.68, 0.6, 0.11], [0.7, 0.62, 0.1]]) {
+    const st = mesh(new THREE.DodecahedronGeometry(s), '#c9bd9f');
+    st.position.set(tx + dx, s * 0.5, tz + dz);
+    st.scale.y = 0.7;
+    g.add(st);
+  }
+  // Cristales que brillan en la entrada de la galería
+  crystalCluster(g, tx - 0.28, 0.02, tz + 0.08, 0.32, 3, 1.3);
+  // La vía que sale de la galería hacia delante, con sus traviesas
+  for (const s of [-1, 1]) g.add(box(0.05, 0.06, 2.6, '#5e5850', tx + s * 0.22, 0, tz + 1.4));
+  for (let k = 0; k < 8; k++) g.add(box(0.6, 0.03, 0.09, '#6b4524', tx, 0, tz + 0.25 + k * 0.33));
+  mineCart(g, tx, tz + 1.1);
+  if (level >= 4) mineCart(g, tx, tz + 2.3);
+  // El gran racimo de cristal en la roca, sobre la galería, y el minero que lo pica
+  crystalCluster(g, 0.15, 0.95, -0.75, 1.0 + Math.min(level, 10) * 0.04, 8, 0.4);
+  g.add(worker('pico', -0.2, -0.25, 0.15, -0.75, { color: tunic, speed: 4.5, phase: 2, base: 0.1 }));
+  // Más vetas de cristal por las peñas con el nivel
+  const veins = [[1.8, 1.0, -0.55, 0.5], [2.15, 0.55, 0.85, 0.4], [0.8, 1.85, -1.15, 0.45], [-0.55, 1.0, -1.15, 0.45], [1.55, 2.3, -1.45, 0.4]];
+  for (let i = 0; i < Math.min(veins.length, Math.floor(level / 2)); i++) crystalCluster(g, ...veins[i], 4, i * 1.7);
+  // La terraza de sillares de la izquierda, con su greca azul y la escalera
+  const P = { x: -1.3, z: 0.45, w: 1.7, d: 1.9, h: 0.6 };
+  g.add(box(P.w, P.h, P.d, C.stone, P.x, 0, P.z));
+  ashlarFace(g, { x: P.x, z: P.z + P.d / 2, len: P.w, y0: 0, y1: P.h - 0.02, out: 1, course: 0.2, block: 0.42 });
+  ashlarFace(g, { x: P.x - P.w / 2, z: P.z, len: P.d, y0: 0, y1: P.h - 0.02, alongZ: true, out: -1, course: 0.2, block: 0.42 });
+  greekKey(g, P.w + 0.04, P.d + 0.04, 0.3, 0.14, P.x, P.z, BLUE, '#e8c25a');
+  g.add(box(P.w + 0.08, 0.06, P.d + 0.08, '#e6dcc4', P.x, P.h, P.z));
+  for (let i = 0; i < 3; i++) g.add(box(0.36, P.h - i * 0.2, 0.7, i % 2 ? '#e3d8c0' : '#d8cdb3', P.x + P.w / 2 + 0.18 + i * 0.32, 0, P.z + 0.45));
+  const top = P.h + 0.06;
+  // Sobre la terraza: el toldo de lona sobre la mesa de clasificar, con cajas de cristal y los obreros
+  if (level >= 2) {
+    for (const [x, z, h] of [[-2.05, 0.05, 1.2], [-1.15, 0.05, 1.2], [-2.05, 1.25, 0.95], [-1.15, 1.25, 0.95]]) g.add(box(0.07, h, 0.07, '#7a4e26', x, top, z));
+    const cloth = box(1.02, 0.03, 1.32, '#ede3cb', 0, 0, 0);
+    cloth.position.set(-1.6, top + 1.1, 0.65);
+    cloth.rotation.x = Math.atan2(0.25, 1.2);
+    g.add(cloth);
+    const bench = new THREE.Group();
+    workbench(bench, -1.6, 0.6, 0.8, 0.4);
+    bench.position.y = top;
+    g.add(bench);
+    const crates = new THREE.Group();
+    for (const [x, z] of [[-1.8, 0.6], [-1.4, 0.6]]) {
+      crate(crates, x, 0.48, z, 0.3, 0.1);
+      crystalCluster(crates, x, 0.8, z, 0.3, 4, x);
+    }
+    crate(crates, -0.8, 0, 1.1, 0.34, -0.2);
+    crystalCluster(crates, -0.8, 0.34, 1.1, 0.4, 4, 2.2);
+    crates.position.y = top;
+    g.add(crates);
+    const w = worker('martillo', -1.6, 1.15, -1.6, 0.6, { color: tunic, speed: 3.5, base: 0.7, amp: 0.25, phase: 1 });
+    w.position.y = top;
+    g.add(w);
+  }
+  // La grúa de madera al fondo de la terraza, con una caja de cristal colgando
+  if (level >= 3) {
+    const cr = new THREE.Group();
+    for (const s of [-1, 1]) {
+      const leg = box(0.1, 1.9, 0.1, '#7a4e26', 0, 0, 0);
+      leg.geometry.translate(0, 0.95, 0);
+      leg.position.set(s * 0.32, 0, 0);
+      leg.rotation.z = -s * 0.16;
+      cr.add(leg);
+    }
+    cr.add(box(0.6, 0.1, 0.12, '#6b4524', 0, 1.78, 0));
+    const boom = box(1.3, 0.1, 0.1, '#7a4e26', 0, 0, 0);
+    boom.geometry.translate(0.45, 0, 0);
+    boom.position.set(0, 1.88, 0);
+    boom.rotation.z = 0.3;
+    cr.add(boom);
+    const tip = new THREE.Vector3(Math.cos(0.3) * 1.05, 1.88 + Math.sin(0.3) * 1.05, 0);
+    cr.add(cyl(0.012, 0.012, 0.75, 4, '#8a7350', tip.x, tip.y - 0.75, 0));
+    crate(cr, tip.x, tip.y - 1.08, 0, 0.3, 0);
+    crystalCluster(cr, tip.x, tip.y - 0.78, 0, 0.3, 4, 3.1);
+    cr.position.set(-0.85, top, -0.2);
+    cr.rotation.y = -1.2;
+    g.add(cr);
+  }
+  // Un ánfora y un barril al pie de la escalera, y el estandarte azul delante de las peñas
+  g.add(amphora(-0.25, 0, 1.55, '#b9643a', 0.9));
+  if (level >= 5) {
+    g.add(cyl(0.035, 0.04, 2.2, 6, '#6b4524', 2.2, 0, 1.4));
+    g.add(box(0.5, 0.05, 0.05, '#6b4524', 2.2, 1.95, 1.4));
+    g.add(box(0.42, 0.8, 0.025, BLUE, 2.2, 1.15, 1.44));
+    for (const y of [1.15, 1.9]) g.add(box(0.42, 0.04, 0.03, C.gold, 2.2, y, 1.45, { metalness: 0.45, roughness: 0.4 }));
+  }
   return g;
 }
 

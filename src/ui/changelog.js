@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15x',
+    date: '2026-10-15',
+    title: 'Nueva mina de cristal',
+    items: ['💎 La <b>mina de cristal</b> se renueva: un roquedal de caliza en la falda del monte con un gran racimo de cristales azules que pica un minero, la boca de la galería con su entibado y la vía por donde salen las vagonetas cargadas de cristal. Al lado, una terraza de sillares con la greca azul y su escalera, y con el nivel llegan el toldo con la mesa donde se clasifica el cristal, la grúa de madera que sube las cajas, más vetas en las peñas y el estandarte azul.'],
+  },
+  {
     id: '2026-10-15w',
     date: '2026-10-15',
     title: 'Nueva forja',
