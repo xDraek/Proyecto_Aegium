@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15w',
+    date: '2026-10-15',
+    title: 'Nueva forja',
+    items: ['⚒️ La <b>forja</b> es ahora un taller de bronce al aire libre: muros bajos de sillares y un muro alto con la greca azul y estantes de vasijas, la fragua redonda de piedra con su lecho de carbón, las brasas al rojo, su fuego siempre encendido y su humo, el yunque donde golpea el herrero entre chispas, un pórtico de columnas con bandas azules y tejado de teja sobre la mesa del armero, y un toldo de lona sobre otra mesa. Con el nivel llegan escudos de bronce, lanzas, cajas de lingotes y el estandarte azul.'],
+  },
+  {
     id: '2026-10-15v',
     date: '2026-10-15',
     title: 'Disolver reclutamientos',

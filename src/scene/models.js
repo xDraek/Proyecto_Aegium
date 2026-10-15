@@ -2827,45 +2827,197 @@ function taberna(level) {
   return g;
 }
 
+/** Mesa de trabajo de madera (a lo largo de X) con sus patas. */
+function workbench(g, x, z, w = 0.9, d = 0.4, rot = 0) {
+  const t = new THREE.Group();
+  t.add(box(w, 0.06, d, '#8b5a2b', 0, 0.42, 0));
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) t.add(box(0.06, 0.42, 0.06, '#5e3b1c', sx * (w / 2 - 0.06), 0, sz * (d / 2 - 0.06)));
+  t.add(box(w - 0.14, 0.04, 0.04, '#5e3b1c', 0, 0.14, 0));
+  t.position.set(x, 0, z);
+  t.rotation.y = rot;
+  g.add(t);
+  return t;
+}
+
+/** Escudo redondo de bronce apoyado (de cara a `rot`), con su borde y el umbo. */
+function leaningShield(g, x, z, rot = 0, r = 0.26, color = '#b08d57') {
+  const s = new THREE.Group();
+  const disc = cyl(r, r, 0.04, 16, color, 0, 0, 0, { metalness: 0.5, roughness: 0.45 });
+  disc.rotation.x = Math.PI / 2;
+  s.add(disc);
+  const rim = mesh(new THREE.TorusGeometry(r, 0.02, 4, 18), '#d9b45a', { metalness: 0.5, roughness: 0.4 });
+  rim.position.z = 0.02;
+  s.add(rim);
+  const boss = mesh(new THREE.SphereGeometry(r * 0.25, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), '#d9b45a', { metalness: 0.5, roughness: 0.4 });
+  boss.rotation.x = Math.PI / 2;
+  boss.position.z = 0.02;
+  s.add(boss);
+  s.position.set(x, r + 0.02, z);
+  s.rotation.set(-0.22, rot, 0, 'YXZ');
+  g.add(s);
+}
+
+/** Lanzas de pie en su armero, a lo largo de X. */
+function spearRack(g, x, z, n = 6, rot = 0) {
+  const r = new THREE.Group();
+  const w = n * 0.13;
+  r.add(box(w + 0.1, 0.05, 0.08, '#6b4524', 0, 0.55, 0), box(w + 0.1, 0.05, 0.12, '#6b4524', 0, 0.02, 0));
+  for (const sx of [-1, 1]) r.add(box(0.05, 0.6, 0.05, '#5e3b1c', (sx * (w + 0.05)) / 2, 0, 0));
+  for (let i = 0; i < n; i++) {
+    const u = -w / 2 + (i + 0.5) * (w / n);
+    r.add(cyl(0.012, 0.012, 1.25, 4, '#6b4524', u, 0.04, 0));
+    const tip = mesh(new THREE.ConeGeometry(0.03, 0.12, 4), '#c9a24a', { metalness: 0.5, roughness: 0.4 });
+    tip.position.set(u, 1.35, 0);
+    r.add(tip);
+  }
+  r.position.set(x, 0, z);
+  r.rotation.y = rot;
+  g.add(r);
+}
+
+/**
+ * La forja: un taller de bronce al aire libre, entre muros bajos de sillares y un muro alto con la
+ * greca azul y sus estantes de vasijas. En medio, la fragua redonda de piedra (arde de noche) y el
+ * yunque donde el herrero golpea y saltan chispas; a la derecha, un pórtico de columnas con bandas
+ * azules y tejado de teja sobre la mesa del armero; a la izquierda, un toldo de lona sobre otra mesa.
+ * Lanzas, escudos de bronce, cajas de lingotes y el estandarte azul crecen con el nivel. +Z, la entrada.
+ */
 function forja(level) {
   const g = new THREE.Group();
-  g.add(box(3.0, 0.15, 2.4, C.stoneDark, 0, 0, -0.2));
-  // Cobertizo abierto
-  for (const [x, z] of [[-1.3, -1.2], [1.3, -1.2], [-1.3, 0.6], [1.3, 0.6]]) g.add(box(0.14, 1.6, 0.14, C.woodDark, x, 0.15, z));
-  const roof = tiledGable(3.0, 0.7, 2.2, 0, 1.75, -0.3);
-  roof.rotation.y = Math.PI / 2;
-  g.add(roof);
-  // Horno con boca encendida y chimenea
-  g.add(box(1.2, 1.2, 0.9, C.stone, -0.6, 0.15, -0.95));
-  g.add(box(0.5, 0.4, 0.05, '#ff8a2a', -0.6, 0.35, -0.48, { emissive: '#ff5a00', emissiveIntensity: 1.5 }));
-  g.add(box(0.4, 1.8, 0.4, C.stone, -0.6, 1.35, -1.2));
-  g.add(smokeColumn(-0.6, 3.3, -1.2, 1.9));
-  // Yunque, martillo y piedra de afilar que gira
-  g.add(box(0.3, 0.35, 0.25, C.dark, 0.6, 0.15, -0.2));
-  g.add(box(0.55, 0.12, 0.25, '#4a4f57', 0.6, 0.5, -0.2, { metalness: 0.5, roughness: 0.4 }));
-  g.add(worker('martillo', 0.1, -0.2, 0.6, -0.2, { color: '#7a4a2a', speed: 7, base: 0.95, amp: 0.45 }));
-  g.add(sparks(0.6, 0.64, -0.2, 7));
-  const wheel = new THREE.Group();
-  wheel.position.set(0.8, 0.6, 0.55);
-  const stone = mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.1, 12), '#b9b2a6');
-  stone.rotation.z = Math.PI / 2;
-  wheel.add(stone);
-  wheel.userData.spin = { axis: 'x', speed: 2.5 };
-  g.add(wheel);
-  g.add(box(0.1, 0.45, 0.4, C.wood, 0.8, 0.15, 0.55));
-  // Armero con lanzas y escudos
-  const weapons = Math.min(7, 3 + level);
-  for (let i = 0; i < weapons; i++) g.add(cyl(0.02, 0.02, 1.2, 4, C.woodDark, -1.1 + i * 0.12, 0.15, 0.85));
-  g.add(box(1.0, 0.06, 0.1, C.wood, -0.75, 0.9, 0.85));
-  // Armero de los escudos: dos estacas y una barra de la que cuelgan
-  for (const z of [-0.75, 0.75]) g.add(box(0.06, 0.82, 0.06, C.woodDark, 1.22, 0.15, z));
-  g.add(box(0.06, 0.06, 1.6, C.wood, 1.22, 0.95, 0));
-  for (let i = 0; i < Math.min(3, 1 + Math.floor(level / 2)); i++) {
-    const shield = mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.05, 10), C.cloth[i % 4]);
-    shield.rotation.x = Math.PI / 2;
-    shield.position.set(1.16, 0.73, -0.4 + i * 0.4);
-    shield.rotation.z = Math.PI / 2;
-    g.add(shield);
+  const BLUE = '#2a56a8';
+  const bronze = { metalness: 0.5, roughness: 0.45 };
+  const tunic = '#e8e2d0';
+  // Suelo de losas dentro del taller
+  const FLAGS = ['#e6dabd', '#d9cba9', '#ece2ca', '#d2c39f'];
+  for (let i = 0; i < 10; i++) for (let j = 0; j < 9; j++) g.add(box(0.4, 0.04, 0.4, FLAGS[(i * 7 + j * 3 + ((i * j) % 5)) % 4], -1.89 + i * 0.42, 0, -1.68 + j * 0.42));
+  // Muros bajos de sillares: a la izquierda, detrás y un tramo delante (la entrada queda abierta)
+  const wall = (x, z, len, alongZ) => {
+    const w = alongZ ? box(0.26, 0.55, len, C.stone, x, 0, z) : box(len, 0.55, 0.26, C.stone, x, 0, z);
+    g.add(w, alongZ ? box(0.32, 0.06, len + 0.06, '#e6dcc4', x, 0.55, z) : box(len + 0.06, 0.06, 0.32, '#e6dcc4', x, 0.55, z));
+    for (const out of [1, -1]) ashlarFace(g, alongZ ? { x: x + out * 0.13, z, len, y0: 0, y1: 0.53, alongZ: true, out, course: 0.18, block: 0.4 } : { x, z: z + out * 0.13, len, y0: 0, y1: 0.53, out, course: 0.18, block: 0.4 });
+  };
+  wall(-2.05, -0.25, 3.4, true);
+  wall(-0.85, -1.95, 2.4, false);
+  wall(-1.5, 1.6, 1.1, false);
+  // El muro alto del fondo, con la greca azul, su cornisa y los estantes de vasijas de bronce
+  g.add(box(1.8, 1.9, 0.6, C.stone, -0.7, 0, -1.72));
+  ashlarFace(g, { x: -0.7, z: -1.42, len: 1.8, y0: 0, y1: 1.55, out: 1, course: 0.24, block: 0.46 });
+  greekKey(g, 1.84, 0.64, 1.55, 0.22, -0.7, -1.72, BLUE, '#e8c25a');
+  g.add(box(1.96, 0.1, 0.76, '#e6dcc4', -0.7, 1.77, -1.72));
+  if (level >= 3) {
+    for (const y of [0.55, 0.95]) {
+      g.add(box(1.0, 0.04, 0.22, '#8b5a2b', -1.05, y, -1.3));
+      for (let k = 0; k < 4; k++) g.add(amphora(-1.4 + k * 0.23, y + 0.04, -1.3, ['#b08d57', '#c9a24a', '#a8743a'][k % 3], 0.5));
+    }
+    for (const x of [-1.55, -0.55]) g.add(box(0.05, 1.0, 0.22, '#5e3b1c', x, 0, -1.3));
+  }
+  // La fragua: un horno redondo de piedra, hueco, con un montón de brasas al rojo y el fuego en
+  // medio (este arde siempre: es un taller), su boca encendida delante y el humo
+  const fx = -0.35;
+  const fz = -0.55;
+  const fh = 0.55;
+  g.add(cyl(0.58, 0.64, fh, 18, C.stone, fx, 0, fz));
+  for (const y of [0.18, 0.36]) g.add(cyl(0.645 - y * 0.08, 0.645 - y * 0.08, 0.03, 18, '#bdb197', fx, y, fz));
+  const rim = mesh(new THREE.TorusGeometry(0.52, 0.08, 6, 20), '#e6dcc4');
+  rim.rotation.x = Math.PI / 2;
+  rim.position.set(fx, fh, fz);
+  g.add(rim);
+  // Un lecho de carbón negro alrededor del fuego y, en el centro, las brasas al rojo
+  g.add(cyl(0.47, 0.47, 0.03, 18, '#141210', fx, fh, fz));
+  for (let k = 0; k < 16; k++) {
+    const a = (k / 16) * Math.PI * 2 + (k % 2) * 0.2;
+    const d = 0.26 + (k % 3) * 0.06;
+    const c = mesh(new THREE.DodecahedronGeometry(0.06 + (k % 2) * 0.02), k % 3 ? '#1b1816' : '#2a2522');
+    c.position.set(fx + Math.cos(a) * d, fh + 0.04, fz + Math.sin(a) * d);
+    c.rotation.set(k, k * 2, 0);
+    g.add(c);
+  }
+  const ember = { emissive: '#ff4a00', emissiveIntensity: 1.5 };
+  for (let k = 0; k < 6; k++) {
+    const a = (k / 6) * Math.PI * 2;
+    const d = k % 3 === 0 ? 0 : 0.12;
+    const c = mesh(new THREE.DodecahedronGeometry(0.07 + (k % 3) * 0.015), k % 2 ? '#ff7a1a' : '#ffae3a', ember);
+    c.position.set(fx + Math.cos(a) * d, fh + 0.05 + (d ? 0 : 0.03), fz + Math.sin(a) * d);
+    c.castShadow = false;
+    g.add(c);
+  }
+  g.add(makeFire(fx, fh + 0.03, fz, 0.62, { night: false }));
+  // La boca del horno, al rojo, hacia la entrada
+  g.add(box(0.34, 0.24, 0.06, '#3a2a1e', fx, 0.08, fz + 0.6), box(0.24, 0.16, 0.03, '#ff7a1a', fx, 0.1, fz + 0.62, ember));
+  g.add(smokeColumn(fx, 1.3, fz, 1.9));
+  g.add(worker('pico', fx + 0.45, fz + 0.55, fx, fz, { color: tunic, speed: 3, base: 0.6, amp: 0.25 }));
+  // El yunque sobre su piedra, el herrero y las chispas
+  const ax = 0.15;
+  const az = 0.55;
+  g.add(box(0.36, 0.32, 0.32, C.stoneDark, ax, 0, az));
+  g.add(box(0.5, 0.12, 0.22, '#4a4f57', ax, 0.32, az, { metalness: 0.5, roughness: 0.4 }));
+  g.add(box(0.2, 0.08, 0.16, '#4a4f57', ax + 0.3, 0.36, az, { metalness: 0.5, roughness: 0.4 }));
+  g.add(worker('martillo', ax - 0.45, az + 0.2, ax, az, { color: tunic, speed: 7, base: 0.95, amp: 0.45 }));
+  g.add(sparks(ax, 0.48, az, 7));
+  // El pórtico de la derecha: cuatro columnas con bandas azules, la greca y el tejado de teja
+  const px0 = 0.85;
+  const px1 = 2.0;
+  const pz0 = -1.6;
+  const pz1 = 0.75;
+  const ch = 1.5;
+  for (const x of [px0, px1]) {
+    for (const z of [pz0, pz1]) {
+      g.add(column(x, 0.04, z, ch, 0.1, '#efe6d2'));
+      for (const y of [0.35, ch - 0.25]) g.add(cyl(0.105, 0.105, 0.08, 12, BLUE, x, y, z));
+    }
+  }
+  const pcx = (px0 + px1) / 2;
+  const pcz = (pz0 + pz1) / 2;
+  g.add(box(px1 - px0 + 0.3, 0.14, pz1 - pz0 + 0.3, '#e6dcc4', pcx, ch + 0.04, pcz));
+  greekKey(g, px1 - px0 + 0.26, pz1 - pz0 + 0.26, ch + 0.18, 0.18, pcx, pcz, BLUE, '#e8c25a');
+  g.add(tiledGable(px1 - px0 + 0.6, 0.55, pz1 - pz0 + 0.6, pcx, ch + 0.36, pcz));
+  // Bajo el pórtico, la mesa del armero con piezas de bronce, y lanzas en la pared del fondo
+  workbench(g, pcx, pz0 + 1.0, 0.95, 0.42, Math.PI / 2);
+  for (let k = 0; k < 4; k++) g.add(box(0.14, 0.05, 0.08, '#c9a24a', pcx - 0.05, 0.48, pz0 + 0.7 + k * 0.17, bronze));
+  g.add(worker('martillo', pcx + 0.42, pz0 + 1.0, pcx, pz0 + 1.0, { color: tunic, speed: 5, base: 0.75, amp: 0.3, phase: 1.3 }));
+  spearRack(g, pcx, pz0 + 0.12, Math.min(8, 4 + level));
+  // A la izquierda, el toldo de lona sobre otra mesa con un herrero
+  if (level >= 2) {
+    const tx = -1.4;
+    const tz = 0.4;
+    for (const [x, z, h] of [[-1.9, -0.25, 1.5], [-0.9, -0.25, 1.5], [-1.9, 1.05, 1.2], [-0.9, 1.05, 1.2]]) g.add(box(0.07, h, 0.07, '#7a4e26', x, 0, z));
+    const run = 1.3;
+    const drop = 0.3;
+    const cloth = box(1.18, 0.03, Math.hypot(run, drop) + 0.1, '#ede3cb', 0, 0, 0);
+    cloth.position.set(-1.4, 1.35 + 0.02, 0.4);
+    cloth.rotation.x = Math.atan2(drop, run);
+    g.add(cloth);
+    workbench(g, tx, tz, 0.9, 0.42);
+    g.add(cyl(0.12, 0.12, 0.14, 10, '#c9a24a', tx - 0.2, 0.48, tz, bronze), box(0.16, 0.05, 0.1, '#4a4f57', tx + 0.2, 0.48, tz));
+    g.add(worker('martillo', tx, tz - 0.5, tx, tz, { color: tunic, speed: 4.5, base: 0.75, amp: 0.3, phase: 2.6 }));
+    // Escudos de bronce apoyados en el muro de la entrada, a la vista
+    leaningShield(g, -1.25, 1.84, 0, 0.26);
+    leaningShield(g, -1.75, 1.83, 0, 0.23, '#c9a24a');
+  }
+  // Delante: la mesa de las puntas de lanza recién hechas y cajas de lingotes
+  if (level >= 4) {
+    workbench(g, 0.75, 1.45, 1.0, 0.4);
+    for (let k = 0; k < 6; k++) {
+      const tip = mesh(new THREE.ConeGeometry(0.035, 0.2, 4), '#c9a24a', bronze);
+      tip.rotation.x = Math.PI / 2;
+      tip.position.set(0.37 + k * 0.15, 0.51, 1.45);
+      g.add(tip);
+    }
+    for (const [x, z, rot] of [[1.55, 1.35, 0.2], [1.95, 1.15, -0.3]]) {
+      crate(g, x, 0.04, z, 0.34, rot);
+      for (let k = 0; k < 3; k++) g.add(box(0.1, 0.05, 0.06, '#c9a24a', x - 0.1 + k * 0.1, 0.4, z, bronze));
+    }
+  }
+  // Escudos apoyados fuera, contra el muro, y el estandarte azul a la entrada
+  if (level >= 3) {
+    leaningShield(g, -2.32, 1.0, -Math.PI / 2, 0.3);
+    leaningShield(g, -2.32, 0.4, -Math.PI / 2, 0.27, '#c9a24a');
+  }
+  if (level >= 5) {
+    g.add(cyl(0.035, 0.04, 2.3, 6, '#6b4524', 2.55, 0, 1.45));
+    g.add(box(0.5, 0.05, 0.05, '#6b4524', 2.55, 2.05, 1.45));
+    g.add(box(0.42, 0.85, 0.025, BLUE, 2.55, 1.2, 1.49));
+    for (const y of [1.2, 2.0]) g.add(box(0.42, 0.04, 0.03, C.gold, 2.55, y, 1.5, bronze));
   }
   return g;
 }
