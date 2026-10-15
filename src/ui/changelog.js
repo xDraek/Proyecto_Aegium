@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15p',
+    date: '2026-10-15',
+    title: 'Barra de abajo en el móvil',
+    items: ['📱 Arreglada la barra de abajo en el móvil y la tablet: al deslizarla de lado ya no se corta el cuadro de las colonias. Ahora la fila de colonias y la de edificios o islas se deslizan cada una por su cuenta.'],
+  },
+  {
     id: '2026-10-15o',
     date: '2026-10-15',
     title: 'Murallas con más detalle',

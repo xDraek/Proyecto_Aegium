@@ -1547,9 +1547,27 @@ select:focus {
     display: none;
   }
 
+  /* La barra queda quieta: solo se deslizan de lado sus filas (edificios o islas, y colonias),
+     cada una por su cuenta, sin arrastrar los cuadros ni sus títulos */
+  #sidebar,
+  #sidebar > .scroll {
+    overflow-x: hidden;
+  }
+
+  #sidebar .list {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
   /* Las colonias, en fila y con su nombre (sin él no se sabría cuál es cuál) */
   #sidebar .colony-list {
     grid-template-columns: none;
+  }
+
+  #sidebar .colony-box {
+    min-width: 0;
+    margin-bottom: 8px;
   }
 
   #sidebar .colony-list .b-name {
