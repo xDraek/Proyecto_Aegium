@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15y',
+    date: '2026-10-15',
+    title: 'Más vida en la granja',
+    items: ['🐑 La <b>granja</b> gana detalle: un pozo de piedra con su cubo, un huerto con sus surcos y un hortelano, y la carreta de grano. Con el nivel llegan gallinas picoteando, un cobertizo de teja con balas de paja, el espantapájaros, un corral con ovejas y colmenas de paja.'],
+  },
+  {
     id: '2026-10-15x',
     date: '2026-10-15',
     title: 'Nueva mina de cristal',

@@ -1677,18 +1677,94 @@ function farmhouse(x, z) {
   return g;
 }
 
+/** Cerca de madera de postes y dos travesaños, de (x0, z0) a (x1, z1). */
+function fence(g, x0, z0, x1, z1, h = 0.42) {
+  const len = Math.hypot(x1 - x0, z1 - z0);
+  const rot = Math.atan2(z1 - z0, x1 - x0);
+  const f = new THREE.Group();
+  const n = Math.max(1, Math.round(len / 0.45));
+  for (let i = 0; i <= n; i++) f.add(box(0.06, h, 0.06, '#7a5a38', -len / 2 + (i * len) / n, 0, 0));
+  for (const y of [h * 0.4, h * 0.85]) f.add(box(len, 0.04, 0.035, '#8b6a42', 0, y, 0));
+  f.position.set((x0 + x1) / 2, 0, (z0 + z1) / 2);
+  f.rotation.y = -rot;
+  g.add(f);
+}
+
+/** Oveja de corral (sin moverse), mirando a `rot`. */
+function penSheep(g, x, z, rot = 0) {
+  const s = new THREE.Group();
+  const body = mesh(new THREE.SphereGeometry(0.15, 8, 6), '#f2eee4');
+  body.scale.set(0.85, 0.8, 1.2);
+  body.position.y = 0.24;
+  s.add(body);
+  for (let k = 0; k < 5; k++) {
+    const puff = mesh(new THREE.DodecahedronGeometry(0.06), k % 2 ? '#ece6d8' : '#f7f4ec');
+    puff.position.set(Math.sin(k * 1.3) * 0.08, 0.32, -0.1 + k * 0.05);
+    s.add(puff);
+  }
+  s.add(box(0.08, 0.09, 0.1, '#2f2a25', 0, 0.26, 0.2));
+  for (const [lx, lz] of [[-0.06, 0.09], [0.06, 0.09], [-0.06, -0.09], [0.06, -0.09]]) s.add(box(0.03, 0.16, 0.03, '#2f2a25', lx, 0, lz));
+  s.position.set(x, 0, z);
+  s.rotation.y = rot;
+  g.add(s);
+}
+
+/** Gallina picoteando, mirando a `rot`. */
+function hen(g, x, z, rot = 0, color = '#f4efe4') {
+  const h = new THREE.Group();
+  const body = mesh(new THREE.SphereGeometry(0.07, 7, 5), color);
+  body.scale.set(0.8, 0.85, 1.15);
+  body.position.y = 0.09;
+  h.add(body);
+  const head = mesh(new THREE.SphereGeometry(0.035, 6, 4), color);
+  head.position.set(0, 0.11, 0.08);
+  h.add(head, box(0.015, 0.03, 0.03, '#c8361a', 0, 0.135, 0.08), box(0.015, 0.015, 0.03, '#e3b23c', 0, 0.105, 0.115));
+  h.add(box(0.05, 0.06, 0.03, color, 0, 0.12, -0.08));
+  h.position.set(x, 0, z);
+  h.rotation.y = rot;
+  g.add(h);
+}
+
 function granja(level) {
   const g = new THREE.Group();
-  // Casa del labrador con su era delante (los campos están en la pradera de detrás, los pone la
-  // escena)
+  // La casa del labrador (los campos están en la pradera de detrás, los pone la escena)
   g.add(farmhouse(-0.9, -0.8));
-  // Almiares y una carreta en la era (más almiares con el nivel)
+  // El pozo de piedra con su travesaño, la polea y el cubo
+  const wx = 0.35;
+  const wz = -0.2;
+  g.add(cyl(0.26, 0.28, 0.38, 12, C.stone, wx, 0, wz), cyl(0.28, 0.28, 0.05, 12, '#e6dcc4', wx, 0.38, wz), cyl(0.2, 0.2, 0.02, 10, '#2c4a6a', wx, 0.36, wz));
+  for (const s of [-1, 1]) g.add(box(0.06, 0.6, 0.06, '#6b4524', wx + s * 0.24, 0.38, wz));
+  g.add(box(0.56, 0.06, 0.06, '#6b4524', wx, 0.96, wz), cyl(0.05, 0.05, 0.1, 8, '#5e3b1c', wx, 0.88, wz));
+  g.add(cyl(0.008, 0.008, 0.36, 4, '#8a7350', wx, 0.56, wz), cyl(0.06, 0.05, 0.1, 8, '#7a4e26', wx, 0.48, wz));
+  // El huerto: surcos de tierra con sus matas (lechugas, coles…), y un espantapájaros con el nivel
+  const hx = 1.25;
+  const hz = 0.75;
+  for (let r = 0; r < 4; r++) {
+    const z = hz - 0.36 + r * 0.24;
+    g.add(box(1.15, 0.05, 0.14, '#7a5a3a', hx, 0, z));
+    for (let k = 0; k < 5; k++) {
+      const p = mesh(new THREE.DodecahedronGeometry(0.06 + ((k + r) % 3) * 0.012), r % 2 ? '#6f9a3a' : '#4f8a3a');
+      p.position.set(hx - 0.45 + k * 0.22, 0.08, z);
+      p.scale.y = 0.7;
+      g.add(p);
+    }
+  }
+  fence(g, hx - 0.66, hz - 0.5, hx + 0.66, hz - 0.5, 0.32);
+  fence(g, hx + 0.66, hz - 0.5, hx + 0.66, hz + 0.5, 0.32);
+  if (level >= 3) {
+    g.add(box(0.04, 0.85, 0.04, '#6b4524', hx + 0.1, 0, hz), box(0.5, 0.04, 0.04, '#6b4524', hx + 0.1, 0.62, hz));
+    g.add(box(0.2, 0.26, 0.1, '#a8433a', hx + 0.1, 0.42, hz));
+    const head = mesh(new THREE.SphereGeometry(0.08, 7, 5), '#d9c49a');
+    head.position.set(hx + 0.1, 0.78, hz);
+    g.add(head, cyl(0.14, 0.14, 0.02, 10, '#c9a24a', hx + 0.1, 0.84, hz), cyl(0.07, 0.08, 0.08, 10, '#c9a24a', hx + 0.1, 0.84, hz));
+  }
+  // Los almiares junto a la casa (más con el nivel) y la carreta cargada de grano
   const stacks = Math.min(3, 1 + Math.floor(level / 4));
   for (let i = 0; i < stacks; i++) {
-    const hx = 0.35 + i * 0.55;
-    g.add(cyl(0.24, 0.27, 0.32, 9, '#d9b45a', hx, 0, 0.75));
+    const [sx, sz] = [[-1.95, 0.65], [-1.95, 1.2], [-1.4, 1.55]][i];
+    g.add(cyl(0.24, 0.27, 0.32, 9, '#d9b45a', sx, 0, sz));
     const top = mesh(new THREE.ConeGeometry(0.26, 0.34, 9), '#cfa84e');
-    top.position.set(hx, 0.48, 0.75);
+    top.position.set(sx, 0.48, sz);
     g.add(top);
   }
   const cartG = new THREE.Group();
@@ -1700,17 +1776,59 @@ function granja(level) {
     cartG.add(wheel);
   }
   cartG.add(box(0.5, 0.16, 0.3, '#e3c25a', 0, 0.3, 0));
-  cartG.position.set(1.55, 0, -0.35);
-  cartG.rotation.y = 0.5;
+  cartG.position.set(0.6, 0, 1.75);
+  cartG.rotation.y = 0.35;
   g.add(cartG);
+  // Gallinas picoteando junto al pozo
+  if (level >= 2) {
+    for (const [x, z, r, c] of [[0.85, 0.0, 0.4, '#f4efe4'], [0.95, -0.35, 2.2, '#b5652e'], [-0.1, 0.25, -0.8, '#f4efe4'], [0.6, 0.1, 3.4, '#8a4a22']]) hen(g, x, z, r, c);
+  }
+  // El cobertizo de teja con balas de paja y la horca
+  if (level >= 2) {
+    const bx = 1.45;
+    const bz = -1.05;
+    for (const [x, z] of [[-0.6, -0.45], [0.6, -0.45], [-0.6, 0.45], [0.6, 0.45]]) g.add(box(0.09, 1.0, 0.09, '#6b4524', bx + x, 0, bz + z));
+    const roof = tiledGable(1.1, 0.38, 1.5, bx, 1.0, bz);
+    roof.rotation.y = Math.PI / 2;
+    g.add(roof);
+    for (const [x, y, z] of [[-0.3, 0, -0.15], [0.12, 0, -0.15], [-0.1, 0.24, -0.15], [0.35, 0, 0.2]]) g.add(box(0.4, 0.24, 0.26, '#dcbf6a', bx + x, y, bz + z));
+    g.add(cyl(0.012, 0.012, 0.9, 4, '#6b4524', bx + 0.55, 0.45, bz + 0.3));
+  }
+  // El corral con sus ovejas
+  if (level >= 4) {
+    const px = -0.15;
+    const pz = 1.05;
+    fence(g, px - 0.55, pz - 0.38, px + 0.55, pz - 0.38);
+    fence(g, px + 0.55, pz - 0.38, px + 0.55, pz + 0.38);
+    fence(g, px + 0.55, pz + 0.38, px - 0.55, pz + 0.38);
+    fence(g, px - 0.55, pz + 0.38, px - 0.55, pz - 0.38);
+    penSheep(g, px - 0.22, pz - 0.05, 0.6);
+    penSheep(g, px + 0.2, pz + 0.12, -1.9);
+    if (level >= 7) penSheep(g, px + 0.15, pz - 0.2, 2.6);
+    g.add(box(0.3, 0.1, 0.14, '#8b5a2b', px - 0.3, 0, pz + 0.25));
+  }
+  // Colmenas de paja junto al huerto
+  if (level >= 5) {
+    for (let k = 0; k < 3; k++) {
+      const x = 2.05;
+      const z = 0.25 + k * 0.32;
+      g.add(box(0.26, 0.12, 0.26, C.stone, x, 0, z));
+      const skep = mesh(new THREE.SphereGeometry(0.13, 9, 6, 0, Math.PI * 2, 0, Math.PI / 2), '#d6b25a');
+      skep.scale.y = 1.4;
+      skep.position.set(x, 0.12, z);
+      g.add(skep);
+      for (const y of [0.17, 0.25]) g.add(cyl(0.125 - (y - 0.12) * 0.6, 0.13 - (y - 0.12) * 0.6, 0.02, 9, '#b8913e', x, y, z));
+    }
+  }
   // Molino de las Cícladas a partir del nivel 3
   if (level >= 3) {
     const mill = windmill();
     mill.position.set(-2.5, 0, -1.6);
     g.add(mill);
   }
-  // Campesino cavando en el primer campo de la pradera, detrás de la casa
+  // Campesino cavando en el primer campo de la pradera, detrás de la casa, y otro en el huerto
   g.add(worker('azada', 0.5, -3.35, 0.5, -3.9, { color: '#3f6fa8', speed: 2.2, base: 0.05, amp: 0.55 }));
+  g.add(worker('azada', hx + 0.3, hz + 0.68, hx + 0.05, hz + 0.3, { color: '#b5652e', speed: 2.6, base: 0.05, amp: 0.5, phase: 1.4 }));
   return g;
 }
 
