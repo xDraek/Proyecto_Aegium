@@ -28,6 +28,7 @@ import {
   smokeColumn,
   gableRoof,
   hipRoof,
+  makeFire,
   mat,
   mediterraneanTree,
   palmTree,
@@ -98,7 +99,7 @@ const LAYOUT = {
   mina: { foot: true, angle: 216 },
   fundicion: { r: 22, angle: 254 },
   torre: { r: 22, angle: 292 },
-  coloso: { r: 22, angle: 330, ring: 1.15 },
+  coloso: { r: 22, angle: 330, ring: 1.9, hit: 4.2, block: 4.5 },
   // Los de la costa se colocan según la orilla real (#layoutFor)
   astillero: { coast: -2.6, angle: 40, hit: 3.0 },
   faro: { coast: -2.0, angle: 352 },
@@ -488,6 +489,7 @@ export class World {
     // Ventanas y faroles encendidos al anochecer
     windowMaterial().emissiveIntensity = step(0.15, -0.25, s) * 1.4;
     this.night = step(0.1, -0.3, s);
+    this.#lightNightFires();
   }
 
   /**
@@ -655,7 +657,7 @@ export class World {
       { p: polar(STATUE_SPOT.r, STATUE_SPOT.angle), r: 1.9 },
       ...Object.entries(L)
         .filter(([id]) => id !== 'ayuntamiento' && id !== 'puerto' && id !== 'muralla')
-        .map(([, l]) => ({ p: polar(l.r, l.angle), r: 2.8 })),
+        .map(([, l]) => ({ p: polar(l.r, l.angle), r: l.block ?? 2.8 })),
       ...this.mountains.map((m) => ({ p: polar(m.r, m.angle), r: m.radius + 0.6 })),
     ];
     const coastAt = (p) => this.coast(THREE.MathUtils.radToDeg(Math.atan2(p.x, p.z)));
@@ -882,7 +884,11 @@ export class World {
       this.flock.push(s);
     }
 
-    // Pebeteros de mármol a los lados de la avenida del puerto (arden de noche)
+    // Pebeteros de mármol a los lados de la avenida del puerto (arden de noche: sus llamas van
+    // aparte, porque el resto se funde en una malla, y solo se ven al anochecer)
+    this.lampFires = new THREE.Group();
+    this.lampFires.visible = false;
+    scene.add(this.lampFires);
     const gate = THREE.MathUtils.degToRad(GATE_ANGLE);
     for (let d = AVENUE_IN + 0.8; d < gateCoast - 3.4; d += 3.1) {
       if (Math.abs(d - WALL_R) < 1.4 || Math.abs(d - ROAD_R) < 1.2) continue;
@@ -892,6 +898,7 @@ export class World {
         lamp.add(box(0.26, 0.12, 0.26, C.marbleDark), cyl(0.07, 0.09, 1.2, 8, C.marble, 0, 0.12, 0), box(0.2, 0.06, 0.2, C.marble, 0, 1.32, 0));
         lamp.add(cyl(0.2, 0.09, 0.16, 8, '#8a6a3a', 0, 1.38, 0, { metalness: 0.5, roughness: 0.45 }), cyl(0.15, 0.15, 0.04, 8, C.dark, 0, 1.52, 0, WINDOW_GLOW));
         place(lamp, p);
+        this.lampFires.add(makeFire(p.x, 1.53, p.z, 0.36));
         blockers.push({ p, r: 0.3 });
       }
     }
@@ -1086,13 +1093,6 @@ export class World {
       // Que los edificios miren hacia la plaza
       if (id !== 'ayuntamiento') root.rotation.y = Math.atan2(-pos.x, -pos.z);
       this.scene.add(root);
-
-      // La granja y el Coloso no tienen solar: están sobre la hierba
-      if (id !== 'ayuntamiento' && id !== 'puerto' && id !== 'muralla' && id !== 'granja' && id !== 'coloso') {
-        const plot = cyl(2.3, 2.4, 0.12, 28, C.dirt);
-        plot.castShadow = false;
-        root.add(plot);
-      }
 
       const hitR = l.hit ?? 2.6;
       const hit = new THREE.Mesh(new THREE.CylinderGeometry(hitR, hitR, 5, 12), hitMat);
@@ -2792,6 +2792,18 @@ export class World {
       }
       if (e.base) e.base.visible = full;
       if (e.proxy) e.proxy.visible = !full || !e.base;
+      // Las hogueras y antorchas de la isla, solo cuando se ve de cerca (de lejos ni se distinguen)
+      if (e.feature) {
+        if (e.firesOf !== e.feature) {
+          e.firesOf = e.feature;
+          e.fires = [];
+          e.feature.traverse((o) => o.userData.fire && e.fires.push(o));
+        }
+        for (const f of e.fires) {
+          f.userData.far = !near;
+          this.#lightFire(f);
+        }
+      }
     }
     // Primero las más cercanas
     this.pendingBases.sort((a, b) => a.d - b.d);
@@ -2812,10 +2824,12 @@ export class World {
 
   #collectAnimated() {
     this.animated = [];
+    this.nightFires = [];
     const collect = (root) =>
       root?.traverse((o) => {
         const d = o.userData;
-        if (d.spin || d.swing || d.wave || d.smoke || d.flicker || d.bob || d.wiggle || d.sparks) this.animated.push(o);
+        if (d.spin || d.swing || d.wave || d.smoke || d.flicker || d.bob || d.wiggle || d.sparks || d.fire) this.animated.push(o);
+        if (d.fire && d.night) this.nightFires.push(o);
       });
     for (const slot of Object.values(this.slots)) {
       collect(slot.building);
@@ -2831,6 +2845,18 @@ export class World {
     collect(this.raidGroup);
     collect(this.statue);
     collect(this.wallGroup);
+    collect(this.lampFires);
+    this.#lightNightFires();
+  }
+
+  /** Los fuegos arden de noche (salvo los que arden siempre, como la antorcha del Coloso). */
+  #lightNightFires() {
+    for (const f of this.nightFires ?? []) this.#lightFire(f);
+    if (this.lampFires) this.lampFires.visible = (this.night ?? 0) > 0.3;
+  }
+
+  #lightFire(f) {
+    f.visible = (!f.userData.night || (this.night ?? 0) > 0.3) && !f.userData.far;
   }
 
   // ── Bucle ─────────────────────────────────────────────────────────────────
@@ -2899,11 +2925,32 @@ export class World {
     }
 
     for (const o of this.animated) {
-      const { spin, swing, wave, smoke, flicker, bob, wiggle, sparks } = o.userData;
+      const { spin, swing, wave, smoke, flicker, bob, wiggle, sparks, fire } = o.userData;
       if (spin) o.rotation[spin.axis] += spin.speed * dt;
       if (swing) o.rotation.y = Math.sin(t * swing.speed) * swing.amp;
       if (wave) o.rotation.y = Math.sin(t * 3) * 0.3;
       if (flicker) o.scale.set(1, 1 + Math.sin(t * 13 + o.id) * 0.18, 1);
+      if (fire) {
+        // Las lenguas se estiran y se mecen a su ritmo, el halo late y las pavesas suben
+        for (const c of o.children) {
+          const u = c.userData;
+          if (u.layer) {
+            const { s, k } = u.layer;
+            const f = Math.sin(t * (10 + k * 3) + fire.seed * k) * 0.6 + Math.sin(t * (17.3 + k) + fire.seed * 2) * 0.4;
+            c.scale.set(s * (1 - f * 0.07), s * (1 + f * 0.18), s * (1 - f * 0.07));
+            c.rotation.z = Math.sin(t * 5.3 + fire.seed + k) * 0.07;
+          } else if (u.glow) c.scale.setScalar(u.glow * (1 + Math.sin(t * 9 + fire.seed) * 0.08));
+          else if (u.embers) {
+            const a = c.geometry.attributes.position;
+            for (let i = 0; i < 3; i++) {
+              const p = (t * 0.55 + i / 3 + fire.seed) % 1;
+              const r = fire.h * 0.22 * (1 + p);
+              a.setXYZ(i, Math.cos(i * 2.1) * r + Math.sin(t * 4 + i * 3) * fire.h * 0.1, fire.h * (0.3 + p * 1.6), Math.sin(i * 2.1) * r);
+            }
+            a.needsUpdate = true;
+          }
+        }
+      }
       if (bob) {
         o.position.y = bob.base + Math.sin(t * bob.speed + o.id) * bob.amp;
         o.rotation.z = Math.sin(t * bob.speed * 0.8 + o.id) * 0.05;

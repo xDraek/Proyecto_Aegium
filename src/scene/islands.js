@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { C, box, colonnade, column, createShip, createSoldier, cyl, cypress, dome, figure, gableRoof, greekKey, hipRoof, mat, mediterraneanTree, mesh, palmTree, smokeColumn, stylobate } from './models.js';
+import { C, box, colonnade, column, createShip, createSoldier, cyl, cypress, dome, figure, gableRoof, greekKey, hipRoof, makeFire, mat, mediterraneanTree, mesh, palmTree, smokeColumn, stylobate, WINDOW_GLOW } from './models.js';
 import { wonderLevel, wonderOf } from '../game/rules.js';
 import { FEAT_THEMES } from '../game/data.js';
 import { Batch, bakeStatic, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng } from './util.js';
@@ -486,9 +486,7 @@ function camp(g, R, rand) {
   }
   // Hoguera
   g.add(cyl(0.35, 0.4, 0.12, 8, C.stoneDark));
-  const fire = mesh(new THREE.ConeGeometry(0.25, 0.6, 6), '#ff8a2a', { emissive: '#ff5a00', emissiveIntensity: 1.6 });
-  fire.position.y = 0.4;
-  fire.userData.flicker = true;
+  const fire = makeFire(0, 0.1, 0, 0.69);
   g.add(fire);
   // Tótem con calavera
   g.add(cyl(0.12, 0.14, 2.0, 6, C.wood, r * 0.3, 0, -r * 0.5));
@@ -794,10 +792,8 @@ function citadel(g, R, rand, owner = null) {
   g.add(batch.build());
   // Hogueras y guerreros
   for (const a of [0, 120, 240]) {
-    const fire = mesh(new THREE.ConeGeometry(0.25, 0.6, 6), '#ff8a2a', { emissive: '#ff5a00', emissiveIntensity: 1.6 });
-    fire.position.copy(polar(R * 0.25, a, 0.3));
-    fire.userData.flicker = true;
-    g.add(fire);
+    const p = polar(R * 0.25, a);
+    g.add(makeFire(p.x, 0, p.z, 0.69));
   }
   for (let i = 0; i < 5; i++) {
     const b = createSoldier(owner ? (i % 2 ? 'lancero' : 'hoplita') : i % 2 ? 'barbaro' : 'arquero');
@@ -916,9 +912,7 @@ function hordeCamp(g, R, rand) {
   for (let i = 0; i < 3; i++) {
     const p = at(0.86, (i - 1) * 9);
     g.add(cyl(0.35, 0.4, 0.12, 8, C.stoneDark, p.x, 0, p.z));
-    const fire = mesh(new THREE.ConeGeometry(0.3, 0.75, 6), '#ff8a2a', { emissive: '#ff5a00', emissiveIntensity: 1.8 });
-    fire.position.set(p.x, 0.45, p.z);
-    fire.userData.flicker = true;
+    const fire = makeFire(p.x, 0.075, p.z, 0.862);
     g.add(fire);
   }
   for (let i = 0; i < 4; i++) {
@@ -1084,10 +1078,8 @@ function statueBrazier(g, x, z, y = 0) {
   g.add(box(0.27, 0.05, 0.27, '#e3d6b8', x, y + 0.56, z));
   g.add(cyl(0.05, 0.07, 0.07, 8, '#a8843a', x, y + 0.61, z, { metalness: 0.55, roughness: 0.4 }));
   g.add(cyl(0.17, 0.08, 0.1, 12, '#b8913e', x, y + 0.68, z, { metalness: 0.55, roughness: 0.4 }));
-  g.add(cyl(0.14, 0.14, 0.02, 12, '#ff8a2a', x, y + 0.77, z, { emissive: '#ff6a00', emissiveIntensity: 1.2 }));
-  const fire = mesh(new THREE.ConeGeometry(0.1, 0.28, 6), '#ffb347', { emissive: '#ff7a00', emissiveIntensity: 1.6 });
-  fire.position.set(x, y + 0.92, z);
-  fire.userData.flicker = true;
+  g.add(cyl(0.14, 0.14, 0.02, 12, C.dark, x, y + 0.77, z, WINDOW_GLOW));
+  const fire = makeFire(x, y + 0.78, z, 0.322);
   g.add(fire);
 }
 
@@ -2031,9 +2023,7 @@ function persianCamp(g, isl, R, rand, code) {
   // Hogueras
   for (let i = 0; i < 3; i++) {
     const p = polar(cr * 0.62, deg + 60 + i * 110, 0);
-    const fire = mesh(new THREE.ConeGeometry(0.3, 0.75, 6), '#ff8a2a', { emissive: '#ff5a00', emissiveIntensity: 1.8 });
-    fire.position.set(c.x + p.x, 0.45, c.z + p.z);
-    fire.userData.flicker = true;
+    const fire = makeFire(c.x + p.x, 0.075, c.z + p.z, 0.862);
     g.add(fire);
   }
   // Las trirremes fenicias que siguen libres frente a la costa

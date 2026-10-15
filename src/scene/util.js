@@ -229,10 +229,10 @@ export function surfaceDetail(material, kind, { masonry = true } = {}) {
 }
 
 // `rig`: piezas que mueve su dueño (las ruedas y las patas del carro de bueyes)
-const ANIMATED = ['spin', 'swing', 'wave', 'smoke', 'flicker', 'bob', 'wiggle', 'sparks', 'rig'];
+const ANIMATED = ['spin', 'swing', 'wave', 'smoke', 'flicker', 'bob', 'wiggle', 'sparks', 'rig', 'fire'];
 
 // Las piezas de estos se mueven cada una por su cuenta: lo de dentro no se funde
-const LOOSE = ['smoke', 'sparks'];
+const LOOSE = ['smoke', 'sparks', 'fire'];
 
 /**
  * Funde en una sola malla las piezas de `root` que no se mueven ni brillan

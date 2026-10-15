@@ -5,6 +5,30 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15t',
+    date: '2026-10-15',
+    title: 'Edificios sobre la hierba',
+    items: ['🌿 Fuera los solares de tierra redondos y los enlosados cuadrados de debajo de los edificios: ahora cada uno se asienta directamente sobre la hierba de la isla.'],
+  },
+  {
+    id: '2026-10-15s',
+    date: '2026-10-15',
+    title: 'Fuego de verdad',
+    items: ['🔥 El <b>fuego</b> se ve mucho mejor en todo el juego (antorchas, pebeteros, braseros, el altar del templo, el faro, la antorcha del Coloso, las hogueras de los campamentos…): lenguas de fuego que se mecen, amarillas en la base y rojas en las puntas, con un halo de luz y pavesas que suben. Los fuegos se encienden al anochecer y se apagan al amanecer (salvo la antorcha del Coloso, que arde siempre), y de noche arden también los pebeteros de la avenida del puerto.'],
+  },
+  {
+    id: '2026-10-15r',
+    date: '2026-10-15',
+    title: 'Un Coloso más imponente',
+    items: ['🗽 El <b>Coloso</b> es ahora mucho más grande: se alza por encima de toda la isla y se ve desde cualquier punto.'],
+  },
+  {
+    id: '2026-10-15q',
+    date: '2026-10-15',
+    title: 'Un faro como el de Alejandría',
+    items: ['🗼 El <b>faro</b> se renueva al estilo del de Alejandría: sobre un islote de rocas, un recinto de sillares con su escalinata hacia el camino y pilares en las esquinas, y una torre de tres cuerpos (cuadrado, octogonal y redondo) con pilastras, friso, ventanucos y su puerta de madera bajo un pequeño pórtico griego. Arriba, la linterna de columnas con el fuego, la cúpula y Poseidón con su tridente. Con el nivel llegan los estandartes azules (4), las esfinges (6) y la cúpula de oro (8).'],
+  },
+  {
     id: '2026-10-15p',
     date: '2026-10-15',
     title: 'Barra de abajo en el móvil',
