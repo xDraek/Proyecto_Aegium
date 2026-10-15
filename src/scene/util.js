@@ -235,6 +235,22 @@ const ANIMATED = ['spin', 'swing', 'wave', 'smoke', 'flicker', 'bob', 'wiggle', 
 const LOOSE = ['smoke', 'sparks', 'fire'];
 
 /**
+ * Quita los grupos que se han quedado vacíos al fundir (sin piezas dentro ni nada que los anime):
+ * no dibujan nada, pero la escena los recorre en cada fotograma.
+ */
+function pruneEmpty(root) {
+  const visit = (obj) => {
+    for (const child of [...obj.children]) {
+      visit(child);
+      const plain = !child.isMesh && !child.isSprite && !child.isPoints && !child.isLine && !child.isLight && !child.isCSS2DObject;
+      if (plain && child.children.length === 0 && Object.keys(child.userData).length === 0) obj.remove(child);
+    }
+  };
+  visit(root);
+  return root;
+}
+
+/**
  * Funde en una sola malla las piezas de `root` que no se mueven ni brillan
  * (las ventanas que se encienden de noche van en otra). Lo transparente se queda
  * como estaba; lo que emite luz se funde aparte, una malla por material. Cada
@@ -286,7 +302,7 @@ export function bakeStatic(root, glowMaterial = null) {
     for (const g of parts) g.dispose();
     root.add(one);
   }
-  if (baked.length < 2) return root;
+  if (baked.length < 2) return pruneEmpty(root);
   for (const mesh of baked) {
     const g = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone();
     for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal') g.deleteAttribute(k);
@@ -311,5 +327,5 @@ export function bakeStatic(root, glowMaterial = null) {
   const merged = batch.build();
   // El grupo fundido va en el origen de `root`, que ya tiene su posición y escala
   root.add(...merged.children);
-  return root;
+  return pruneEmpty(root);
 }

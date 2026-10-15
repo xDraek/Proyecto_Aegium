@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15z',
+    date: '2026-10-15',
+    title: 'Más fluido',
+    items: ['⚡ El juego va más fluido sin perder nada de lo que se ve: los letreros se colocan en pantalla mucho más rápido, la isla tiene menos piezas que recorrer en cada fotograma y lo que está oculto (como los fuegos apagados de día) ya no se anima. Los letreros de las flotas del mapa, además, ya no se pisan entre sí.'],
+  },
+  {
     id: '2026-10-15y',
     date: '2026-10-15',
     title: 'Más vida en la granja',

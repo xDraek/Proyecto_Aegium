@@ -381,6 +381,9 @@ export class World {
   #setupScene() {
     const scene = new THREE.Scene();
     this.scene = scene;
+    // Los letreros van en su propia escena: así quien los coloca en pantalla no recorre en cada
+    // fotograma los miles de piezas de la isla, solo los letreros
+    this.labelScene = new THREE.Scene();
 
     const canvas = document.createElement('canvas');
     canvas.width = 2;
@@ -1108,7 +1111,7 @@ export class World {
       el.className = 'label';
       el.innerHTML = `<span class="label-name">${BUILDINGS[id].name}</span><span class="label-lvl"></span><span class="label-bar"><i></i></span><span class="label-mini">${BUILDINGS[id].icon} <b></b></span>`;
       const label = new CSS2DObject(el);
-      this.scene.add(label);
+      this.labelScene.add(label);
 
       this.slots[id] = { id, pos, center, root, label, el, key: null, building: null, scaffold: null, extras: null, extrasKey: null, pop: 1, ring: l.ring ?? 1 };
     }
@@ -1160,7 +1163,8 @@ export class World {
     const ids = new Set(visible.map((i) => i.id));
     for (const [id, entry] of Object.entries(this.islands)) {
       if (ids.has(id)) continue;
-      this.scene.remove(entry.group, entry.label);
+      this.scene.remove(entry.group);
+      this.labelScene.remove(entry.label);
       disposeTree(entry.group);
       this.hitTargets = this.hitTargets.filter((h) => h !== entry.hit);
       delete this.islands[id];
@@ -1172,7 +1176,8 @@ export class World {
       const old = this.islands[raw.id];
       if (old && Math.abs(old.isl.grow - grow) < 0.02) continue;
       if (old) {
-        this.scene.remove(old.group, old.label);
+        this.scene.remove(old.group);
+        this.labelScene.remove(old.label);
         disposeTree(old.group);
         this.hitTargets = this.hitTargets.filter((h) => h !== old.hit);
         delete this.islands[raw.id];
@@ -1201,7 +1206,7 @@ export class World {
       // Debajo de la isla en pantalla, para no taparla
       label.position.set(pos.x, 0, pos.z + (isl.land ? radius * 0.75 : radius * 1.35 + 3));
       label.visible = this.view === 'mapa';
-      this.scene.add(label);
+      this.labelScene.add(label);
 
       this.islands[isl.id] = { isl, pos, radius, group, hit, feature: null, look: null, label, el, base: null, proxy: undefined, detail: null };
     }
@@ -1323,7 +1328,7 @@ export class World {
     this.homeLabel = new CSS2DObject(el);
     this.homeLabel.position.set(0, 0, this.coast(0) + 9);
     this.homeLabel.visible = false;
-    this.scene.add(this.homeLabel);
+    this.labelScene.add(this.homeLabel);
   }
 
   #buildClouds() {
@@ -2681,10 +2686,20 @@ export class World {
     const el = document.createElement('div');
     el.className = `label fleet ${kind}`;
     const label = new CSS2DObject(el);
-    label.position.set(0, 2.4, 0);
     label.visible = this.view === 'mapa';
-    group.add(label);
+    // Encima del barco: lo sigue cada fotograma (#placeFleetLabels)
+    label.userData.over = 2.4;
+    this.labelScene.add(label);
     return { label, el, labelText: '' };
+  }
+
+  /** Los letreros de las flotas, encima de su barco (en el mapa). */
+  #placeFleetLabels() {
+    if (this.view !== 'mapa') return;
+    for (const f of this.fleets.values()) {
+      if (!f.label?.visible) continue;
+      f.label.position.copy(f.group.position).y += f.label.userData.over * f.group.scale.y;
+    }
   }
 
   /** El texto de las etiquetas de las flotas (destino y tiempo), que cambia cada segundo. */
@@ -2925,6 +2940,8 @@ export class World {
     }
 
     for (const o of this.animated) {
+      // Lo que está oculto (los fuegos apagados de día, por ejemplo) no se anima
+      if (!o.visible) continue;
       const { spin, swing, wave, smoke, flicker, bob, wiggle, sparks, fire } = o.userData;
       if (spin) o.rotation[spin.axis] += spin.speed * dt;
       if (swing) o.rotation.y = Math.sin(t * swing.speed) * swing.amp;
@@ -3066,11 +3083,12 @@ export class World {
       this.hoverRing.scale.setScalar(radius);
     }
 
+    this.#placeFleetLabels();
     this.frame = (this.frame ?? 0) + 1;
     if (this.frame % 3 === 0) this.#declutter();
     if (this.high && this.composer) this.composer.render(dt);
     else this.renderer.render(this.scene, this.camera);
-    this.labelRenderer.render(this.scene, this.camera);
+    this.labelRenderer.render(this.labelScene, this.camera);
   }
 
   /**
