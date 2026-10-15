@@ -172,26 +172,28 @@ test('la Doma de elefantes pide Equitación 4 y quien llegó a Equitación 4 sin
   assert.equal(upgradeState({ ...base, research: viejo }).research.equitacion, 2, 'quien ya tenía caballería la conserva');
 });
 
-test('con Cartas náuticas se puede traer a tu mapa y atacar una ciudad lejana', async () => {
+test('en tu mapa está todo el archipiélago; para atacar una ciudad lejana hacen falta Cartas náuticas', async () => {
   const names = Array.from({ length: 14 }, (_, i) => `Jugador${i}`);
   const env = await makeWorld(names);
   const [A, ...rest] = env.players;
   const far = rest.reduce((a, b) => (A.distanceTo(b.state.home) > A.distanceTo(a.state.home) ? b : a));
   const id = far.state.home;
   assert.ok(A.distanceTo(id) > 700, `la más lejana está a ${Math.round(A.distanceTo(id))} leguas`);
-  assert.ok(!env.world.snapshot(A.userId).world.islands.some((i) => i.id === id), 'no está en su mapa');
-  // Sin las cartas no se puede traer
-  A.state.research.cartas = 0;
-  assert.match(A.watchCity(id).reason, /Cartas náuticas/);
-  // Con ellas, sí: aparece en su mapa y se puede atacar
-  A.state.research.cartas = 1;
-  assert.equal(A.watchCity(id).ok, true);
-  const seen = new Set(env.world.snapshot(A.userId).world.islands.map((i) => i.id));
-  assert.ok(seen.has(id), 'ya está en su mapa');
-  // Y también lo que tiene alrededor (sus campamentos, sus vecinos…)
-  const around = env.world.islandsNear(id, 200).filter((i) => i.id !== id);
-  assert.ok(around.length > 0 && around.every((i) => seen.has(i.id)), 'se ve lo que tiene alrededor');
+  // Se ven todas las islas, también las lejanas y lo que tienen alrededor
+  const snap = env.world.snapshot(A.userId);
+  assert.equal(snap.world.islands.length, env.world.islands.size, 'todo el archipiélago');
+  assert.ok(snap.world.islands.some((i) => i.id === id), 'la ciudad lejana está en su mapa');
+  // La lista de islas no se repite si ya se tiene esa versión
+  const again = env.world.snapshot(A.userId, snap.world.rev);
+  assert.equal(again.world.islands, null);
+  assert.ok(again.world.states, 'el estado de las islas sí llega');
+  // Sin las cartas no se llega tan lejos con la flota de guerra
   Object.assign(A.state.units, { trirreme: 5, hoplita: 20 });
+  A.state.research.cartas = 0;
+  assert.equal(A.planMission('atacar', id, { trirreme: 5, hoplita: 20 }).ok, false);
+  assert.match(A.watchCity(id).reason, /Cartas náuticas/);
+  // Con ellas, sí
+  A.state.research.cartas = 1;
   assert.equal(A.planMission('atacar', id, { trirreme: 5, hoplita: 20 }).ok, true);
   assert.equal(A.watchCity(A.state.home).ok, false, 'la tuya no');
 });

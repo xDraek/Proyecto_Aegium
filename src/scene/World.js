@@ -35,7 +35,7 @@ import {
   wallHeight,
   windowMaterial,
 } from './models.js';
-import { createIslandBase, createIslandFeature, featStatueModel, islandExtent, islandLook, islandRadius, ownerColor, shoreRadius } from './islands.js';
+import { createIslandBase, createIslandFeature, featStatueModel, islandExtent, islandLook, islandProxy, islandRadius, ownerColor, shoreRadius } from './islands.js';
 import { escapeHtml, fmtTime } from '../ui/format.js';
 import { Batch, bakeStatic, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng, surfaceDetail } from './util.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -121,6 +121,10 @@ const VIEWS = {
 };
 /** Más lejos de esto (cámara-objetivo) la hierba, las flores, los animales y los vecinos no se distinguen: no se dibujan. */
 const DETAIL_DIST = 200;
+/** Una isla se dibuja entera si se ve al menos así de grande (radio / distancia a la cámara)… */
+const DETAIL_SIZE = 0.02;
+/** …y como mucho estas a la vez (las demás, con su silueta). */
+const DETAIL_MAX = 60;
 const SHIP_PRIORITY = ['dromon', 'galeon', 'liburna', 'trirreme', 'brulote', 'mercante', 'bote'];
 
 // Clima: cada media hora real cambia (igual para todos, sale de la hora)
@@ -303,7 +307,8 @@ export class World {
     this.controls.minDistance = Math.min(this.controls.minDistance, v.min);
     this.controls.maxDistance = Math.max(this.controls.maxDistance, v.max);
     for (const slot of Object.values(this.slots)) slot.label.visible = view === 'isla';
-    for (const isl of Object.values(this.islands)) isl.label.visible = view === 'mapa';
+    for (const isl of Object.values(this.islands)) isl.label.visible = view === 'mapa' && isl.group.visible;
+    this.detailAt = null;
   }
 
   // ── Montaje ────────────────────────────────────────────────────────────────
@@ -1175,7 +1180,7 @@ export class World {
       const radius = islandRadius(isl);
       const group = new THREE.Group();
       group.position.copy(pos);
-      group.add(createIslandBase(isl));
+      // La isla de verdad se construye al acercarse; de lejos basta su silueta (#islandDetail)
       this.scene.add(group);
 
       // El continente se pulsa por su suelo; sus asentamientos, más altos, tienen prioridad
@@ -1196,19 +1201,32 @@ export class World {
       label.visible = this.view === 'mapa';
       this.scene.add(label);
 
-      this.islands[isl.id] = { isl, pos, radius, group, hit, feature: null, look: null, label, el };
+      this.islands[isl.id] = { isl, pos, radius, group, hit, feature: null, look: null, label, el, base: null, proxy: undefined, detail: null };
     }
     this.mapRadius = Math.max(120, ...Object.values(this.islands).map((e) => e.pos.length() + e.radius));
+    this.#islandDetail(true);
     // Lo que ocupa cada isla en el mar: las flotas las rodean y los pesqueros no las atraviesan
     this.islandObstacles = Object.values(this.islands)
       .map((e) => ({ id: e.isl.id, p: e.pos, core: islandExtent(e.isl), r: islandExtent(e.isl) + 3 }))
       .filter((o) => o.core > 0);
-    // Espuma en las orillas más cercanas (el mar admite un número limitado)
+    this.shoresAt = null;
+    this.#syncShores();
+  }
+
+  /**
+   * Espuma y agua clara en las orillas más cercanas a lo que miras (el mar admite un número
+   * limitado): se rehace cuando la vista se va lejos, p. ej. al ir a una ciudad lejana.
+   */
+  #syncShores() {
+    const t = this.controls.target;
+    if (this.shoresAt && Math.hypot(t.x - this.shoresAt.x, t.z - this.shoresAt.z) < 40) return;
+    this.shoresAt = { x: t.x, z: t.z };
+    this.shoreList ??= [];
+    const home = { ...this.#homeShore(), d: Math.hypot(t.x, t.z) };
     const shores = Object.values(this.islands)
-      .map((e) => ({ x: e.pos.x, z: e.pos.z, r: shoreRadius(e.isl), h: islandCoast(e.isl), d: e.pos.length() }))
-      .filter((e) => e.r > 0)
-      .sort((a, b) => a.d - b.d);
-    setShores(this.water, [this.#homeShore(), ...shores]);
+      .map((e) => ({ x: e.pos.x, z: e.pos.z, r: shoreRadius(e.isl), h: (e.coast ??= islandCoast(e.isl)), d: Math.hypot(e.pos.x - t.x, e.pos.z - t.z) }))
+      .filter((e) => e.r > 0);
+    setShores(this.water, [home, ...shores].sort((a, b) => a.d - b.d));
   }
 
   /**
@@ -2344,7 +2362,11 @@ export class World {
       if (port) status += port.kind === 'invadir' ? ` · 🦅 Ocupada${port.by === this.game.userId ? ' por ti' : ''}` : ` · ⛓️ Bloqueada${port.by === this.game.userId ? ' por ti' : ''}`;
       else if (view.shield) status += ' · 🛡️ Recién liberada';
       if (view.inbound.length) status += ' · ⛵';
-      entry.el.querySelector('.label-lvl').textContent = status;
+      // Con todo el archipiélago, solo se toca el letrero si cambia
+      if (entry.status !== status) {
+        entry.status = status;
+        (entry.lvlEl ??= entry.el.querySelector('.label-lvl')).textContent = status;
+      }
       entry.el.classList.toggle('colony', !!view.colonized);
       entry.el.classList.toggle('ally', !!ally);
       entry.el.classList.toggle('pact', view.relation === 'pacto');
@@ -2720,6 +2742,70 @@ export class World {
     this.scene.add(this.raidLine);
   }
 
+  /**
+   * Cada isla, según lo lejos que quede de la cámara: de cerca, entera (se construye la primera vez
+   * que hace falta, unas pocas por fotograma); de lejos, solo su silueta; y más allá de la niebla,
+   * nada. Con todo el archipiélago a la vista, así se dibuja solo lo que se distingue.
+   */
+  #islandDetail(force = false) {
+    const cam = this.camera.position;
+    // Solo cuando la cámara se ha movido algo (o lo pide quien rehace las islas)
+    if (!force && this.detailAt && this.detailAt.distanceTo(cam) < 4) return this.#buildPending();
+    (this.detailAt ??= new THREE.Vector3()).copy(cam);
+    const fogFar = this.scene.fog.far;
+    this.pendingBases = [];
+    // Enteras, las que se ven grandes en pantalla (y como mucho las DETAIL_MAX que más)
+    const seen = [];
+    for (const e of Object.values(this.islands)) {
+      const d = Math.hypot(e.pos.x - cam.x, cam.y, e.pos.z - cam.z);
+      e.lodD = d;
+      e.group.visible = d - e.radius * 1.5 <= fogFar;
+      // El letrero, solo en el mapa y si la isla no se pierde en la niebla
+      e.label.visible = this.view === 'mapa' && e.group.visible;
+      if (e.group.visible) seen.push(e);
+    }
+    const big = new Set(
+      seen
+        .filter((e) => e.radius / e.lodD > DETAIL_SIZE)
+        .sort((a, b) => b.radius / b.lodD - a.radius / a.lodD)
+        .slice(0, DETAIL_MAX),
+    );
+    for (const e of seen) {
+      const d = e.lodD;
+      const near = big.has(e);
+      if (e.proxy === undefined) {
+        e.proxy = islandProxy(e.isl);
+        if (e.proxy) e.group.add(e.proxy);
+      }
+      // Sin silueta (asentamientos, brumas), la de verdad siempre
+      const full = near || !e.proxy;
+      if (full && !e.base) this.pendingBases.push({ e, d });
+      // La que ya queda muy lejos se suelta, para que la memoria no crezca al recorrer el mapa
+      if (e.base && !full && e.proxy && e.radius / d < DETAIL_SIZE * 0.4) {
+        e.group.remove(e.base);
+        disposeTree(e.base);
+        e.base = null;
+      }
+      if (e.base) e.base.visible = full;
+      if (e.proxy) e.proxy.visible = !full || !e.base;
+    }
+    // Primero las más cercanas
+    this.pendingBases.sort((a, b) => a.d - b.d);
+    this.#buildPending(force ? 40 : 6);
+  }
+
+  /** Construye las islas pendientes, las más cercanas primero, sin pasar de `ms` por fotograma. */
+  #buildPending(ms = 6) {
+    const t0 = performance.now();
+    while (this.pendingBases?.length && performance.now() - t0 < ms) {
+      const { e } = this.pendingBases.shift();
+      if (e.base || !this.islands[e.isl.id]) continue;
+      e.base = createIslandBase(e.isl);
+      e.group.add(e.base);
+      if (e.proxy) e.proxy.visible = false;
+    }
+  }
+
   #collectAnimated() {
     this.animated = [];
     const collect = (root) =>
@@ -2776,6 +2862,8 @@ export class World {
     const dist = this.camera.position.distanceTo(this.controls.target);
     this.scene.fog.near = dist * 0.9 + 25;
     this.scene.fog.far = dist * 2.6 + 160;
+    this.#islandDetail();
+    this.#syncShores();
     // De lejos (en el mapa puedes alejarte mucho de tu isla) el mar sigue a lo que miras y se
     // estira, para que nunca se le vea el borde. Cerca se queda quieto en tu isla, con todo su detalle
     // (también si miras lejos de tu isla, como al ir a una ciudad lejana desde el mapa del mundo)

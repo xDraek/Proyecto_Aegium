@@ -1,5 +1,7 @@
-// Copia en el navegador de la parte del mundo que ve el jugador (la manda el
-// servidor en cada estado). Tiene la misma interfaz `world` que usa Game.
+import { session } from './api.js';
+
+// Copia en el navegador del mundo que ve el jugador (la manda el servidor en cada
+// estado). Tiene la misma interfaz `world` que usa Game.
 
 export class ClientWorld {
   constructor() {
@@ -11,12 +13,17 @@ export class ClientWorld {
     this.version = 0;
   }
 
-  /** Actualiza con los datos del servidor. Devuelve si ha cambiado el conjunto de islas. */
-  apply({ islands, states, players }) {
-    const before = [...this.islandMap.keys()].sort().join();
-    this.islandMap = new Map(islands.map((i) => [i.id, i]));
+  /**
+   * Actualiza con los datos del servidor. La lista de islas solo llega cuando cambia (si no, viene
+   * vacía y se queda la que había). Devuelve si ha cambiado el conjunto de islas.
+   */
+  apply({ islands, rev, states, players }) {
     this.states = states;
     this.players = players;
+    if (!islands) return false;
+    const before = [...this.islandMap.keys()].sort().join();
+    this.islandMap = new Map(islands.map((i) => [i.id, i]));
+    session.islandsRev = rev ?? null;
     const changed = [...this.islandMap.keys()].sort().join() !== before;
     if (changed) this.version++;
     return changed;

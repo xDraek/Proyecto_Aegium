@@ -109,8 +109,11 @@ test('la Armada: con el cerco completo el campamento pasa hambre y no se rehace'
 
 test('la Armada: con el cerco completo y un buen asalto el campamento cae; el Navarco gana su reliquia', async () => {
   const { env, site, f, players, posts } = await themeWorld('armada', 4, NAVY);
-  siege(env, site, players, posts);
+  // Primero solo el cerco, una oleada para tomar los fondeaderos: si el campamento cayera en la misma
+  // oleada en que se toman, nadie habría aguantado ninguna y no habría Navarco
+  siege(env, site, players, posts, false);
   env.until(f.start);
+  env.until(f.nextWave);
   for (let i = 0; i < 10 && f.stage !== 'fin'; i++) {
     env.until(f.nextWave);
     if (f.stage === 'fin') break;

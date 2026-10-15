@@ -770,14 +770,17 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
         : '';
       html = `${armySummary(game)}${heroLine}<ul class="list">${items}</ul>`;
     } else {
-      // Las islas que ves, de la más cercana a la más lejana
+      // Las 40 islas más cercanas (de todo el archipiélago, primero se eligen por su posición)
       const home = game.state.home;
+      const at = game.world.island(home) ?? { x: 0, z: 0 };
       const views = game.world
         .islands()
         .filter((i) => i.id !== home)
-        .map((i) => game.island(i.id))
-        .sort((a, b) => a.dist - b.dist)
-        .slice(0, 40);
+        .map((i) => ({ i, d: Math.hypot(i.x - at.x, i.z - at.z) }))
+        .sort((a, b) => a.d - b.d)
+        .slice(0, 40)
+        .map(({ i }) => game.island(i.id))
+        .sort((a, b) => a.dist - b.dist);
       const items = views
         .map((v) => {
           const t = ISLAND_TYPES[v.type];

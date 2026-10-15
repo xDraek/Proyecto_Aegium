@@ -1,6 +1,6 @@
 import { clock, universe } from '../config.js';
 import { Game } from '../game/Game.js';
-import { api } from './api.js';
+import { api, session } from './api.js';
 import { ClientWorld } from './ClientWorld.js';
 
 // La partida en el navegador: un espejo de la del servidor. Entre dos estados
@@ -15,6 +15,8 @@ const MIN_GAP_MS = 1500;
 
 export class ClientGame extends Game {
   static async connect() {
+    // Un mundo nuevo en el navegador: que mande la lista de islas entera
+    session.islandsRev = null;
     const snap = await api('GET', '/api/state');
     const game = new ClientGame({ state: snap.state, world: new ClientWorld(), userId: snap.userId, mode: 'mirror' });
     game.applySnapshot(snap, { first: true });

@@ -157,6 +157,64 @@ function siteBase(isl, R) {
   return g;
 }
 
+/**
+ * La isla vista de lejos: su meseta (hierba arriba, acantilado en el borde), la arena y su monte,
+ * en una sola malla de pocos triángulos. De cerca se cambia por la de verdad (`createIslandBase`).
+ * Los asentamientos no tienen: van sobre su continente; el Mar de las Brumas ya es ligero.
+ */
+export function islandProxy(isl) {
+  if (isl.land || isl.type === 'brumas') return null;
+  const R = islandRadius(isl);
+  const h = islandCoast(isl);
+  const cont = isl.type === 'continente';
+  const city = isl.type === 'jugador';
+  const pal = PALETTES[isl.type] ?? PALETTES.default;
+  const b = new Batch();
+  const land = shapeGeometry(new THREE.CylinderGeometry(R * 0.97, R, 2.2, 28, 1).toNonIndexed(), h);
+  paintByNormal(land, (ny) => (ny > 0.7 ? (cont ? '#86ab4e' : pal.grass) : pal.cliff));
+  const top = new THREE.Mesh(land, new THREE.MeshStandardMaterial({ vertexColors: true }));
+  top.position.y = ISLAND_TOP - 1.1;
+  b.add(top);
+  const sandR = cont ? [R * 1.1, R * 1.1] : city ? [R + 2.5, R + 4.2] : [R * 1.16, R * 1.32];
+  const sand = mesh(shapeGeometry(new THREE.CylinderGeometry(sandR[0], sandR[1], 1.3, 28, 1).toNonIndexed(), h), isl.type === 'kraken' ? '#6b6470' : '#e8d49a');
+  sand.position.y = -1.1;
+  b.add(sand);
+  // Bosquecillos y, en los continentes, sus montes (de lejos no se distingue dónde está cada árbol)
+  const rand = rng(hashString(isl.id) ^ 0x5bd1e995);
+  const inside = (k0, k1) => {
+    const deg = rand() * 360;
+    return polar(R * (k0 + rand() * (k1 - k0)) * coastFactor(h, THREE.MathUtils.degToRad(deg)), deg, ISLAND_TOP);
+  };
+  if (isl.type !== 'kraken') {
+    const greens = ['#3f8a3a', '#4f9a3a', '#2f7a43'];
+    for (let i = 0; i < Math.round(R * (cont ? 0.9 : 0.7)); i++) {
+      const s = 0.9 + rand() * 0.8;
+      const tree = mesh(new THREE.ConeGeometry(0.8 * s, 2.4 * s, 5), greens[i % 3]);
+      tree.position.copy(inside(cont ? 0.1 : 0.5, 0.92)).setY(ISLAND_TOP + 1.2 * s);
+      b.add(tree);
+    }
+  }
+  if (cont) {
+    for (let i = 0; i < 4; i++) {
+      const size = R * (0.1 + rand() * 0.06);
+      const peak = mesh(new THREE.ConeGeometry(size, size * 1.6, 6), i % 2 ? '#8c8780' : '#7d9a4e');
+      peak.position.copy(inside(0.3, 0.75)).setY(ISLAND_TOP - 0.05 + size * 0.8);
+      b.add(peak);
+    }
+  }
+  // El monte grande, donde lo pone la isla de verdad (el primer número de su semilla)
+  if (!cont && isl.type !== 'ruinas') {
+    const a = rng(hashString(isl.id))() * 360;
+    const at = coastFactor(h, THREE.MathUtils.degToRad(a));
+    const hill = mesh(new THREE.ConeGeometry(R * 0.36, R * (isl.type === 'kraken' ? 0.75 : 0.5), 7), pal.rock);
+    hill.position.copy(polar(R * 0.62 * at, a, ISLAND_TOP - 0.05 + R * (isl.type === 'kraken' ? 0.375 : 0.25)));
+    b.add(hill);
+  }
+  const g = b.build({ shadows: false });
+  g.traverse((o) => o.isMesh && (o.receiveShadow = true));
+  return g;
+}
+
 /** Un continente: costa irregular, montes, bosques, un lago y caminos entre sus asentamientos. */
 function continentBase(isl, R, rand, seed) {
   const g = new THREE.Group();

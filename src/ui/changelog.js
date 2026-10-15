@@ -5,6 +5,15 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15m',
+    date: '2026-10-15',
+    title: 'Todo el archipiélago a la vista',
+    items: [
+      '🗺️ En la vista de las islas ya se ve <b>todo el archipiélago</b>: las islas lejanas y sus ciudades ya no desaparecen. Para atacar a las ciudades lejanas siguen haciendo falta las Cartas náuticas.',
+      '⚡ El juego va más ligero: las islas lejanas se dibujan simplificadas hasta que te acercas, lo que tapa la niebla no se dibuja y la lista de islas solo se descarga cuando cambia.',
+    ],
+  },
+  {
     id: '2026-10-15l',
     date: '2026-10-15',
     title: 'Tejados de teja',

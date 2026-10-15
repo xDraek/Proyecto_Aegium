@@ -3,7 +3,7 @@ import { RESOURCES } from '../src/game/data.js';
 import { assault, battle, combineGroups, count, hasCombat, shareSurvivors, splitForces } from '../src/game/combat.js';
 import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, forgeBonus, forgeGoal, forgeHours, forgeRoom, pledgeEmpires, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
 import { Game, newState } from '../src/game/Game.js';
-import { ACHIEVEMENTS, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, PROTECTION, UNITS, WATCH_RADIUS, WONDERS } from '../src/game/data.js';
+import { ACHIEVEMENTS, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, PROTECTION, UNITS, WONDERS } from '../src/game/data.js';
 import { playerCombat, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
 import { footprint, freshIslandState, generateContinent, generateSector, homeIsland, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
@@ -77,6 +77,10 @@ export class WorldServer {
     this.byEmail = new Map(); // correo en minúsculas → id
     this.games = new Map(); // id → Game
     this.islands = new Map(); // id → isla (datos fijos)
+    // Versión de la lista de islas: el navegador que ya la tiene no la vuelve a recibir en cada estado
+    this.islandsBoot = Date.now().toString(36);
+    this.islandsCount = 0;
+    this.islandList = null;
     this.islandStates = new Map(); // id → estado compartido
     this.chat = [];
     this.dirtyIslands = new Set();
@@ -197,11 +201,22 @@ export class WorldServer {
 
   #addIsland(isl, now) {
     this.islands.set(isl.id, isl);
+    this.#islandsChanged();
     this.newIslands.push(isl);
     if (isl.type !== 'jugador') {
       this.islandStates.set(isl.id, freshIslandState(isl, now));
       this.dirtyIslands.add(isl.id);
     }
+  }
+
+  #islandsChanged() {
+    this.islandsCount++;
+    this.islandList = null;
+  }
+
+  /** La versión de la lista de islas (cambia al añadir una o al rebautizar una ciudad). */
+  islandsRev() {
+    return `${this.islandsBoot}.${this.islandsCount}`;
   }
 
   /** Tierras cerca de un punto, con el radio que ocupan en el mar. */
@@ -1986,33 +2001,17 @@ export class WorldServer {
 
   // ── Lo que ve cada jugador ─────────────────────────────────────────────────
 
-  snapshot(userId) {
+  /**
+   * Lo que ve un jugador: todo el archipiélago. La lista de islas (que casi nunca cambia) solo va
+   * si quien lo pide no tiene ya la versión `knownRev`.
+   */
+  snapshot(userId, knownRev = null) {
     const game = this.games.get(userId);
     const user = this.users.get(userId);
     const now = clock.now();
     game.update(now);
-    const near = this.islandsNear(game.state.home, VIEW_RADIUS);
-    const ids = new Set(near.map((i) => i.id));
-    // También las islas lejanas a las que van tus flotas o que son tus colonias
-    for (const m of game.state.missions) {
-      ids.add(m.target);
-      if (m.from) ids.add(m.from);
-    }
-    for (const c of game.state.colonies) {
-      ids.add(c.id);
-      // También su continente, para ver su maravilla y si hay horda
-      const land = this.islands.get(c.id)?.land;
-      if (land) ids.add(land);
-    }
-    // Y el continente de la gesta a la que te han convocado (puede quedar lejos)
-    if (game.state.feat?.site) ids.add(game.state.feat.site);
-    // Y las ciudades lejanas que has traído a tu mapa con las Cartas náuticas, con lo que tienen alrededor
-    for (const id of game.state.watched ?? []) {
-      ids.add(id);
-      const far = this.islands.get(id);
-      if (far) for (const isl of this.islandsNear(id, WATCH_RADIUS)) ids.add(isl.id);
-    }
-    const islands = [...ids].map((id) => this.islands.get(id)).filter(Boolean);
+    const rev = this.islandsRev();
+    const islands = (this.islandList ??= [...this.islands.values()]);
     const states = {};
     const players = {};
     for (const isl of islands) {
@@ -2043,7 +2042,7 @@ export class WorldServer {
       applications: a && this.#canManage(a, userId) ? (a.applications ?? []).length : 0,
       friendRequests: (this.meta.friendRequests[userId] ?? []).length,
       state,
-      world: { islands, states, players },
+      world: { islands: knownRev === rev ? null : islands, rev, states, players },
       incoming: this.incoming(game.state.home, game.level('torre'), now),
       joint: this.#jointList(userId),
       traffic: this.#traffic(userId, game.state.home),
@@ -2150,6 +2149,7 @@ export class WorldServer {
     const isl = this.islands.get(game.state.home);
     const old = isl.name;
     isl.name = name;
+    this.#islandsChanged();
     game.state.renamedAt = Date.now();
     game.dirty = true;
     this.newIslands.push(isl); // se guarda de nuevo con su nombre
@@ -2881,8 +2881,19 @@ export class WorldServer {
 
   /** Manda el estado nuevo a quien esté conectado y haya tenido cambios. */
   flushPush() {
+    const rev = this.islandsRev();
     for (const uid of this.pendingPush) {
-      if (this.sockets.has(uid) && this.games.has(uid)) this.send(uid, { type: 'snapshot', data: this.snapshot(uid) });
+      const set = this.sockets.get(uid);
+      if (!set || !this.games.has(uid)) continue;
+      // Cada conexión recibe la lista de islas solo si aún no tiene esta versión
+      let light = null;
+      let full = null;
+      for (const ws of set) {
+        if (ws.readyState !== 1) continue;
+        const data = ws.islandsRev === rev ? (light ??= JSON.stringify({ type: 'snapshot', data: this.snapshot(uid, rev) })) : (full ??= JSON.stringify({ type: 'snapshot', data: this.snapshot(uid) }));
+        ws.send(data);
+        ws.islandsRev = rev;
+      }
     }
     this.pendingPush.clear();
   }

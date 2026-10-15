@@ -713,8 +713,8 @@ export const RESEARCH_KEYS = Object.keys(RESEARCH);
 export const PVP_RANGE = 300;
 
 /**
- * En tu mapa ves las islas cercanas. Con Cartas náuticas puedes traer a él ciudades lejanas para
- * atacarlas o espiarlas: se recuerdan las últimas WATCH_MAX.
+ * Ciudades lejanas que has señalado con las Cartas náuticas para atacarlas o espiarlas (en tu mapa
+ * ya se ve todo el archipiélago): se recuerdan las últimas WATCH_MAX.
  */
 export const WATCH_MAX = 8;
 
