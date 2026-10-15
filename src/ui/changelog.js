@@ -5,6 +5,18 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-15v',
+    date: '2026-10-15',
+    title: 'Disolver reclutamientos',
+    items: ['⚖️ Disolver tropas que aún se están reclutando devuelve ahora el <b>60 %</b> de lo pagado (antes, el 70 %). Cancelar una obra o una investigación sigue devolviendo el 70 %.'],
+  },
+  {
+    id: '2026-10-15u',
+    date: '2026-10-15',
+    title: 'Nueva torre de vigía',
+    items: ['👁️ La <b>torre de vigía</b> se renueva: torre cuadrada de sillares con su puerta bajo un frontón, saeteras y un anillo de ménsulas que sostiene la terraza, con barandillas de madera. Arriba, un templete de columnas con tejado de teja, el brasero y la guardia. A un lado ondea su estandarte azul, y al pie se acumulan lanzas, escudos y cajas según el nivel.'],
+  },
+  {
     id: '2026-10-15t',
     date: '2026-10-15',
     title: 'Edificios sobre la hierba',

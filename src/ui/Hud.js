@@ -1,6 +1,6 @@
 import { play } from '../audio.js';
 import { clock, universe } from '../config.js';
-import { BUILDING_KEYS, BUILDINGS, CANCEL_REFUND, FEAT_THEMES, FEATS, ISLAND_TYPES, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCE_KEYS, RESOURCES, UNITS, VISITORS } from '../game/data.js';
+import { BUILDING_KEYS, BUILDINGS, CANCEL_REFUND, TRAIN_CANCEL_REFUND, FEAT_THEMES, FEATS, ISLAND_TYPES, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCE_KEYS, RESOURCES, UNITS, VISITORS } from '../game/data.js';
 import { HOUR_MS, canAfford, colonyYield, multiplyCost, upcomingWorldEvents } from '../game/rules.js';
 import { featAt, featCycle } from '../game/feats.js';
 import { api } from '../net/api.js';
@@ -981,8 +981,8 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
         break;
       }
       case 'cancel-train':
-        if (!confirm(`¿Cancelar este reclutamiento? Recuperas el ${Math.round(CANCEL_REFUND * 100)} % de lo que pagaste.`)) break;
-        await this.#run(btn, () => game.cancelTraining(btn.dataset.building, Number(btn.dataset.index)), `Reclutamiento cancelado. Recuperas el ${Math.round(CANCEL_REFUND * 100)} %.`, null);
+        if (!confirm(`¿Cancelar este reclutamiento? Recuperas el ${Math.round(TRAIN_CANCEL_REFUND * 100)} % de lo que pagaste.`)) break;
+        await this.#run(btn, () => game.cancelTraining(btn.dataset.building, Number(btn.dataset.index)), `Reclutamiento cancelado. Recuperas el ${Math.round(TRAIN_CANCEL_REFUND * 100)} %.`, null);
         break;
       case 'trade-max': {
         const from = root.querySelector('[name="t-from"]').value;
@@ -1228,7 +1228,7 @@ Al jurar, ${wars.join(' y ')}.` : '';
       const back = `Recuperas el ${Math.round(CANCEL_REFUND * 100)} % de lo que pagaste.`;
       if (action === 'cancel-build') await this.#run(btn, () => this.game.cancel(), `Obra cancelada. ${back}`, null);
       if (action === 'cancel-research') await this.#run(btn, () => this.game.cancelResearch(), `Investigación cancelada. ${back}`, null);
-      if (action === 'cancel-train') await this.#run(btn, () => this.game.cancelTraining(btn.dataset.building, Number(btn.dataset.index)), `Reclutamiento cancelado. ${back}`, null);
+      if (action === 'cancel-train') await this.#run(btn, () => this.game.cancelTraining(btn.dataset.building, Number(btn.dataset.index)), `Reclutamiento cancelado. Recuperas el ${Math.round(TRAIN_CANCEL_REFUND * 100)} % de lo que pagaste.`, null);
       return;
     }
     const rowEl = e.target.closest('[data-select]');

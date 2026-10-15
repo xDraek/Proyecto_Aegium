@@ -798,8 +798,11 @@ export const SPY_TIERS = [
   { boats: 5, text: 'Los refuerzos de sus aliados y sus mejoras militares' },
 ];
 
-/** Qué parte de lo pagado se recupera al cancelar una obra, una investigación o un reclutamiento. */
+/** Qué parte de lo pagado se recupera al cancelar una obra o una investigación… */
 export const CANCEL_REFUND = 0.7;
+
+/** …y al disolver tropas que aún se están reclutando. */
+export const TRAIN_CANCEL_REFUND = 0.6;
 
 /** Al dar de baja tropas o barcos se recupera esta parte de lo que costaron, solo de estos recursos. */
 export const DISMISS_REFUND = { share: 0.2, resources: ['madera', 'comida', 'hierro'] };

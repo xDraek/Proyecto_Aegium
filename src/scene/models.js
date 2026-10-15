@@ -2870,41 +2870,152 @@ function forja(level) {
   return g;
 }
 
+/** Barandilla de madera con aspas entre dos puntos del suelo (a lo largo de X), de `h` de alto. */
+function railing(g, x0, x1, y, z, h = 0.34, rotY = 0) {
+  const r = new THREE.Group();
+  const len = x1 - x0;
+  r.add(box(len, 0.05, 0.05, '#7a4e26', 0, h - 0.05, 0), box(len, 0.04, 0.04, '#7a4e26', 0, 0.02, 0));
+  const n = Math.max(1, Math.round(len / 0.38));
+  const w = len / n;
+  const diag = Math.hypot(w, h - 0.08);
+  const ang = Math.atan2(h - 0.08, w);
+  for (let i = 0; i < n; i++) {
+    const cx = -len / 2 + (i + 0.5) * w;
+    for (const s of [-1, 1]) {
+      const b = box(diag, 0.03, 0.03, '#6b4524', 0, 0, 0);
+      b.position.set(cx, (h - 0.03) / 2, 0);
+      b.rotation.z = s * ang;
+      r.add(b);
+    }
+    if (i) r.add(box(0.04, h, 0.04, '#6b4524', -len / 2 + i * w, 0, 0));
+  }
+  r.position.set((x0 + x1) / 2, y, z);
+  r.rotation.y = rotY;
+  g.add(r);
+}
+
+/**
+ * Torre de vigía de sillares, cuadrada: zócalo con escalones, puerta de madera bajo un pequeño
+ * frontón, saeteras, un anillo de ménsulas bajo la terraza, barandillas de madera entre pilares, y
+ * arriba el templete de cuatro columnas con tejado de teja, el brasero y la guardia. A un lado, el
+ * estandarte azul en su mástil; al pie, lanzas, escudos y cajas. La puerta mira a +Z.
+ */
 function torre(level) {
   const g = new THREE.Group();
-  const h = 3.6 + Math.min(level, 10) * 0.22;
-  g.add(cyl(1.15, 1.3, 0.3, 10, C.stoneDark));
-  g.add(cyl(0.85, 1.0, h, 10, C.stone, 0, 0.3, 0));
-  // Saeteras y puerta
-  g.add(box(0.4, 0.7, 0.05, C.woodDark, 0, 0.3, 0.97));
-  for (let i = 1; i < 4; i++) g.add(box(0.1, 0.35, 0.05, C.dark, 0, 0.3 + (h * i) / 4, 0.92, WINDOW_GLOW));
-  // Almenas y tejado
-  const top = 0.3 + h;
-  g.add(cyl(1.1, 1.0, 0.25, 10, C.stone, 0, top, 0));
-  for (let a = 0; a < 360; a += 45) {
-    const m = box(0.3, 0.32, 0.3, C.stone, 0, 0, 0);
-    m.position.set(Math.sin((a * Math.PI) / 180) * 0.95, top + 0.25, Math.cos((a * Math.PI) / 180) * 0.95);
-    g.add(m);
+  const W = 1.6;
+  const h = 3.0 + Math.min(level, 10) * 0.2;
+  const b0 = 0.36;
+  // Zócalo y escalones hasta la puerta
+  g.add(box(W + 0.5, b0, W + 0.5, '#bdb197', 0, 0, 0));
+  for (let i = 0; i < 2; i++) g.add(box(0.9, b0 - i * 0.18, 0.24, i ? '#e3d8c0' : '#d8cdb3', 0, 0, W / 2 + 0.37 + i * 0.24));
+  // El fuste de sillares
+  g.add(box(W, h, W, C.stone, 0, b0, 0));
+  for (const out of [1, -1]) {
+    ashlarFace(g, { x: 0, z: (out * W) / 2, len: W, y0: b0, y1: b0 + h - 0.02, out, course: 0.26, block: 0.5 });
+    ashlarFace(g, { x: (out * W) / 2, z: 0, len: W, y0: b0, y1: b0 + h - 0.02, alongZ: true, out, course: 0.26, block: 0.5 });
   }
-  // Brasero de vigía
-  g.add(cyl(0.25, 0.15, 0.25, 8, C.dark, 0, top + 0.25, 0));
-  const fire = makeFire(0, top + 0.495, 0, 0.517);
-  g.add(fire);
-  // Arqueros de guardia (más con el nivel)
-  const guards = Math.min(3, 1 + Math.floor(level / 3));
-  for (let i = 0; i < guards; i++) {
-    const s = createSoldier('arquero');
-    s.scale.setScalar(1.1);
-    s.position.set(Math.sin(i * 2.1) * 0.6, top + 0.25, Math.cos(i * 2.1) * 0.6);
-    s.rotation.y = i * 2.1;
+  // Puerta con su marco y frontón
+  const dz = W / 2;
+  g.add(box(0.46, 0.82, 0.05, '#7a4e26', 0, b0, dz + 0.01), box(0.02, 0.82, 0.06, '#5e3b1c', 0, b0, dz + 0.015));
+  for (const s of [-1, 1]) g.add(box(0.1, 0.9, 0.08, '#e6dcc4', s * 0.28, b0, dz + 0.03));
+  g.add(box(0.7, 0.1, 0.1, '#e6dcc4', 0, b0 + 0.9, dz + 0.04));
+  g.add(gableRoof(0.76, 0.2, 0.1, '#e6dcc4', 0, b0 + 1.0, dz + 0.04));
+  // Saeteras en cada cara
+  for (let f = 0; f < 4; f++) {
+    const a = (f / 4) * Math.PI * 2;
+    for (const y of f === 0 ? [h * 0.62] : [h * 0.35, h * 0.68]) {
+      const slit = box(0.09, 0.36, 0.05, C.dark, 0, 0, 0, WINDOW_GLOW);
+      slit.position.set(Math.sin(a) * (W / 2 + 0.01), b0 + y, Math.cos(a) * (W / 2 + 0.01));
+      slit.rotation.y = a;
+      g.add(slit);
+    }
+  }
+  // Anillo de ménsulas y la terraza que vuela sobre ellas
+  const top = b0 + h;
+  for (let f = 0; f < 4; f++) {
+    const a = (f / 4) * Math.PI * 2;
+    for (let i = 0; i < 5; i++) {
+      const u = -W / 2 + 0.16 + i * ((W - 0.32) / 4);
+      const c = box(0.12, 0.18, 0.16, '#d8cdb3', 0, 0, 0);
+      c.position.set(Math.sin(a) * (W / 2 + 0.06) + Math.cos(a) * u, top - 0.2, Math.cos(a) * (W / 2 + 0.06) - Math.sin(a) * u);
+      c.rotation.y = a;
+      g.add(c);
+    }
+  }
+  const P = W + 0.36;
+  g.add(box(P, 0.16, P, '#e6dcc4', 0, top - 0.02, 0));
+  const deck = top + 0.14;
+  // Pilares en las esquinas y barandillas de madera entre ellos
+  const pc = P / 2 - 0.12;
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) g.add(box(0.24, 0.42, 0.24, '#d8cdb3', sx * pc, deck, sz * pc));
+  for (const s of [-1, 1]) {
+    railing(g, -pc + 0.12, pc - 0.12, deck, s * pc);
+    const side = new THREE.Group();
+    railing(side, -pc + 0.12, pc - 0.12, 0, 0);
+    side.position.set(s * pc, deck, 0);
+    side.rotation.y = Math.PI / 2;
+    g.add(side);
+  }
+  // Templete: cuatro columnas con un collarino rojo, vigas de madera y tejado de teja
+  const ch = 1.05;
+  const cr = 0.5;
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    g.add(column(sx * cr, deck, sz * cr, ch, 0.07, '#efe6d2'));
+    g.add(cyl(0.085, 0.085, 0.07, 10, '#b5482f', sx * cr, deck + ch - 0.2, sz * cr));
+  }
+  for (const s of [-1, 1]) g.add(box(2 * cr + 0.24, 0.1, 0.1, '#7a4e26', 0, deck + ch, s * cr), box(0.1, 0.1, 2 * cr + 0.24, '#7a4e26', s * cr, deck + ch, 0));
+  g.add(tiledHip(2 * cr + 0.7, 2 * cr + 0.7, 0.42, 0, deck + ch + 0.1, 0));
+  // El brasero de vigía (arde de noche)
+  g.add(cyl(0.05, 0.06, 0.4, 6, '#5e3b1c', -0.22, deck, 0.18));
+  g.add(cyl(0.17, 0.09, 0.1, 10, '#b08d57', -0.22, deck + 0.4, 0.18, { metalness: 0.5, roughness: 0.45 }));
+  g.add(cyl(0.14, 0.14, 0.02, 10, C.dark, -0.22, deck + 0.5, 0.18, WINDOW_GLOW));
+  g.add(makeFire(-0.22, deck + 0.5, 0.18, 0.34));
+  // La guardia: un hoplita (y un arquero desde el nivel 5) mirando a lo lejos
+  const guards = level >= 5 ? ['hoplita', 'arquero'] : ['hoplita'];
+  guards.forEach((id, i) => {
+    const s = createSoldier(id);
+    s.scale.setScalar(1.15);
+    s.position.set(i ? -0.25 : 0.25, deck, i ? -0.25 : 0.2);
+    s.rotation.y = i ? Math.PI * 0.8 : 0.3;
     g.add(s);
+  });
+  // El estandarte azul, colgado de un mástil con su travesaño, a un lado de la torre
+  const mx = -(P / 2 + 0.08);
+  g.add(cyl(0.04, 0.045, h + 1.6, 6, '#6b4524', mx, b0, -0.3));
+  g.add(cyl(0.06, 0.02, 0.18, 6, C.gold, mx, b0 + h + 1.6, -0.3, { metalness: 0.5, roughness: 0.4 }));
+  const arm = box(0.75, 0.05, 0.05, '#6b4524', mx - 0.35, b0 + h + 1.3, -0.3);
+  g.add(arm);
+  const bw = 0.5;
+  const bh = Math.min(1.5, h * 0.4);
+  g.add(box(bw, bh, 0.025, '#2a56a8', mx - 0.42, b0 + h + 1.27 - bh, -0.3));
+  for (const k of [-1, 1]) g.add(box(0.035, bh, 0.03, C.gold, mx - 0.42 + (k * (bw - 0.035)) / 2, b0 + h + 1.27 - bh, -0.3, { metalness: 0.45, roughness: 0.4 }));
+  g.add(box(bw, 0.04, 0.03, C.gold, mx - 0.42, b0 + h + 1.27 - bh, -0.3, { metalness: 0.45, roughness: 0.4 }));
+  // Al pie: lanzas apoyadas, escudos y cajas (más con el nivel)
+  if (level >= 2) {
+    for (let i = 0; i < 4; i++) {
+      const sp = cyl(0.015, 0.015, 1.3, 4, '#6b4524', 0, 0, 0);
+      sp.position.set(W / 2 + 0.32, 0.62, -0.3 + i * 0.13);
+      sp.rotation.z = 0.22;
+      g.add(sp);
+      const tip = mesh(new THREE.ConeGeometry(0.03, 0.1, 4), '#c9ced6');
+      tip.position.set(W / 2 + 0.32 - 0.29, 1.3, -0.3 + i * 0.13);
+      tip.rotation.z = 0.22;
+      g.add(tip);
+    }
+    g.add(box(0.05, 0.06, 0.65, '#6b4524', W / 2 + 0.47, 0.3, -0.1));
   }
-  g.add(cyl(0.03, 0.03, 1.2, 5, C.dark, 0.7, top + 0.25, -0.5));
-  const flag = box(0.5, 0.32, 0.02, C.cloth[1], 0, 0, 0);
-  flag.geometry.translate(0.25, 0, 0);
-  flag.position.set(0.7, top + 1.25, -0.5);
-  flag.userData.wave = true;
-  g.add(flag);
+  if (level >= 3) {
+    for (const [z, c] of [[0.55, '#b5482f'], [0.82, '#c9a24a']]) {
+      const sh = cyl(0.22, 0.22, 0.04, 14, c, 0, 0, 0, { metalness: 0.3, roughness: 0.6 });
+      sh.rotation.set(Math.PI / 2 - 0.25, 0, Math.PI / 2);
+      sh.position.set(W / 2 + 0.36, 0.24, z);
+      g.add(sh);
+    }
+  }
+  if (level >= 4) {
+    crate(g, -(W / 2 + 0.45), 0, 0.55, 0.34, 0.2);
+    crate(g, -(W / 2 + 0.4), 0, 0.98, 0.28, -0.3);
+  }
   return g;
 }
 

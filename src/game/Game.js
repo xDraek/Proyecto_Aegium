@@ -7,6 +7,7 @@ import {
   BUILDINGS,
   BUILDING_KEYS,
   CANCEL_REFUND,
+  TRAIN_CANCEL_REFUND,
   DISMISS_REFUND,
   COLONY,
   DAILY_REWARDS,
@@ -1136,7 +1137,7 @@ export class Game extends EventTarget {
     const q = this.state.training[building];
     const batch = q?.[index];
     if (!batch) return this.#fail('Esa tanda ya no existe.');
-    this.#refund(multiplyCost(batch.cost, batch.count - batch.done), CANCEL_REFUND);
+    this.#refund(multiplyCost(batch.cost, batch.count - batch.done), TRAIN_CANCEL_REFUND);
     q.splice(index, 1);
     let start = index === 0 ? now : q[index - 1].start + q[index - 1].count * q[index - 1].each;
     for (let i = index; i < q.length; i++) {

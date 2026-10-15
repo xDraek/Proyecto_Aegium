@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { clock } from '../src/config.js';
-import { CANCEL_REFUND, PVP_RANGE, RESOURCES, UNITS } from '../src/game/data.js';
+import { CANCEL_REFUND, PVP_RANGE, RESOURCES, TRAIN_CANCEL_REFUND, UNITS } from '../src/game/data.js';
 import { newState, upgradeState } from '../src/game/Game.js';
 import { costFor, payPerHour, protectedAmount, worldEventAt } from '../src/game/rules.js';
 import { makeWorld, sendAndArrive } from './world.js';
@@ -29,7 +29,8 @@ test('cancelar un reclutamiento devuelve solo una parte de lo pagado', async () 
   assert.equal(A.train('lancero', 10).ok, true);
   assert.equal(A.cancelTraining('cuartel', 0).ok, true);
   const paid = UNITS.lancero.cost.madera * 10;
-  assert.ok(Math.abs(A.state.resources.madera - (before - paid + Math.floor(paid * CANCEL_REFUND))) < 1);
+  assert.equal(TRAIN_CANCEL_REFUND, 0.6);
+  assert.ok(Math.abs(A.state.resources.madera - (before - paid + Math.floor(paid * TRAIN_CANCEL_REFUND))) < 1);
 });
 
 test('el mercado cobra impuestos altos: no compensa cambiar y deshacer', async () => {
