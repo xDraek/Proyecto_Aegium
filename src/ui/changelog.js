@@ -5,6 +5,16 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-16a',
+    date: '2026-10-16',
+    title: 'Simulador más fiel y almirante al máximo',
+    items: [
+      '🎲 El <b>simulador de combate</b> calcula como el combate de verdad: los porcentajes suman siempre 100 %, las catapultas rebajan la muralla, cuenta al almirante si lo llevas y, contra una ciudad, usa todo lo que vieron tus espías (torre de vigía, faro, refuerzos de sus aliados y sus mejoras militares). Lo que no vieron, te lo avisa.',
+      '☄️ Las <b>catapultas</b> ya rebajan también la muralla de las ciudades de otros jugadores, como dice su descripción (antes solo servían contra las islas neutrales).',
+      '🎖️ El <b>almirante</b> en el nivel máximo ya no enseña más experiencia de la que cabe: pone «Nivel máximo».',
+    ],
+  },
+  {
     id: '2026-10-15z',
     date: '2026-10-15',
     title: 'Más fluido',

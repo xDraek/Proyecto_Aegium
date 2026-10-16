@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCKADE, COLONY, FEATS, FEAT_THEMES, ISLAND_TYPES, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, RESOURCES, RESOURCE_KEYS, SPY_TIERS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
-import { colonyUpgrade, colonyYield, playerCombat, spyRisk } from '../game/rules.js';
+import { colonyUpgrade, colonyYield, navalDefense, playerCombat, spyRisk, wallBonus } from '../game/rules.js';
 import { featCoop, forceOf, forgeBonus } from '../game/feats.js';
 import { NEWBIE_POINTS, neutralsOf } from '../game/Game.js';
 import { createIslandBase, createIslandFeature, islandLook } from '../scene/islands.js';
@@ -286,6 +286,48 @@ export function featSimPreset(game, view, attacker) {
     note: coop > 0
       ? `Con tu flota y las que ya esperan, la coraza dejaría pasar el ${Math.round(coop * 100)} % del daño (va en la vida del defensor). En la oleada combatís todos juntos: esto es lo que haría tu flota sola.`
       : 'Con las flotas que esperan ahora, la coraza no dejaría pasar nada: hacen falta más imperios en la oleada.',
+  };
+}
+
+/**
+ * El simulador ante una isla, con las mismas cuentas que hará el servidor y lo que sabes de ella.
+ * Contra una ciudad: muralla y torres (con la torre de vigía), faro, refuerzos y mejoras según lo
+ * que vieron tus espías (lo que no vieron cuenta como nada), y hay que desembarcar para ganar.
+ * Contra una isla neutral, su guarnición (la del último bote) y su fortificación; contra una horda, sin muralla.
+ */
+export function citySimPreset(game, view, attacker, withHero = false) {
+  const c = playerCombat(game.state);
+  const preset = {
+    attacker,
+    atkMul: c.atkMul + (withHero ? game.heroBonus('ataque') : 0),
+    hpMul: c.hpMul,
+    title: `Contra ${view?.name ?? 'la isla'}`,
+    landing: view?.type === 'jugador',
+  };
+  if (view?.type === 'continente') return { ...preset, defender: { ...(view.horde?.garrison ?? {}) } };
+  if (view?.type !== 'jugador') return { ...preset, defender: { ...(view?.intel?.garrison ?? {}) }, wall: view?.wall ?? 0 };
+  const intel = view.intel;
+  const level = intel?.level ?? 0;
+  const defender = { ...(intel?.garrison ?? {}) };
+  for (const sup of intel?.support ?? []) for (const [id, n] of Object.entries(sup.units ?? {})) defender[id] = (defender[id] ?? 0) + n;
+  const d = intel?.defenses;
+  const w = wallBonus(intel?.wall ?? 0, d?.torre ?? 0);
+  const up = intel?.upgrades;
+  const theirs = up ? playerCombat({ buildings: { forja: up.forja ?? 0 }, research: { herreria: up.herreria ?? 0, armaduras: up.armaduras ?? 0 } }) : { atkMul: 1, hpMul: 1 };
+  const unseen = SPY_TIERS.filter((tier) => tier.boats > level).map((tier) => tier.text.toLowerCase());
+  return {
+    ...preset,
+    defender,
+    defAtkMul: theirs.atkMul,
+    defHpMul: theirs.hpMul,
+    wall: w.hp,
+    towers: w.towers,
+    naval: navalDefense(d?.faro ?? 0),
+    note: !intel
+      ? 'Sin espiar no sabes qué la defiende: aquí cuenta como si no tuviera nada. Manda botes espía para afinar.'
+      : unseen.length
+        ? `Tus espías no vieron ${unseen.join('; ')}: aquí cuenta como nada. Con más botes sabrías más.`
+        : undefined,
   };
 }
 

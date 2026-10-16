@@ -437,7 +437,7 @@ function heroSection(game) {
     .join('');
   return `<h4>🎖️ ${escapeHtml(h.name)} · nivel ${h.level}</h4>
     <div class="progress"><i style="width:${pct}%"></i></div>
-    <p class="muted small">${fmtNum(h.xp)} / ${fmtNum(next)} de experiencia · ${where}</p>
+    <p class="muted small">${h.level >= HERO.maxLevel ? `🏅 Nivel máximo · ${fmtNum(prev)} de experiencia` : `${fmtNum(h.xp)} / ${fmtNum(next)} de experiencia`} · ${where}</p>
     ${h.points ? `<p class="hint ok">Tienes ${h.points} ${h.points === 1 ? 'punto' : 'puntos'} para repartir</p>` : ''}
     <div class="skills">${skills}</div>
     <p class="desc small">Para llevarlo, marca «Que vaya el almirante» al mandar una flota. Si su flota cae, vuelve herido.</p>`;

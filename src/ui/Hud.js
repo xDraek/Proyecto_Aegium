@@ -8,7 +8,7 @@ import { armyHtml, armySummary, featWait } from './army.js';
 import { buildingPanel } from './buildingPanel.js';
 import { bag, costItems, escapeHtml, fmtNum, fmtShort, fmtTime, richText, unitList } from './format.js';
 import { installResPickers, syncResPickers } from './resPicker.js';
-import { featSimPreset, fleetFor, islandPanel, readFleet, readPayload, readOpts } from './islandPanel.js';
+import { citySimPreset, featSimPreset, fleetFor, islandPanel, readFleet, readPayload, readOpts } from './islandPanel.js';
 import { questsHtml, rankingHtml } from './modals.js';
 import { openGuide } from './guide.js';
 import { Tutorial } from './tutorial.js';
@@ -1078,12 +1078,8 @@ Al jurar, ${wars.join(' y ')}.` : '';
           this.social.openSimulator(featSimPreset(game, view, attacker));
           break;
         }
-        // Contra una isla neutral, lo que vio tu último bote (no se sabe cuántos son ahora)
-        const defender = view?.type === 'continente' ? (view.horde?.garrison ?? {}) : (view?.intel?.garrison ?? {});
-        const { atkMul, hpMul } = game.combatBonus();
-        const wall = view?.type === 'jugador' ? 0.1 * (view.intel?.wall ?? 0) : (view?.wall ?? 0);
-        const towers = view?.type === 'jugador' ? 10 * (view.intel?.wall ?? 0) : 0;
-        this.social.openSimulator({ attacker, defender, atkMul, hpMul, wall, towers, title: `Contra ${view?.name ?? 'la isla'}` });
+        // Lo que vieron tus espías o tu último bote (no se sabe cuántos son ahora), con el almirante si lo llevas
+        this.social.openSimulator(citySimPreset(game, view, attacker, !!root.querySelector('[name="with-hero"]')?.checked));
         break;
       }
       case 'offer-post':

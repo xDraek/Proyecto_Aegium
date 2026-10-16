@@ -369,11 +369,11 @@ const TOPICS = {
           ['🏰 Muralla (al defender)', '+10 % de vida y 10 de daño de sus torres por nivel'],
           ['👁️ Torre de vigía (al defender)', '8 de daño de sus arqueros por nivel'],
           ['🗼 Faro (al defender)', '+4 % de vida de tus barcos por nivel'],
-          ['☄️ Catapultas (al atacar)', 'Cada una resta un 6 % a la fortificación enemiga'],
+          ['☄️ Catapultas (al atacar)', 'Cada una resta un 6 % de vida a la muralla o fortificación enemiga (en ciudades e islas; las torres siguen disparando)'],
           [`🎖️ ${see('almirante', 'Almirante')}, 🏺 ${see('reliquias', 'reliquias')} y ${see('continentes', 'maravillas')}`, 'Más ataque, vida, carga o velocidad'],
         ],
       )}
-      ${tip('Antes de atacar conviene espiar y pulsar <b>🎲 Simular el combate</b> en el panel de la isla. En los informes 📜 puedes ver la repetición de cada batalla y compartirla en el chat.')}`,
+      ${tip('Antes de atacar conviene espiar y pulsar <b>🎲 Simular el combate</b> en el panel de la isla: usa lo que vieron tus espías (muralla, torre, faro, refuerzos y mejoras; lo que no vieron cuenta como nada), tus mejoras y el almirante si lo llevas. En los informes 📜 puedes ver la repetición de cada batalla y compartirla en el chat.')}`,
   },
   defensa: {
     icon: '🏴‍☠️',

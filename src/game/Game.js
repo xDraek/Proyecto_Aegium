@@ -53,7 +53,7 @@ import {
 } from './data.js';
 import { featHours, featPower, featProd, forgeRoom, forgeValue } from './feats.js';
 import { withoutGold } from './world.js';
-import { assault, attackOf, battle, combineGroups, count, hasCombat, keepAboard, seatsOf, shareSurvivors, splitBag, splitForces } from './combat.js';
+import { assault, attackOf, battle, combineGroups, count, hasCombat, keepAboard, seatsOf, shareSurvivors, siegeOf, splitBag, splitForces } from './combat.js';
 import {
   HOUR_MS,
   buildSeconds,
@@ -1982,6 +1982,8 @@ export class Game extends EventTarget {
       h.points++;
       this.#note(`🎖️ ${h.name} sube a nivel ${h.level}: tienes un punto de habilidad`, 'success');
     }
+    // En el nivel máximo ya no acumula más experiencia
+    if (h.level >= HERO.maxLevel) h.xp = Math.min(h.xp, HERO.xpFor(HERO.maxLevel));
   }
 
   #heroWounded(t) {
@@ -2853,8 +2855,7 @@ export class Game extends EventTarget {
     const garrison = garrisonAt(isl, rt, t);
     const stock = stockAt(isl, rt, t);
     const { atkMul, hpMul } = playerCombat(this.state);
-    const siege = Object.entries(m.units).reduce((s, [id, n]) => s + (UNITS[id].siege ?? 0) * n, 0);
-    const wall = Math.max(0, (isl.wall ?? 0) - siege);
+    const wall = Math.max(0, (isl.wall ?? 0) - siegeOf(m.units));
     const heroAtk = m.hero ? this.heroBonus('ataque') : 0;
     // Primero las flotas y, con el mar libre, el desembarco contra la guarnición y su fortificación
     const result = assault({ units: m.units, atkMul: atkMul + heroAtk, hpMul }, { units: garrison, wallHp: wall });
@@ -3156,7 +3157,8 @@ export class Game extends EventTarget {
       atkMul: mine.atkMul,
       hpMul: mine.hpMul + aegis + heroDef,
       navalHpMul: navalDefense(this.level('faro')),
-      wallHp: wall.hp,
+      // Las catapultas del atacante rebajan la muralla
+      wallHp: Math.max(0, wall.hp - siegeOf(attacker.units)),
       extraAtk: wall.towers,
     }, { needLanding: true });
     s.stats.kills += count(result.att.lost);

@@ -109,6 +109,11 @@ export function seatsUsed(troops) {
   return Object.entries(troops).reduce((s, [id, n]) => s + n * (UNITS[id].size ?? 1), 0);
 }
 
+/** Lo que las catapultas restan a la fortificación enemiga (`UNITS[id].siege` por unidad). */
+export function siegeOf(units) {
+  return Object.entries(units ?? {}).reduce((s, [id, n]) => s + (UNITS[id]?.siege ?? 0) * Math.max(0, n), 0);
+}
+
 /** Tropas que caben en `seats` plazas; las que no, se hunden con los barcos (en proporción). */
 export function keepAboard(troops, seats) {
   const used = seatsUsed(troops);
