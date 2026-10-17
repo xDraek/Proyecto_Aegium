@@ -226,3 +226,20 @@ test('las investigaciones largas llegan a 20 con la mitad de efecto, y las parti
   // Una partida ya migrada no se vuelve a tocar
   assert.equal(upgradeState(old).research.silvicultura, 20);
 });
+
+test('si un jugador está conectado solo lo ven él y sus amigos', async () => {
+  const env = await makeWorld(['Ana', 'Beto', 'Ciro']);
+  const W = env.world;
+  const [A, B, C] = env.players;
+  W.seen(A.userId);
+  W.meta.friends[B.userId] = [A.userId];
+  W.meta.friends[A.userId] = [B.userId];
+  // Un desconocido no sabe si está conectado; su amigo y él mismo, sí
+  assert.equal(W.profile('Ana', C.userId).online, null);
+  assert.equal(W.profile('Ana', B.userId).online, true);
+  assert.equal(W.profile('Ana', A.userId).online, true);
+  // Tampoco viaja en los datos del mapa
+  const seenBy = (viewer) => W.snapshot(viewer).world.players[A.userId]?.online;
+  assert.equal(seenBy(C.userId), null);
+  assert.equal(seenBy(B.userId), true);
+});

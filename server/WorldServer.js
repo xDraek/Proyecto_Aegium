@@ -414,6 +414,11 @@ export class WorldServer {
     this.dirtyIslands.add(id);
   }
 
+  /** Si `viewer` puede ver cuándo se conecta `other`: él mismo y sus amigos, nadie más. */
+  seesOnline(viewer, other) {
+    return viewer === other || (this.meta.friends[viewer] ?? []).includes(other);
+  }
+
   playerInfo(userId) {
     const game = this.games.get(userId);
     const user = this.users.get(userId);
@@ -2023,7 +2028,11 @@ export class WorldServer {
         states[isl.id] = open;
       } else if (rt) states[isl.id] = rt;
       for (const uid of [isl.owner, rt?.colonizedBy]) {
-        if (uid != null && !players[uid]) players[uid] = { ...this.playerInfo(uid), rel: this.relation(userId, uid), hitMe: uid !== userId && this.attackedBy(userId, uid) };
+        if (uid != null && !players[uid]) {
+          // Si está conectado, solo se lo cuenta a sus amigos
+          const info = this.playerInfo(uid);
+          players[uid] = { ...info, online: this.seesOnline(userId, uid) ? info?.online : null, rel: this.relation(userId, uid), hitMe: uid !== userId && this.attackedBy(userId, uid) };
+        }
       }
     }
     const a = this.allianceOf(userId);
@@ -2301,7 +2310,7 @@ export class WorldServer {
       .map((uid) => {
         const info = this.playerInfo(uid);
         const role = uid === a.founder ? 'lider' : (a.officers ?? []).includes(uid) ? 'oficial' : 'miembro';
-        return { id: uid, name: info?.name, city: this.islands.get(this.games.get(uid)?.state.home)?.name, island: this.games.get(uid)?.state.home, points: info?.score ?? 0, online: info?.online, founder: uid === a.founder, role };
+        return { id: uid, name: info?.name, city: this.islands.get(this.games.get(uid)?.state.home)?.name, island: this.games.get(uid)?.state.home, points: info?.score ?? 0, online: this.seesOnline(userId, uid) ? info?.online : null, founder: uid === a.founder, role };
       })
       .sort((x, y) => y.points - x.points);
     return {
@@ -2948,7 +2957,8 @@ export class WorldServer {
 
   // ── Perfil y cuenta ────────────────────────────────────────────────────────
 
-  profile(name) {
+  /** El perfil de un jugador tal como lo ve `viewer` (si está conectado, solo lo ven sus amigos). */
+  profile(name, viewer = null) {
     const id = this.byName.get(String(name ?? '').trim().toLowerCase());
     const game = id != null ? this.games.get(id) : null;
     if (!game) throw new UserError('No hay ningún jugador con ese nombre.');
@@ -2961,7 +2971,7 @@ export class WorldServer {
       alliance: info.alliance,
       points: info.score,
       rank,
-      online: info.online,
+      online: this.seesOnline(viewer, id) ? info.online : null,
       joined: this.users.get(id).created,
       townLevel: info.townLevel,
       colonies: game.state.colonies.map((c) => c.name),

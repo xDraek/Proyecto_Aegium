@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-17a',
+    date: '2026-10-17',
+    title: 'Conexión, solo para amigos',
+    items: ['🔒 Si estás conectado o no ya solo lo ven tus <b>amigos</b>: en tu perfil y en la lista de tu alianza, los demás capitanes no lo verán.'],
+  },
+  {
     id: '2026-10-16a',
     date: '2026-10-16',
     title: 'Simulador más fiel y almirante al máximo',

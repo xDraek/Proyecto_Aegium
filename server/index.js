@@ -346,7 +346,7 @@ async function api(req, res, url) {
     }
 
     // Perfil y cuenta
-    if (route === 'GET /api/profile') return send(res, 200, { profile: world.profile(url.searchParams.get('name')) });
+    if (route === 'GET /api/profile') return send(res, 200, { profile: world.profile(url.searchParams.get('name'), uid) });
     if (route === 'POST /api/city') {
       const { name } = await readJson(req);
       world.renameCity(uid, name);

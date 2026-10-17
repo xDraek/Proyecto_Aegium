@@ -65,7 +65,7 @@ export class Social {
     const rows = a.members
       .map(
         (m) => `<tr>
-          <td><span class="dot ${m.online ? 'on' : ''}"></span><button class="link" data-action="profile" data-name="${escapeHtml(m.name)}">${escapeHtml(m.name)}</button>${m.role === 'lider' ? ' <span title="Líder">👑</span>' : m.role === 'oficial' ? ' <span title="Oficial">⭐</span>' : ''}<div class="muted small">${escapeHtml(m.city ?? '')}</div></td>
+          <td>${m.online == null ? '' : `<span class="dot ${m.online ? 'on' : ''}"></span>`}<button class="link" data-action="profile" data-name="${escapeHtml(m.name)}">${escapeHtml(m.name)}</button>${m.role === 'lider' ? ' <span title="Líder">👑</span>' : m.role === 'oficial' ? ' <span title="Oficial">⭐</span>' : ''}<div class="muted small">${escapeHtml(m.city ?? '')}</div></td>
           <td>${fmtNum(m.points)}</td>
           <td class="row-actions">
             ${m.island ? `<button class="ghost small" data-action="goto" data-island="${m.island}" title="Ver en el mapa">🗺️</button>` : ''}
@@ -323,7 +323,7 @@ export class Social {
     this.hud.showModal(
       'profile',
       `<div class="modal-card">
-        ${head(p.banner?.emblem ?? '👤', `${escapeHtml(p.name)}${p.alliance ? ` <span class="tag">[${escapeHtml(p.alliance.tag)}]</span>` : ''}`, `${p.title ? `«${escapeHtml(p.title)}» · ` : ''}${p.online ? '🟢 En línea' : 'Desconectado'} · en el archipiélago desde ${new Date(p.joined).toLocaleDateString('es-ES')}`, 'perfil')}
+        ${head(p.banner?.emblem ?? '👤', `${escapeHtml(p.name)}${p.alliance ? ` <span class="tag">[${escapeHtml(p.alliance.tag)}]</span>` : ''}`, `${p.title ? `«${escapeHtml(p.title)}» · ` : ''}${p.online == null ? '' : p.online ? '🟢 En línea · ' : 'Desconectado · '}en el archipiélago desde ${new Date(p.joined).toLocaleDateString('es-ES')}`, 'perfil')}
         <div class="stat-grid">
           <div><b>${p.rank ?? '—'}</b><span>puesto</span></div>
           <div><b>${fmtNum(p.points)}</b><span>puntos</span></div>
