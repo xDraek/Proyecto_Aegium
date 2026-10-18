@@ -652,7 +652,7 @@ const TOPICS = {
   templo: {
     icon: '🛕',
     title: 'Templo y poderes',
-    body: () => `<p>El templo acumula <b>favor</b> de los dioses: 6 por hora por cada nivel hasta el 5 y 3 por cada nivel más, hasta un máximo de 100 más 60 por nivel (el templo llega al nivel 10; el Festival de Poseidón lo duplica). Ni las recompensas lo pasan de ese tope. Lo gastas en poderes, que se van desbloqueando al subir el templo:</p>
+    body: () => `<p>El templo acumula <b>favor</b> de los dioses: 4 por hora por cada nivel hasta el 5 y 2 por cada nivel más, hasta un máximo de 100 más 60 por nivel (el templo llega al nivel 10; el Festival de Poseidón lo duplica). Ni las recompensas lo pasan de ese tope. Lo gastas en poderes, que se van desbloqueando al subir el templo:</p>
       ${powersTable()}
       ${tip('Inspiración rinde más en obras e investigaciones largas, y Viento favorable cuando tienes varias flotas lejos.')}`,
   },

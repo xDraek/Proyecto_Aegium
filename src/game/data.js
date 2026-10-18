@@ -61,7 +61,7 @@ export const BUILDINGS = {
     icon: '🌾',
     description: 'Campos de trigo y graneros. Produce la comida que necesitan tus tropas.',
     produces: 'comida',
-    baseProduction: 50,
+    baseProduction: 37.5,
     baseCost: { madera: 70, piedra: 20 },
     costFactor: 1.5,
     baseTime: 35,

@@ -6,7 +6,7 @@ import { featAt, featCycle } from '../game/feats.js';
 import { api } from '../net/api.js';
 import { armyHtml, armySummary, featWait } from './army.js';
 import { buildingPanel } from './buildingPanel.js';
-import { bag, costItems, escapeHtml, fmtNum, fmtShort, fmtTime, richText, unitList } from './format.js';
+import { bag, costItems, escapeHtml, fmtNum, fmtShort, fmtTiny, fmtTime, richText, unitList } from './format.js';
 import { installResPickers, syncResPickers } from './resPicker.js';
 import { citySimPreset, featSimPreset, fleetFor, islandPanel, readFleet, readPayload, readOpts } from './islandPanel.js';
 import { questsHtml, rankingHtml } from './modals.js';
@@ -654,7 +654,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       // En el móvil, cifras cortas para que quepan los seis recursos
       const narrow = NARROW.matches;
       els.amount.textContent = narrow ? fmtShort(amount) : fmtNum(amount);
-      let rateText = narrow ? `${rate < 0 ? '−' : '+'}${fmtShort(Math.abs(rate))}` : `${rate < 0 ? '−' : '+'}${fmtNum(Math.abs(rate))}/h`;
+      let rateText = narrow ? `${rate < 0 ? '−' : '+'}${fmtTiny(Math.abs(rate))}` : `${rate < 0 ? '−' : '+'}${fmtNum(Math.abs(rate))}/h`;
       if (paused) rateText = '⏸️ vacaciones';
       else if (key === 'comida' && starving) rateText = '¡Hambruna!';
       else if (full && rate > 0) rateText = 'Lleno';

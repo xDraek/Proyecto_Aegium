@@ -5,6 +5,24 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-18c',
+    date: '2026-10-18',
+    title: 'Menos comida de la granja',
+    items: ['🌾 Para que la comida no sobre tanto, la <b>granja</b> produce un 25 % menos en todos los niveles (a nivel 10, unas 970 por hora en vez de 1.300). Las tropas siguen comiendo lo mismo: vigila tu balance si tienes un ejército grande.'],
+  },
+  {
+    id: '2026-10-18b',
+    date: '2026-10-18',
+    title: 'Menos favor del templo',
+    items: ['🙏 Para equilibrar los poderes divinos, el <b>templo</b> genera menos favor: 4 por hora por cada nivel hasta el 5 y 2 por cada nivel más (antes 6 y 3). A nivel 5 son 20 por hora y a nivel 10, 30.'],
+  },
+  {
+    id: '2026-10-18a',
+    date: '2026-10-18',
+    title: 'Recursos en el móvil',
+    items: ['📱 Arreglados los <b>recursos</b> de arriba en el móvil: con cifras grandes la producción por hora se salía de su casilla y pisaba la de al lado. Ahora va abreviada (+3,5k) y, en los móviles estrechos, debajo de la cantidad.'],
+  },
+  {
     id: '2026-10-17a',
     date: '2026-10-17',
     title: 'Conexión, solo para amigos',

@@ -5251,19 +5251,29 @@ kbd {
 
   #topbar .res {
     padding: 2px 5px;
+    min-width: 0;
+    overflow: hidden;
   }
 
+  /* Cantidad y producción en la misma casilla: si no cupieran, se recortan, nunca pisan la de al lado */
   #topbar .res-body {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     column-gap: 3px;
+    min-width: 0;
   }
 
   #topbar .res-amount {
     font-size: 12px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
   }
 
   #topbar .res-rate {
     font-size: 9px;
+    max-width: 100%;
+    overflow: hidden;
   }
 
   #topbar .res-bar {
@@ -5718,4 +5728,16 @@ kbd {
 .army-card .dismiss-btn:focus-visible {
   opacity: 1;
   color: var(--bad);
+}
+
+@media (max-width: 440px) {
+  /* Móviles estrechos: la producción debajo de la cantidad, para que las dos quepan enteras */
+  #topbar .res-body {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0;
+  }
+
+  #topbar .res-rate {
+    line-height: 1.1;
+  }
 }

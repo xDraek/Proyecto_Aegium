@@ -16,6 +16,15 @@ export function fmtShort(n) {
   return `${nf1.format(Math.floor(n / 100_000) / 10)}M`;
 }
 
+/** Cifra muy corta (para la producción por hora en el móvil): 982, 3,5k, 12k, 1,2M. */
+export function fmtTiny(n) {
+  const a = Math.abs(n);
+  if (a < 1000) return fmtNum(n);
+  if (a < 10_000) return `${nf1.format(Math.floor(n / 100) / 10)}k`;
+  if (a < 1_000_000) return `${fmtNum(Math.floor(n / 1000))}k`;
+  return `${nf1.format(Math.floor(n / 100_000) / 10)}M`;
+}
+
 export function fmtDec(n) {
   return nf1.format(n);
 }
