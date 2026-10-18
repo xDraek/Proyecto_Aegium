@@ -3152,6 +3152,34 @@ export class WorldServer {
     return this.games.get(userId).state.mail ?? [];
   }
 
+  /**
+   * Lo último que ha visto un jugador: los mensajes de cada canal del chat, los avisos y las novedades.
+   * Se guarda en su cuenta (no en el navegador) para que en otro dispositivo no vuelva a salir como
+   * nuevo. Solo avanza: un dispositivo atrasado no lo puede deshacer.
+   */
+  markSeen(userId, { chat, note, news } = {}) {
+    const game = this.games.get(userId);
+    if (!game) return;
+    const seen = (game.state.seen ??= {});
+    const ahead = (now, n) => Number.isSafeInteger(n) && n > (now ?? 0);
+    let changed = false;
+    for (const ch of ['global', 'alianza', 'gesta']) {
+      if (!ahead(seen.chat?.[ch], chat?.[ch])) continue;
+      seen.chat = { ...seen.chat, [ch]: chat[ch] };
+      changed = true;
+    }
+    if (ahead(seen.note, note)) {
+      seen.note = note;
+      changed = true;
+    }
+    // (las novedades tienen ids con la fecha delante: «2026-10-18e»)
+    if (typeof news === 'string' && news.length <= 24 && news > (seen.news ?? '')) {
+      seen.news = news;
+      changed = true;
+    }
+    if (changed) game.dirty = true;
+  }
+
   readMail(userId, id) {
     const game = this.games.get(userId);
     for (const m of game.state.mail ?? []) if (id === 'all' || m.id === Number(id)) m.read = true;

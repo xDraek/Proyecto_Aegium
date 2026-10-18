@@ -49,7 +49,10 @@ export class ClientGame extends Game {
     if (islandsChanged && !first) this.dispatchEvent(new Event('world'));
   }
 
-  /** Avisos nuevos del servidor (obras terminadas, ataques…), una sola vez cada uno. */
+  /**
+   * Avisos nuevos del servidor (obras terminadas, ataques…), una sola vez cada uno: el último que
+   * has visto se apunta en tu cuenta, así que otro dispositivo no te los vuelve a enseñar.
+   */
   #showNotes(first) {
     const key = `imperium.lastNote.${this.userId}`;
     let last = this.lastNote;
@@ -60,6 +63,7 @@ export class ClientGame extends Game {
         last = 0;
       }
     }
+    last = Math.max(last, this.state.seen?.note ?? 0);
     const fresh = this.state.notes.filter((n) => n.id > last);
     if (fresh.length) {
       last = Math.max(...fresh.map((n) => n.id));
@@ -73,8 +77,32 @@ export class ClientGame extends Game {
       } catch {
         // sin almacenamiento
       }
+      this.markSeen({ note: last });
     }
     this.lastNote = last;
+  }
+
+  /**
+   * Apunta en tu cuenta lo último que has visto ({ chat: { canal: id }, note, news }) para tus otros
+   * dispositivos. Se agrupa y se manda al rato, sin esperar respuesta.
+   */
+  markSeen(patch) {
+    const seen = (this.state.seen ??= {});
+    const p = (this.seenPatch ??= {});
+    for (const [ch, id] of Object.entries(patch.chat ?? {})) {
+      if (!(id > (seen.chat?.[ch] ?? 0))) continue;
+      seen.chat = { ...seen.chat, [ch]: id };
+      p.chat = { ...p.chat, [ch]: id };
+    }
+    if (patch.note > (seen.note ?? 0)) seen.note = p.note = patch.note;
+    if (patch.news && patch.news > (seen.news ?? '')) seen.news = p.news = patch.news;
+    if (!Object.keys(p).length) return;
+    clearTimeout(this.seenTimer);
+    this.seenTimer = setTimeout(() => {
+      const body = this.seenPatch;
+      this.seenPatch = null;
+      api('POST', '/api/seen', body).catch(() => {});
+    }, 1500);
   }
 
   async sync() {

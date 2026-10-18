@@ -184,9 +184,9 @@ export class Hud {
     });
     // Novedades: las notas de las últimas actualizaciones (marcado mientras haya una sin leer)
     this.newsBtn = $('#news-btn');
-    this.newsBtn.querySelector('.badge').hidden = !hasUnreadNews();
+    this.newsBtn.querySelector('.badge').hidden = !hasUnreadNews(game.state.seen?.news);
     this.newsBtn.addEventListener('click', () => {
-      markNewsRead();
+      game.markSeen({ news: markNewsRead() });
       this.newsBtn.querySelector('.badge').hidden = true;
       this.showModal('news', newsHtml());
     });
@@ -310,6 +310,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     } catch {
       this.chatRead = { global: 0, alianza: 0, gesta: 0 };
     }
+    this.#syncChatRead();
     this.#pollChat();
 
     // Menú de opciones
@@ -390,7 +391,12 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     this.menu.querySelector('[data-action="logout"]').addEventListener('click', () => onLogout());
 
     game.addEventListener('notify', (e) => this.toast(e.detail.text, e.detail.kind));
-    game.addEventListener('change', () => this.render());
+    game.addEventListener('change', () => {
+      this.render();
+      // Lo que hayas leído en otro dispositivo ya no sale como nuevo
+      if (this.#syncChatRead()) this.#renderChat();
+      if (!hasUnreadNews(game.state.seen?.news)) this.newsBtn.querySelector('.badge').hidden = true;
+    });
     game.addEventListener('offline', () => ($('#offline').hidden = false));
     game.addEventListener('online', () => ($('#offline').hidden = true));
 
@@ -1466,7 +1472,19 @@ Al jurar, ${wars.join(' y ')}.` : '';
     } catch {
       // sin almacenamiento
     }
+    this.game.markSeen({ chat: { [channel]: last } });
     queueMicrotask(() => this.#renderChat());
+  }
+
+  /** Lo leído en el chat según tu cuenta (de cualquier dispositivo). Devuelve si ha cambiado algo. */
+  #syncChatRead() {
+    let changed = false;
+    for (const [ch, id] of Object.entries(this.game.state.seen?.chat ?? {})) {
+      if (!(id > (this.chatRead[ch] ?? 0))) continue;
+      this.chatRead[ch] = id;
+      changed = true;
+    }
+    return changed;
   }
 
   async #sendChat(e) {

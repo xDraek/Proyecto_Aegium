@@ -432,6 +432,13 @@ async function api(req, res, url) {
       world.sendMail(uid, to, subject, text);
       return send(res, 200, { mail: world.mailbox(uid) });
     }
+    // Lo último que has visto (chat, avisos, novedades): se guarda en la cuenta para todos tus dispositivos
+    if (route === 'POST /api/seen') {
+      if (limited(`seen:${uid}`, 30, 60_000)) return send(res, 429, { error: 'Vas demasiado rápido.' });
+      const body = await readJson(req);
+      world.markSeen(uid, body && typeof body === 'object' ? body : {});
+      return send(res, 200, { ok: true });
+    }
     if (route === 'POST /api/mail/read' || route === 'POST /api/mail/delete') {
       const { id } = await readJson(req);
       if (route.endsWith('read')) world.readMail(uid, id === 'all' ? 'all' : int(id));

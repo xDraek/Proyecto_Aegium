@@ -243,3 +243,18 @@ test('si un jugador está conectado solo lo ven él y sus amigos', async () => {
   assert.equal(seenBy(C.userId), null);
   assert.equal(seenBy(B.userId), true);
 });
+
+test('lo leído (chat, avisos, novedades) se guarda en la cuenta y solo avanza', async () => {
+  const { world, players } = await makeWorld(['Lucio']);
+  const [g] = players;
+  world.markSeen(g.userId, { chat: { global: 40, alianza: 3, otro: 9 }, note: 12, news: '2026-10-18e' });
+  assert.deepEqual(g.state.seen, { chat: { global: 40, alianza: 3 }, note: 12, news: '2026-10-18e' });
+  // Un dispositivo atrasado no lo deshace
+  world.markSeen(g.userId, { chat: { global: 10 }, note: 5, news: '2026-10-01a' });
+  assert.deepEqual(g.state.seen, { chat: { global: 40, alianza: 3 }, note: 12, news: '2026-10-18e' });
+  world.markSeen(g.userId, { chat: { global: 'x', gesta: 7 }, note: -1 });
+  assert.equal(g.state.seen.chat.global, 40);
+  assert.equal(g.state.seen.chat.gesta, 7);
+  // Va en el estado que recibe el navegador
+  assert.deepEqual(world.snapshot(g.userId).state.seen.chat, { global: 40, alianza: 3, gesta: 7 });
+});

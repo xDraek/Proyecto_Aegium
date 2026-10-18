@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-18f',
+    date: '2026-10-18',
+    title: 'Lo leído, en todos tus dispositivos',
+    items: ['📱 Lo que ya has leído en el <b>chat</b>, los <b>avisos</b> al entrar y las <b>novedades</b> se guardan ahora en tu cuenta: si entras desde otro dispositivo ya no te salen otra vez como nuevos.'],
+  },
+  {
     id: '2026-10-18e',
     date: '2026-10-18',
     title: 'El ayuntamiento manda y la taberna mejora',
@@ -440,7 +446,10 @@ export const CHANGELOG = [
 /** La última nota que ha visto este navegador (para marcar el botón si hay una nueva). */
 const SEEN_KEY = 'imperium.newsSeen';
 
-export function hasUnreadNews() {
+/** Si hay una nota sin leer: ni en este navegador ni en tu cuenta (`seen`, la última vista en cualquier dispositivo). */
+export function hasUnreadNews(seen = null) {
+  // (si otro dispositivo ya va por una más nueva, esta también la has visto)
+  if (seen && seen >= CHANGELOG[0].id) return false;
   try {
     return localStorage.getItem(SEEN_KEY) !== CHANGELOG[0].id;
   } catch {
@@ -448,12 +457,14 @@ export function hasUnreadNews() {
   }
 }
 
+/** Marca leídas las novedades en este navegador y devuelve la última (para apuntarla en la cuenta). */
 export function markNewsRead() {
   try {
     localStorage.setItem(SEEN_KEY, CHANGELOG[0].id);
   } catch {
     // sin almacenamiento: se volverá a marcar
   }
+  return CHANGELOG[0].id;
 }
 
 const dateFmt = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
