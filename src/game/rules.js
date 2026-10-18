@@ -21,6 +21,7 @@ import {
   SPY,
   SPY_TIERS,
   TOWN_HALL_GATE,
+  TRAIN_SPEED,
   UNITS,
   RELICS,
   WONDERS,
@@ -124,7 +125,7 @@ export function researchMax(id) {
 
 export function unitSeconds(state, id) {
   const u = UNITS[id];
-  let speed = 1 + 0.1 * Math.max(0, lvl(state, u.building) - 1);
+  let speed = 1 + TRAIN_SPEED[u.building] * Math.max(0, lvl(state, u.building) - 1);
   if (u.building === 'puerto') speed *= 1 + 0.08 * lvl(state, 'astillero');
   return Math.max(1, Math.round(u.time / speed / universe.speed));
 }

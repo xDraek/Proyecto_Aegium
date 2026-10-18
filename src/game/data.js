@@ -139,7 +139,7 @@ export const BUILDINGS = {
   puerto: {
     name: 'Puerto',
     icon: '⚓',
-    description: 'Astillero y muelles. Construye barcos y permite tener una flota más en el mar por cada nivel.',
+    description: 'Muelles y gradas donde se botan los barcos. Cada nivel permite tener una flota más en el mar a la vez y bota los barcos un 5 % más rápido. Los barcos de guerra piden además el astillero.',
     baseCost: { madera: 200, piedra: 80, comida: 80 },
     costFactor: 1.7,
     baseTime: 90,
@@ -193,7 +193,7 @@ export const BUILDINGS = {
   astillero: {
     name: 'Astillero',
     icon: '🛠️',
-    description: 'Gradas y carpinteros de ribera. Cada nivel construye los barcos un 8 % más rápido y desbloquea barcos de guerra nuevos.',
+    description: 'Gradas y carpinteros de ribera. Cada nivel construye los barcos un 8 % más rápido y desbloquea barcos de guerra nuevos: sin astillero solo se botan botes y mercantes.',
     baseCost: { madera: 260, piedra: 120, hierro: 40, comida: 100 },
     costFactor: 1.65,
     baseTime: 90,
@@ -437,7 +437,7 @@ export const UNITS = {
     speed: 1.35,
     cargo: 120,
     capacity: 4,
-    requires: { puerto: 3, navegacion: 2 },
+    requires: { puerto: 3, astillero: 1, navegacion: 2 },
   },
   brulote: {
     name: 'Brulote',
@@ -454,7 +454,7 @@ export const UNITS = {
     speed: 1.25,
     cargo: 0,
     capacity: 0,
-    requires: { puerto: 4, astillero: 1 },
+    requires: { puerto: 4, astillero: 2 },
   },
   galeon: {
     name: 'Quinquerreme',
@@ -471,7 +471,7 @@ export const UNITS = {
     speed: 1.15,
     cargo: 400,
     capacity: 15,
-    requires: { puerto: 6, navegacion: 6 },
+    requires: { puerto: 6, astillero: 4, navegacion: 6 },
   },
 
   dromon: {
@@ -489,7 +489,7 @@ export const UNITS = {
     speed: 1.05,
     cargo: 600,
     capacity: 20,
-    requires: { puerto: 8, astillero: 4, navegacion: 8 },
+    requires: { puerto: 8, astillero: 7, navegacion: 8 },
   },
   liburna: {
     name: 'Liburna',
@@ -500,14 +500,14 @@ export const UNITS = {
     description: 'Birreme ligera de los marinos ilirios: la más rápida de las de guerra, caza barcos y lleva un destacamento. Su tripulación cobra en oro.',
     cost: { madera: 500, hierro: 180, oro: 150 },
     time: 300,
-    atk: 52,
+    atk: 60,
     hp: 120,
     upkeep: 3,
     pay: 4,
-    speed: 1.6,
+    speed: 1.8,
     cargo: 300,
     capacity: 6,
-    requires: { puerto: 7, navegacion: 6, tactica: 2 },
+    requires: { puerto: 7, astillero: 5, navegacion: 6, tactica: 2 },
   },
 
   // Unidades que solo usan los enemigos
@@ -654,7 +654,7 @@ export const RESEARCH = {
   navegacion: {
     name: 'Navegación',
     icon: '🧭',
-    description: 'Brújulas y velas latinas. Nivel 2: trirremes. Nivel 4: expediciones al Mar de las Brumas. Nivel 6: galeones y liburnas. Nivel 8: dromones.',
+    description: 'Brújulas y velas latinas. Nivel 2: trirremes. Nivel 4: expediciones al Mar de las Brumas. Nivel 6: quinquerremes y liburnas. Nivel 8: dromones.',
     effect: (n) => `Flotas un ${n * 5} % más rápidas`,
     baseCost: { madera: 300, cristal: 180, oro: 30 },
     long: true,
@@ -745,6 +745,9 @@ export const RESEARCH_LATE = { from: 7, step: 0.75 };
  * madera y piedra juntas. Así la mina y la fundición siguen sirviendo. (El Coloso ya los pide.)
  */
 export const BUILD_COST = { woodStone: 0.85, fromLevel: 7, hierro: 0.12, cristal: 0.08 };
+
+/** Lo que acelera cada nivel (a partir del segundo) del edificio donde se entrena: el cuartel las tropas y el puerto los barcos. */
+export const TRAIN_SPEED = { cuartel: 0.1, puerto: 0.05 };
 
 /**
  * El ayuntamiento manda: para subir cualquier otro edificio por encima del nivel `free` hace falta

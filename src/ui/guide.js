@@ -355,7 +355,7 @@ const TOPICS = {
   unidades: {
     icon: '🛡️',
     title: 'Tropas y barcos',
-    body: () => `<p>El <b>cuartel</b> entrena tropas de tierra y el <b>puerto</b> bota barcos (el astillero los construye más rápido y desbloquea los de guerra). Para ir a otra isla, las tropas viajan <b>dentro de los barcos</b>: cada barco tiene plazas y cada tropa ocupa las suyas.</p>
+    body: () => `<p>El <b>cuartel</b> entrena tropas de tierra y el <b>puerto</b> bota barcos. Los barcos de guerra piden además el <b>astillero</b> (cada uno, su nivel), que también los construye más rápido. Para ir a otra isla, las tropas viajan <b>dentro de los barcos</b>: cada barco tiene plazas y cada tropa ocupa las suyas.</p>
       <h5>Tropas de tierra</h5>
       ${landTable()}
       <h5>Barcos</h5>

@@ -1,4 +1,4 @@
-import { BUILDINGS, HERO, HERO_SKILLS, OCCUPATION, RELIC_RARITY, RELIC_SLOTS, POWERS, POWER_KEYS, RESEARCH, RESEARCH_KEYS, RESOURCES, UNITS, UNIT_KEYS, WORK } from '../game/data.js';
+import { BUILDINGS, HERO, HERO_SKILLS, OCCUPATION, RELIC_RARITY, RELIC_SLOTS, POWERS, POWER_KEYS, RESEARCH, RESEARCH_KEYS, RESOURCES, TRAIN_SPEED, UNITS, UNIT_KEYS, WORK } from '../game/data.js';
 import { favorMax, favorRate, hasWorkers, producerOutput, protectedAmount, requirementName, storageCapacity, townSpeedup, wallBonus, workShare, workTaxes } from '../game/rules.js';
 import { splitForces } from '../game/combat.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
@@ -45,9 +45,9 @@ function effectFor(game, id, level, next) {
     case 'academia':
       return effectRow('📚 Velocidad de investigación', `+${Math.max(0, level - 1) * 10} %`, `+${(next - 1) * 10} %`);
     case 'cuartel':
-      return effectRow('🛡️ Velocidad de reclutamiento', `+${Math.max(0, level - 1) * 10} %`, `+${(next - 1) * 10} %`);
+      return effectRow('🛡️ Velocidad de reclutamiento', `+${Math.round(Math.max(0, level - 1) * TRAIN_SPEED.cuartel * 100)} %`, `+${Math.round((next - 1) * TRAIN_SPEED.cuartel * 100)} %`);
     case 'puerto':
-      return effectRow('⚓ Flotas a la vez', level, next) + effectRow('🚢 Velocidad de los astilleros', `+${Math.max(0, level - 1) * 10} %`, `+${(next - 1) * 10} %`);
+      return effectRow('⚓ Flotas a la vez', level, next) + effectRow('🚢 Velocidad al botar barcos', `+${Math.round(Math.max(0, level - 1) * TRAIN_SPEED.puerto * 100)} %`, `+${Math.round((next - 1) * TRAIN_SPEED.puerto * 100)} %`);
     case 'muralla': {
       const a = wallBonus(level, game.level('torre'));
       const b = wallBonus(next, game.level('torre'));
@@ -213,7 +213,7 @@ function trainingQueue(game, building) {
 }
 
 function recruitSection(game, building) {
-  const title = building === 'puerto' ? 'Astillero' : 'Reclutar';
+  const title = building === 'puerto' ? 'Botar barcos' : 'Reclutar';
   // Aunque no tengas puerto te pueden ocupar: desde aquí se echa a los invasores
   const port = building === 'puerto' ? portSection(game) : '';
   if (game.level(building) < 1) return `${port}<h4>${title}</h4><p class="desc">Constrúyelo para empezar a ${building === 'puerto' ? 'botar barcos' : 'entrenar tropas'}.</p>`;

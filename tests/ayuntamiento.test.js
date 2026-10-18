@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { townHallFor, upgradeRequires } from '../src/game/rules.js';
+import { universe } from '../src/config.js';
+import { UNITS } from '../src/game/data.js';
+import { missingRequirements, townHallFor, unitSeconds, upgradeRequires } from '../src/game/rules.js';
 import { makeWorld } from './world.js';
 
 // El ayuntamiento marca hasta dónde se suben los demás edificios, y la taberna, qué mercenarios vienen.
@@ -48,4 +50,20 @@ test('la taberna atrae mercenarios mejores al subir: al principio solo miliciano
   // Cuantos más niveles por encima del suyo, más soldados trae cada compañía
   const lanceros = g.mercenaryOffers().find((o) => o.id === 'lanceros');
   assert.equal(lanceros.count, 15 + 5 * 11);
+});
+
+test('los barcos de guerra piden su nivel de astillero y el puerto acelera un 5 % por nivel', async () => {
+  const { players } = await makeWorld(['Lucio']);
+  const [g] = players;
+  Object.assign(g.state.buildings, { ayuntamiento: 4, puerto: 10, astillero: 0 });
+  g.state.research.navegacion = 8;
+  assert.equal(g.train('mercante', 1).ok, true, 'los mercantes no piden astillero');
+  assert.equal(g.train('trirreme', 1).ok, false, 'sin astillero no hay barcos de guerra');
+  g.state.buildings.astillero = 1;
+  assert.equal(g.train('trirreme', 1).ok, true);
+  assert.equal(g.train('brulote', 1).ok, false, 'el brulote pide astillero 2');
+  assert.deepEqual(missingRequirements(g.state, UNITS.dromon.requires), [{ id: 'astillero', level: 7, kind: 'building' }]);
+  // Puerto 10 y sin astillero: +45 %
+  g.state.buildings.astillero = 0;
+  assert.equal(unitSeconds(g.state, 'mercante'), Math.max(1, Math.round(UNITS.mercante.time / 1.45 / universe.speed)));
 });

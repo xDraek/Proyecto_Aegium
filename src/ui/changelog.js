@@ -5,6 +5,16 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-18g',
+    date: '2026-10-18',
+    title: 'Puerto y astillero',
+    items: [
+      '⚓ El <b>puerto</b> bota los barcos un 5 % más rápido por nivel (antes un 10 %): a nivel 10, +45 %. Su ficha ya no se presenta como astillero (es otro edificio) y esa mejora se llama ahora «Velocidad al botar barcos».',
+      '🛠️ Cada <b>barco de guerra</b> pide ahora un nivel de <b>astillero</b>: trirreme, 1; brulote, 2; quinquerreme, 4; liburna, 5; dromón, 7. Sin astillero solo se botan botes y mercantes. Los barcos que ya tienes no cambian.',
+      '⛴️ La <b>liburna</b> es más rápida (×1,8 en vez de ×1,6) y pega más (60 de ataque en vez de 52).',
+    ],
+  },
+  {
     id: '2026-10-18f',
     date: '2026-10-18',
     title: 'Lo leído, en todos tus dispositivos',
