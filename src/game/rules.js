@@ -20,6 +20,7 @@ import {
   RESOURCE_KEYS,
   SPY,
   SPY_TIERS,
+  TOWN_HALL_GATE,
   UNITS,
   RELICS,
   WONDERS,
@@ -445,6 +446,21 @@ export function tradeRate(state, from, to, t = state.lastUpdate) {
 }
 
 // ── Requisitos ───────────────────────────────────────────────────────────────
+
+/** El nivel de ayuntamiento que hace falta para subir el edificio `id` hasta `level` (ver TOWN_HALL_GATE). */
+export function townHallFor(id, level) {
+  const G = TOWN_HALL_GATE;
+  if (id === 'ayuntamiento' || level <= G.free) return 0;
+  return G.need * Math.ceil((level - G.free) / G.every);
+}
+
+/** Lo que pide el edificio `id` para llegar a `level`: sus requisitos y el ayuntamiento que toque. */
+export function upgradeRequires(id, level) {
+  const req = { ...(BUILDINGS[id].requires ?? {}) };
+  const hall = townHallFor(id, level);
+  if (hall > (req.ayuntamiento ?? 0)) req.ayuntamiento = hall;
+  return req;
+}
 
 /** Requisitos no cumplidos: [{ id, level, kind: 'building' | 'research' }]. */
 export function missingRequirements(state, requires = {}) {

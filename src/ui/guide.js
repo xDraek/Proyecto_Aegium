@@ -34,6 +34,7 @@ import {
   SHIP_UNITS,
   SPY,
   SPY_TIERS,
+  TOWN_HALL_GATE,
   UNITS,
   VACATION,
   WONDER_LEVELS,
@@ -83,6 +84,15 @@ function buildingsTable() {
     ['Edificio', 'Para qué sirve', 'Requisitos'],
     Object.values(BUILDINGS).map((b) => [`${b.icon} <b>${b.name}</b>`, b.description, needs(b.requires)]),
   );
+}
+
+/** Qué ayuntamiento hace falta para subir los demás edificios a cada tramo de niveles. */
+function townHallTable() {
+  const G = TOWN_HALL_GATE;
+  const rows = [[`1 – ${G.free}`, 'Sin requisito']];
+  for (let k = 1; k <= 4; k++) rows.push([`${G.free + (k - 1) * G.every + 1} – ${G.free + k * G.every}`, `Ayuntamiento ${G.need * k}`]);
+  rows.push([`${G.free + 4 * G.every + 1} o más`, `${G.need} niveles más de ayuntamiento cada ${G.every}`]);
+  return table(['Nivel del edificio', 'Hace falta'], rows);
 }
 
 function researchTable() {
@@ -234,8 +244,8 @@ function heroTable() {
 
 function mercsTable() {
   return table(
-    ['Compañía', 'Tropa', 'Cuántos vienen', 'Precio por soldado'],
-    Object.values(MERCENARIES).map((m) => [`${m.icon} <b>${m.name}</b>`, unitName(m.unit), `${fmtDec(m.base)} y ${fmtDec(m.per)} más por cada nivel de taberna`, bag(m.price)]),
+    ['Compañía', 'Taberna', 'Tropa', 'Cuántos vienen', 'Precio por soldado'],
+    Object.values(MERCENARIES).map((m) => [`${m.icon} <b>${m.name}</b>`, `Nv ${m.taberna}`, unitName(m.unit), `${fmtDec(m.base)} y ${fmtDec(m.per)} más por cada nivel más de taberna`, bag(m.price)]),
   );
 }
 
@@ -319,6 +329,9 @@ const TOPICS = {
     title: 'Edificios',
     body: () => `<p>Solo se construye <b>una obra a la vez</b>. El ayuntamiento acelera las obras un 10 % por nivel y Arquitectura otro 4 % por nivel. Si cancelas una obra recuperas lo que costó. Cada edificio pide otros (o investigaciones) para poder construirse:</p>
       ${buildingsTable()}
+      <h5>El ayuntamiento manda</h5>
+      <p>Además de desbloquear edificios, el ayuntamiento marca hasta dónde puedes subir los demás: hasta el nivel ${TOWN_HALL_GATE.free} no pide nada, y a partir de ahí hace falta tenerlo a cierto nivel.</p>
+      ${townHallTable()}
       <p class="muted small">Al subir de nivel ganan detalle: enlosado y cipreses (nivel 5), pebeteros y estatua (10) y remate dorado con estandartes (15). El Coloso no tiene tope: cada nivel suma producción y cada cinco se anuncia a todo el archipiélago.</p>`,
   },
   investigacion: {
@@ -405,7 +418,7 @@ const TOPICS = {
   mercenarios: {
     icon: '🗡️',
     title: 'Mercenarios',
-    body: () => `<p>En la <b>taberna</b> se contratan compañías de mercenarios durante ${MERCENARY_HOURS} h. Cada compañía se puede contratar una vez al día, y vienen más cuanto más alta esté la taberna:</p>
+    body: () => `<p>En la <b>taberna</b> se contratan compañías de mercenarios durante ${MERCENARY_HOURS} h. Al principio solo vienen milicianos; al subir la taberna llegan compañías mejores, hasta la élite, y de cada una vienen más soldados. Cada compañía se puede contratar una vez al día:</p>
       ${mercsTable()}
       <p>Pasado el plazo se marchan los que sigan vivos. A veces llegan también <b>mercenarios de paso</b> al puerto que se quedan para siempre a cambio de oro.</p>
       ${tip('Son perfectos para una defensa urgente o un ataque puntual sin cargar con su comida para siempre.')}`,

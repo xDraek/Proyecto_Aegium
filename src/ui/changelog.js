@@ -5,6 +5,16 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-18e',
+    date: '2026-10-18',
+    title: 'El ayuntamiento manda y la taberna mejora',
+    items: [
+      '🏛️ Para subir cualquier edificio por encima del <b>nivel 5</b> hace falta el ayuntamiento: del 6 al 10, ayuntamiento 3; del 11 al 15, el 6; del 16 al 20, el 9; y así, 3 más cada 5 niveles. Lo que ya tengas construido se queda como está.',
+      '🔓 Algunos edificios piden ahora el ayuntamiento para construirse: la muralla, el 3; la forja, la torre de vigía y el astillero, el 4; y el faro, el 5.',
+      '🍺 La <b>taberna</b> atrae mercenarios mejores a medida que sube: a nivel 1 solo milicia con lanza y honderos; a nivel 3, arqueros; a nivel 5, hoplitas; a nivel 7, jinetes; a nivel 9, espartanos y arqueros de Creta; y a nivel 12, catafractos. De cada compañía vienen más soldados cuantos más niveles tenga la taberna por encima del suyo.',
+    ],
+  },
+  {
     id: '2026-10-18d',
     date: '2026-10-18',
     title: 'Un solo Kraken, reliquias nuevas y coordenadas',

@@ -71,6 +71,7 @@ import {
   hasWorkers,
   maxColonies,
   missingRequirements,
+  upgradeRequires,
   multiplyCost,
   playerCombat,
   portClosed,
@@ -651,7 +652,7 @@ export class Game extends EventTarget {
       maxed: level > buildingMax(id),
       cost,
       seconds: buildSeconds(this.state, id, level),
-      missing: missingRequirements(this.state, BUILDINGS[id].requires),
+      missing: missingRequirements(this.state, upgradeRequires(id, level)),
       affordable: canAfford(this.state.resources, cost),
       exceedsStorage: Object.values(cost).some((n) => n > this.capacity()),
     };
@@ -753,15 +754,19 @@ export class Game extends EventTarget {
 
   // ── Mercenarios ────────────────────────────────────────────────────────────
 
-  /** Las compañías que ofrece hoy la taberna: cuántos vienen, qué cuestan y si ya la has contratado. */
+  /**
+   * Las compañías de la taberna: cuántos vienen, qué cuestan, si ya la has contratado hoy y si tu
+   * taberna aún no llega a su nivel (`locked`: entonces dice cuántos vendrían al desbloquearla).
+   */
   mercenaryOffers(now = this.now()) {
     const lvl = this.level('taberna');
     const day = Math.floor(now / 86_400_000);
     const hired = this.state.mercsHired?.day === day ? this.state.mercsHired.ids : [];
     return Object.entries(MERCENARIES).map(([id, m]) => {
-      const count = lvl ? Math.round(m.base + m.per * (lvl - 1)) : 0;
+      const locked = lvl < m.taberna;
+      const count = Math.round(m.base + m.per * Math.max(0, lvl - m.taberna));
       const cost = Object.fromEntries(Object.entries(m.price).map(([r, n]) => [r, n * count]));
-      return { id, ...m, count, cost, hired: hired.includes(id) };
+      return { id, ...m, count, cost, locked, hired: hired.includes(id) };
     });
   }
 
@@ -770,6 +775,7 @@ export class Game extends EventTarget {
     if (this.level('taberna') < 1) return this.#fail('Construye la taberna para contratar mercenarios.');
     const offer = this.mercenaryOffers(now).find((o) => o.id === id);
     if (!offer) return this.#fail('Esa compañía no existe.');
+    if (offer.locked) return this.#fail(`Esa compañía solo viene a una taberna de nivel ${offer.taberna}.`);
     if (offer.hired) return this.#fail('Esa compañía ya está contratada hoy. Mañana habrá otra.');
     if (!canAfford(this.state.resources, offer.cost)) return this.#fail('No tienes con qué pagarles.');
     this.#pay(offer.cost, false);

@@ -349,8 +349,9 @@ function mercenarySection(game) {
   const contracts = (game.state.mercs ?? [])
     .map((c) => `<li><span>${UNITS[c.unit].icon} ${c.count} × ${UNITS[c.unit].name}</span><span class="q-time" data-until="${c.until}"></span></li>`)
     .join('');
-  const offers = game
-    .mercenaryOffers()
+  const all = game.mercenaryOffers();
+  const offers = all
+    .filter((o) => !o.locked)
     .map(
       (o) => `<div class="card">
         <div class="card-head">${unitArt(o.unit)}<div class="card-title"><b>${o.name}</b><div class="muted small">${o.count} × ${UNITS[o.unit].name} durante un día</div></div></div>
@@ -362,7 +363,16 @@ function mercenarySection(game) {
   return `<h4>⚔️ Mercenarios</h4>
     <p class="desc small">Soldados a sueldo durante un día: luchan y comen como los tuyos, y al acabar el contrato se van (aunque estén en una flota). Cada compañía se contrata una vez al día.</p>
     ${contracts ? `<ul class="mini-list">${contracts}</ul>` : ''}
-    <div class="cards">${offers}</div>`;
+    <div class="cards">${offers}</div>
+    ${nextMercenaries(all)}`;
+}
+
+/** Las próximas compañías que llegarán al subir la taberna. */
+function nextMercenaries(offers) {
+  const locked = offers.filter((o) => o.locked).sort((a, b) => a.taberna - b.taberna);
+  if (!locked.length) return '';
+  const soon = locked.filter((o) => o.taberna === locked[0].taberna);
+  return `<p class="hint">🔒 Con la taberna a nivel ${soon[0].taberna} llegarán: ${soon.map((o) => `${o.icon} ${o.name}`).join(' y ')}.</p>`;
 }
 
 function templeSection(game) {

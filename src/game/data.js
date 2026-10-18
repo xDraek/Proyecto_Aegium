@@ -28,7 +28,7 @@ export const BUILDINGS = {
   ayuntamiento: {
     name: 'Ayuntamiento',
     icon: '🏛️',
-    description: 'El corazón de tu imperio. Cada nivel acelera las obras un 10 % y desbloquea nuevos edificios. Desde el nivel 3 tu isla llama la atención de los piratas.',
+    description: 'El corazón de tu imperio. Cada nivel acelera las obras un 10 % y desbloquea nuevos edificios. Para subir los demás edificios por encima del nivel 5 hace falta tenerlo a cierto nivel (3 más cada 5 niveles). Desde el nivel 3 tu isla llama la atención de los piratas.',
     baseCost: { madera: 200, piedra: 150, comida: 120 },
     costFactor: 1.8,
     baseTime: 90,
@@ -152,12 +152,12 @@ export const BUILDINGS = {
     baseCost: { madera: 60, piedra: 250 },
     costFactor: 1.75,
     baseTime: 100,
-    requires: { cuartel: 1 },
+    requires: { ayuntamiento: 3, cuartel: 1 },
   },
   taberna: {
     name: 'Taberna',
     icon: '🍺',
-    description: 'Vino, pan y canciones. Las tropas bien atendidas comen menos: cada nivel reduce un 4 % la comida que consumen (hasta un 40 %).',
+    description: 'Vino, pan y canciones. Las tropas bien atendidas comen menos: cada nivel reduce un 4 % la comida que consumen (hasta un 40 %). Y atrae mercenarios: al principio solo milicianos, y mejores a medida que sube.',
     baseCost: { madera: 180, piedra: 90, comida: 120 },
     costFactor: 1.6,
     baseTime: 70,
@@ -170,7 +170,7 @@ export const BUILDINGS = {
     baseCost: { madera: 160, piedra: 140, hierro: 80 },
     costFactor: 1.65,
     baseTime: 90,
-    requires: { fundicion: 2, cuartel: 2 },
+    requires: { ayuntamiento: 4, fundicion: 2, cuartel: 2 },
   },
   torre: {
     name: 'Torre de vigía',
@@ -179,7 +179,7 @@ export const BUILDINGS = {
     baseCost: { madera: 120, piedra: 220 },
     costFactor: 1.65,
     baseTime: 80,
-    requires: { muralla: 2 },
+    requires: { ayuntamiento: 4, muralla: 2 },
   },
   faro: {
     name: 'Faro',
@@ -188,7 +188,7 @@ export const BUILDINGS = {
     baseCost: { madera: 150, piedra: 260, cristal: 40 },
     costFactor: 1.6,
     baseTime: 85,
-    requires: { puerto: 3 },
+    requires: { ayuntamiento: 5, puerto: 3 },
   },
   astillero: {
     name: 'Astillero',
@@ -197,7 +197,7 @@ export const BUILDINGS = {
     baseCost: { madera: 260, piedra: 120, hierro: 40, comida: 100 },
     costFactor: 1.65,
     baseTime: 90,
-    requires: { puerto: 2 },
+    requires: { ayuntamiento: 4, puerto: 2 },
   },
   coloso: {
     name: 'Coloso',
@@ -746,6 +746,12 @@ export const RESEARCH_LATE = { from: 7, step: 0.75 };
  */
 export const BUILD_COST = { woodStone: 0.85, fromLevel: 7, hierro: 0.12, cristal: 0.08 };
 
+/**
+ * El ayuntamiento manda: para subir cualquier otro edificio por encima del nivel `free` hace falta
+ * el ayuntamiento a `need` niveles más por cada `every` niveles (del 6 al 10, el 3; del 11 al 15, el 6…).
+ */
+export const TOWN_HALL_GATE = { free: 5, every: 5, need: 3 };
+
 /** El almacén esconde lo más alto de: 100 + 250 por nivel, o este porcentaje de lo que cabe. */
 export const PROTECTED_SHARE = 0.08;
 /** Todas las investigaciones cuestan esto más que su `baseCost` (en todos los niveles). */
@@ -991,13 +997,20 @@ export const HORDE = {
 };
 
 // ── Mercenarios (taberna) ────────────────────────────────────────────────────
-// Tropas de alquiler durante un día. Cuantos más niveles de taberna, más vienen.
-// Cada compañía se puede contratar una vez al día.
+// Tropas de alquiler durante un día. Al subir la taberna llegan compañías mejores
+// (`taberna`: el nivel que hace falta): al principio solo milicianos, al final
+// tropas de élite. Cada una trae `base` soldados y `per` más por cada nivel de
+// taberna por encima del suyo, y se puede contratar una vez al día.
 
 export const MERCENARIES = {
-  honderos: { name: 'Banda de honderos milicianos', icon: '🪨', unit: 'hondero', base: 15, per: 5, price: { oro: 6, comida: 4 } },
-  hoplitas: { name: 'Compañía de hoplitas', icon: '🛡️', unit: 'hoplita', base: 6, per: 2.5, price: { oro: 20, hierro: 6 } },
-  jinetes: { name: 'Jinetes de Tesalia', icon: '🐎', unit: 'caballero', base: 3, per: 1.2, price: { oro: 45, comida: 20 } },
+  lanceros: { name: 'Milicia de lanceros', icon: '🔱', unit: 'lancero', taberna: 1, base: 15, per: 5, price: { oro: 5, comida: 4 } },
+  honderos: { name: 'Banda de honderos milicianos', icon: '🪨', unit: 'hondero', taberna: 1, base: 15, per: 5, price: { oro: 6, comida: 4 } },
+  arqueros: { name: 'Arqueros de fortuna', icon: '🏹', unit: 'arquero', taberna: 3, base: 12, per: 4, price: { oro: 9, madera: 6 } },
+  hoplitas: { name: 'Compañía de hoplitas', icon: '🛡️', unit: 'hoplita', taberna: 5, base: 12, per: 2.5, price: { oro: 20, hierro: 6 } },
+  jinetes: { name: 'Jinetes de Tesalia', icon: '🐎', unit: 'caballero', taberna: 7, base: 8, per: 1.2, price: { oro: 45, comida: 20 } },
+  espartanos: { name: 'Espartanos desterrados', icon: '🗡️', unit: 'espartano', taberna: 9, base: 5, per: 1, price: { oro: 70, hierro: 25 } },
+  cretenses: { name: 'Arqueros de Creta', icon: '🎯', unit: 'sagitario', taberna: 9, base: 5, per: 1, price: { oro: 60, madera: 25 } },
+  catafractos: { name: 'Catafractos de Partia', icon: '🏇', unit: 'catafracto', taberna: 12, base: 4, per: 0.8, price: { oro: 140, hierro: 40 } },
 };
 export const MERCENARY_HOURS = 24;
 
