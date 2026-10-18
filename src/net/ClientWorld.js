@@ -15,10 +15,13 @@ export class ClientWorld {
 
   /**
    * Actualiza con los datos del servidor. La lista de islas solo llega cuando cambia (si no, viene
-   * vacía y se queda la que había). Devuelve si ha cambiado el conjunto de islas.
+   * vacía y se queda la que había), y del estado de las islas, entero (`full`) o solo las que han
+   * cambiado. Devuelve si ha cambiado el conjunto de islas.
    */
-  apply({ islands, rev, states, players }) {
-    this.states = states;
+  apply({ islands, rev, states, statesRev, full = true, players }) {
+    this.states = full ? states : { ...this.states, ...states };
+    // (aunque llegue una foto más vieja que la anterior: así la siguiente pide desde ahí y se corrige)
+    session.statesRev = statesRev ?? null;
     this.players = players;
     if (!islands) return false;
     const before = [...this.islandMap.keys()].sort().join();

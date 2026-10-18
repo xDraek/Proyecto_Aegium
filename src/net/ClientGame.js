@@ -12,11 +12,13 @@ const SYNC_MS = 8000;
 /** Con la conexión en vivo abierta, el servidor avisa de los cambios: basta con preguntar de tarde en tarde. */
 const LIVE_SYNC_MS = 45_000;
 const MIN_GAP_MS = 1500;
+const STATES_FULL_MS = 60_000;
 
 export class ClientGame extends Game {
   static async connect() {
-    // Un mundo nuevo en el navegador: que mande la lista de islas entera
+    // Un mundo nuevo en el navegador: que mande la lista de islas y su estado enteros
     session.islandsRev = null;
+    session.statesRev = null;
     const snap = await api('GET', '/api/state');
     const game = new ClientGame({ state: snap.state, world: new ClientWorld(), userId: snap.userId, mode: 'mirror' });
     game.applySnapshot(snap, { first: true });
@@ -35,6 +37,7 @@ export class ClientGame extends Game {
     this.allianceApplications = snap.applications ?? 0;
     this.friendRequests = snap.friendRequests ?? 0;
     const islandsChanged = this.world.apply(snap.world);
+    if (snap.world.full !== false) this.statesFullAt = Date.now();
     this.state = snap.state;
     this.incoming = snap.incoming ?? [];
     this.world.joints = snap.joint ?? [];
@@ -109,6 +112,8 @@ export class ClientGame extends Game {
     if (this.syncing) return;
     this.syncing = true;
     try {
+      // De vez en cuando, el estado de las islas entero (normalmente llegan solo las que cambian)
+      if (Date.now() - (this.statesFullAt ?? 0) > STATES_FULL_MS) session.statesRev = null;
       this.applySnapshot(await api('GET', '/api/state'));
       if (this.offline) {
         this.offline = false;

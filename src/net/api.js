@@ -19,8 +19,11 @@ export function setToken(token) {
   }
 }
 
-/** La versión de la lista de islas que ya tiene el navegador: el servidor no la repite si no cambia. */
-export const session = { islandsRev: null };
+/**
+ * Las versiones de la lista de islas y de su estado que ya tiene el navegador: el servidor no repite
+ * la lista si no cambia, y del estado solo manda las islas que han cambiado.
+ */
+export const session = { islandsRev: null, statesRev: null };
 
 export class ApiError extends Error {
   constructor(message, status) {
@@ -35,7 +38,7 @@ export async function api(method, path, body) {
   try {
     res = await fetch(path, {
       method,
-      headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}), ...(session.islandsRev ? { 'x-islands': session.islandsRev } : {}) },
+      headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}), ...(session.islandsRev ? { 'x-islands': session.islandsRev } : {}), ...(session.statesRev ? { 'x-states': session.statesRev } : {}) },
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch {

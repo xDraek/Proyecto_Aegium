@@ -283,9 +283,11 @@ async function api(req, res, url) {
       return send(res, 401, { error: needEmail ? 'Ahora cada cuenta necesita un correo: vuelve a entrar para añadir el tuyo.' : 'Tienes que iniciar sesión.' });
     }
 
-    // La versión de la lista de islas que ya tiene el navegador (si es la de ahora, no se repite)
+    // Las versiones de la lista de islas y de su estado que ya tiene el navegador (lo que no ha
+    // cambiado desde entonces no se repite)
     const rev = String(req.headers['x-islands'] ?? '') || null;
-    if (route === 'GET /api/state') return send(res, 200, world.snapshot(uid, rev));
+    const srev = String(req.headers['x-states'] ?? '') || null;
+    if (route === 'GET /api/state') return send(res, 200, world.snapshot(uid, rev, srev));
 
     if (route === 'POST /api/action') {
       if (limited(`act:${uid}`, 40, 10_000)) return send(res, 429, { error: 'Vas demasiado rápido.' });
@@ -306,7 +308,7 @@ async function api(req, res, url) {
         if (joined) world.hostNews(joined.leaderId, `🤝 ${game.name} se une a tu ataque contra ${joined.targetName}`);
         for (const member of world.allianceOf(uid)?.members ?? []) world.pendingPush.add(member);
       }
-      const snapshot = world.snapshot(uid, rev);
+      const snapshot = world.snapshot(uid, rev, srev);
       world.pendingPush.delete(uid); // ya lo recibe en la respuesta
       return send(res, 200, { result, snapshot });
     }
@@ -350,7 +352,7 @@ async function api(req, res, url) {
     if (route === 'POST /api/city') {
       const { name } = await readJson(req);
       world.renameCity(uid, name);
-      return send(res, 200, { snapshot: world.snapshot(uid, rev) });
+      return send(res, 200, { snapshot: world.snapshot(uid, rev, srev) });
     }
     if (route === 'GET /api/email') return send(res, 200, { email: world.maskedEmail(uid) });
     if (route === 'POST /api/email') {
@@ -379,7 +381,7 @@ async function api(req, res, url) {
       else if (sub === 'answer') world.answerFriend(uid, body.name, body.accept === true);
       else if (sub === 'remove') world.removeFriend(uid, body.name);
       else return send(res, 404, { error: 'No existe.' });
-      return send(res, 200, { result, ...world.friendList(uid), snapshot: world.snapshot(uid, rev) });
+      return send(res, 200, { result, ...world.friendList(uid), snapshot: world.snapshot(uid, rev, srev) });
     }
     if (route === 'GET /api/alliances') return send(res, 200, { alliances: world.allianceList(uid) });
     if (route === 'GET /api/alliance') return send(res, 200, { alliance: world.allianceDetail(uid) });
@@ -403,19 +405,19 @@ async function api(req, res, url) {
         world.allianceCircular(uid, body.subject, body.text);
       }
       else return send(res, 404, { error: 'No existe.' });
-      return send(res, 200, { alliance: world.allianceDetail(uid), snapshot: world.snapshot(uid, rev) });
+      return send(res, 200, { alliance: world.allianceDetail(uid), snapshot: world.snapshot(uid, rev, srev) });
     }
 
     // Foro de la alianza
     if (route === 'GET /api/forum') return send(res, 200, world.forumList(uid));
-    if (route === 'GET /api/forum/thread') return send(res, 200, { thread: world.forumThread(uid, int(url.searchParams.get('id'))), snapshot: world.snapshot(uid, rev) });
+    if (route === 'GET /api/forum/thread') return send(res, 200, { thread: world.forumThread(uid, int(url.searchParams.get('id'))), snapshot: world.snapshot(uid, rev, srev) });
     if (req.method === 'POST' && url.pathname.startsWith('/api/forum')) {
       const body = await readJson(req);
       const sub = url.pathname.slice('/api/forum'.length);
       if (sub === '' || sub === '/reply') {
         if (limited(`forum:${uid}`, 6, 60_000)) return send(res, 429, { error: 'Escribes muy deprisa. Espera un minuto.' });
         const thread = world.forumPost(uid, sub === '' ? null : int(body.id), body.title, body.text);
-        return send(res, 200, { thread, snapshot: world.snapshot(uid, rev) });
+        return send(res, 200, { thread, snapshot: world.snapshot(uid, rev, srev) });
       }
       if (sub === '/pin' || sub === '/delete') {
         world.forumModerate(uid, int(body.id), sub.slice(1));
@@ -456,7 +458,7 @@ async function api(req, res, url) {
       else if (sub === '/accept') world.acceptOffer(uid, int(body.id));
       else if (sub === '/cancel') world.cancelOffer(uid, int(body.id));
       else return send(res, 404, { error: 'No existe.' });
-      return send(res, 200, { offers: world.listOffers(uid), snapshot: world.snapshot(uid, rev) });
+      return send(res, 200, { offers: world.listOffers(uid), snapshot: world.snapshot(uid, rev, srev) });
     }
 
     return send(res, 404, { error: 'No existe.' });

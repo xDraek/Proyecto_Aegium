@@ -14,6 +14,7 @@ import { hashPassword, newRecoveryCode, newSecret, normalizeCode, verifyPassword
 
 const VIEW_RADIUS = 700; // leguas alrededor de tu isla que ves en el mapa
 const ONLINE_MS = 5 * 60_000;
+const STATES_FULL_MS = 60_000; // cada cuánto se manda entero el estado de las islas a una conexión en vivo
 const MAX_CHAT = 300;
 const MAX_MAIL = 60;
 const MAX_MEMBERS = 20;
@@ -82,6 +83,10 @@ export class WorldServer {
     this.islandsCount = 0;
     this.islandList = null;
     this.islandStates = new Map(); // id → estado compartido
+    // Versión del estado de las islas: cada cambio (`touch`) la sube y apunta qué isla cambió, así a
+    // cada navegador solo se le mandan las islas que han cambiado desde la versión que ya tiene
+    this.statesSeq = 0;
+    this.stateRevs = new Map(); // id → versión en que cambió por última vez
     this.chat = [];
     this.dirtyIslands = new Set();
     this.newIslands = [];
@@ -214,6 +219,27 @@ export class WorldServer {
   #islandsChanged() {
     this.islandsCount++;
     this.islandList = null;
+    this.continentList = null;
+    this.ownerList = null;
+  }
+
+  /** Los continentes (donde puede haber una gesta), para no recorrer todas las islas en cada foto. */
+  #continents() {
+    return (this.continentList ??= [...this.islands.values()].filter((isl) => isl.type === 'continente'));
+  }
+
+  /** Quiénes tienen una ciudad o una colonia (los jugadores que salen en el mapa). */
+  #owners() {
+    if (!this.ownerList) {
+      const set = new Set();
+      for (const isl of this.islands.values()) {
+        if (isl.owner != null) set.add(isl.owner);
+        const c = this.islandStates.get(isl.id)?.colonizedBy;
+        if (c != null) set.add(c);
+      }
+      this.ownerList = [...set];
+    }
+    return this.ownerList;
   }
 
   /** La versión de la lista de islas (cambia al añadir una o al rebautizar una ciudad). */
@@ -414,6 +440,24 @@ export class WorldServer {
 
   touch(id) {
     this.dirtyIslands.add(id);
+    this.stateRevs.set(id, ++this.statesSeq);
+  }
+
+  /** La versión del estado de las islas, con el arranque delante (al reiniciar no vale ninguna de antes). */
+  statesRev() {
+    return `${this.islandsBoot}.${this.statesSeq}`;
+  }
+
+  /**
+   * Desde qué versión del estado de las islas basta con mandar lo que ha cambiado (`knownStates`, la
+   * que tiene el navegador), o -1 si hay que mandarlo todo: no tiene ninguna, es de otro arranque o
+   * ha cambiado la lista de islas.
+   */
+  #statesSince(knownRev, knownStates) {
+    if (knownRev !== this.islandsRev() || !knownStates) return -1;
+    const [boot, seq] = String(knownStates).split('.');
+    const n = Number(seq);
+    return boot === this.islandsBoot && Number.isSafeInteger(n) && n >= 0 && n <= this.statesSeq ? n : -1;
   }
 
   /** Si `viewer` puede ver cuándo se conecta `other`: él mismo y sus amigos, nadie más. */
@@ -553,6 +597,7 @@ export class WorldServer {
     rt.stockAt = now;
     this.touch(id);
     this.mapCache = null;
+    this.ownerList = null;
     return true;
   }
 
@@ -561,6 +606,7 @@ export class WorldServer {
     if (!rt || rt.colonizedBy != null) return false;
     rt.colonizedBy = userId;
     this.touch(id);
+    this.ownerList = null;
     return true;
   }
 
@@ -2128,31 +2174,42 @@ export class WorldServer {
    * Lo que ve un jugador: todo el archipiélago. La lista de islas (que casi nunca cambia) solo va
    * si quien lo pide no tiene ya la versión `knownRev`.
    */
-  snapshot(userId, knownRev = null) {
+  /**
+   * Lo que ve un jugador. `knownRev` y `knownStates`: las versiones de la lista de islas y de su
+   * estado que ya tiene el navegador. Si están al día, la lista no se repite y del estado solo van
+   * las islas que han cambiado desde entonces (`world.full` dice si va entero).
+   */
+  snapshot(userId, knownRev = null, knownStates = null) {
     const game = this.games.get(userId);
     const user = this.users.get(userId);
     const now = clock.now();
     game.update(now);
     const rev = this.islandsRev();
+    const since = this.#statesSince(knownRev, knownStates);
     const islands = (this.islandList ??= [...this.islands.values()]);
     const states = {};
-    const players = {};
-    for (const isl of islands) {
-      const rt = this.islandStates.get(isl.id);
-      if (rt?.feat) states[isl.id] = { ...rt, feat: this.#publicFeat(rt.feat, userId, isl.id) };
-      else if (rt && isl.loot) {
+    const put = (isl) => {
+      const rt = isl && this.islandStates.get(isl.id);
+      if (!rt) return;
+      if (rt.feat) states[isl.id] = { ...rt, feat: this.#publicFeat(rt.feat, userId, isl.id) };
+      else if (isl.loot) {
         // Cuántos defienden y cuánto botín tienen solo se sabe espiando (o atacando)
         // (ni si el Kraken está en esta fosa)
         const { garrison, stock, kraken, ...open } = rt;
         states[isl.id] = open;
-      } else if (rt) states[isl.id] = rt;
-      for (const uid of [isl.owner, rt?.colonizedBy]) {
-        if (uid != null && !players[uid]) {
-          // Si está conectado, solo se lo cuenta a sus amigos
-          const info = this.playerInfo(uid);
-          players[uid] = { ...info, online: this.seesOnline(userId, uid) ? info?.online : null, rel: this.relation(userId, uid), hitMe: uid !== userId && this.attackedBy(userId, uid) };
-        }
-      }
+      } else states[isl.id] = rt;
+    };
+    if (since < 0) for (const isl of islands) put(isl);
+    else {
+      // Solo las que han cambiado desde lo que tiene el navegador, y las gestas siempre (cada uno ve la suya)
+      for (const [id, r] of this.stateRevs) if (r > since) put(this.islands.get(id));
+      for (const isl of this.#continents()) if (this.islandStates.get(isl.id)?.feat) put(isl);
+    }
+    const players = {};
+    for (const uid of this.#owners()) {
+      // Si está conectado, solo se lo cuenta a sus amigos
+      const info = this.playerInfo(uid);
+      players[uid] = { ...info, online: this.seesOnline(userId, uid) ? info?.online : null, rel: this.relation(userId, uid), hitMe: uid !== userId && this.attackedBy(userId, uid) };
     }
     const a = this.allianceOf(userId);
     // El correo va aparte (puede ser largo): aquí solo cuántos sin leer
@@ -2170,7 +2227,7 @@ export class WorldServer {
       applications: a && this.#canManage(a, userId) ? (a.applications ?? []).length : 0,
       friendRequests: (this.meta.friendRequests[userId] ?? []).length,
       state,
-      world: { islands: knownRev === rev ? null : islands, rev, states, players },
+      world: { islands: knownRev === rev ? null : islands, rev, states, statesRev: this.statesRev(), full: since < 0, players },
       incoming: this.incoming(game.state.home, game.level('torre'), now),
       joint: this.#jointList(userId),
       traffic: this.#traffic(userId, game.state.home),
@@ -3010,17 +3067,20 @@ export class WorldServer {
   /** Manda el estado nuevo a quien esté conectado y haya tenido cambios. */
   flushPush() {
     const rev = this.islandsRev();
+    const now = Date.now();
     for (const uid of this.pendingPush) {
       const set = this.sockets.get(uid);
       if (!set || !this.games.has(uid)) continue;
-      // Cada conexión recibe la lista de islas solo si aún no tiene esta versión
-      let light = null;
-      let full = null;
+      // Cada conexión recibe la lista de islas solo si aún no tiene esta versión, y del estado de las
+      // islas, lo que ha cambiado desde lo último que le llegó (entero de vez en cuando, por si acaso)
       for (const ws of set) {
         if (ws.readyState !== 1) continue;
-        const data = ws.islandsRev === rev ? (light ??= JSON.stringify({ type: 'snapshot', data: this.snapshot(uid, rev) })) : (full ??= JSON.stringify({ type: 'snapshot', data: this.snapshot(uid) }));
-        ws.send(data);
+        const fresh = now - (ws.statesFullAt ?? 0) < STATES_FULL_MS;
+        const snap = this.snapshot(uid, ws.islandsRev ?? null, fresh ? ws.statesRev : null);
+        ws.send(JSON.stringify({ type: 'snapshot', data: snap }));
         ws.islandsRev = rev;
+        ws.statesRev = snap.world.statesRev;
+        if (snap.world.full) ws.statesFullAt = now;
       }
     }
     this.pendingPush.clear();
