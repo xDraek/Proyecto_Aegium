@@ -6,7 +6,7 @@ import { featAt, featCycle } from '../game/feats.js';
 import { api } from '../net/api.js';
 import { armyHtml, armySummary, featWait } from './army.js';
 import { buildingPanel } from './buildingPanel.js';
-import { bag, costItems, escapeHtml, fmtNum, fmtShort, fmtTiny, fmtTime, richText, unitList } from './format.js';
+import { bag, costItems, escapeHtml, fmtNum, fmtShort, fmtTiny, fmtTime, linkCoords, richText, unitList } from './format.js';
 import { installResPickers, syncResPickers } from './resPicker.js';
 import { citySimPreset, featSimPreset, fleetFor, islandPanel, readFleet, readPayload, readOpts } from './islandPanel.js';
 import { questsHtml, rankingHtml } from './modals.js';
@@ -174,6 +174,14 @@ export class Hud {
     this.friendsBtn.addEventListener('click', () => this.social.openFriends());
     $('#rank-btn').addEventListener('click', () => this.openModal('ranking'));
     $('#map-btn').addEventListener('click', () => this.worldMap.open());
+    // Las coordenadas [x:y] del chat, los informes o las fichas de las islas llevan al mapa del mundo
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest('[data-coords]');
+      if (!link) return;
+      e.preventDefault();
+      const [x, y] = link.dataset.coords.split(':').map(Number);
+      this.worldMap.open({ coords: [x, y] });
+    });
     // Novedades: las notas de las últimas actualizaciones (marcado mientras haya una sin leer)
     this.newsBtn = $('#news-btn');
     this.newsBtn.querySelector('.badge').hidden = !hasUnreadNews();
@@ -1425,7 +1433,7 @@ Al jurar, ${wars.join(' y ')}.` : '';
         const time = new Date(m.t).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
         return m.system
           ? `<div class="msg system"><span>${richText(m.text)}</span><time>${time}</time></div>`
-          : `<div class="msg${m.name === this.game.username ? ' mine' : ''}"><b data-profile="${escapeHtml(m.name)}">${escapeHtml(m.name)}</b>${m.title ? `<em class="msg-title">${escapeHtml(m.title)}</em>` : ''} <span>${escapeHtml(m.text)}</span>${
+          : `<div class="msg${m.name === this.game.username ? ' mine' : ''}"><b data-profile="${escapeHtml(m.name)}">${escapeHtml(m.name)}</b>${m.title ? `<em class="msg-title">${escapeHtml(m.title)}</em>` : ''} <span>${linkCoords(escapeHtml(m.text))}</span>${
               m.report ? `<button class="link small" data-shared="${m.id}">Ver informe ▶</button>` : ''
             }<time>${time}</time>${
               this.game.admin ? `<button class="msg-del" data-delete="${m.id}" title="Borrar mensaje">✕</button>` : ''

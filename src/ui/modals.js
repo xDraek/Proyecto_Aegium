@@ -88,7 +88,7 @@ function featsHtml(feats) {
   const hall = feats.hall
     .map((h) => {
       const t = FEAT_THEMES[h.theme];
-      const best = [h.top ? `⚡ ${escapeHtml(h.top)}` : '', h.heart ? `🦁 ${escapeHtml(h.heart)}` : '', h.navarch ? `⚓ ${escapeHtml(h.navarch)}` : ''].filter(Boolean).join(' · ');
+      const best = [h.top ? `⚡ ${escapeHtml(h.top)}` : '', h.heart ? `🦁 ${escapeHtml(h.heart)}` : '', h.navarch ? `⚓ ${escapeHtml(h.navarch)}` : '', h.relic ? `🏺 ${escapeHtml(h.relic)}` : ''].filter(Boolean).join(' · ');
       return `<li><span>${t?.icon ?? '🌋'} ${escapeHtml(t?.enemy ?? '')} en ${escapeHtml(h.siteName)} <span class="muted small">· ${date(h.t)} · ${h.players} imperios</span></span>
         <span class="small">${FEAT_RESULT[h.result] ?? ''}${best ? ` · ${best}` : ''}</span></li>`;
     })
@@ -99,7 +99,7 @@ function featsHtml(feats) {
   return `${active ? `<h4>En marcha</h4><ul class="mini-list hall">${active}</ul>` : '<p class="muted small">Ahora no hay ninguna gesta en marcha. Mira cuándo llega la próxima en el calendario 📅.</p>'}
     ${hall ? `<h4>🏛️ Salón de las gestas</h4><ul class="mini-list hall">${hall}</ul>` : ''}
     ${heroes ? `<h4>Héroes de la Liga</h4><ol class="mini-rank contest-list">${heroes}</ol>` : ''}
-    <p class="muted small">⚡ Azote: quien más gloria ganó · 🦁 Corazón de león: quien más se esforzó. <button class="link" data-guide="gestas">📖 Cómo funcionan las gestas</button></p>`;
+    <p class="muted small">⚡ Azote: quien más gloria ganó · 🦁 Corazón de león: quien más se esforzó · 🏺 quien ganó la disputa por la reliquia. <button class="link" data-guide="gestas">📖 Cómo funcionan las gestas</button></p>`;
 }
 
 function contestHtml(contest) {

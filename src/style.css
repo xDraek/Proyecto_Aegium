@@ -2541,6 +2541,50 @@ input[type='text'] {
   white-space: nowrap;
 }
 
+.worldmap .wm-coords {
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 3px;
+  color: var(--muted);
+}
+
+.worldmap .wm-coords input {
+  flex: 0 0 3.6em;
+  min-width: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.worldmap .wm-coords input::-webkit-outer-spin-button,
+.worldmap .wm-coords input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.wm-coords button {
+  margin-left: 3px;
+}
+
+.wm-pos {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  pointer-events: none;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(10, 8, 6, 0.7);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.link.coords {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .wm-legend {
   display: flex;
   flex-wrap: wrap;

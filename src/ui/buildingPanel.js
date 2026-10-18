@@ -405,7 +405,7 @@ function relicSection(game) {
     )
     .join('');
   return `<h4>🏺 Reliquias <span class="muted small">(${equipped}/${RELIC_SLOTS} equipadas)</span></h4>
-    ${rows || '<p class="desc small">Ninguna todavía. Se encuentran en las expediciones a la niebla, al saquear ruinas, al conquistar ciudades bárbaras… y el Kraken guarda una legendaria.</p>'}`;
+    ${rows || '<p class="desc small">Ninguna todavía. Las básicas aparecen a veces en ruinas, conquistas, hordas y expediciones; las épicas, al derrotar al Kraken; y las legendarias se disputan en las gestas de la Liga.</p>'}`;
 }
 
 function heroSection(game) {

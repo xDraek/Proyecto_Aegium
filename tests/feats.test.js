@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { clock, universe } from '../src/config.js';
 import { combineGroups, count } from '../src/game/combat.js';
-import { FEATS, UNITS } from '../src/game/data.js';
-import { capByRest, effectiveEmpires, featAt, featBoss, featCoop, featCycle, featHours, featPeriod, featPower, featRewards, forgeBonus, forgeGoal, forgeRoom, pledgeEmpires } from '../src/game/feats.js';
+import { FEATS, RELICS, UNITS } from '../src/game/data.js';
+import { capByRest, effectiveEmpires, featAt, featBoss, featCoop, featCycle, featHours, featPeriod, featPower, featRewards, forgeBonus, forgeGoal, forgeRoom, pledgeEmpires, relicDuel } from '../src/game/feats.js';
 import { upgradeState } from '../src/game/Game.js';
 import { makeWorld } from './world.js';
 
@@ -38,6 +38,24 @@ function pledgeAndSend(env, site, games, army = ARMY) {
 const fleetAt = (g, site) => g.state.missions.find((m) => m.target === site);
 
 // ── Reglas puras ─────────────────────────────────────────────────────────────
+
+test('la disputa por la reliquia: eliminatorias por gloria, el impar pasa y gana quien queda en pie', () => {
+  const p = (uid, n, glory) => ({ uid, units: { hoplita: n }, atkMul: 1, hpMul: 1, glory });
+  // Tres: el de más gloria pasa sin luchar y espera en la final
+  const r = relicDuel([p(1, 50, 300), p(2, 400, 200), p(3, 20, 100)], () => 0.5);
+  assert.deepEqual(r.rounds[0][0], { bye: 1 });
+  assert.equal(r.rounds[0][1].a, 2);
+  assert.equal(r.rounds[0][1].b, 3);
+  assert.equal(r.rounds.length, 2);
+  assert.equal(r.winner, 2, 'gana el ejército grande');
+  assert.ok(count(r.lost[1]) > 0 && count(r.lost[3]) > 0, 'las bajas son de verdad');
+  assert.ok(r.kills[2] > 0);
+  assert.ok(count(r.left[2]) < 400, 'el que gana también pierde gente');
+  // Uno solo (o nadie con tropas de combate)
+  assert.equal(relicDuel([p(7, 10, 0), { uid: 8, units: {}, glory: 999 }]).winner, 7);
+  assert.equal(relicDuel([{ uid: 8, units: {}, glory: 1 }]).winner, null);
+});
+
 
 test('el calendario de las gestas sale de la semilla y es el mismo para todos', () => {
   const a = featCycle(7);
@@ -286,7 +304,18 @@ test('con ejércitos de sobra, el enemigo cae y todos cobran (una sola vez)', as
     assert.ok(g.state.buffs.olimpo > clock.now(), 'bendición del Olimpo');
     assert.equal(g.state.reports.filter((r) => r.kind === 'gesta' && r.loot).length, 1, 'un solo premio');
   }
-  assert.ok(tops[0].state.relics.some((r) => r.id === 'rayozeus'), 'el Azote se lleva la legendaria de la gesta');
+  // La reliquia legendaria (de las de Tifón) es para uno solo: el que gana la disputa
+  const owners = players.filter((g) => (g.state.relics ?? []).some((r) => RELICS[r.id].rarity === 'legendaria'));
+  assert.equal(owners.length, 1, 'una sola legendaria');
+  assert.ok(['rayozeus', 'escama'].includes(owners[0].state.relics[0].id), 'de las de la gesta');
+  assert.ok(players.every((g) => g.state.reports.find((r) => r.kind === 'gesta' && r.loot).text.includes('Disputa por la reliquia')), 'todos saben quién se la queda');
+  // De la disputa vuelve herida una parte de los caídos
+  const duelText = players.map((g) => g.state.reports.find((r) => r.kind === 'gesta' && r.loot).text);
+  for (const text of duelText) {
+    const m = text.match(/pierdes (\d+) tropas de tierra, pero (\d+) vuelven heridas/);
+    if (m) assert.ok(Number(m[2]) >= Math.floor(Number(m[1]) * FEATS.reward.duelWounded) - 3 && Number(m[2]) <= Number(m[1]) * FEATS.reward.duelWounded);
+  }
+  assert.ok(duelText.some((t) => t.includes('vuelven heridas')), 'hubo disputa con heridos');
   for (const g of players) assert.ok(Object.keys(g.state.reports.find((r) => r.kind === 'gesta' && r.loot).loot).length > 0, 'con botín');
   // El sitio sube de nivel si cae pronto
   assert.equal(env.world.islandStates.get(site).featTier, 1);

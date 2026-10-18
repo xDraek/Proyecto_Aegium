@@ -1,5 +1,6 @@
 import { ISLAND_TYPES, PVP_RANGE, UNITS } from '../game/data.js';
 import { travelSeconds } from '../game/rules.js';
+import { COORD_CELL, coordsCenter, coordsOf, fmtCoords } from '../game/world.js';
 import { escapeHtml, fmtNum, fmtTime } from './format.js';
 
 // Mapa de todo el archipiélago: las ciudades de todos los jugadores y las
@@ -46,7 +47,8 @@ export class WorldMap {
     this.selected = null;
   }
 
-  async open(focusId = null) {
+  /** `focus`: el id de una ciudad o gesta, o { coords: [x, y] } para ir a esa casilla. */
+  async open(focus = null) {
     this.hud.showModal('worldmap', `<div class="modal-card wide"><p class="muted">Desplegando las cartas náuticas…</p></div>`);
     let data;
     try {
@@ -57,7 +59,7 @@ export class WorldMap {
     }
     if (this.hud.modalKind !== 'worldmap') return;
     this.data = data;
-    this.#mount(focusId);
+    this.#mount(focus);
   }
 
   #relation(uid, aid) {
@@ -65,7 +67,8 @@ export class WorldMap {
     return (aid != null && this.data.relations[aid]) || 'otro';
   }
 
-  #mount(focusId) {
+  #mount(focus) {
+    const focusId = typeof focus === 'string' ? focus : null;
     const { cities, islands } = this.data;
     this.byUid = new Map(cities.map((c) => [c.uid, c]));
     this.home = this.byUid.get(this.game.userId) ?? cities[0] ?? { x: 0, z: 0 };
@@ -85,11 +88,12 @@ export class WorldMap {
         ${head('🌍', 'Mapa del mundo', `${fmtNum(cities.length)} imperios · ${fmtNum(islands.length)} islas${wars ? ` · ⚔️ ${wars} ciudades enemigas` : ''}`)}
         <div class="wm-tools">
           <form class="inline-form wm-search"><input name="q" list="wm-names" placeholder="Buscar jugador o ciudad…" autocomplete="off" /><datalist id="wm-names">${names}</datalist><button class="ghost small">Buscar</button></form>
+          <form class="inline-form wm-coords" title="Ir a unas coordenadas">[<input name="x" type="number" inputmode="numeric" placeholder="x" aria-label="Coordenada x" />:<input name="y" type="number" inputmode="numeric" placeholder="y" aria-label="Coordenada y" />]<button class="ghost small">Ir</button></form>
           <button class="ghost small" data-wm="home" title="Volver a tu ciudad">⚜ Mi ciudad</button>
           <button class="ghost small" data-wm="in" title="Acercar">＋</button>
           <button class="ghost small" data-wm="out" title="Alejar">－</button>
         </div>
-        <div class="wm-wrap"><canvas></canvas><div class="wm-tip" hidden></div></div>
+        <div class="wm-wrap"><canvas></canvas><div class="wm-tip" hidden></div><div class="wm-pos"></div></div>
         <div class="wm-legend">${legend}<span><i style="background:#5f9a4a"></i>Continente</span>${this.data.feats?.length ? '<span>🌋 Gesta en marcha</span>' : ''}<span><i style="background:#d0663e"></i>Ciudad bárbara</span>${reach}<span>🏖️ De vacaciones</span><span>💤 Inactivo</span><span>⛓️ Puerto bloqueado</span><span>🦅 Ocupada</span></div>
         <div class="wm-info"><p class="muted small">Arrastra para moverte, usa la rueda para acercarte y pulsa una ciudad para ver quién vive en ella.</p></div>
       </div>`,
@@ -99,15 +103,26 @@ export class WorldMap {
     this.ctx = this.canvas.getContext('2d');
     this.tip = root.querySelector('.wm-tip');
     this.info = root.querySelector('.wm-info');
+    this.pos = root.querySelector('.wm-pos');
     this.cx = this.home.x;
     this.cz = this.home.z;
     this.scale = 0;
     this.selected = null;
+    this.mark = null;
+    this.pos.textContent = fmtCoords(coordsOf(this.home.x, this.home.z));
 
     root.querySelector('.wm-search').addEventListener('submit', (e) => {
       e.preventDefault();
       e.stopPropagation();
       this.#search(new FormData(e.target).get('q'));
+    });
+    root.querySelector('.wm-coords').addEventListener('submit', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const form = new FormData(e.target);
+      const [x, y] = [form.get('x'), form.get('y')].map((v) => Math.round(Number(v)));
+      if (String(form.get('x')).trim() === '' || String(form.get('y')).trim() === '' || !Number.isFinite(x) || !Number.isFinite(y)) return this.hud.toast('Escribe las dos coordenadas, por ejemplo 47 y 52.', 'error');
+      this.#goCoords([x, y]);
     });
     root.querySelector('.wm-tools').addEventListener('click', (e) => {
       const b = e.target.closest('[data-wm]');
@@ -122,8 +137,9 @@ export class WorldMap {
     });
     ro.observe(this.canvas.parentElement);
     this.#resize();
-    const focus = focusId && (cities.find((c) => c.id === focusId) ?? this.data.feats?.find((f) => f.site === focusId));
-    if (focus) this.#focus(focus, true);
+    const target = focusId && (cities.find((c) => c.id === focusId) ?? this.data.feats?.find((f) => f.site === focusId));
+    if (target) this.#focus(target, true);
+    else if (focus?.coords) this.#goCoords(focus.coords);
     // Las gestas laten en el mapa mientras está abierto
     if (this.data.feats?.length) this.#pulse();
   }
@@ -177,6 +193,19 @@ export class WorldMap {
     this.scale = Math.max(this.scale, this.#clampScale(this.w / 1400));
     if (select && target.uid != null) this.#select({ kind: 'city', item: target });
     else if (select && target.site) this.#select({ kind: 'feat', item: target });
+    this.#draw();
+  }
+
+  /** Centra el mapa en la casilla [x, y] y la marca. */
+  #goCoords([x, y]) {
+    this.mark = [x, y];
+    const c = coordsCenter(x, y);
+    this.cx = c.x;
+    this.cz = c.z;
+    this.scale = Math.max(this.scale, this.#clampScale(this.w / 900));
+    const form = this.hud.modal.querySelector('.wm-coords');
+    if (form) [form.x.value, form.y.value] = [x, y];
+    this.pos.textContent = fmtCoords([x, y]);
     this.#draw();
   }
 
@@ -286,6 +315,7 @@ export class WorldMap {
   }
 
   #hover(px, py) {
+    this.pos.textContent = fmtCoords(coordsOf(...this.#toWorld(px, py)));
     const hit = this.#hit(px, py);
     this.canvas.style.cursor = hit ? 'pointer' : 'grab';
     if (!hit) {
@@ -304,7 +334,8 @@ export class WorldMap {
       const owner = colonist ? this.byUid.get(colonist) : null;
       text = owner ? `🚩 Colonia de ${owner.name}` : `${t?.icon ?? ''} ${t?.name ?? type}`;
     }
-    this.tip.textContent = text;
+    const at = hit.kind === 'island' ? hit.item : [hit.item.x, hit.item.z];
+    this.tip.textContent = `${text} · ${fmtCoords(coordsOf(at[0], at[1]))}`;
     this.tip.hidden = false;
     this.tip.style.left = `${Math.min(px + 14, this.w - this.tip.offsetWidth - 6)}px`;
     this.tip.style.top = `${py + 14}px`;
@@ -321,7 +352,7 @@ export class WorldMap {
     const pos = hit.kind === 'city' || hit.kind === 'feat' ? hit.item : { x: hit.item[0], z: hit.item[1] };
     const dist = Math.round(Math.hypot(pos.x - this.home.x, pos.z - this.home.z));
     const trip = fmtTime(travelSeconds(this.game.state, dist, UNITS.trirreme.speed));
-    const far = `<span class="muted small">a ${fmtNum(dist)} leguas · ⛵ ${trip} en trirreme</span>`;
+    const far = `<span class="muted small">${fmtCoords(coordsOf(pos.x, pos.z))} · a ${fmtNum(dist)} leguas · ⛵ ${trip} en trirreme</span>`;
     if (hit.kind === 'city') {
       const c = hit.item;
       const rel = this.#relation(c.uid, c.aid);
@@ -370,24 +401,49 @@ export class WorldMap {
     ctx.fillStyle = sea;
     ctx.fillRect(0, 0, w, h);
 
-    // Cuadrícula de leguas
-    const step = scale > 0.25 ? 250 : scale > 0.08 ? 500 : 1000;
+    // Cuadrícula de coordenadas: casillas de COORD_CELL leguas (de cinco en cinco, o más, al alejarse)
+    const cellPx = COORD_CELL * scale;
+    const cells = cellPx >= 28 ? 1 : cellPx >= 6 ? 5 : cellPx >= 2.5 ? 10 : 20;
+    const step = cells * COORD_CELL;
     const [x0, z0] = this.#toWorld(0, 0);
     const [x1, z1] = this.#toWorld(w, h);
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    const [cx0, cy0] = coordsOf(x0, z0);
+    const [cx1, cy1] = coordsOf(x1, z1);
+    const xs = [];
+    const ys = [];
+    for (let k = Math.floor(cx0 / cells) * cells; k <= cx1 + 1; k += cells) xs.push([k, this.#toScreen(coordsCenter(k, 0).x - COORD_CELL / 2, 0)[0]]);
+    for (let k = Math.floor(cy0 / cells) * cells; k <= cy1 + 1; k += cells) ys.push([k, this.#toScreen(0, coordsCenter(0, k).z - COORD_CELL / 2)[1]]);
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    for (let x = Math.floor(x0 / step) * step; x <= x1; x += step) {
-      const [sx] = this.#toScreen(x, 0);
+    for (const [, sx] of xs) {
       ctx.moveTo(sx, 0);
       ctx.lineTo(sx, h);
     }
-    for (let z = Math.floor(z0 / step) * step; z <= z1; z += step) {
-      const [, sy] = this.#toScreen(0, z);
+    for (const [, sy] of ys) {
       ctx.moveTo(0, sy);
       ctx.lineTo(w, sy);
     }
     ctx.stroke();
+    // Los números de las casillas, arriba y a la izquierda
+    ctx.font = '10px Inter, system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.textAlign = 'left';
+    for (const [k, sx] of xs) if (sx > 18) ctx.fillText(k, sx + 3, 11);
+    for (const [k, sy] of ys) if (sy > 18 && sy < h - 40) ctx.fillText(k, 3, sy + 11);
+
+    // La casilla buscada
+    if (this.mark) {
+      const c = coordsCenter(...this.mark);
+      const [sx, sy] = this.#toScreen(c.x - COORD_CELL / 2, c.z - COORD_CELL / 2);
+      ctx.strokeStyle = 'rgba(242,201,76,0.9)';
+      ctx.fillStyle = 'rgba(242,201,76,0.12)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 4]);
+      ctx.fillRect(sx, sy, cellPx, cellPx);
+      ctx.strokeRect(sx, sy, cellPx, cellPx);
+      ctx.setLineDash([]);
+    }
 
     // Hasta donde llegan tus flotas de guerra (sin Cartas náuticas)
     if (!this.charts) {

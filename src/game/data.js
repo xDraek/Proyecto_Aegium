@@ -951,7 +951,8 @@ export const QUESTS = [
   { id: 'q-faro', title: 'Una luz en la noche', text: 'Construye el faro.', goal: lvl('faro', 1), reward: { piedra: 800, cristal: 200 } },
   { id: 'q-conquista', title: 'Señor del continente', text: 'Conquista una ciudad bárbara de un continente.', goal: stat('conquests', 1), reward: { oro: 3000, hierro: 2000 } },
   { id: 'q-maravilla', title: 'Obra de todos', text: 'Aporta 2.000 recursos a la maravilla de un continente.', goal: stat('donated', 2000), reward: { cristal: 1500, oro: 800 } },
-  { id: 'q-kraken', title: 'Matador de monstruos', text: 'Derrota al Kraken.', goal: stat('kraken', 1), reward: { oro: 5000, cristal: 5000 } },
+  // Solo hay un Kraken para todos: basta con vencer en una de sus fosas (o haberlo derrotado ya)
+  { id: 'q-kraken', title: 'Señor de la fosa', text: 'Gana un ataque contra una fosa del Kraken.', goal: (g) => [Math.min(1, (g.stats.lairs ?? 0) + (g.stats.kraken ?? 0)), 1], reward: { oro: 5000, cristal: 5000 } },
   { id: 'q-coloso1', title: 'Primera piedra', text: 'Empieza el Coloso (nivel 1).', goal: lvl('coloso', 1), reward: { oro: 2000, hierro: 2000 } },
   { id: 'q-coloso', title: 'Coloso de oro', text: 'Lleva el Coloso a nivel 10.', goal: lvl('coloso', 10), reward: { oro: 20000 } },
 ];
@@ -1007,33 +1008,48 @@ export const BANNER_COLORS = ['#d94f4f', '#4f8fd9', '#e3b23c', '#6bbf59', '#8a5a
 export const BANNER_EMBLEMS = ['🦅', '🐂', '🦁', '🐬', '🔱', '⚓', '🌞', '🌙', '⭐', '🗡️', '🐍', '🦉'];
 
 // ── Reliquias ────────────────────────────────────────────────────────────────
-// Objetos legendarios que aparecen en expediciones, ruinas y conquistas. Se
+// Tres grupos: las básicas (muy poca ventaja) aparecen a veces en ruinas,
+// conquistas, hordas y expediciones; las épicas, solo al vencer al Kraken; y las
+// legendarias, solo en las gestas, donde los juramentados se las disputan. Se
 // equipan hasta RELIC_SLOTS a la vez; las que sobran se venden por oro.
 
 export const RELICS = {
-  espada: { name: 'Espada de Jasón', icon: '🗡️', rarity: 'rara', stat: 'ataque', value: 0.06, text: '+6 % de ataque de tus tropas' },
-  escudo: { name: 'Escudo de Aquiles', icon: '🛡️', rarity: 'rara', stat: 'defensa', value: 0.08, text: '+8 % de vida de tus tropas' },
-  tridente: { name: 'Tridente de bronce', icon: '🔱', rarity: 'rara', stat: 'velocidad', value: 0.08, text: 'Flotas un 8 % más rápidas' },
-  ancla: { name: 'Ancla de Poseidón', icon: '⚓', rarity: 'rara', stat: 'botin', value: 0.15, text: '+15 % de carga en tus barcos' },
-  cuerno: { name: 'Cuerno de la abundancia', icon: '📯', rarity: 'rara', stat: 'comida', value: 0.12, text: '+12 % de comida' },
-  lira: { name: 'Lira de Orfeo', icon: '🎶', rarity: 'rara', stat: 'favor', value: 0.25, text: '+25 % de favor de los dioses' },
-  hoz: { name: 'Hoz de Cronos', icon: '🌙', rarity: 'epica', stat: 'produccion', value: 0.05, text: '+5 % de toda la producción' },
-  yelmo: { name: 'Yelmo de Hades', icon: '⛑️', rarity: 'epica', stat: 'sigilo', value: 0.5, text: 'Tus espías se dejan ver la mitad de veces' },
+  espada: { name: 'Espada de Jasón', icon: '🗡️', rarity: 'basica', stat: 'ataque', value: 0.02, text: '+2 % de ataque de tus tropas' },
+  escudo: { name: 'Escudo de Aquiles', icon: '🛡️', rarity: 'basica', stat: 'defensa', value: 0.03, text: '+3 % de vida de tus tropas' },
+  tridente: { name: 'Tridente de bronce', icon: '🔱', rarity: 'basica', stat: 'velocidad', value: 0.03, text: 'Flotas un 3 % más rápidas' },
+  ancla: { name: 'Ancla de Poseidón', icon: '⚓', rarity: 'basica', stat: 'botin', value: 0.05, text: '+5 % de carga en tus barcos' },
+  cuerno: { name: 'Cuerno de la abundancia', icon: '📯', rarity: 'basica', stat: 'comida', value: 0.04, text: '+4 % de comida' },
+  lira: { name: 'Lira de Orfeo', icon: '🎶', rarity: 'basica', stat: 'favor', value: 0.05, text: '+5 % de favor de los dioses' },
+  // Del Kraken
+  hoz: { name: 'Hoz de Cronos', icon: '🌙', rarity: 'epica', stat: 'produccion', value: 0.03, text: '+3 % de toda la producción' },
+  yelmo: { name: 'Yelmo de Hades', icon: '⛑️', rarity: 'epica', stat: 'sigilo', value: 0.3, text: 'Tus espías se dejan ver un 30 % menos' },
+  colmillo: { name: 'Colmillo del Kraken', icon: '🦷', rarity: 'epica', stat: 'ataque', value: 0.05, text: '+5 % de ataque de tus tropas' },
+  perla: { name: 'Perla del abismo', icon: '🦪', rarity: 'epica', stat: 'oro', value: 0.08, text: '+8 % de oro' },
+  ojo: { name: 'Ojo del Kraken', icon: '👁️', rarity: 'epica', stat: 'velocidad', value: 0.06, text: 'Flotas un 6 % más rápidas' },
+  // De las gestas: primero las de su tema (`source`, no salen en ningún otro sitio) y luego las demás
   mascara: { name: 'Máscara del Minotauro', icon: '🐂', rarity: 'legendaria', stat: 'ataque', value: 0.12, text: '+12 % de ataque de tus tropas' },
   vellocino: { name: 'Vellocino de oro', icon: '🐏', rarity: 'legendaria', stat: 'oro', value: 0.3, text: '+30 % de oro' },
-  // Solo se ganan en las gestas (`source`): no salen en ningún otro sitio
   rayozeus: { name: 'Rayo de Zeus', icon: '⚡', rarity: 'legendaria', stat: 'ataque', value: 0.1, text: '+10 % de ataque de tus tropas', source: 'tifon' },
-  escama: { name: 'Escama de Tifón', icon: '🐉', rarity: 'epica', stat: 'defensa', value: 0.1, text: '+10 % de vida de tus tropas', source: 'tifon' },
+  escama: { name: 'Escama de Tifón', icon: '🐉', rarity: 'legendaria', stat: 'defensa', value: 0.12, text: '+12 % de vida de tus tropas', source: 'tifon' },
   tiara: { name: 'Tiara del Gran Rey', icon: '👑', rarity: 'legendaria', stat: 'botin', value: 0.3, text: '+30 % de botín', source: 'armada' },
-  remo: { name: 'Remo de Temístocles', icon: '🚣', rarity: 'epica', stat: 'velocidad', value: 0.12, text: '+12 % de velocidad de tus flotas', source: 'armada' },
+  remo: { name: 'Remo de Temístocles', icon: '🚣', rarity: 'legendaria', stat: 'velocidad', value: 0.15, text: '+15 % de velocidad de tus flotas', source: 'armada' },
   nemea: { name: 'Piel del león de Nemea', icon: '🦁', rarity: 'legendaria', stat: 'defensa', value: 0.15, text: '+15 % de vida de tus tropas', source: 'hidra' },
 };
 export const RELIC_SLOTS = 3;
 export const RELIC_RARITY = {
-  rara: { name: 'Rara', color: '#6fb6ff', sell: 1500 },
-  epica: { name: 'Épica', color: '#b07ad9', sell: 4000 },
+  basica: { name: 'Básica', color: '#9fb3c8', sell: 600 },
+  epica: { name: 'Épica', color: '#b07ad9', sell: 2500 },
   legendaria: { name: 'Legendaria', color: '#f2c94c', sell: 10000 },
 };
+/** Probabilidad de una reliquia básica en ruinas, conquistas, hordas y expediciones. */
+export const BASIC_RELIC_CHANCE = 0.2;
+
+// ── El Kraken ────────────────────────────────────────────────────────────────
+// Solo hay uno en todos los mares. Cuando cae, tarda `regenHours` en recuperarse
+// (nadie lo sabe) y despierta en un momento cualquiera de las `windowHours`
+// siguientes, en una de las fosas que no estén arrasadas. Se avisa en el chat con
+// unas coordenadas aproximadas (a `hintCells` casillas como mucho).
+export const KRAKEN_RULES = { regenHours: 36, windowHours: 2, relicChance: 0.55, hintCells: 2 };
 
 // ── Encargos diarios ─────────────────────────────────────────────────────────
 // Cada día tocan tres, elegidos entre los que puedes hacer. Las cifras crecen
@@ -1223,11 +1239,11 @@ export const FEATS = {
     potCap: 0.4, // como mucho esta parte del bote para uno
     riskCap: 3, // el botín personal no pasa de esto por lo que arriesgaste
     wounded: [0.25, 0.1], // bajas que vuelven heridas: al ganar y al perder
+    duelWounded: 0.25, // bajas de la disputa por la reliquia que vuelven heridas
     blessing: 0.1, // +10 % de producción (plata y oro)
     blessingHours: 24,
     half: 0.4, // victoria a medias si al enemigo le queda esto o menos de vida
     heartMinGlory: 0.015, // para «Corazón de león» hace falta esta parte de la gloria
-    relicChance: [0.05, 0.12, 0.25],
     topBonus: 1.25, // botín del que más gloria gana
     phasePot: [0.1, 0.15], // parte del bote que se gana al vencer cada fase (si al final se pierde)
     offer: [1, 2], // horas de tu producción ofrendadas en la fragua para Bronce y Plata (Oro solo combatiendo)
@@ -1274,7 +1290,7 @@ export const FEAT_THEMES = {
       { unit: 'inmortal', name: 'El campamento', text: 'Inmortales y arqueros tras una empalizada. Se asalta con la misión Atacar, con la coraza. Mientras quede algún fondeadero libre se rehace; con el cerco completo no y pasa hambre.', glory: 650 },
     ],
     // Escuadras, salidas, campamento, cerco y hambre (ver featBoss y WorldServer.#waveArmada)
-    tune: { squad: 0.6, sortie: 0.25, sortieStep: 0.1, regenWaves: 2, camp: 4, campAtk: 0.04, siegeHp: 0.35, hunger: 0.15, hungerMax: 0.45, wall: 0.5, towers: 0.1, postGlory: 25, takeGlory: 15, satrapyHours: 48, navarch: { rara: 20, epica: 60, legendaria: 20 } },
+    tune: { squad: 0.6, sortie: 0.25, sortieStep: 0.1, regenWaves: 2, camp: 4, campAtk: 0.04, siegeHp: 0.35, hunger: 0.15, hungerMax: 0.45, wall: 0.5, towers: 0.1, postGlory: 25, takeGlory: 15, satrapyHours: 48, navarch: 1.25 },
     relics: ['tiara', 'remo'],
     emblem: '👑',
   },

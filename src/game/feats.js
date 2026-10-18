@@ -1,5 +1,6 @@
 import { universe } from '../config.js';
 import { FEATS, FEAT_THEMES, RESOURCES, RESOURCE_KEYS, UNITS } from './data.js';
+import { battle, hasCombat, power } from './combat.js';
 import { economy, hash01, playerCombat, totalUnits } from './rules.js';
 
 // Reglas puras de las Gestas de la Liga (eventos cooperativos). Las usan el
@@ -354,17 +355,61 @@ export function featRewards(players, { result, phasesWon = 0, tier = 0 }) {
     left = spill;
     open = next;
   }
-  // Reliquias: el primero y el corazón seguras; los demás, una probabilidad según su tramo
-  for (const id of ids) {
-    const o = out[id];
-    o.value = o.personal + o.pot;
-    if (!won || o.band < 0) continue;
-    // A medias, solo el primero se lleva la reliquia segura
-    if (o.top || (o.heart && result === 'victoria')) o.relic = { legendaria: 100 };
-    else if (result === 'victoria' && byGlory.indexOf(id) > 0 && byGlory.indexOf(id) <= 2) o.relic = { epica: 70, legendaria: 30 };
-    else if (result === 'victoria') o.relic = { chance: R.relicChance[o.band], weights: { rara: 60, epica: 35, legendaria: 5 } };
-  }
+  // (la reliquia legendaria no se reparte aquí: al caer el enemigo se la disputan, ver `relicDuel`)
+  for (const id of ids) out[id].value = out[id].personal + out[id].pot;
   return out;
+}
+
+/**
+ * La disputa por la reliquia legendaria: al caer el enemigo, los juramentados que siguen en pie
+ * luchan entre sí con las tropas de tierra que les quedan, por eliminatorias. En cada ronda el de
+ * más gloria se enfrenta al de menos (si son impares, el de más gloria pasa sin luchar) y quien
+ * gana sigue con lo que le queda. `players`: [{ uid, units, atkMul, hpMul, glory }].
+ * Devuelve { winner (uid o null si nadie tenía tropas), rounds: [[{ a, b, winner }] | { bye }],
+ * left: { uid: unidades }, lost: { uid: bajas }, kills: { uid: abatidos } }.
+ */
+export function relicDuel(players, rand = Math.random) {
+  const left = {};
+  const lost = {};
+  const kills = {};
+  for (const p of players) {
+    left[p.uid] = { ...p.units };
+    lost[p.uid] = {};
+    kills[p.uid] = 0;
+  }
+  const byGlory = (a, b) => (b.glory ?? 0) - (a.glory ?? 0);
+  let alive = players.filter((p) => hasCombat(p.units)).sort(byGlory);
+  const rounds = [];
+  while (alive.length > 1) {
+    const round = [];
+    const next = [];
+    if (alive.length % 2) {
+      next.push(alive[0]);
+      round.push({ bye: alive[0].uid });
+      alive = alive.slice(1);
+    }
+    while (alive.length) {
+      const a = alive.shift();
+      const b = alive.pop();
+      const r = battle({ units: left[a.uid], atkMul: a.atkMul, hpMul: a.hpMul }, { units: left[b.uid], atkMul: b.atkMul, hpMul: b.hpMul }, rand);
+      left[a.uid] = r.att.left;
+      left[b.uid] = r.def.left;
+      for (const [side, mine, theirs] of [[a, r.att.lost, r.def.lost], [b, r.def.lost, r.att.lost]]) {
+        for (const [id, n] of Object.entries(mine)) lost[side.uid][id] = (lost[side.uid][id] ?? 0) + n;
+        kills[side.uid] += Object.values(theirs).reduce((s, n) => s + n, 0);
+      }
+      // Gana quien conserva tropas de combate; si las conservan los dos (o ninguno), la fuerza que
+      // le queda y, a igualdad, la gloria
+      const aOk = hasCombat(left[a.uid]);
+      const bOk = hasCombat(left[b.uid]);
+      const w = aOk && !bOk ? a : bOk && !aOk ? b : power(left[b.uid], b.atkMul) > power(left[a.uid], a.atkMul) ? b : a;
+      round.push({ a: a.uid, b: b.uid, winner: w.uid });
+      next.push(w);
+    }
+    rounds.push(round);
+    alive = next.sort(byGlory);
+  }
+  return { winner: alive[0]?.uid ?? null, rounds, left, lost, kills };
 }
 
 /** Un premio en valor convertido en recursos: el 60 % en la mezcla de lo que produces y el 40 % en oro y cristal. */

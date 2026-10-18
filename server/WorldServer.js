@@ -1,11 +1,11 @@
 import { clock, universe } from '../src/config.js';
 import { RESOURCES } from '../src/game/data.js';
 import { assault, battle, combineGroups, count, hasCombat, shareSurvivors, splitForces } from '../src/game/combat.js';
-import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, forgeBonus, forgeGoal, forgeHours, forgeRoom, pledgeEmpires, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
-import { Game, newState } from '../src/game/Game.js';
-import { ACHIEVEMENTS, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, PROTECTION, UNITS, WONDERS } from '../src/game/data.js';
+import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, forgeBonus, forgeGoal, forgeHours, forgeRoom, pledgeEmpires, relicDuel, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
+import { Game, newState, rebuilding } from '../src/game/Game.js';
+import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, UNITS, WONDERS } from '../src/game/data.js';
 import { playerCombat, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
-import { footprint, freshIslandState, generateContinent, generateSector, homeIsland, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
+import { coordsOf, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { hashPassword, newRecoveryCode, newSecret, normalizeCode, verifyPassword } from './auth.js';
 
@@ -102,6 +102,8 @@ export class WorldServer {
     universe.eventSeed = this.meta.eventSeed;
     // (las tierras que daban oro, de mundos de antes, ahora dan cristal)
     for (const isl of data.islands) this.islands.set(isl.id, withoutGold(isl));
+    // Las fosas de antes guardaban cada una su Kraken: ahora solo hay uno para todos (ver #updateKraken)
+    for (const isl of this.islands.values()) if (isl.type === 'kraken') Object.assign(isl, KRAKEN_LAIR, { garrison: { ...KRAKEN_LAIR.garrison } });
     for (const [id, st] of Object.entries(data.islandStates)) this.islandStates.set(id, st);
     for (const isl of this.islands.values()) {
       if (isl.type !== 'jugador' && !this.islandStates.has(isl.id)) this.islandStates.set(isl.id, freshIslandState(isl, clock.now()));
@@ -666,7 +668,7 @@ export class WorldServer {
       this.pendingPush.add(Number(uid));
     }
     const best = ranking[0];
-    if (best && Math.random() < 0.5) this.games.get(Number(best[0]))?.awardRelic(`entre los estandartes de la horda de ${cont.name}`, { rara: 55, epica: 35, legendaria: 10 }, t);
+    if (best && Math.random() < BASIC_RELIC_CHANCE) this.games.get(Number(best[0]))?.awardRelic(`entre los estandartes de la horda de ${cont.name}`, 'basica', t);
     const names = ranking.slice(0, 3).map(([uid, n]) => `${h.names?.[uid] ?? '¿?'} (${n})`).join(', ');
     this.announce(`🏆 ¡La horda de ${cont.name} ha sido derrotada! Más bárbaros abatidos: ${names}`);
     rt.horde = null;
@@ -1094,7 +1096,7 @@ export class WorldServer {
     this.touch(id);
     // Resumen de la oleada en el chat de la gesta, para coordinarse
     this.announce(`${theme.icon} Oleada: ${Object.keys(byPlayer).length} imperios (${fmtN} efectivos, coraza ${Math.round(coop * 100)} %). ${ctx.lines.join(' ')}`, `f:${id}`);
-    if (ctx.victory) this.#finishFeat(id, tw, 'victoria');
+    if (ctx.victory) this.#finishFeat(id, tw, 'victoria', groups);
     else if (kind === 'tifon' && wave.phase !== boss.phase) this.announce(`${theme.icon} ${name}: cae la fase «${theme.phases[wave.phase].name}» de ${theme.enemy}. Empieza «${theme.phases[boss.phase].name}».`);
   }
 
@@ -1455,8 +1457,68 @@ export class WorldServer {
     }
   }
 
-  /** Se acaba la gesta: victoria, victoria a medias o derrota; se paga a cada uno y cambia el nivel del sitio. */
-  #finishFeat(id, t, result = null) {
+  /**
+   * La disputa por la reliquia legendaria, al caer el enemigo: los juramentados de la última oleada
+   * luchan entre sí, por eliminatorias, con las tropas de tierra que les quedan (ver `relicDuel`). Las
+   * bajas son de verdad (una parte vuelve herida al cobrar) y las flotas vuelven a casa con lo que
+   * quede. Si nadie sigue en pie, la reliquia es para quien más gloria ganó.
+   * Devuelve { winner (uid en texto), winnerName, lines, lost: { uid: n }, fallen: { uid: unidades } }.
+   */
+  #relicDuel(id, f, theme, last, rewards, t) {
+    const landOf = (units) => Object.fromEntries(Object.entries(units).filter(([u, n]) => n > 0 && UNITS[u].kind === 'tierra'));
+    // Las flotas de cada uno en la última oleada que siguen navegando (con las que les quedan)
+    const fleets = new Map();
+    for (const g of last) {
+      if (!f.pledged[g.uid] || !g.game.state.missions.includes(g.m)) continue;
+      if (!fleets.has(g.uid)) fleets.set(g.uid, { game: g.game, ms: [] });
+      fleets.get(g.uid).ms.push(g.m);
+    }
+    const players = [...fleets].map(([uid, { game, ms }]) => {
+      const units = {};
+      for (const m of ms) for (const [u, n] of Object.entries(landOf(m.units))) units[u] = (units[u] ?? 0) + n;
+      const c = playerCombat(game.state);
+      return { uid, units, atkMul: c.atkMul, hpMul: c.hpMul, glory: f.glory[uid] ?? 0 };
+    });
+    const res = relicDuel(players);
+    const nameOf = (uid) => f.pledged[uid]?.name ?? '¿?';
+    let winner = res.winner;
+    const lines = [];
+    if (winner == null) {
+      winner = Object.entries(rewards).find(([, r]) => r.top)?.[0] ?? null;
+      lines.push(winner != null ? `nadie seguía en pie con tropas de tierra, así que es para quien más gloria ganó: ${nameOf(winner)}.` : 'nadie seguía en pie con tropas de tierra para reclamarla.');
+    } else if (!res.rounds.length) {
+      lines.push(`solo ${nameOf(winner)} seguía en pie con tropas de tierra y se la queda sin luchar.`);
+    } else {
+      res.rounds.forEach((round, i) => {
+        const fights = round.map((x) => (x.bye != null ? `${nameOf(x.bye)} pasa sin luchar` : `${nameOf(x.winner)} vence a ${nameOf(x.winner === x.a ? x.b : x.a)}`));
+        lines.push(`${i === res.rounds.length - 1 ? 'Final' : `Ronda ${i + 1}`}: ${fights.join('; ')}.`);
+      });
+      lines.push(`¡${nameOf(winner)} se queda la reliquia!`);
+    }
+    // Las bajas, repartidas entre las flotas de cada uno
+    const lost = {};
+    for (const [uid, { game, ms }] of fleets) {
+      const n = Object.values(res.lost[uid] ?? {}).reduce((a, b) => a + b, 0);
+      if (!n && !res.kills[uid]) continue;
+      lost[uid] = n;
+      const lefts = shareSurvivors(ms.map((m) => landOf(m.units)), res.left[uid]);
+      const changes = ms.map((m, i) => [m, { ...Object.fromEntries(Object.entries(m.units).filter(([u]) => UNITS[u].kind !== 'tierra')), ...lefts[i] }]);
+      game.featDuel(changes, res.lost[uid] ?? {}, res.kills[uid] ?? 0);
+      this.pendingPush.add(Number(uid));
+    }
+    winner = winner != null ? String(winner) : null;
+    const winnerName = winner != null ? nameOf(winner) : null;
+    if (winnerName) this.announce(`🏺 ${winnerName} se queda la reliquia legendaria de ${theme.enemy} tras la disputa en ${this.islands.get(id)?.name ?? ''}.`);
+    this.announce(`🏺 Disputa por la reliquia: ${lines.join(' ')}`, `f:${id}`);
+    const byUid = (o) => Object.fromEntries(Object.entries(o).map(([uid, v]) => [String(uid), v]));
+    return { winner, winnerName, lines, lost: byUid(lost), fallen: byUid(res.lost) };
+  }
+
+  /**
+   * Se acaba la gesta: victoria, victoria a medias o derrota; se paga a cada uno y cambia el nivel del
+   * sitio. En una victoria, `last` son las flotas de la última oleada (las que se disputan la reliquia).
+   */
+  #finishFeat(id, t, result = null, last = []) {
     const rt = this.islandStates.get(id);
     const f = rt.feat;
     if (f.stage === 'fin') return;
@@ -1488,13 +1550,25 @@ export class WorldServer {
     let navarchName = null;
     // Los tres con más gloria de una victoria tienen estatua en su isla una semana
     const statues = result === 'victoria' ? Object.entries(rewards).filter(([, r]) => r.band >= 0).sort((a, b) => b[1].share - a[1].share).slice(0, 3).map(([uid]) => uid) : [];
+    // Al caer el enemigo, su reliquia legendaria se la disputan los que siguen en pie
+    const duel = result === 'victoria' ? this.#relicDuel(id, f, theme, last, rewards, t) : null;
     for (const [uid, r] of Object.entries(rewards)) {
       const game = this.games.get(Number(uid));
       if (!game) continue;
       game.update(t);
       const back = R.wounded[won ? 0 : 1];
       const wounded = Object.fromEntries(Object.entries(f.fallen[uid] ?? {}).map(([u, n]) => [u, Math.floor(n * back)]).filter(([, n]) => n > 0));
-      const bag = rewardBag(r.value, f.pledged[uid].mix);
+      // De la disputa por la reliquia también vuelve herida una parte de los caídos
+      let duelBack = 0;
+      for (const [u, n] of Object.entries(duel?.fallen[uid] ?? {})) {
+        const k = Math.floor(n * R.duelWounded);
+        if (k <= 0) continue;
+        wounded[u] = (wounded[u] ?? 0) + k;
+        duelBack += k;
+      }
+      const featBack = Object.values(wounded).reduce((a, b) => a + b, 0) - duelBack;
+      // El Navarco se lleva más botín
+      const bag = rewardBag(r.value * (uid === navarch ? theme.tune.navarch : 1), f.pledged[uid].mix);
       if (r.top) topName = f.pledged[uid].name;
       if (r.heart) heartName = f.pledged[uid].name;
       if (uid === navarch) navarchName = f.pledged[uid].name;
@@ -1505,23 +1579,24 @@ export class WorldServer {
           : 'No llegaste a ningún tramo de premio: hace falta combatir (o ofrendar) más.',
         r.top ? `⚡ Eres el Azote de ${theme.enemy}: quien más gloria ha ganado.` : '',
         r.heart ? '🦁 Corazón de león: nadie se ha esforzado más que tú.' : '',
-        uid === navarch ? '⚓ Navarco: nadie ha aguantado más oleadas en un fondeadero.' : '',
+        uid === navarch ? `⚓ Navarco: nadie ha aguantado más oleadas en un fondeadero (+${Math.round((theme.tune.navarch - 1) * 100)} % de botín).` : '',
         statues.includes(uid) ? `🗿 Tu isla levanta una estatua a tu victoria sobre ${theme.enemy}: todos la verán durante una semana.` : '',
         r.blessing ? `La bendición del Olimpo te da +${Math.round(R.blessing * 100)} % de producción durante ${r.blessing} h.` : '',
-        Object.keys(wounded).length ? `Vuelven ${Object.values(wounded).reduce((a, b) => a + b, 0)} heridos de los que cayeron.` : '',
+        featBack > 0 ? `Vuelven ${featBack} heridos de los que cayeron.` : '',
+        duel ? `🏺 Disputa por la reliquia: ${duel.lines.join(' ')}${duel.lost[uid] ? ` En la disputa pierdes ${duel.lost[uid]} tropas de tierra${duelBack ? `, pero ${duelBack} vuelven heridas a casa` : ''}.` : ''}` : '',
       ];
       game.receiveFeatReward(
         {
           bag,
           blessingHours: r.blessing,
           wounded,
-          relic: r.relic,
+          relic: duel?.winner === uid,
           theme: f.theme,
           top: r.top,
           heart: r.heart,
           won,
           emblem: result === 'victoria' && r.band >= 2 ? theme.emblem : null,
-          navarch: uid === navarch ? theme.tune.navarch : null,
+          navarch: uid === navarch,
           statue: statues.includes(uid) ? { theme: f.theme, until: t + Math.round(featHours(24 * 7)) } : null,
           report: { t, kind: 'gesta', island: id, islandName: name, outcome: won ? 'victoria' : 'derrota', enemy: theme.enemy, title, text: parts.filter(Boolean).join(' '), loot: bag },
         },
@@ -1535,7 +1610,7 @@ export class WorldServer {
     if (result === 'derrota') rt.featTier = Math.max(lo, (rt.featTier ?? 0) - 1);
     // Si la Armada gana, el continente queda un tiempo como satrapía: ni maravilla ni colonias nuevas
     if (result === 'derrota' && theme.kind === 'armada') rt.satrapyUntil = t + Math.round(featHours(theme.tune.satrapyHours));
-    this.meta.featHall = [{ k: f.k, site: id, siteName: name, theme: f.theme, result, t, players: Object.keys(f.pledged).length, top: topName, heart: heartName, navarch: navarchName }, ...(this.meta.featHall ?? [])].slice(0, 12);
+    this.meta.featHall = [{ k: f.k, site: id, siteName: name, theme: f.theme, result, t, players: Object.keys(f.pledged).length, top: topName, heart: heartName, navarch: navarchName, relic: duel?.winnerName ?? null }, ...(this.meta.featHall ?? [])].slice(0, 12);
     const msg = {
       victoria: `${theme.icon} ¡${cap(theme.enemy)} ha caído en ${name}!${topName ? ` Azote: ${topName}.` : ''}${heartName ? ` Corazón de león: ${heartName}.` : ''}`,
       media: `${theme.icon} ${cap(theme.enemy)} huye malherido de ${name}: victoria a medias.`,
@@ -1544,6 +1619,48 @@ export class WorldServer {
     this.announce(msg);
     this.touch(id);
     this.mapCache = null;
+  }
+
+  // ── El Kraken ──────────────────────────────────────────────────────────────
+
+  /**
+   * Solo hay un Kraken en todos los mares. Mientras duerme, nadie sabe cuándo despertará: cuando le
+   * llega la hora (`wakeAt`, que nunca sale del servidor) aparece en una fosa cualquiera que no esté
+   * arrasada y se avisa en el chat con unas coordenadas aproximadas. Allí se queda hasta que caiga.
+   */
+  #updateKraken(now) {
+    const k = (this.meta.kraken ??= { lair: null, wakeAt: now + Math.random() * featHours(KRAKEN_RULES.windowHours) });
+    if (k.lair != null) {
+      if (this.islandStates.get(k.lair)?.kraken) return;
+      // (la fosa ya no lo tiene: que vuelva a despertar en otra)
+      k.lair = null;
+      k.wakeAt = now;
+    }
+    if (now < k.wakeAt) return;
+    const lairs = [...this.islands.values()].filter((isl) => isl.type === 'kraken' && this.islandStates.has(isl.id) && !rebuilding(isl, this.islandStates.get(isl.id), now));
+    if (!lairs.length) {
+      k.wakeAt = now + 10 * 60_000;
+      return;
+    }
+    const isl = lairs[Math.floor(Math.random() * lairs.length)];
+    this.islandStates.get(isl.id).kraken = true;
+    this.touch(isl.id);
+    k.lair = isl.id;
+    k.wokeAt = now;
+    const [cx, cy] = coordsOf(isl.x, isl.z);
+    const d = KRAKEN_RULES.hintCells;
+    const off = () => Math.floor(Math.random() * (2 * d + 1)) - d;
+    this.announce(`🐙 ¡El Kraken ha despertado! Los marineros han visto sus tentáculos cerca de ${fmtCoords([cx + off(), cy + off()])}.`);
+  }
+
+  /** Alguien ha derrotado al Kraken: vuelve a dormir y despertará en un momento que nadie sabe. */
+  krakenSlain(id, name, t) {
+    const R = KRAKEN_RULES;
+    const isl = this.islands.get(id);
+    this.meta.kraken = { lair: null, slainAt: t, wakeAt: t + featHours(R.regenHours) + Math.random() * featHours(R.windowHours) };
+    this.touch(id);
+    const where = isl ? `${isl.name} ${fmtCoords(coordsOf(isl.x, isl.z))}` : 'su fosa';
+    this.announce(`🐙 ${name} ha derrotado al Kraken en ${where}. Vuelve a dormir en las profundidades… hasta quién sabe cuándo.`);
   }
 
   // ── Competición semanal ────────────────────────────────────────────────────
@@ -1968,6 +2085,7 @@ export class WorldServer {
     if (this.meta.contest && Date.now() >= this.meta.contest.end) this.#finishContest();
     this.#updateHordes(now);
     this.#updateFeats(now);
+    this.#updateKraken(now);
     this.#checkStations(now);
     // Enlaces de correo caducados (cada diez minutos)
     if (Date.now() - (this.tokenSweep ?? 0) > 600_000) {
@@ -2024,7 +2142,8 @@ export class WorldServer {
       if (rt?.feat) states[isl.id] = { ...rt, feat: this.#publicFeat(rt.feat, userId, isl.id) };
       else if (rt && isl.loot) {
         // Cuántos defienden y cuánto botín tienen solo se sabe espiando (o atacando)
-        const { garrison, stock, ...open } = rt;
+        // (ni si el Kraken está en esta fosa)
+        const { garrison, stock, kraken, ...open } = rt;
         states[isl.id] = open;
       } else if (rt) states[isl.id] = rt;
       for (const uid of [isl.owner, rt?.colonizedBy]) {

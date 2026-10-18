@@ -107,7 +107,7 @@ test('la Armada: con el cerco completo el campamento pasa hambre y no se rehace'
   assert.ok(f.boss.inmortal < before);
 });
 
-test('la Armada: con el cerco completo y un buen asalto el campamento cae; el Navarco gana su reliquia', async () => {
+test('la Armada: con el cerco completo y un buen asalto el campamento cae; el Navarco cobra más', async () => {
   const { env, site, f, players, posts } = await themeWorld('armada', 4, NAVY);
   // Primero solo el cerco, una oleada para tomar los fondeaderos: si el campamento cayera en la misma
   // oleada en que se toman, nadie habría aguantado ninguna y no habría Navarco
@@ -127,7 +127,9 @@ test('la Armada: con el cerco completo y un buen asalto el campamento cae; el Na
   assert.equal(f.result, 'victoria');
   assert.equal(players.filter((g) => g.state.stats.featNavarch === 1).length, 1, 'un Navarco');
   const nav = players.find((g) => g.state.stats.featNavarch === 1);
-  assert.ok(nav.state.relics.length >= 1);
+  assert.ok(nav.state.reports.find((r) => r.kind === 'gesta' && r.loot).text.includes('Navarco'));
+  // Una sola reliquia legendaria, para el que gana la disputa
+  assert.equal(players.filter((g) => g.state.relics?.length).length, 1);
   // Las flotas de los fondeaderos vuelven a casa al acabar
   for (const g of players) assert.ok(!g.state.missions.some((m) => m.target === site && m.phase === 'estacionada'));
   // Los tres de más gloria tienen estatua

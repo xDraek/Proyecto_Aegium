@@ -3,6 +3,7 @@ import { BLOCKADE, COLONY, FEATS, FEAT_THEMES, ISLAND_TYPES, MISSION_TYPES, OCCU
 import { colonyUpgrade, colonyYield, navalDefense, playerCombat, spyRisk, wallBonus } from '../game/rules.js';
 import { featCoop, forceOf, forgeBonus } from '../game/feats.js';
 import { NEWBIE_POINTS, neutralsOf } from '../game/Game.js';
+import { coordsOf, fmtCoords } from '../game/world.js';
 import { createIslandBase, createIslandFeature, islandLook } from '../scene/islands.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
 import { bag, costList, escapeHtml, fmtAgo, fmtNum, fmtTime, intelRows, unitList } from './format.js';
@@ -510,7 +511,7 @@ function infoSectionFor(game, view, t) {
     barbaros: 'Una tribu de bárbaros ha levantado aquí su campamento. Acumulan lo que roban y se rearman con el tiempo.',
     ciudadela: 'Una ciudad bárbara amurallada tierra adentro: muchos guerreros y mucho botín. Lleva catapultas para abrir brecha en su empalizada.',
     piratas: 'Guarida de piratas bien fortificada. Las catapultas ayudan a abrir brecha en sus muros.',
-    kraken: 'Aquí duerme el Kraken, rodeado de barcos hundidos y del oro de mil naufragios.',
+    kraken: 'Una fosa de corsarios entre barcos hundidos y el oro de mil naufragios. Solo hay un Kraken en todos los mares: despierta de vez en cuando en una de estas fosas, y nadie sabe cuándo ni en cuál. Envía un bote explorador para saber si está aquí.',
   }[view.type];
   return `<p class="desc">${flavor}</p>${lines.join('')}
     <p class="desc small">Se rearman por completo en unas ${fmtNum(view.regenHours)} h de juego. Solo te llevas el botín si acabas con toda la guarnición.</p>`;
@@ -785,7 +786,7 @@ export function islandPanel(hud, id) {
       <span class="panel-icon">${icon}</span>
       <div>
         <h3>${escapeHtml(view.name)}</h3>
-        <div class="panel-lvl">${sub} · a ${fmtNum(view.dist)} leguas</div>
+        <div class="panel-lvl">${sub} · <button class="link coords" data-coords="${coordsOf(view.x, view.z).join(':')}" title="Ver en el mapa del mundo">${fmtCoords(coordsOf(view.x, view.z))}</button> · a ${fmtNum(view.dist)} leguas</div>
       </div>
       <button class="icon-btn help-btn" data-action="guide" data-topic="${islandGuide(view)}" title="Qué es esto (guía)">?</button>
       <button class="icon-btn" data-action="close" title="Cerrar">✕</button>

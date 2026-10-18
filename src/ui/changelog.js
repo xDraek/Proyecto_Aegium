@@ -5,6 +5,18 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-18d',
+    date: '2026-10-18',
+    title: 'Un solo Kraken, reliquias nuevas y coordenadas',
+    items: [
+      '🐙 Ahora solo hay <b>un Kraken</b> en todos los mares. Despierta en una de las fosas cuando nadie lo espera y en el chat se avisa con unas coordenadas aproximadas: manda exploradores a buscarlo. Cuando alguien lo derrota, vuelve a dormir y nadie sabe cuándo regresará.',
+      '🏴‍☠️ Las fosas del Kraken siguen ahí, pero sin él: ahora las guardan muchos más corsarios y piratas, con el oro de mil naufragios. La misión «Señor de la fosa» pide ganar un ataque contra una de ellas.',
+      '🏺 Las <b>reliquias</b> son ahora de tres clases. <b>Básicas</b> (muy poca ventaja): un 20 % en ruinas, conquistas, hordas y expediciones. <b>Épicas</b>: solo las deja el Kraken, un 55 % de las veces. <b>Legendarias</b>: solo en las gestas de la Liga. Las que ya tenías se quedan, con el valor de su nueva clase.',
+      '⚔️ Al caer el enemigo de una gesta deja siempre una reliquia legendaria, y los juramentados de la última oleada <b>se la disputan</b> con las tropas de tierra que les quedan, por eliminatorias (una cuarta parte de los que caen en la disputa vuelve herida a casa). El Azote y el Corazón de león ya no se llevan reliquia segura, y el Navarco cobra un 25 % más de botín.',
+      '📍 El mapa del mundo tiene <b>coordenadas</b> [x:y], como en Ikariam. Las ves en la ficha de cada isla y al pasar por el mapa, y puedes ir a unas concretas. Las coordenadas que salen en el chat se pueden pulsar.',
+    ],
+  },
+  {
     id: '2026-10-18c',
     date: '2026-10-18',
     title: 'Menos comida de la granja',

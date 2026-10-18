@@ -125,5 +125,10 @@ export function escapeHtml(s) {
  * emoji del bronce: los textos guardan 🥉 (o 🔩, de cuando era hierro) porque viajan como texto.
  */
 export function richText(s) {
-  return escapeHtml(s).replace(/🥉|🔩/g, RESOURCES.hierro.icon);
+  return linkCoords(escapeHtml(s).replace(/🥉|🔩/g, RESOURCES.hierro.icon));
+}
+
+/** Las coordenadas «[47:52]» de un texto ya escapado, como enlaces al mapa del mundo. */
+export function linkCoords(html) {
+  return html.replace(/\[(-?\d{1,3}):(-?\d{1,3})\]/g, (m, x, y) => `<button class="link coords" data-coords="${x}:${y}" title="Ver en el mapa del mundo">${m}</button>`);
 }

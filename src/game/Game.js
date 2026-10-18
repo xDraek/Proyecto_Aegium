@@ -4,6 +4,7 @@ import {
   BANNER_COLORS,
   BLOCKADE,
   BANNER_EMBLEMS,
+  BASIC_RELIC_CHANCE,
   BUILDINGS,
   BUILDING_KEYS,
   CANCEL_REFUND,
@@ -24,6 +25,7 @@ import {
   MERCENARIES,
   MERCENARY_HOURS,
   JOINT_MAX,
+  KRAKEN_RULES,
   LAND_UNITS,
   OCCUPATION,
   OUTPOST_MISSIONS,
@@ -145,7 +147,7 @@ export function newState({ now = clock.now(), home, name }) {
     notes: [],
     favor: 0,
     buffs: {},
-    stats: { spent: 0, victories: 0, raidsRepelled: 0, expeditions: 0, powers: 0, treasures: 0, kraken: 0, pvpWins: 0, trades: 0, transports: 0, kills: 0, loot: 0, conquests: 0, donated: 0, contestWins: 0, trained: 0, explorations: 0, exchanges: 0, upgrades: 0, researched: 0, sabotages: 0, feats: 0, featTop: 0, featHeart: 0, featNavarch: 0, featHydra: 0 },
+    stats: { spent: 0, victories: 0, raidsRepelled: 0, expeditions: 0, powers: 0, treasures: 0, kraken: 0, lairs: 0, pvpWins: 0, trades: 0, transports: 0, kills: 0, loot: 0, conquests: 0, donated: 0, contestWins: 0, trained: 0, explorations: 0, exchanges: 0, upgrades: 0, researched: 0, sabotages: 0, feats: 0, featTop: 0, featHeart: 0, featNavarch: 0, featHydra: 0 },
     daily: { last: null, streak: 0, best: 0 },
     hero: null,
     quests: { claimed: [] },
@@ -906,24 +908,20 @@ export class Game extends EventTarget {
     return this.#done();
   }
 
-  /** Una reliquia que aún no tienes, de la rareza que toque (o su valor en oro si ya las tienes todas). */
-  #findRelic(t, where, weights, theme = null) {
+  /**
+   * Una reliquia de la rareza `rarity` que aún no tienes (o su valor en oro si ya las tienes todas).
+   * Con `theme` (una gesta), primero las suyas.
+   */
+  #findRelic(t, where, rarity, theme = null) {
     const owned = new Set((this.state.relics ?? []).map((r) => r.id));
-    let roll = Math.random() * Object.values(weights).reduce((a, b) => a + b, 0);
-    let rarity = 'rara';
-    for (const [k, w] of Object.entries(weights)) {
-      if ((roll -= w) < 0) {
-        rarity = k;
-        break;
-      }
-    }
     // Las reliquias de una gesta solo salen en ella (y allí, antes que las demás)
-    const free = Object.keys(RELICS).filter((id) => !owned.has(id) && (!RELICS[id].source || RELICS[id].source === theme));
-    const own = free.filter((id) => RELICS[id].rarity === rarity && RELICS[id].source === theme);
-    const pool = own.length ? own : free.filter((id) => RELICS[id].rarity === rarity);
-    const id = (pool.length ? pool : free)[Math.floor(Math.random() * (pool.length || free.length))];
+    const free = Object.keys(RELICS).filter((id) => !owned.has(id) && RELICS[id].rarity === rarity && (!RELICS[id].source || RELICS[id].source === theme));
+    const own = free.filter((id) => RELICS[id].source === theme);
+    const pool = own.length ? own : free;
+    const id = pool[Math.floor(Math.random() * pool.length)];
     if (!id) {
       this.#gain({ oro: RELIC_RARITY[rarity].sell });
+      this.#note(`🏺 Ya tienes todas las reliquias ${RELIC_RARITY[rarity].name.toLowerCase()}s: te llevas 🪙 ${RELIC_RARITY[rarity].sell.toLocaleString('es-ES')}`, 'success');
       return;
     }
     const def = RELICS[id];
@@ -1735,6 +1733,17 @@ export class Game extends EventTarget {
     }
   }
 
+  /** La disputa por la reliquia de una gesta: tus flotas (`changes`: [misión, unidades]) vuelven con lo que les queda. */
+  featDuel(changes, lost, kills) {
+    for (const [m, units] of changes) {
+      m.units = clean(units);
+      if (!count(m.units)) this.state.missions = this.state.missions.filter((x) => x !== m);
+    }
+    this.#mercsLost(lost);
+    this.state.stats.kills += kills;
+    this.#dirty = true;
+  }
+
   /** Se acaba la gesta: las flotas que esperaban vuelven a casa sin combatir. */
   featRelease(m, t, text) {
     if (m.phase !== 'estacionada' || m.feat == null) return;
@@ -1776,13 +1785,8 @@ export class Game extends EventTarget {
     if (s.feat) s.feat.result = report?.outcome ?? null;
     if (report) this.#report(report);
     if (report) this.#note(`${FEAT_THEMES[theme]?.icon ?? '🌋'} ${report.title}${fmtBag(bag) ? ` · ${fmtBag(bag)}` : ''}`, won ? 'success' : 'error');
-    if (relic) {
-      const where = `entre los restos de ${FEAT_THEMES[theme]?.enemy ?? 'la bestia'}`;
-      if (relic.chance == null) this.#findRelic(t, where, relic, theme);
-      else if (Math.random() < relic.chance) this.#findRelic(t, where, relic.weights, theme);
-    }
-    // El Navarco de la Armada se lleva además una reliquia segura
-    if (navarch) this.#findRelic(t, 'en la galera capitana persa', navarch, theme);
+    // La reliquia legendaria, para quien gana la disputa al caer el enemigo
+    if (relic) this.#findRelic(t, `al vencer en la disputa por los restos de ${FEAT_THEMES[theme]?.enemy ?? 'la bestia'}`, 'legendaria', theme);
     this.#dirty = true;
   }
 
@@ -2311,13 +2315,15 @@ export class Game extends EventTarget {
       this.world.touch?.(isl.id);
       this.state.stats.treasures++;
       for (const [res, n] of Object.entries(isl.treasure)) m.cargo[res] = (m.cargo[res] ?? 0) + n;
-      if (Math.random() < 0.35) this.#findRelic(t, `entre las ruinas de ${isl.name}`, { rara: 60, epica: 35, legendaria: 5 });
+      if (Math.random() < BASIC_RELIC_CHANCE) this.#findRelic(t, `entre las ruinas de ${isl.name}`, 'basica');
       loot = { ...isl.treasure };
       text += ' ¡Entre los escombros había un tesoro!';
     } else if (isl.type === 'ruinas') {
       text += ' Alguien se llevó ya el tesoro.';
     } else if (intel.rebuildUntil) {
       text += ' Alguien la ha arrasado hace poco: se están reconstruyendo y no hay nada que llevarse.';
+    } else if (isl.type === 'kraken') {
+      text += intel.garrison.kraken ? ' 🐙 ¡El Kraken está aquí! Sus ojos brillan al fondo de la fosa.' : ' El Kraken no está: solo sus corsarios guardan la fosa.';
     } else if (isl.type === 'libre') {
       text += rt.colonizedBy != null
         ? ` Ya es una colonia de ${this.world.playerInfo(rt.colonizedBy)?.name ?? 'otro imperio'}.`
@@ -2427,8 +2433,8 @@ export class Game extends EventTarget {
   }
 
   /** Una reliquia como premio (por ejemplo, por ser quien más bárbaros abatió). */
-  awardRelic(where, weights, t = this.now()) {
-    this.#findRelic(t, where, weights);
+  awardRelic(where, rarity, t = this.now()) {
+    this.#findRelic(t, where, rarity);
     this.#flush(true);
   }
 
@@ -2850,7 +2856,7 @@ export class Game extends EventTarget {
       rt.looted = true;
       this.state.stats.treasures++;
       for (const [res, n] of Object.entries(isl.treasure)) m.cargo[res] = (m.cargo[res] ?? 0) + n;
-      if (Math.random() < 0.35) this.#findRelic(t, `entre las ruinas de ${isl.name}`, { rara: 60, epica: 35, legendaria: 5 });
+      if (Math.random() < BASIC_RELIC_CHANCE) this.#findRelic(t, `entre las ruinas de ${isl.name}`, 'basica');
     }
     const garrison = garrisonAt(isl, rt, t);
     const stock = stockAt(isl, rt, t);
@@ -2907,13 +2913,15 @@ export class Game extends EventTarget {
     );
     if (outcome === 'victoria') this.state.stats.victories++;
     if (loot) this.state.stats.loot += count(loot);
-    // Solo cuenta (y da reliquia) si el Kraken estaba y ha caído en esta batalla: mientras se recupera
-    // de su derrota, en la fosa solo quedan sus corsarios
-    if (isl.type === 'kraken' && outcome === 'victoria' && (result.def.lost?.kraken ?? 0) > 0) {
+    if (isl.type === 'kraken' && outcome === 'victoria') this.state.stats.lairs = (this.state.stats.lairs ?? 0) + 1;
+    // Solo hay un Kraken: si estaba en esta fosa y ha caído, vuelve a dormir hasta quién sabe cuándo
+    // (y a veces deja una reliquia épica)
+    if (isl.type === 'kraken' && (result.def.lost?.kraken ?? 0) > 0) {
+      rt.kraken = false;
       this.state.stats.kraken++;
       this.#note('🐙 ¡Has derrotado al Kraken! Los mares son tuyos.', 'success');
-      this.#findRelic(t, 'entre los restos del Kraken', { epica: 30, legendaria: 70 });
-      this.world.announce?.(`🐙 ${this.state.name} ha derrotado al Kraken de ${isl.name}`);
+      if (Math.random() < KRAKEN_RULES.relicChance) this.#findRelic(t, 'entre los restos del Kraken', 'epica');
+      this.world.krakenSlain?.(isl.id, this.state.name, t);
     }
   }
 
@@ -2964,7 +2972,7 @@ export class Game extends EventTarget {
     this.state.colonies.push({ id: isl.id, name: isl.name, specialty, yield: colonyYieldBase, conquered: true });
     this.state.wonderBonus = this.world.wonderBonusFor?.(this.state.colonies) ?? this.state.wonderBonus;
     this.state.stats.conquests = (this.state.stats.conquests ?? 0) + 1;
-    if (Math.random() < 0.3) this.#findRelic(t, `en el gran salón de ${isl.name}`, { rara: 50, epica: 40, legendaria: 10 });
+    if (Math.random() < BASIC_RELIC_CHANCE) this.#findRelic(t, `en el gran salón de ${isl.name}`, 'basica');
     m.units.mercante -= 1;
     if (!m.units.mercante) delete m.units.mercante;
     const r = RESOURCES[specialty];
@@ -3108,7 +3116,7 @@ export class Game extends EventTarget {
     }
     this.#report(report);
     this.#note(`🧭 Expedición: ${report.title}`, report.outcome === 'derrota' ? 'error' : 'success');
-    if (report.outcome !== 'derrota' && Math.random() < 0.12) this.#findRelic(t, 'en la niebla', { rara: 70, epica: 25, legendaria: 5 });
+    if (report.outcome !== 'derrota' && Math.random() < BASIC_RELIC_CHANCE) this.#findRelic(t, 'en la niebla', 'basica');
   }
 
   // ── Piratas ────────────────────────────────────────────────────────────────
@@ -3309,7 +3317,7 @@ export function rebuilding(isl, rt, t) {
 
 /** Quiénes viven en una isla neutral (para los textos). */
 export function neutralsOf(isl) {
-  return { piratas: 'Los piratas', kraken: 'Los corsarios del Kraken' }[isl.type] ?? 'Los bárbaros';
+  return { piratas: 'Los piratas', kraken: 'Los corsarios de la fosa' }[isl.type] ?? 'Los bárbaros';
 }
 
 function rebuildText(isl, rt, t) {
@@ -3326,6 +3334,8 @@ export function garrisonAt(isl, rt, t) {
     const n = Math.min(full, (rt.garrison?.[id] ?? 0) + (full * Math.max(0, t - rt.garrisonAt)) / regen);
     if (n >= 1) out[id] = Math.floor(n);
   }
+  // El Kraken no se rearma con la fosa: está (si ha despertado en ella) o no está
+  if (rt.kraken) out.kraken = 1;
   return out;
 }
 

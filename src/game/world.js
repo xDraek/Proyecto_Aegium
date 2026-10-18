@@ -7,6 +7,29 @@
 
 export const SECTOR_SPACING = 430;
 
+// ── Coordenadas ─────────────────────────────────────────────────────────────
+// Como en Ikariam: el mapa se divide en casillas de COORD_CELL leguas y cada una
+// tiene sus coordenadas [x:y], con [50:50] en el centro del archipiélago (la y
+// crece hacia el sur, como en el mapa del mundo).
+
+export const COORD_CELL = 50;
+const COORD_ORIGIN = 50;
+
+/** Coordenadas [x, y] de la casilla donde cae el punto (x, z) del mundo. */
+export function coordsOf(x, z) {
+  return [Math.round(x / COORD_CELL) + COORD_ORIGIN, Math.round(z / COORD_CELL) + COORD_ORIGIN];
+}
+
+/** El centro de la casilla [cx, cy], en leguas. */
+export function coordsCenter(cx, cy) {
+  return { x: (cx - COORD_ORIGIN) * COORD_CELL, z: (cy - COORD_ORIGIN) * COORD_CELL };
+}
+
+/** «[47:52]» */
+export function fmtCoords([cx, cy]) {
+  return `[${cx}:${cy}]`;
+}
+
 const SPECIALTY_YIELD = { madera: 150, comida: 160, piedra: 130, hierro: 110, cristal: 90, oro: 70 };
 
 /**
@@ -45,8 +68,13 @@ const PIRATE_LORD = {
   type: 'piratas', tier: 5, dist: 172, size: 9, garrison: { pirata: 90, corsario: 14 }, wall: 0.3, regenHours: 12,
   loot: { max: 24000, rate: 1000, mix: { madera: 0.2, hierro: 0.3, cristal: 0.2, oro: 0.3 } },
 };
+/**
+ * La fosa del Kraken: la guardan sus corsarios. El Kraken (solo hay uno en todos los mares) no
+ * forma parte de la guarnición: despierta de vez en cuando en una de las fosas (WorldServer).
+ */
+export const KRAKEN_LAIR = { garrison: { pirata: 130, corsario: 26 }, wall: 0.4, regenHours: 36 };
 const KRAKEN = {
-  type: 'kraken', tier: 7, dist: 186, size: 8, garrison: { kraken: 1, corsario: 10 }, wall: 0.4, regenHours: 36,
+  type: 'kraken', tier: 7, dist: 186, size: 8, ...KRAKEN_LAIR,
   loot: { max: 60000, rate: 1200, mix: { hierro: 0.2, cristal: 0.3, oro: 0.5 } },
 };
 

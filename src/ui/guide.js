@@ -24,6 +24,8 @@ import {
   OCCUPATION,
   POWERS,
   PROTECTION,
+  BASIC_RELIC_CHANCE,
+  KRAKEN_RULES,
   RELIC_RARITY,
   RELIC_SLOTS,
   RELICS,
@@ -157,7 +159,7 @@ function islandsTable() {
     ['piratas', 'Más gente, barcos corsarios y fortificación. Lleva catapultas para abrir brecha.'],
     ['ruinas', 'Un tesoro para el primero que llegue: basta con explorarlas. A veces esconden una reliquia.'],
     ['libre', 'Tierra deshabitada donde fundar una colonia que produce un recurso.'],
-    ['kraken', 'El monstruo de los mares y el oro de mil naufragios. Si cae, una reliquia asegurada.'],
+    ['kraken', `Corsarios bien fortificados y el oro de mil naufragios. El único Kraken de los mares despierta a veces en una de ellas (ver ${see('archipielago', 'el Kraken')}).`],
     ['brumas', 'El Mar de las Brumas: solo se va de expedición.'],
     ['ciudadela', 'Ciudades bárbaras amuralladas de los continentes: mucho botín, y se pueden conquistar.'],
     ['continente', 'Tierras grandes entre sectores, con ciudades bárbaras, valles para colonizar y una maravilla.'],
@@ -428,7 +430,15 @@ const TOPICS = {
     title: 'El archipiélago',
     body: () => `<p>Cada jugador nuevo abre un <b>sector</b> con su isla y una docena de islas neutrales alrededor. Entre los sectores hay ${see('continentes', 'continentes')}.</p>
       ${islandsTable()}
-      <p>Los campamentos, las fortalezas y las ciudades bárbaras <b>se rearman con el tiempo</b> y van acumulando botín. Solo te lo llevas si acabas con toda su guarnición; si no queda nadie, la isla queda arrasada: <b>se están reconstruyendo</b> y nadie puede atacarla hasta que se rearman del todo. Lo que tienen solo lo sabes por tu último bote explorador (o tu último ataque): envía otro para ver cómo están ahora.</p>`,
+      <p>Los campamentos, las fortalezas y las ciudades bárbaras <b>se rearman con el tiempo</b> y van acumulando botín. Solo te lo llevas si acabas con toda su guarnición; si no queda nadie, la isla queda arrasada: <b>se están reconstruyendo</b> y nadie puede atacarla hasta que se rearman del todo. Lo que tienen solo lo sabes por tu último bote explorador (o tu último ataque): envía otro para ver cómo están ahora.</p>
+      <h5>🐙 El Kraken</h5>
+      ${list([
+        'Solo hay <b>un Kraken</b> en todos los mares. Despierta en una de las fosas que no estén arrasadas, y nadie sabe cuándo ni en cuál: en el chat se avisa con unas <b>coordenadas aproximadas</b> (pulsa en ellas para verlas en el mapa).',
+        'Para saber si está en una fosa, envía un bote explorador. Allí se queda hasta que alguien lo derrote.',
+        `Quien lo derrota tiene un <b>${Math.round(KRAKEN_RULES.relicChance * 100)} %</b> de encontrar una ${see('reliquias', 'reliquia épica')} entre sus restos. Después vuelve a dormir en las profundidades… hasta quién sabe cuándo.`,
+      ])}
+      <h5>📍 Coordenadas</h5>
+      <p>El mapa del mundo está dividido en casillas, como en Ikariam: cada una tiene sus coordenadas <b>[x:y]</b>, con [50:50] en el centro del archipiélago. Las ves en la ficha de cada isla y al pasar por el mapa, y puedes ir a unas concretas con la casilla «Ir». Si escribes unas coordenadas en el chat, los demás pueden pulsarlas para verlas en el mapa.</p>`,
   },
   expediciones: {
     icon: '🧭',
@@ -593,7 +603,7 @@ const TOPICS = {
         `Un fondeadero libre se rehace entero si nadie lo toma en ${A.tune.regenWaves} oleadas. Sostenerlo da ${A.tune.postGlory} de gloria por oleada (el doble con el cerco completo) y tomarlo, ${A.tune.takeGlory}.`,
         `<b>El campamento</b> se asalta con «Atacar», con la coraza. Lo defienden sus inmortales y arqueros tras una empalizada (+${pct(A.tune.wall)} de vida) y torres; las escuadras de los fondeaderos libres le guardan el mar. Cada fondeadero libre le da +${pct(A.tune.siegeHp)} de vida y le deja recuperar parte de lo que pierde.`,
         `<b>Cerco completo</b> (todos los fondeaderos tomados): no se rehace y pasa hambre, un ${pct(A.tune.hunger)} menos de vida por oleada (hasta ${pct(A.tune.hungerMax)}).`,
-        `⚓ <b>Navarco</b>: quien más oleadas aguantó en un fondeadero se lleva una reliquia segura. Si gana la Armada, el continente queda <b>${A.tune.satrapyHours} h como satrapía</b>: ni maravilla ni colonias nuevas.`,
+        `⚓ <b>Navarco</b>: quien más oleadas aguantó en un fondeadero se lleva un +${pct(A.tune.navarch - 1)} de botín. Si gana la Armada, el continente queda <b>${A.tune.satrapyHours} h como satrapía</b>: ni maravilla ni colonias nuevas.`,
       ])}
       <h5>${H.icon} ${H.name}</h5>
       <p>${H.text}</p>
@@ -621,8 +631,9 @@ const TOPICS = {
         `<b>Bote común</b>: ${R.pot} h de la producción de todos los juramentados, repartido por gloria (nadie se lleva más del ${pct(R.potCap)}).`,
         `<b>Bendición del Olimpo</b> (Plata y Oro): +${pct(R.blessing)} de producción durante ${R.blessingHours} h.`,
         `<b>Heridos</b>: al acabar vuelven a casa el ${pct(R.wounded[0])} de tus caídos si se gana y el ${pct(R.wounded[1])} si se pierde.`,
-        `⚡ <b>Azote de ${th.enemy}</b> (más gloria): +${pct(R.topBonus - 1)} de botín personal y una reliquia legendaria. 🦁 <b>Corazón de león</b> (quien más esfuerzo ha puesto, con al menos el ${pct1(R.heartMinGlory)} de la gloria): otra legendaria. El 2.º y el 3.º en gloria se llevan una épica o legendaria; los demás, una probabilidad (${R.relicChance.map(pct).join(' / ')} según su tramo).`,
-        `Cada gesta tiene sus reliquias: ${themes.map((x) => `${x.icon} ${x.relics.map((id) => `${RELICS[id].icon} ${RELICS[id].name}`).join(' y ')}`).join(' · ')}. Quien llega a 🥇 Oro en una victoria gana además su emblema para el estandarte (${themes.map((x) => x.emblem).join(' ')}).`,
+        `⚡ <b>Azote de ${th.enemy}</b> (más gloria): +${pct(R.topBonus - 1)} de botín personal. 🦁 <b>Corazón de león</b>: quien más esfuerzo ha puesto, con al menos el ${pct1(R.heartMinGlory)} de la gloria.`,
+        `🏺 <b>La disputa por la reliquia</b>: cuando cae el enemigo deja siempre una ${see('reliquias', 'reliquia legendaria')}, y los juramentados de la última oleada se la disputan con las <b>tropas de tierra que les queden</b>. Luchan por eliminatorias: el de más gloria contra el de menos (si son impares, el de más gloria pasa sin luchar) y quien gana sigue con lo que le queda. Las bajas son de verdad, aunque el ${pct(R.duelWounded)} de los caídos vuelve herido a casa. Si nadie sigue en pie, es para el Azote. En una victoria a medias no hay reliquia.`,
+        `Cada gesta tiene sus reliquias (salen antes que las demás legendarias): ${themes.map((x) => `${x.icon} ${x.relics.map((id) => `${RELICS[id].icon} ${RELICS[id].name}`).join(' y ')}`).join(' · ')}. Quien llega a 🥇 Oro en una victoria gana además su emblema para el estandarte (${themes.map((x) => x.emblem).join(' ')}).`,
         '🗿 Los tres con más gloria de una victoria levantan una <b>estatua</b> en su isla durante una semana: todo el archipiélago la ve.',
         'Los premios se pagan en lo que produces (y algo de oro y cristal), así que valen lo mismo para un imperio pequeño que para uno grande.',
       ])}
@@ -659,7 +670,12 @@ const TOPICS = {
   reliquias: {
     icon: '🏺',
     title: 'Reliquias',
-    body: () => `<p>Objetos míticos que aparecen en expediciones, ruinas, conquistas de ciudades bárbaras, hordas, gestas y en la guarida del Kraken. Equipa hasta <b>${RELIC_SLOTS}</b> desde el ayuntamiento; las demás se pueden vender por oro.</p>
+    body: () => `<p>Objetos míticos de tres clases. Equipa hasta <b>${RELIC_SLOTS}</b> desde el ayuntamiento; las demás se pueden vender por oro.</p>
+      ${list([
+        `<b style="color:${RELIC_RARITY.basica.color}">Básicas</b>: muy poca ventaja. Un ${pct(BASIC_RELIC_CHANCE)} de encontrarlas al saquear ruinas, conquistar una ciudad bárbara, ser el mejor contra una horda o volver bien de una expedición.`,
+        `<b style="color:${RELIC_RARITY.epica.color}">Épicas</b>: una pequeña ventaja. Solo las deja ${see('archipielago', 'el Kraken')} al caer (un ${pct(KRAKEN_RULES.relicChance)} de las veces).`,
+        `<b style="color:${RELIC_RARITY.legendaria.color}">Legendarias</b>: solo en las ${see('gestas', 'gestas de la Liga')}. Cada enemigo que cae deja una y los juramentados se la disputan con sus tropas de tierra.`,
+      ])}
       ${relicsTable()}`,
   },
   eventos: {
