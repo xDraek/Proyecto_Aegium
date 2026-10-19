@@ -11,6 +11,7 @@ import {
   TRAIN_CANCEL_REFUND,
   DISMISS_REFUND,
   COLONY,
+  COLONY_RAID,
   DAILY_REWARDS,
   DAILY_TASKS,
   DAILY_TASK_BONUS,
@@ -64,6 +65,7 @@ import {
   canAfford,
   colonyCost,
   colonyUpgrade,
+  colonyYield,
   costFor,
   economy,
   favorMax,
@@ -398,12 +400,23 @@ export class Game extends EventTarget {
 
   /** Flotas que ocupan un hueco del puerto (los convoyes del tributo no). */
   fleetsAtSea() {
-    return this.state.missions.filter((m) => m.type !== 'tributo').length;
+    // (las guarniciones de las colonias están en tierra: no ocupan una flota)
+    return this.state.missions.filter((m) => m.type !== 'tributo' && !(m.type === 'guarnicion' && m.phase === 'estacionada')).length;
   }
 
   /** Ciudades que ocupan tus tropas (sus misiones estacionadas). */
   occupations() {
     return this.state.missions.filter((m) => m.type === 'invadir' && m.phase === 'estacionada');
+  }
+
+  /** Tus tropas desplegadas en tus colonias (una guarnición por colonia). */
+  garrisons() {
+    return this.state.missions.filter((m) => m.type === 'guarnicion' && m.phase === 'estacionada');
+  }
+
+  /** Desde dónde pueden zarpar tus flotas además de la capital: ciudades ocupadas y colonias con guarnición. */
+  bases() {
+    return [...this.occupations(), ...this.garrisons()];
   }
 
   /** Si tu puerto está cerrado por un bloqueo o una ocupación enemiga. */
@@ -977,6 +990,7 @@ export class Game extends EventTarget {
     this.state.colonies = this.state.colonies.filter((c) => c !== col);
     this.state.wonderBonus = this.world.wonderBonusFor?.(this.state.colonies) ?? this.state.wonderBonus;
     this.world.decolonize?.(id, this.userId, now);
+    for (const g of this.garrisons().filter((x) => x.target === id)) this.recall(g.id, now);
     this.#note(`🏳️ Abandonas ${col.name}: los colonos vuelven a casa`, 'info');
     return this.#done();
   }
@@ -1204,9 +1218,9 @@ export class Game extends EventTarget {
     const view = this.island(target);
     // Sin explorar no se sabe qué hay: solo se puede mandar un bote a mirar
     if (!view.explored && type !== 'explorar') reason = 'Primero explora la isla con un bote: no sabes qué hay en ella.';
-    // Desde una ciudad ocupada zarpan las tropas que la ocupan
-    const base = opts.from != null ? (this.occupations().find((m) => m.id === opts.from) ?? null) : null;
-    if (opts.from != null && !base) reason ||= 'Ya no ocupas esa ciudad.';
+    // Desde una base (ciudad ocupada o colonia con guarnición) zarpan las tropas que hay en ella
+    const base = opts.from != null ? (this.bases().find((m) => m.id === opts.from) ?? null) : null;
+    if (opts.from != null && !base) reason ||= 'Esa base ya no es tuya.';
     const pool = base ? base.units : s.units;
     for (const id of PLAYER_UNITS) {
       const n = Math.max(0, Math.floor(Number(units?.[id]) || 0));
@@ -1243,14 +1257,18 @@ export class Game extends EventTarget {
 
     if (target === s.home) reason ||= 'Es tu propia isla.';
     if (base) {
-      if (!OUTPOST_MISSIONS.includes(type)) reason ||= 'Desde una ciudad ocupada solo se puede atacar, espiar, sabotear, bloquear o invadir.';
-      if (target === base.target) reason ||= 'Es la ciudad que ocupas.';
-      if (opts.join) reason ||= 'Desde una ciudad ocupada no puedes unirte a ataques.';
+      const colonyBase = base.type === 'guarnicion';
+      const where = colonyBase ? 'una colonia' : 'una ciudad ocupada';
+      if (!OUTPOST_MISSIONS.includes(type)) reason ||= `Desde ${where} solo se puede atacar, espiar, sabotear, bloquear o invadir.`;
+      if (target === base.target) reason ||= colonyBase ? 'Es la colonia desde la que zarpas.' : 'Es la ciudad que ocupas.';
+      if (opts.join) reason ||= `Desde ${where} no puedes unirte a ataques.`;
       if (withHero) reason ||= 'Tu almirante está en tu capital.';
-      // Alguien tiene que quedarse guardando la ciudad
+      // Alguien tiene que quedarse guardándola
       const rest = { ...base.units };
       for (const [id, n] of Object.entries(sent)) rest[id] = (rest[id] ?? 0) - n;
-      if (!hasCombat(splitForces(rest).land)) reason ||= `Deja al menos una unidad de tierra ocupando ${base.targetName}.`;
+      if (colonyBase) {
+        if (!count(clean(rest))) reason ||= `Deja al menos una unidad en ${base.targetName}.`;
+      } else if (!hasCombat(splitForces(rest).land)) reason ||= `Deja al menos una unidad de tierra ocupando ${base.targetName}.`;
     } else if (s.occupied) reason ||= `${s.occupied.name} ocupa tu ciudad: sus tropas no dejan zarpar a nadie.`;
     else if (s.blockade) reason ||= `${s.blockade.name} bloquea tu puerto: no puede zarpar ningún barco.`;
     // Un continente solo se ataca cuando hay una horda bárbara o una gesta en él
@@ -1353,6 +1371,9 @@ export class Game extends EventTarget {
       } else {
         reason ||= 'Esa misión no sirve contra otra ciudad.';
       }
+    } else if (type === 'guarnicion') {
+      if (rt?.colonizedBy !== this.userId || !this.colony(target)) reason ||= 'Solo puedes desplegar tropas en tus colonias.';
+      if (base) reason ||= 'Las guarniciones salen de tu capital.';
     } else if (type === 'explorar') {
       if (isl.type === 'brumas') reason ||= 'En el Mar de las Brumas solo caben expediciones.';
       if (Object.keys(sent).some((id) => !UNITS[id].explorer)) reason ||= 'Para explorar envía solo botes exploradores.';
@@ -1363,7 +1384,8 @@ export class Game extends EventTarget {
     } else if (isl.type === 'brumas') {
       reason ||= 'En el Mar de las Brumas solo caben expediciones.';
     } else if (type === 'atacar') {
-      if (rt?.colonizedBy != null) reason ||= rt.colonizedBy === this.userId ? 'Es tu colonia.' : `Es una colonia de ${view.colonistName}.`;
+      if (rt?.colonizedBy === this.userId) reason ||= 'Es tu colonia.';
+      else if (rt?.colonizedBy != null) reason ||= this.#colonyTargetReason(rt, view, dist);
       else if (rebuilding(isl, rt, this.now())) reason ||= rebuildText(isl, rt, this.now());
       else if (view.explored && (isl.type === 'libre' || isl.type === 'ruinas')) reason ||= 'Aquí no hay nada que atacar.';
       if (!hasCombat(sent)) reason ||= 'Envía al menos una unidad de combate.';
@@ -1403,6 +1425,26 @@ export class Game extends EventTarget {
     return { ok: !reason, reason, units: sent, seconds, travel, capacity, used, cargo, ships, cost, load, joint, base };
   }
 
+  /** Por qué no puedes saquear la colonia de otro jugador ('' si puedes): las mismas reglas que contra su ciudad. */
+  #colonyTargetReason(rt, view, dist) {
+    const uid = rt.colonizedBy;
+    const info = this.world.playerInfo?.(uid);
+    const name = info?.name ?? view.colonistName ?? 'su dueño';
+    const rel = this.world.relation?.(this.userId, uid);
+    const now = this.now();
+    if (rel === 'aliado') return `Es una colonia de ${name}, de tu alianza.`;
+    if (rel === 'pacto') return `Tu alianza tiene un pacto de no agresión con la de ${name}.`;
+    if (info?.vacation) return `${name} está de vacaciones: sus colonias no se pueden atacar.`;
+    if (info?.protected) return `${name} está bajo protección de novato.`;
+    if (this.isProtected()) return 'Mientras tengas protección de novato no puedes atacar a otros jugadores.';
+    if (this.tooWeak({ type: 'jugador', score: info?.score, owner: uid })) return weakText(name);
+    if (this.world.truce?.(this.userId, uid, now)) return `Tregua sagrada: ${name} y tú habéis jurado la misma gesta. No os podéis atacar hasta unas horas después de que acabe.`;
+    if (this.researchLevel('cartas') < 1 && dist > PVP_RANGE) return `Esa colonia está a ${Math.round(dist)} leguas: sin Cartas náuticas tus flotas de guerra solo llegan a ${PVP_RANGE}. Investígalas en la academia.`;
+    if ((rt.raidedUntil ?? 0) > now) return `Esa colonia ya está saqueada: no queda nada que llevarse hasta dentro de ${fmtWait(rt.raidedUntil - now)}.`;
+    if (rel !== 'guerra' && this.attacksOn(uid) >= PROTECTION.attacksPerDay) return `Ya has atacado ${PROTECTION.attacksPerDay} veces a ${name} en las últimas 24 h. Dale un respiro (en guerra entre alianzas no hay límite).`;
+    return '';
+  }
+
   sendMission(type, target, units, payload, opts = {}, now = this.now()) {
     this.#advance(now);
     const plan = this.planMission(type, target, units, payload, opts);
@@ -1431,8 +1473,8 @@ export class Game extends EventTarget {
       ...(type === 'bloquear' && Number.isInteger(opts.post) ? { post: opts.post } : {}),
     });
     if (opts.hero) this.state.hero.mission = this.state.missions.at(-1).id;
-    // Lo que cuenta para el límite de ataques al mismo jugador
-    const owner = this.world.island(target)?.owner;
+    // Lo que cuenta para el límite de ataques al mismo jugador (también contra sus colonias)
+    const owner = this.world.island(target)?.owner ?? (type === 'atacar' ? this.world.islandState(target)?.colonizedBy : null);
     if (owner != null && HOSTILE_MISSIONS.includes(type) && !opts.join) {
       const since = now - hours(24);
       this.state.hits = [...(this.state.hits ?? []).filter((h) => h.t > since), { uid: owner, t: now }];
@@ -2275,9 +2317,12 @@ export class Game extends EventTarget {
       else if (m.type === 'bloquear') this.#arriveBlockade(m, isl, t);
       else this.#arrivePlayerAttack(m, isl, t);
     } else if (m.type === 'explorar') this.#arriveExplore(m, isl, t);
+    else if (m.type === 'guarnicion') this.#arriveGarrison(m, isl, t);
     else if (m.type === 'bloquear' && isl.type === 'continente') this.#arriveFeat(m, isl, t);
     else if (m.type === 'atacar') {
-      if (isl.type !== 'continente') this.#arriveAttack(m, isl, t);
+      const colonist = this.world.islandState(isl.id)?.colonizedBy;
+      if (colonist != null && colonist !== this.userId) this.#arriveColonyRaid(m, isl, t);
+      else if (isl.type !== 'continente') this.#arriveAttack(m, isl, t);
       // Una gesta (en marcha o ya acabada, si no ha llegado otra horda) da su propio motivo al llegar
       else if (this.world.islandState(isl.id)?.feat && !this.world.islandState(isl.id).horde) this.#arriveFeat(m, isl, t);
       else this.#arriveHorde(m, isl, t);
@@ -2316,6 +2361,8 @@ export class Game extends EventTarget {
 
   #intel(isl, rt, t) {
     const intel = { t, garrison: garrisonAt(isl, rt, t), stock: stockAt(isl, rt, t) };
+    // La colonia de otro jugador: su guarnición
+    if (rt?.colonizedBy != null && rt.colonizedBy !== this.userId) intel.garrison = this.world.colonyGarrison?.(isl.id) ?? {};
     if (rebuilding(isl, rt, t)) intel.rebuildUntil = rt.stockAt;
     this.#know(isl.id, { intel });
     return intel;
@@ -2812,22 +2859,148 @@ export class Game extends EventTarget {
     if (!res.broken || !hasCombat(m.units)) m.rejected = true;
   }
 
-  /** Una flota que zarpó de una ciudad ocupada vuelve a ella; si ya no es tuya, sigue hasta casa. */
+  /**
+   * Una flota que zarpó de una base vuelve a ella; si ya no es tuya, sigue hasta casa. A una ciudad
+   * ocupada le deja el botín (se va con el tributo); a una colonia, lo manda a la capital.
+   */
   #backToBase(m, t) {
-    const base = this.occupations().find((x) => x.id === m.base);
+    const base = this.bases().find((x) => x.id === m.base);
     if (base) {
+      const colonyBase = base.type === 'guarnicion';
       for (const [id, n] of Object.entries(m.units)) if (n > 0) base.units[id] = (base.units[id] ?? 0) + n;
-      for (const [r, n] of Object.entries(m.cargo)) if (n > 0) base.cargo[r] = (base.cargo[r] ?? 0) + n;
+      if (colonyBase) this.#gain(m.cargo);
+      else for (const [r, n] of Object.entries(m.cargo)) if (n > 0) base.cargo[r] = (base.cargo[r] ?? 0) + n;
       this.state.missions = this.state.missions.filter((x) => x !== m);
       const loot = fmtBag(m.cargo);
-      this.#note(`🦅 Tus tropas vuelven a ${base.targetName}${loot ? ` con ${loot}` : ''}`, 'success');
+      this.#note(colonyBase ? `🏕️ Tus tropas vuelven a ${base.targetName}${loot ? ` y mandan a la capital ${loot}` : ''}` : `🦅 Tus tropas vuelven a ${base.targetName}${loot ? ` con ${loot}` : ''}`, 'success');
       return;
     }
     const travel = this.#travelHome(m.from, m.units) * 1000;
     const name = m.fromName;
-    // Un viaje nuevo (con otro id, para que el mapa dibuje la nueva ruta) desde la ciudad perdida
+    // Un viaje nuevo (con otro id, para que el mapa dibuje la nueva ruta) desde la base perdida
     Object.assign(m, { id: this.state.seq++, base: null, target: m.from, targetName: name, from: null, fromName: null, depart: t - travel, arrive: t, turn: t, back: t + travel, recalled: false });
-    this.#note(`⚓ Ya no ocupas ${name}: tu flota sigue hasta casa`, 'info');
+    this.#note(`⚓ ${name} ya no es tu base: tu flota sigue hasta casa`, 'info');
+  }
+
+  /** Tus tropas llegan a tu colonia: se quedan de guarnición (si ya había una, se suman a ella). */
+  #arriveGarrison(m, isl, t) {
+    if (this.world.islandState(isl.id)?.colonizedBy !== this.userId || !this.colony(isl.id)) {
+      this.#report({ t, kind: 'ataque', island: isl.id, islandName: isl.name, title: `${isl.name} ya no es tu colonia`, text: 'Tus tropas vuelven a casa.' });
+      return;
+    }
+    const here = this.garrisons().find((g) => g.target === isl.id);
+    if (here) {
+      for (const [id, n] of Object.entries(m.units)) if (n > 0) here.units[id] = (here.units[id] ?? 0) + n;
+      m.units = {};
+      this.#note(`🏕️ Llegan refuerzos a la guarnición de ${isl.name}`, 'success');
+      return;
+    }
+    m.phase = 'estacionada';
+    m.stationedAt = t;
+    this.#note(`🏕️ Tus tropas ya guardan ${isl.name}: puedes zarpar desde allí`, 'success');
+    this.#report({ t, kind: 'apoyo', island: isl.id, islandName: isl.name, title: `Guarnición en ${isl.name}`, text: 'Tus tropas defienden la colonia y puedes lanzar ataques desde allí («Zarpar desde»). Se quedan hasta que las retires y siguen comiendo de tus graneros.' });
+  }
+
+  /** Tu flota llega a la colonia de otro jugador: si vence a su guarnición y desembarca, la saquea. */
+  #arriveColonyRaid(m, isl, t) {
+    const rt = this.world.islandState(isl.id);
+    const owner = rt?.colonizedBy;
+    const info = this.world.playerInfo?.(owner);
+    const rel = this.world.relation?.(this.userId, owner);
+    const why =
+      this.world.truce?.(this.userId, owner, t)
+        ? 'Habéis jurado la misma gesta: los dioses imponen una tregua sagrada y tu flota se da la vuelta.'
+        : info?.vacation
+          ? `${info.name} se ha ido de vacaciones: sus colonias no se pueden atacar.`
+          : rel === 'aliado'
+            ? 'Ahora sois aliados: tu flota se da la vuelta sin combatir.'
+            : rel === 'pacto'
+              ? 'Vuestras alianzas han firmado un pacto de no agresión: tu flota se da la vuelta.'
+              : (rt?.raidedUntil ?? 0) > t
+                ? 'Alguien la ha saqueado antes que tú: no queda nada que llevarse y tu flota se da la vuelta.'
+                : '';
+    if (why) {
+      this.#report({ t, kind: 'ataque', island: isl.id, islandName: isl.name, title: `Ataque cancelado en ${isl.name}`, text: why });
+      return;
+    }
+    const { atkMul, hpMul } = playerCombat(this.state);
+    const war = rel === 'guerra';
+    const cargoMul = (m.hero ? 1 + this.heroBonus('botin') : 1) * (war ? 1 + DIPLOMACY.warLoot : 1) * (1 + relicBonus(this.state, 'botin'));
+    const res = this.world.raidColony?.(owner, isl.id, { attackerId: this.userId, attackerName: this.state.name, units: { ...m.units }, atkMul: atkMul + (m.hero ? this.heroBonus('ataque') : 0), hpMul, cargoMul }, t);
+    if (!res) {
+      this.#report({ t, kind: 'ataque', island: isl.id, islandName: isl.name, title: `Nada que saquear en ${isl.name}`, text: 'Ya no es una colonia. La flota vuelve a casa.' });
+      return;
+    }
+    const { result, stolen } = res;
+    m.units = clean(result.att.left);
+    for (const [r, n] of Object.entries(stolen)) m.cargo[r] = (m.cargo[r] ?? 0) + n;
+    if (m.hero) this.#heroXp(result.def.lost, t);
+    this.#mercsLost(result.att.lost);
+    this.state.stats.kills += count(result.def.lost);
+    this.state.stats.loot += count(stolen);
+    const outcome = result.winner === 'att' ? 'victoria' : result.winner === 'def' ? 'derrota' : 'empate';
+    if (outcome === 'victoria') {
+      this.state.stats.victories++;
+      this.state.stats.pvpWins++;
+    }
+    const enemy = info?.name ?? 'su dueño';
+    const title = { victoria: `Has saqueado la colonia ${isl.name}`, derrota: `Derrota en la colonia ${isl.name}`, empate: `Retirada de la colonia ${isl.name}` }[outcome];
+    const text = [
+      phaseText(result),
+      outcome === 'victoria' ? `La colonia de ${enemy} no producirá en ${COLONY_RAID.stopHours} h.` : '',
+      war ? `Guerra entre alianzas: los barcos cargan un ${Math.round(DIPLOMACY.warLoot * 100)} % más de botín.` : '',
+    ].filter(Boolean).join(' ') || undefined;
+    this.#report({ t, kind: 'ataque', island: isl.id, islandName: isl.name, outcome, title, text, battle: pick(result), loot: stolen, enemy, pvp: true });
+    this.#note(`⚔️ ${title}${fmtBag(stolen) ? ` · botín ${fmtBag(stolen)}` : ''}`, outcome === 'victoria' ? 'success' : 'error');
+  }
+
+  /**
+   * Atacan tu colonia `id`: su guarnición la defiende (sin muralla). Si caen y el enemigo desembarca,
+   * se lleva unas horas de lo que produce y la colonia deja de producir un tiempo (ver COLONY_RAID).
+   * Devuelve { result, stolen, raidedUntil } o null si ya no es tu colonia.
+   */
+  receiveColonyRaid(id, { attackerName, units, atkMul, hpMul, cargoMul = 1 }, t) {
+    const col = this.colony(id);
+    if (!col) return null;
+    const posts = this.garrisons().filter((g) => g.target === id);
+    const combined = {};
+    for (const p of posts) for (const [u, n] of Object.entries(p.units)) if (n > 0) combined[u] = (combined[u] ?? 0) + n;
+    const mine = playerCombat(this.state);
+    const result = assault({ units, atkMul, hpMul }, { units: combined, atkMul: mine.atkMul, hpMul: mine.hpMul }, { needLanding: true });
+    // Las bajas, en la guarnición (las que se quedan sin nadie desaparecen)
+    const lefts = shareSurvivors(posts.map((p) => p.units), result.def.left);
+    posts.forEach((p, i) => (p.units = clean(lefts[i])));
+    this.state.missions = this.state.missions.filter((m) => !posts.includes(m) || count(m.units) > 0);
+    this.#mercsLost(result.def.lost);
+    this.state.stats.kills += count(result.att.lost);
+    let stolen = {};
+    let raidedUntil = null;
+    if (result.winner === 'att') {
+      let cargo = 0;
+      for (const [u, n] of Object.entries(result.att.left)) cargo += n * (UNITS[u].cargo ?? 0);
+      const take = Math.min(Math.floor(cargo * cargoMul), Math.floor(colonyYield(col) * COLONY_RAID.lootHours));
+      if (take > 0) stolen = { [col.specialty]: take };
+      raidedUntil = t + hours(COLONY_RAID.stopHours);
+      col.raidedUntil = Math.max(col.raidedUntil ?? 0, raidedUntil);
+    }
+    const outcome = result.winner === 'att' ? 'derrota' : result.winner === 'def' ? 'victoria' : 'empate';
+    const title = {
+      victoria: `Tu guarnición rechaza a ${attackerName} en ${col.name}`,
+      empate: `${attackerName} se retira de tu colonia ${col.name}`,
+      derrota: `${attackerName} ha saqueado tu colonia ${col.name}`,
+    }[outcome];
+    const text = outcome === 'derrota' ? `${defenseText(result) || ''} La colonia no producirá en ${COLONY_RAID.stopHours} h. Despliega tropas en ella para defenderla («Guarnición»).`.trim() : defenseText(result) || undefined;
+    this.#report({ t, kind: 'defensa', outcome, title, text, island: id, islandName: col.name, battle: pick(result), loot: stolen, enemy: attackerName });
+    this.#note(`⚔️ ${title}`, outcome === 'derrota' ? 'error' : 'success');
+    this.#dirty = true;
+    return { result, stolen, raidedUntil };
+  }
+
+  /** Lo que guardan tus tropas en tu colonia `id` (lo que ve un espía). */
+  garrisonOf(id) {
+    const out = {};
+    for (const g of this.garrisons()) if (g.target === id) for (const [u, n] of Object.entries(g.units)) if (n > 0) out[u] = (out[u] ?? 0) + n;
+    return out;
   }
 
   /** Segundos desde la isla `from` hasta tu capital al paso del barco más lento de `units`. */

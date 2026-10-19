@@ -788,7 +788,15 @@ export class WorldServer {
     for (const uid of uids) {
       const game = this.games.get(uid);
       game.update(now);
-      for (const c of game.state.colonies) if (this.islands.get(c.id)?.land === cont.id) c.raidedUntil = until;
+      for (const c of game.state.colonies) {
+        if (this.islands.get(c.id)?.land !== cont.id) continue;
+        c.raidedUntil = until;
+        const crt = this.islandStates.get(c.id);
+        if (crt) {
+          crt.raidedUntil = until;
+          this.touch(c.id);
+        }
+      }
       game.dirty = true;
       this.hostNews(uid, `🔥 La horda ha saqueado tus colonias de ${cont.name}: no producirán en ${HORDE.ravageHours} h`);
       this.pendingPush.add(uid);
@@ -2113,6 +2121,42 @@ export class WorldServer {
     return res;
   }
 
+  /**
+   * Alguien ataca la colonia `islandId` de `ownerId`: la defiende su guarnición. Si la saquean, la
+   * colonia queda marcada (`raidedUntil`) para que nadie la vuelva a saquear mientras no produce.
+   */
+  raidColony(ownerId, islandId, payload, t) {
+    const target = this.games.get(ownerId);
+    const rt = this.islandStates.get(islandId);
+    if (!target || target.state.vacation || rt?.colonizedBy !== ownerId) return null;
+    target.update(t);
+    const res = target.receiveColonyRaid(islandId, payload, t);
+    if (!res) return null;
+    target.dirty = true;
+    this.pendingPush.add(ownerId);
+    if (res.raidedUntil) {
+      rt.raidedUntil = res.raidedUntil;
+      this.touch(islandId);
+    }
+    // En guerra entre alianzas se lleva la cuenta de bajas y botín de cada bando
+    if (payload.attackerId != null && this.relation(payload.attackerId, ownerId) === 'guerra') {
+      const x = this.memberOf.get(payload.attackerId);
+      const y = this.memberOf.get(ownerId);
+      const war = this.meta.diplomacy[pairKey(x, y)];
+      war.kills[x] = (war.kills[x] ?? 0) + count(res.result.def.lost);
+      war.kills[y] = (war.kills[y] ?? 0) + count(res.result.att.lost);
+      war.loot[x] = (war.loot[x] ?? 0) + count(res.stolen);
+      war.battles = (war.battles ?? 0) + 1;
+    }
+    return res;
+  }
+
+  /** Las tropas que guardan una colonia (lo que ve quien la espía). */
+  colonyGarrison(islandId) {
+    const owner = this.islandStates.get(islandId)?.colonizedBy;
+    return owner != null ? (this.games.get(owner)?.garrisonOf(islandId) ?? {}) : {};
+  }
+
   // ── Ataques conjuntos ──────────────────────────────────────────────────────
 
   /** Un ataque contra otra ciudad al que pueden unirse los aliados de quien lo lanza (clave «jugador-flota»). */
@@ -2332,7 +2376,7 @@ export class WorldServer {
       friendRequests: (this.meta.friendRequests[userId] ?? []).length,
       state,
       world: { islands: knownRev === rev ? null : islands, rev, states, statesRev: this.statesRev(), full: since < 0, players },
-      incoming: this.incoming(game.state.home, game.level('torre'), now),
+      incoming: this.incoming(game.state.home, game.level('torre'), now, game.state.colonies.map((c) => c.id)),
       joint: this.#jointList(userId),
       traffic: this.#traffic(userId, game.state.home),
       support: this.supportersAt(game.state.home, userId).map(({ game: g, mission }) => ({ from: g.name, units: mission.units })),
@@ -2454,20 +2498,22 @@ export class WorldServer {
    * tropas trae solo se ve cuando ya está a menos de `watchRange(watch)` leguas (la torre de
    * vigía); hasta entonces, `revealAt` dice cuándo se verán.
    */
-  incoming(homeId, watch = 0, now = clock.now()) {
-    const home = this.islands.get(homeId);
+  /** Las flotas enemigas de camino a tu ciudad `homeId` (o a tus colonias `colonies`), con lo que distingue la torre. */
+  incoming(homeId, watch = 0, now = clock.now(), colonies = []) {
+    const targets = new Set([homeId, ...colonies]);
     const range = watchRange(watch);
     const list = [];
     for (const [uid, other] of this.games) {
       for (const m of other.state.missions) {
-        if (m.target !== homeId || m.phase !== 'ida' || !HOSTILE.has(m.type)) continue;
+        if (!targets.has(m.target) || m.phase !== 'ida' || !HOSTILE.has(m.type)) continue;
+        const home = this.islands.get(m.target);
         const from = this.islands.get(m.from ?? other.state.home);
         const dist = from && home ? Math.hypot(from.x - home.x, from.z - home.z) : 0;
         const revealAt = Math.round(m.arrive - (m.arrive - m.depart) * Math.min(1, range / Math.max(1, dist)));
         const seen = now >= revealAt;
         const units = seen ? Object.fromEntries(Object.entries(m.units).filter(([, n]) => n > 0)) : null;
         const size = units ? Object.values(units).reduce((a, b) => a + b, 0) : null;
-        list.push({ id: `${uid}-${m.id}`, type: m.type, from: other.name, fromIsland: from?.name, x: from?.x, z: from?.z, depart: m.depart, arrive: m.arrive, revealAt, size, units });
+        list.push({ id: `${uid}-${m.id}`, type: m.type, from: other.name, fromIsland: from?.name, x: from?.x, z: from?.z, depart: m.depart, arrive: m.arrive, revealAt, size, units, ...(m.target !== homeId ? { colony: home?.name ?? '' } : {}) });
       }
     }
     return list.sort((a, b) => a.arrive - b.arrive);

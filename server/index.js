@@ -301,7 +301,7 @@ async function api(req, res, url) {
           : handler(game, Array.isArray(args) ? args : []);
       // Si va hacia otra ciudad, que su dueño lo vea llegar al momento
       if (action === 'sendMission' && result?.ok) {
-        const owner = world.island(String(args[1]))?.owner;
+        const owner = world.island(String(args[1]))?.owner ?? world.islandState(String(args[1]))?.colonizedBy;
         if (owner != null) world.pendingPush.add(owner);
         // Quien dirige un ataque se entera de que un aliado se une, y la alianza ve el ataque al momento
         const joined = args[4]?.join ? world.jointAttack(args[4].join) : null;

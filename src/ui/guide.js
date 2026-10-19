@@ -5,6 +5,7 @@ import {
   BUILDINGS,
   COLONY,
   COLONY_COST,
+  COLONY_RAID,
   CONTEST_CATEGORIES,
   CONTEST_DAYS,
   CONTEST_PRIZES,
@@ -153,6 +154,7 @@ function missionsTable() {
     ['sabotaje', 'Botes', 'Queman parte de sus recursos o retrasan su obra… si no los pillan.'],
     ['transporte', 'Mercantes (o cualquier barco con bodega)', 'Lleva recursos a la ciudad de otro jugador.'],
     ['apoyo', 'Tropas y barcos', 'Defienden la ciudad de un aliado hasta que las retires.'],
+    ['guarnicion', 'Tropas y barcos', 'Se quedan en una de tus colonias: la defienden y puedes zarpar desde allí.'],
     ['colonizar', 'Un mercante y los recursos de la colonia', 'Funda una colonia en una isla libre explorada.'],
     ['conquistar', 'Tropas, un mercante y los recursos', 'Asalta una ciudad bárbara y, si cae entera, la gobiernas.'],
     ['expedicion', 'Lo que quieras', 'Se adentra en el Mar de las Brumas: tesoros, barcos perdidos… o monstruos.'],
@@ -485,6 +487,13 @@ const TOPICS = {
       `También cuentan como colonias las <b>ciudades bárbaras conquistadas</b> (ver ${see('continentes', 'Continentes')}).`,
       'En la barra lateral, bajo el ejército, tienes la lista de <b>tus colonias</b>: qué producen, su nivel y si se están ampliando 🔨 o las han saqueado 🔥. Pulsa una para ir a ella en el mapa.',
     ])}
+      <h5>🏕️ Guarnición y bases</h5>
+      ${list([
+        'Con la misión <b>Guarnición</b> mandas tropas y barcos a una de tus colonias: se quedan allí hasta que las retires (siguen comiendo de tus graneros) y no ocupan una flota en el mar. Los refuerzos se suman a la que ya haya.',
+        '<b>Base de operaciones</b>: al mandar una flota, elige la colonia en «Zarpar desde». Desde allí puedes atacar, espiar, sabotear, bloquear o invadir; la flota vuelve a la colonia y el botín llega a la capital. Hay que dejar al menos una unidad guardándola.',
+        `<b>Saqueos</b>: otros jugadores pueden atacar tus colonias (con las mismas reglas que contra tu ciudad: alianzas, pactos, novatos, vacaciones y el límite de ataques al día). Si vencen a la guarnición y desembarcan, se llevan ${COLONY_RAID.lootHours} h de lo que produce y la colonia deja de producir ${COLONY_RAID.stopHours} h; mientras tanto nadie la puede volver a saquear. La colonia sigue siendo tuya.`,
+        'La torre de vigía también te avisa de los ataques que van hacia tus colonias, y un espía enemigo ve quién guarda la colonia.',
+      ])}
       ${warn('Si te bloquean el puerto o te ocupan la ciudad, tus colonias no te pueden mandar nada mientras dure.')}`,
   },
   continentes: {

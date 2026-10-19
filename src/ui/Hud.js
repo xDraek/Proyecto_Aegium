@@ -1181,7 +1181,7 @@ Al jurar, ${wars.join(' y ')}.` : '';
         continue;
       }
       if (m.phase === 'estacionada') {
-        const what = { invadir: '🦅 Ocupando', bloquear: '⛓️ Bloqueando' }[m.type] ?? '🛡️ Defendiendo';
+        const what = { invadir: '🦅 Ocupando', bloquear: '⛓️ Bloqueando', guarnicion: '🏕️ Guarnición en' }[m.type] ?? '🛡️ Defendiendo';
         const until = m.until ? `<span class="q-time" data-until="${m.until}"></span>` : `<span class="muted small">${unitList(m.units)}</span>`;
         const ready = (m.plunderAt ?? 0) <= game.now();
         const plunder = m.type === 'invadir' ? `<button class="primary small" data-action="plunder" data-mission="${m.id}" data-ready-at="${m.plunderAt ?? 0}" ${ready ? '' : 'disabled'} title="Saquear su almacén y mandar el tributo a casa">💰 Saquear</button>` : '';
@@ -1305,7 +1305,8 @@ Al jurar, ${wars.join(' y ')}.` : '';
       const force = m.units
         ? unitList(m.units)
         : `fuerza desconocida (la torre de vigía la verá en <span data-until="${m.revealAt}"></span>)`;
-      lines.push(`<div><b>¡${what} de ${escapeHtml(m.from)}!</b> Desde ${escapeHtml(m.fromIsland ?? '')} · llegan en <span data-until="${m.arrive}"></span><br>${force}</div>`);
+      const where = m.colony != null ? ` contra tu colonia ${escapeHtml(m.colony)}` : '';
+      lines.push(`<div><b>¡${what} de ${escapeHtml(m.from)}${where}!</b> Desde ${escapeHtml(m.fromIsland ?? '')} · llegan en <span data-until="${m.arrive}"></span><br>${force}</div>`);
     }
     const tip = port
       ? 'Pulsa para ver tu puerto y echarlos, o pide tropas de apoyo a tu alianza'

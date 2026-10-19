@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BLOCKADE, COLONY, FEATS, FEAT_THEMES, ISLAND_TYPES, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, RESOURCES, RESOURCE_KEYS, SPY_TIERS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
+import { BLOCKADE, COLONY, COLONY_RAID, FEATS, FEAT_THEMES, ISLAND_TYPES, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, RESOURCES, RESOURCE_KEYS, SPY_TIERS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
 import { colonyUpgrade, colonyYield, navalDefense, playerCombat, spyRisk, wallBonus } from '../game/rules.js';
 import { featCoop, forceOf, forgeBonus } from '../game/feats.js';
 import { NEWBIE_POINTS, neutralsOf } from '../game/Game.js';
@@ -110,12 +110,28 @@ function colonySection(game, view) {
       <button class="primary" data-action="colony-upgrade" data-need='${JSON.stringify(cost)}' data-blocked="${busy ? 1 : 0}">🔨 Ampliar · ${fmtTime(seconds)}</button>
       ${busy ? '<p class="muted small">Ya estás ampliando otra colonia: solo hay colonos para una obra a la vez.</p>' : ''}`;
   }
-  const raided = col.raidedUntil > game.now() ? `<p class="hint">🔥 Saqueada por la horda: vuelve a producir en <span data-until="${col.raidedUntil}"></span>.</p>` : '';
+  const raided = col.raidedUntil > game.now() ? `<p class="hint">🔥 Saqueada: vuelve a producir en <span data-until="${col.raidedUntil}"></span>.</p>` : '';
   return `${raided}<p class="desc">${col.conquered ? 'La ciudad que conquistaste a los bárbaros: tus colonos la gobiernan y mandan su producción a la capital.' : 'Tus colonos trabajan la isla y mandan sus cosechas a la capital.'}</p>
     <div class="info-row"><span>🚩 Nivel</span><b>${level} / ${COLONY.maxLevel}</b></div>
     <div class="effect"><span>${r.icon} Producción de la colonia</span><b class="up">+${fmtNum(yieldAt(level))}/h</b></div>
+    ${garrisonSection(game, view)}
     ${upgrade}
     <button class="ghost small colony-abandon" data-action="colony-abandon">🏳️ Abandonar la colonia</button>`;
+}
+
+/** La guarnición de tu colonia: quién la defiende y la sirve de base. */
+function garrisonSection(game, view) {
+  const g = game.garrisons().find((m) => m.target === view.id);
+  const going = game.missions.filter((m) => m.type === 'guarnicion' && m.target === view.id && m.phase === 'ida');
+  const coming = going.length ? `<p class="hint small">🏕️ Van de camino ${going.map((m) => unitList(m.units)).join(' y ')}.</p>` : '';
+  if (!g) {
+    return `<h4>🏕️ Guarnición</h4>
+      <p class="desc small">Nadie la defiende: cualquier enemigo puede saquearla (se lleva ${COLONY_RAID.lootHours} h de lo que produce y la deja ${COLONY_RAID.stopHours} h sin producir). Despliega tropas con la misión «Guarnición» y podrás también lanzar ataques desde aquí.</p>${coming}`;
+  }
+  return `<h4>🏕️ Guarnición</h4>
+    <div class="info-row"><span>Defienden la colonia</span><span>${unitList(g.units)}</span></div>
+    <p class="desc small">Puedes zarpar desde aquí: elige «${escapeHtml(view.name)}» en «Zarpar desde» al mandar una flota.</p>${coming}
+    <button class="ghost wide" data-action="recall" data-mission="${g.id}">⚓ Retirar la guarnición a la capital</button>`;
 }
 
 /** Un continente: lo que hay en él, para ir a cada sitio. */
@@ -465,14 +481,23 @@ function infoSection(game, view) {
   return infoSectionFor(game, view, t);
 }
 
+/** La colonia de otro jugador: si se puede saquear y lo que sabes de su guarnición. */
+function enemyColonyInfo(game, view) {
+  const rt = game.world.islandState(view.id);
+  if ((rt?.raidedUntil ?? 0) > game.now()) return `<p class="hint">🔥 La han saqueado hace poco: no queda nada que llevarse hasta dentro de <span data-until="${rt.raidedUntil}"></span>.</p>`;
+  const intel = view.intel;
+  const seen = intel ? `<div class="info-row"><span>🏕️ Guarnición <span class="muted small">(${fmtAgo(intel.t)})</span></span><span>${Object.keys(intel.garrison ?? {}).length ? unitList(intel.garrison) : 'nadie'}</span></div>` : '<p class="desc small">Envía un bote explorador para saber quién la defiende.</p>';
+  return `${seen}<p class="desc small">⚔️ Si tus tropas desembarcan y vencen a su guarnición, te llevas ${COLONY_RAID.lootHours} h de lo que produce y la dejas ${COLONY_RAID.stopHours} h sin producir. La colonia sigue siendo suya.</p>`;
+}
+
 function infoSectionFor(game, view, t) {
   if (view.type === 'jugador') return playerSection(game, view);
-  if (view.colonizedBy != null && !view.colonized && view.type === 'ciudadela') {
-    return `<p class="desc">Ciudad bárbara conquistada por <b>${escapeHtml(view.colonistName)}</b>. Ya no quedan bárbaros: su bandera ondea sobre la empalizada.</p>`;
-  }
   if (view.colonizedBy != null && !view.colonized) {
     const r = RESOURCES[view.specialty];
-    return `<p class="desc">Colonia de <b>${escapeHtml(view.colonistName)}</b>. Produce ${r.icon} ${r.name.toLowerCase()} para su imperio.</p>`;
+    const what = view.type === 'ciudadela'
+      ? `<p class="desc">Ciudad bárbara conquistada por <b>${escapeHtml(view.colonistName)}</b>. Ya no quedan bárbaros: su bandera ondea sobre la empalizada.</p>`
+      : `<p class="desc">Colonia de <b>${escapeHtml(view.colonistName)}</b>.${r ? ` Produce ${r.icon} ${r.name.toLowerCase()} para su imperio.` : ''}</p>`;
+    return `${what}${enemyColonyInfo(game, view)}`;
   }
   if (view.colonized) return colonySection(game, view);
   if (view.type === 'brumas') {
@@ -530,32 +555,32 @@ function inboundSection(game, view) {
   return `<h4>Flotas en camino</h4><ul class="mini-list">${rows}</ul>`;
 }
 
-/** Ciudades ocupadas desde las que puede zarpar una flota hacia `targetId`. */
+/** Bases (ciudades ocupadas y colonias con guarnición) desde las que puede zarpar una flota hacia `targetId`. */
 function outpostsFor(game, targetId) {
-  return game.occupations().filter((m) => m.target !== targetId);
+  return game.bases().filter((m) => m.target !== targetId);
 }
 
 /** Tropas disponibles en el origen elegido (`from`: id de la ocupación, o nada para tu capital). */
 export function poolFor(game, from) {
   if (from == null) return game.units;
-  return game.occupations().find((m) => m.id === from)?.units ?? {};
+  return game.bases().find((m) => m.id === from)?.units ?? {};
 }
 
 function fleetForm(hud, game, view) {
   const feat = view.type === 'continente' && featActive(view.feat) ? view.feat : null;
   if (view.type === 'continente' && !view.horde && !feat?.pledged) return '';
   if (game.level('puerto') < 1) return '<div class="section"><h4>Enviar flota</h4><p class="desc">Construye un puerto en tu isla para poder zarpar.</p></div>';
-  // Origen: tu capital o una ciudad que ocupas
+  // Origen: tu capital, una ciudad que ocupas o una colonia con guarnición
   const outposts = outpostsFor(game, view.id);
   const base = outposts.find((m) => String(m.id) === String(hud.fleetFrom ?? '')) ?? null;
   const pool = base ? base.units : game.units;
   const fromSelect = outposts.length
     ? `<label class="joint-pick">⚓ Zarpar desde <select name="from">
         <option value="">${escapeHtml(game.homeIsland?.name ?? 'tu capital')} (tu capital)</option>
-        ${outposts.map((m) => `<option value="${m.id}" ${m === base ? 'selected' : ''}>🦅 ${escapeHtml(m.targetName)} (ocupada)</option>`).join('')}
+        ${outposts.map((m) => `<option value="${m.id}" ${m === base ? 'selected' : ''}>${m.type === 'guarnicion' ? `🏕️ ${escapeHtml(m.targetName)} (colonia)` : `🦅 ${escapeHtml(m.targetName)} (ocupada)`}</option>`).join('')}
       </select></label>`
     : '';
-  const closed = !base && game.portClosed() ? `<p class="hint warn">${game.state.occupied ? '🦅 Tu ciudad está ocupada' : '⛓️ Tu puerto está bloqueado'}: no puede zarpar ninguna flota desde tu capital.${outposts.length ? ' Puedes zarpar desde una ciudad que ocupes.' : ''}</p>` : '';
+  const closed = !base && game.portClosed() ? `<p class="hint warn">${game.state.occupied ? '🦅 Tu ciudad está ocupada' : '⛓️ Tu puerto está bloqueado'}: no puede zarpar ninguna flota desde tu capital.${outposts.length ? ' Puedes zarpar desde una de tus bases.' : ''}</p>` : '';
   const home = PLAYER_UNITS.filter((id) => pool[id] > 0);
   if (!home.length) {
     const empty = base ? `No te quedan tropas en ${escapeHtml(base.targetName)}.` : 'No tienes tropas ni barcos en casa. Entrénalos en el cuartel y el puerto.';
@@ -576,11 +601,14 @@ function fleetForm(hud, game, view) {
 
   const types = [];
   if (view.type === 'brumas') types.push('expedicion');
+  else if (view.colonized) types.push('guarnicion');
   else if (view.type !== 'continente') types.push('explorar');
   // Sin explorar, lo único que se puede hacer es mandar un bote a mirar
   const known = view.explored;
   const hostile = known && (['barbaros', 'ciudadela', 'piratas', 'kraken', 'jugador'].includes(view.type) || (view.type === 'continente' && (!!view.horde || !!feat)));
   if (view.type !== 'brumas' && view.colonizedBy == null && hostile) types.push('atacar');
+  // La colonia de otro jugador se puede saquear
+  if (known && view.colonizedBy != null && !view.colonized) types.push('atacar');
   // La Armada: también se toman sus fondeaderos
   const armada = feat?.kind === 'armada';
   if (armada) types.push('bloquear');
@@ -776,7 +804,7 @@ export function islandPanel(hud, id) {
   const view = game.island(id);
   const t = ISLAND_TYPES[view.type];
   let icon = view.colonized || view.colonizedBy != null ? '🚩' : view.explored ? t.icon : '❔';
-  let sub = view.colonized ? `Tu colonia · nivel ${view.colony?.level ?? 1}` : view.explored ? `${view.typeName}${view.tier ? ` · Nv ${view.tier}` : ''}` : 'Isla desconocida';
+  let sub = view.colonized ? `Tu colonia · nivel ${view.colony?.level ?? 1}` : view.colonizedBy != null ? `Colonia de ${escapeHtml(view.colonistName)}` : view.explored ? `${view.typeName}${view.tier ? ` · Nv ${view.tier}` : ''}` : 'Isla desconocida';
   if (view.type === 'jugador') {
     icon = '🏰';
     sub = `Ciudad de ${escapeHtml(view.ownerName)}`;

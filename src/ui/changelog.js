@@ -5,6 +5,16 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-19c',
+    date: '2026-10-19',
+    title: 'Colonias con guarnición',
+    items: [
+      '🏕️ Nueva misión <b>Guarnición</b>: despliega tropas y barcos en tus colonias. Se quedan defendiéndolas hasta que las retires y no ocupan una flota en el mar.',
+      '⚓ Las colonias con guarnición son <b>bases</b>: elige la colonia en «Zarpar desde» para atacar, espiar, sabotear, bloquear o invadir desde allí. La flota vuelve a la colonia y el botín llega a tu capital.',
+      '⚔️ Las colonias ya se pueden <b>saquear</b>: si vences a su guarnición, te llevas 6 h de lo que produce y la dejas 12 h sin producir. La colonia sigue siendo de su dueño, y valen las mismas protecciones que contra las ciudades. La torre de vigía te avisa si viene alguien hacia tus colonias.',
+    ],
+  },
+  {
     id: '2026-10-19b',
     date: '2026-10-19',
     title: 'Punto de los millares',

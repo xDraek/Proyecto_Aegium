@@ -833,6 +833,7 @@ export const MISSION_TYPES = {
   bloquear: { name: 'Bloquear puerto', icon: '⛓️' },
   invadir: { name: 'Invadir', icon: '🦅' },
   tributo: { name: 'Tributo', icon: '💰' },
+  guarnicion: { name: 'Guarnición', icon: '🏕️' },
 };
 
 /**
@@ -865,8 +866,15 @@ export const OCCUPATION = { hours: 24, tribute: 0.2, plunderHours: 4, plunderSha
 export const PROTECTION = { shieldHours: 12, attacksPerDay: 5, newbiePoints: 1000, newbieDays: 5, weakRatio: 0.2, revengeHours: 48 };
 /** Misiones contra otro jugador que cuentan para el límite de ataques. */
 export const HOSTILE_MISSIONS = ['atacar', 'invadir', 'bloquear'];
-/** Misiones que se pueden lanzar desde una ciudad ocupada. */
+/** Misiones que se pueden lanzar desde una base: una ciudad ocupada o una colonia con guarnición. */
 export const OUTPOST_MISSIONS = ['atacar', 'explorar', 'sabotaje', 'bloquear', 'invadir'];
+
+/**
+ * Saquear la colonia de otro jugador: si tus tropas desembarcan y vencen a su guarnición, te llevas
+ * `lootHours` horas de lo que produce (lo que quepa en las bodegas) y la colonia deja de producir
+ * `stopHours` horas. Mientras no produce no se la puede volver a saquear. La colonia sigue siendo suya.
+ */
+export const COLONY_RAID = { lootHours: 6, stopHours: 12 };
 
 // ── Templo ───────────────────────────────────────────────────────────────────
 // duration: horas de juego que dura el efecto (0 = instantáneo). cooldown: horas desde que se
