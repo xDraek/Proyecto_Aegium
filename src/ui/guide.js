@@ -433,7 +433,7 @@ const TOPICS = {
       ${missionsTable()}
       <h5>Viajes</h5>
       ${list([
-        'La flota va a la velocidad de su <b>barco más lento</b>. Navegación (+5 % por nivel), el faro (+4 %), el almirante, las reliquias y el Templo de Poseidón la aceleran. El poder <b>Viento favorable</b> ahorra media travesía a las flotas que ya navegan.',
+        'La flota va a la velocidad de su <b>barco más lento</b>. Navegación (+5 % por nivel), el faro (+4 %), el puerto (+2 %), el almirante, las reliquias y el Templo de Poseidón la aceleran. El poder <b>Viento favorable</b> ahorra media travesía a las flotas que ya navegan.',
         'El <b>puerto</b> limita cuántas flotas tienes en el mar a la vez: una por nivel.',
         'Puedes <b>retirar</b> una flota que aún no ha llegado: deshace lo andado. Las tropas de apoyo, los bloqueos y las ocupaciones se retiran cuando quieras.',
         'Las islas que no conoces hay que <b>explorarlas</b> primero con un bote.',

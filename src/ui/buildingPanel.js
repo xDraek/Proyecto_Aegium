@@ -1,4 +1,4 @@
-import { BUILDINGS, HERO, HERO_SKILLS, OCCUPATION, RELIC_RARITY, RELIC_SLOTS, POWERS, POWER_KEYS, RESEARCH, RESEARCH_KEYS, RESOURCES, TRAIN_SPEED, UNITS, UNIT_KEYS, WORK } from '../game/data.js';
+import { BUILDINGS, HERO, HERO_SKILLS, OCCUPATION, PORT_SAIL_SPEED, RELIC_RARITY, RELIC_SLOTS, POWERS, POWER_KEYS, RESEARCH, RESEARCH_KEYS, RESOURCES, TRAIN_SPEED, UNITS, UNIT_KEYS, WORK } from '../game/data.js';
 import { favorMax, favorRate, hasWorkers, producerOutput, protectedAmount, requirementName, storageCapacity, townSpeedup, wallBonus, workShare, workTaxes } from '../game/rules.js';
 import { splitForces } from '../game/combat.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
@@ -47,7 +47,7 @@ function effectFor(game, id, level, next) {
     case 'cuartel':
       return effectRow('🛡️ Velocidad de reclutamiento', `+${Math.round(Math.max(0, level - 1) * TRAIN_SPEED.cuartel * 100)} %`, `+${Math.round((next - 1) * TRAIN_SPEED.cuartel * 100)} %`);
     case 'puerto':
-      return effectRow('⚓ Flotas a la vez', level, next) + effectRow('🚢 Velocidad al botar barcos', `+${Math.round(Math.max(0, level - 1) * TRAIN_SPEED.puerto * 100)} %`, `+${Math.round((next - 1) * TRAIN_SPEED.puerto * 100)} %`);
+      return effectRow('⚓ Flotas a la vez', level, next) + effectRow('⛵ Velocidad de tus flotas', `+${Math.round(level * PORT_SAIL_SPEED * 100)} %`, `+${Math.round(next * PORT_SAIL_SPEED * 100)} %`);
     case 'muralla': {
       const a = wallBonus(level, game.level('torre'));
       const b = wallBonus(next, game.level('torre'));

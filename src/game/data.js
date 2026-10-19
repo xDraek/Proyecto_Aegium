@@ -141,7 +141,7 @@ export const BUILDINGS = {
   puerto: {
     name: 'Puerto',
     icon: '⚓',
-    description: 'Muelles y gradas donde se botan los barcos. Cada nivel permite tener una flota más en el mar a la vez y bota los barcos un 5 % más rápido. Los barcos de guerra piden además el astillero.',
+    description: 'Muelles y gradas donde se botan los barcos. Cada nivel permite tener una flota más en el mar a la vez y hace tus flotas un 2 % más rápidas. Los barcos de guerra piden además el astillero, que es quien los construye más rápido.',
     baseCost: { madera: 200, piedra: 80, comida: 80 },
     costFactor: 1.7,
     baseTime: 90,
@@ -748,8 +748,13 @@ export const RESEARCH_LATE = { from: 7, step: 0.75 };
  */
 export const BUILD_COST = { woodStone: 0.85, fromLevel: 7, hierro: 0.12, cristal: 0.08 };
 
-/** Lo que acelera cada nivel (a partir del segundo) del edificio donde se entrena: el cuartel las tropas y el puerto los barcos. */
-export const TRAIN_SPEED = { cuartel: 0.1, puerto: 0.05 };
+/**
+ * Lo que acelera cada nivel (a partir del segundo) del edificio donde se entrena: el cuartel, las
+ * tropas. Los barcos solo los acelera el astillero (+8 % por nivel).
+ */
+export const TRAIN_SPEED = { cuartel: 0.1 };
+/** Lo que el puerto hace más rápidas tus flotas por cada nivel. */
+export const PORT_SAIL_SPEED = 0.02;
 
 /**
  * El ayuntamiento manda: para subir cualquier otro edificio por encima del nivel `free` hace falta

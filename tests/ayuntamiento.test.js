@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { universe } from '../src/config.js';
 import { UNITS } from '../src/game/data.js';
-import { missingRequirements, townHallFor, unitSeconds, upgradeRequires } from '../src/game/rules.js';
+import { fleetSpeedBonus, missingRequirements, townHallFor, unitSeconds, upgradeRequires } from '../src/game/rules.js';
 import { makeWorld } from './world.js';
 
 // El ayuntamiento marca hasta dónde se suben los demás edificios, y la taberna, qué mercenarios vienen.
@@ -52,7 +52,7 @@ test('la taberna atrae mercenarios mejores al subir: al principio solo miliciano
   assert.equal(lanceros.count, 15 + 5 * 11);
 });
 
-test('los barcos de guerra piden su nivel de astillero y el puerto acelera un 5 % por nivel', async () => {
+test('los barcos de guerra piden su nivel de astillero; solo el astillero los construye más rápido y el puerto acelera las flotas', async () => {
   const { players } = await makeWorld(['Lucio']);
   const [g] = players;
   Object.assign(g.state.buildings, { ayuntamiento: 4, puerto: 10, astillero: 0 });
@@ -63,7 +63,13 @@ test('los barcos de guerra piden su nivel de astillero y el puerto acelera un 5 
   assert.equal(g.train('trirreme', 1).ok, true);
   assert.equal(g.train('brulote', 1).ok, false, 'el brulote pide astillero 2');
   assert.deepEqual(missingRequirements(g.state, UNITS.dromon.requires), [{ id: 'astillero', level: 7, kind: 'building' }]);
-  // Puerto 10 y sin astillero: +45 %
+  // El puerto ya no acelera la construcción: puerto 10 y sin astillero, el tiempo de siempre
   g.state.buildings.astillero = 0;
-  assert.equal(unitSeconds(g.state, 'mercante'), Math.max(1, Math.round(UNITS.mercante.time / 1.45 / universe.speed)));
+  assert.equal(unitSeconds(g.state, 'mercante'), Math.max(1, Math.round(UNITS.mercante.time / universe.speed)));
+  g.state.buildings.astillero = 5;
+  assert.equal(unitSeconds(g.state, 'mercante'), Math.max(1, Math.round(UNITS.mercante.time / 1.4 / universe.speed)));
+  // Y cada nivel de puerto hace las flotas un 2 % más rápidas
+  const base = fleetSpeedBonus(g.state);
+  g.state.buildings.puerto = 11;
+  assert.ok(Math.abs(fleetSpeedBonus(g.state) - base - 0.02) < 1e-9);
 });

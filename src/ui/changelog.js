@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-19d',
+    date: '2026-10-19',
+    title: 'El puerto acelera tus flotas',
+    items: ['⚓ El <b>puerto</b> ya no acelera la construcción de barcos: ahora cada nivel hace tus <b>flotas un 2 % más rápidas</b> (a nivel 10, +20 %). Los barcos los construye más rápido solo el <b>astillero</b>, un 8 % por nivel.'],
+  },
+  {
     id: '2026-10-19c',
     date: '2026-10-19',
     title: 'Colonias con guarnición',
