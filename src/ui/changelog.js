@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-19b',
+    date: '2026-10-19',
+    title: 'Punto de los millares',
+    items: ['🔢 Las cifras de cuatro dígitos ya llevan su punto de los millares, como las demás: «5.757» en vez de «5757».'],
+  },
+  {
     id: '2026-10-19a',
     date: '2026-10-19',
     title: 'Fundadores del archipiélago',

@@ -1,3 +1,5 @@
+import { fmtEs } from './num.js';
+
 // Datos del juego: recursos, edificios, unidades, investigaciones e islas.
 // Los requisitos (`requires`) mezclan edificios e investigaciones: los ids no se repiten.
 
@@ -604,7 +606,7 @@ export const RESEARCH = {
     name: 'Comercio',
     icon: '📜',
     description: 'Contratos, letras de cambio y rutas comerciales.',
-    effect: (n) => `+${(n * 2.5).toLocaleString('es-ES')} % de oro y mejores cambios en el mercado`,
+    effect: (n) => `+${fmtEs(n * 2.5, 1)} % de oro y mejores cambios en el mercado`,
     baseCost: { madera: 300, cristal: 250, oro: 50 },
     long: true,
     maxLevel: 20,
@@ -1072,11 +1074,11 @@ export const KRAKEN_RULES = { regenHours: 36, windowHours: 2, relicChance: 0.55,
 // con el ayuntamiento; cuenta lo que hagas desde que empieza el día.
 
 export const DAILY_TASKS = {
-  obras: { icon: '🔨', text: (n) => `Invierte ${n.toLocaleString('es-ES')} recursos en obras o investigaciones`, stat: 'spent', need: (t) => 400 * t },
+  obras: { icon: '🔨', text: (n) => `Invierte ${fmtEs(n)} recursos en obras o investigaciones`, stat: 'spent', need: (t) => 400 * t },
   mejoras: { icon: '🏗️', text: (n) => `Termina ${n} ${n === 1 ? 'mejora' : 'mejoras'} de edificios`, stat: 'upgrades', need: (t) => (t < 4 ? 2 : 3) },
   sabios: { icon: '📚', text: () => 'Termina una investigación', stat: 'researched', need: () => 1, requires: { academia: 1 } },
   tropas: { icon: '🛡️', text: (n) => `Entrena ${n} unidades`, stat: 'trained', need: (t) => 5 + 3 * t, requires: { cuartel: 1 } },
-  saqueo: { icon: '💰', text: (n) => `Saquea ${n.toLocaleString('es-ES')} recursos`, stat: 'loot', need: (t) => 250 * t, requires: { puerto: 1 } },
+  saqueo: { icon: '💰', text: (n) => `Saquea ${fmtEs(n)} recursos`, stat: 'loot', need: (t) => 250 * t, requires: { puerto: 1 } },
   combate: { icon: '⚔️', text: (n) => `Abate a ${n} enemigos`, stat: 'kills', need: (t) => 8 + 4 * t, requires: { puerto: 1, cuartel: 1 } },
   explorar: { icon: '🔭', text: (n) => `Explora o espía ${n} ${n === 1 ? 'isla' : 'islas'}`, stat: 'explorations', need: (t) => 1 + Math.floor(t / 3), requires: { puerto: 1 } },
   mercado: { icon: '⚖️', text: (n) => `Haz ${n} cambios en el mercado`, stat: 'exchanges', need: () => 2, requires: { mercado: 1 } },

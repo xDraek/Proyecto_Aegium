@@ -55,6 +55,7 @@ import {
 } from './data.js';
 import { featHours, featPower, featProd, forgeRoom, forgeValue } from './feats.js';
 import { withoutGold } from './world.js';
+import { fmtEs } from './num.js';
 import { assault, attackOf, battle, combineGroups, count, hasCombat, keepAboard, seatsOf, shareSurvivors, siegeOf, splitBag, splitForces } from './combat.js';
 import {
   HOUR_MS,
@@ -755,7 +756,7 @@ export class Game extends EventTarget {
     const rt = this.world.islandState(id);
     if (wonderLevel(rt?.wonder?.progress) >= WONDER_LEVELS.length) return this.#fail('La maravilla ya está terminada.');
     const left = WONDER_LEVELS.at(-1) - (rt?.wonder?.progress ?? 0);
-    if (total > left) return this.#fail(`Solo faltan ${left.toLocaleString('es-ES')} recursos para terminarla.`);
+    if (total > left) return this.#fail(`Solo faltan ${fmtEs(left)} recursos para terminarla.`);
     this.#pay(gift);
     this.state.stats.donated = (this.state.stats.donated ?? 0) + total;
     this.world.donateWonder?.(id, this.userId, total, now);
@@ -921,7 +922,7 @@ export class Game extends EventTarget {
     const price = RELIC_RARITY[RELICS[id].rarity].sell;
     this.state.relics = this.state.relics.filter((x) => x !== r);
     this.#gain({ oro: price });
-    this.#note(`${RELICS[id].icon} Vendes ${RELICS[id].name} por 🪙 ${price.toLocaleString('es-ES')}`, 'success');
+    this.#note(`${RELICS[id].icon} Vendes ${RELICS[id].name} por 🪙 ${fmtEs(price)}`, 'success');
     return this.#done();
   }
 
@@ -938,7 +939,7 @@ export class Game extends EventTarget {
     const id = pool[Math.floor(Math.random() * pool.length)];
     if (!id) {
       this.#gain({ oro: RELIC_RARITY[rarity].sell });
-      this.#note(`🏺 Ya tienes todas las reliquias ${RELIC_RARITY[rarity].name.toLowerCase()}s: te llevas 🪙 ${RELIC_RARITY[rarity].sell.toLocaleString('es-ES')}`, 'success');
+      this.#note(`🏺 Ya tienes todas las reliquias ${RELIC_RARITY[rarity].name.toLowerCase()}s: te llevas 🪙 ${fmtEs(RELIC_RARITY[rarity].sell)}`, 'success');
       return;
     }
     const def = RELICS[id];
@@ -3473,6 +3474,6 @@ function weakText(name) {
 function fmtBag(bag) {
   return Object.entries(bag ?? {})
     .filter(([, n]) => n > 0)
-    .map(([res, n]) => `${RESOURCES[res].emoji} ${Math.floor(n).toLocaleString('es-ES')}`)
+    .map(([res, n]) => `${RESOURCES[res].emoji} ${fmtEs(Math.floor(n))}`)
     .join(' ');
 }

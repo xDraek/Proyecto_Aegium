@@ -3,6 +3,7 @@ import { RESOURCES } from '../src/game/data.js';
 import { assault, battle, combineGroups, count, hasCombat, shareSurvivors, splitForces } from '../src/game/combat.js';
 import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, forgeBonus, forgeGoal, forgeHours, forgeRoom, pledgeEmpires, relicDuel, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
 import { Game, newState, rebuilding } from '../src/game/Game.js';
+import { fmtEs } from '../src/game/num.js';
 import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, QUESTS, UNITS, WONDERS } from '../src/game/data.js';
 import { playerCombat, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
 import { coordsOf, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
@@ -1856,7 +1857,7 @@ export class WorldServer {
         game.dirty = true;
         return { name: r.name, score: r.score };
       });
-      if (winners[key][0]) this.announce(`🏅 ${cat.icon} ${winners[key][0].name} gana la semana en ${cat.name} (${winners[key][0].score.toLocaleString('es-ES')} ${cat.unit})`);
+      if (winners[key][0]) this.announce(`🏅 ${cat.icon} ${winners[key][0].name} gana la semana en ${cat.name} (${fmtEs(winners[key][0].score)} ${cat.unit})`);
     }
     this.meta.hall = [{ n: c.n, end: c.end, winners }, ...(this.meta.hall ?? [])].slice(0, 12);
     this.meta.contest = null;

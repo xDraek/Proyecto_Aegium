@@ -1,11 +1,11 @@
 import { clock } from '../config.js';
 import { RESOURCES, SPY_TIERS, UNITS } from '../game/data.js';
+import { fmtEs } from '../game/num.js';
 
-const nf = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 0 });
-const nf1 = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 });
+const nf1 = { format: (n) => fmtEs(n, 1) };
 
 export function fmtNum(n) {
-  return nf.format(Math.floor(n));
+  return fmtEs(Math.floor(n));
 }
 
 /** Cifra corta para sitios estrechos: 9.870, 48,7k, 1,2M. */
