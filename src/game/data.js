@@ -1103,6 +1103,8 @@ export const CONTEST_PRIZES = [
 ];
 
 export const ACHIEVEMENTS = [
+  // Para quien llega al archipiélago en su primer mes (la fecha la marca el servidor)
+  { id: 'fundador', icon: '🌅', name: 'Fundador', text: 'Llegó al archipiélago en su primer mes', check: (g) => !!g.state.founder },
   { id: 'saqueador', icon: '⚔️', name: 'Saqueador', text: 'Gana 10 ataques', check: (g) => g.stats.victories >= 10 },
   { id: 'campeon', icon: '🏅', name: 'Campeón de la semana', text: 'Gana una categoría de la competición semanal', check: (g) => (g.stats.contestWins ?? 0) >= 1 },
   { id: 'conquistador', icon: '👑', name: 'Conquistador', text: 'Gana 50 ataques', check: (g) => g.stats.victories >= 50 },
@@ -1121,7 +1123,7 @@ export const ACHIEVEMENTS = [
   { id: 'leyenda', icon: '🗽', name: 'Coloso de oro', text: 'Lleva el Coloso a nivel 10', check: (g) => g.level('coloso') >= 10 },
   { id: 'titanes', icon: '🌋', name: 'Matador de titanes', text: 'Vence en una gesta', check: (g) => (g.stats.feats ?? 0) >= 1 },
   { id: 'liga', icon: '🏛️', name: 'Héroe de la Liga', text: 'Vence en 5 gestas', check: (g) => (g.stats.feats ?? 0) >= 5 },
-  { id: 'azote', icon: '⚡', name: 'Azote de Tifón', text: 'Sé quien más gloria gana en una gesta', check: (g) => (g.stats.featTop ?? 0) >= 1 },
+  { id: 'azotegesta', icon: '⚡', name: 'Azote de Tifón', text: 'Sé quien más gloria gana en una gesta', check: (g) => (g.stats.featTop ?? 0) >= 1 },
   { id: 'corazon', icon: '🦁', name: 'Corazón de león', text: 'Sé quien más se esfuerza en una gesta', check: (g) => (g.stats.featHeart ?? 0) >= 1 },
   { id: 'navarco', icon: '⚓', name: 'Navarco', text: 'Sostén más que nadie un fondeadero contra la Armada del Gran Rey', check: (g) => (g.stats.featNavarch ?? 0) >= 1 },
   { id: 'heracles', icon: '🏺', name: 'Heracles', text: 'Vence a la Hidra de Lerna', check: (g) => (g.stats.featHydra ?? 0) >= 1 },

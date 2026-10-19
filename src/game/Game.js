@@ -194,7 +194,18 @@ export function upgradeState(saved) {
     // Ya no hay colonias de oro: las de antes dan cristal
     colonies: (saved.colonies ?? base.colonies).map(withoutGold),
     ...migrateResearch(saved),
+    title: migrateTitle(saved),
   };
+}
+
+/**
+ * «Azote de reyes» y «Azote de Tifón» compartían el id `azote`. El de las gestas es ahora
+ * `azotegesta`: quien llevaba `azote` de título sin haber ganado el de reyes, llevaba el de Tifón.
+ */
+function migrateTitle(saved) {
+  const t = saved.title ?? null;
+  if (t === 'azote' && !((saved.stats?.pvpWins ?? 0) >= 5) && (saved.stats?.featTop ?? 0) >= 1) return 'azotegesta';
+  return t;
 }
 
 /**

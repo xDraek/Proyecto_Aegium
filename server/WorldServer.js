@@ -3,7 +3,7 @@ import { RESOURCES } from '../src/game/data.js';
 import { assault, battle, combineGroups, count, hasCombat, shareSurvivors, splitForces } from '../src/game/combat.js';
 import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, forgeBonus, forgeGoal, forgeHours, forgeRoom, pledgeEmpires, relicDuel, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
 import { Game, newState, rebuilding } from '../src/game/Game.js';
-import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, UNITS, WONDERS } from '../src/game/data.js';
+import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, QUESTS, UNITS, WONDERS } from '../src/game/data.js';
 import { playerCombat, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
 import { coordsOf, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
@@ -15,6 +15,9 @@ import { hashPassword, newRecoveryCode, newSecret, normalizeCode, verifyPassword
 const VIEW_RADIUS = 700; // leguas alrededor de tu isla que ves en el mapa
 const ONLINE_MS = 5 * 60_000;
 const STATES_FULL_MS = 60_000; // cada cuánto se manda entero el estado de las islas a una conexión en vivo
+const DAY_MS = 86_400_000;
+const FOUNDER_DAYS = 30; // quien se registra en el primer mes es Fundador (la fecha se cambia desde Estadísticas)
+const ACTIVE_DAYS_KEPT = 60; // días con visita que se guardan de cada jugador (para las estadísticas)
 const MAX_CHAT = 300;
 const MAX_MAIL = 60;
 const MAX_MEMBERS = 20;
@@ -136,6 +139,8 @@ export class WorldServer {
     this.meta.friends ??= {};
     this.meta.friendRequests ??= {};
     this.meta.offers ??= [];
+    this.meta.founderUntil ??= Date.now() + FOUNDER_DAYS * DAY_MS;
+    this.#grantFounders();
     this.memberOf = new Map();
     for (const a of Object.values(this.meta.alliances)) for (const uid of a.members) this.memberOf.set(uid, a.id);
     // Mundos de antes de los continentes: se añaden donde quepan
@@ -199,6 +204,7 @@ export class WorldServer {
     const game = this.#makeGame(id, newState({ now, home: home.id, name: username }));
     game.dirty = true;
     this.games.set(id, game);
+    this.#grantFounders();
     if (this.meta.contest) this.meta.contest.base[id] = this.#contestStats(game);
     this.rankingCache = null;
     this.announce(`⚓ ${username} funda la ciudad de ${city}`);
@@ -415,6 +421,103 @@ export class WorldServer {
       g.state.lastSeen = Date.now();
       g.dirty = true;
     }
+    // Y qué días ha entrado (para los jugadores activos de cada día en las estadísticas)
+    const day = Math.floor(Date.now() / DAY_MS);
+    const days = g?.state.activeDays ?? [];
+    if (g && days.at(-1) !== day) {
+      g.state.activeDays = [...days, day].slice(-ACTIVE_DAYS_KEPT);
+      g.dirty = true;
+    }
+  }
+
+  // ── Fundadores y estadísticas ──────────────────────────────────────────────
+
+  /** Quien se registró hasta `meta.founderUntil` es Fundador (un logro que se puede llevar de título). Nunca se quita. */
+  #grantFounders() {
+    for (const u of this.users.values()) {
+      const g = this.games.get(u.id);
+      if (!g || g.state.founder || u.created > this.meta.founderUntil) continue;
+      g.state.founder = true;
+      g.receiveNews(null, '🌅 ¡Eres Fundador! Llegaste al archipiélago en su primer mes. Puedes llevarlo de título desde tu perfil.', 'success');
+      g.dirty = true;
+      this.pendingPush.add(u.id);
+    }
+  }
+
+  /** Cambia hasta cuándo se es Fundador (solo moderadores). Quien ya lo es lo sigue siendo. */
+  setFounderUntil(adminId, until) {
+    if (!this.isAdmin(adminId)) throw new UserError('Solo para moderadores.');
+    if (!Number.isFinite(until) || until <= 0) throw new UserError('Esa fecha no vale.');
+    this.meta.founderUntil = until;
+    this.#grantFounders();
+    return this.adminStats(adminId);
+  }
+
+  /**
+   * Las estadísticas del juego (solo moderadores): altas, jugadores activos, retención por semana de
+   * alta y en qué misión se quedan los que se van.
+   *
+   * La retención es «de ventana abierta»: de los que se registraron hace al menos N días, cuántos
+   * volvieron N días o más después de registrarse (su última visita fue después). Así se puede
+   * calcular con lo que ya se guardaba de cada jugador.
+   */
+  adminStats(adminId) {
+    if (!this.isAdmin(adminId)) throw new UserError('Solo para moderadores.');
+    const now = Date.now();
+    const today = Math.floor(now / DAY_MS);
+    const players = [...this.users.values()]
+      .filter((u) => this.games.has(u.id))
+      .map((u) => {
+        const s = this.games.get(u.id).state;
+        return { u, s, created: u.created ?? now, last: Math.max(s.lastSeen ?? 0, u.lastSeen ?? 0, u.created ?? 0) };
+      });
+    const within = (ms) => players.filter((p) => now - p.last <= ms).length;
+    // Altas y jugadores activos de cada uno de los últimos 30 días
+    const days = Array.from({ length: 30 }, (_, i) => today - 29 + i);
+    const daily = days.map((day) => ({
+      day,
+      signups: players.filter((p) => Math.floor(p.created / DAY_MS) === day).length,
+      active: players.filter((p) => (p.s.activeDays ?? []).includes(day)).length,
+    }));
+    // Retención por semana de alta (las últimas 8 semanas, de 7 en 7 días hasta hoy)
+    const cohorts = Array.from({ length: 8 }, (_, k) => {
+      const to = today - 7 * k;
+      const from = to - 6;
+      const group = players.filter((p) => {
+        const d = Math.floor(p.created / DAY_MS);
+        return d >= from && d <= to;
+      });
+      const back = {};
+      for (const n of [1, 7, 30]) {
+        const old = group.filter((p) => now - p.created >= n * DAY_MS);
+        back[n] = old.length ? { k: old.filter((p) => p.last - p.created >= n * DAY_MS).length, of: old.length } : null;
+      }
+      return { from, to, n: group.length, back };
+    });
+    // Dónde se quedan: los que no entran desde hace 3 días, por la misión que tenían pendiente
+    const gone = players.filter((p) => now - p.last > 3 * DAY_MS && now - p.created > 3 * DAY_MS);
+    const stuck = {};
+    for (const p of gone) {
+      const claimed = new Set(p.s.quests?.claimed ?? []);
+      const next = QUESTS.find((q) => !claimed.has(q.id));
+      const key = next ? next.id : 'todas';
+      stuck[key] = (stuck[key] ?? 0) + 1;
+    }
+    const dropoff = Object.entries(stuck)
+      .map(([id, n]) => ({ id, title: QUESTS.find((q) => q.id === id)?.title ?? 'Todas las misiones hechas', order: QUESTS.findIndex((q) => q.id === id), n }))
+      .sort((a, b) => b.n - a.n || a.order - b.order);
+    return {
+      now,
+      accounts: players.length,
+      online: players.filter((p) => now - (p.u.lastSeen ?? 0) < ONLINE_MS).length,
+      active: { day: within(DAY_MS), week: within(7 * DAY_MS), month: within(30 * DAY_MS) },
+      vacation: players.filter((p) => p.s.vacation).length,
+      daily,
+      cohorts,
+      gone: gone.length,
+      dropoff,
+      founders: { until: this.meta.founderUntil, count: players.filter((p) => p.s.founder).length },
+    };
   }
 
   isInactive(userId) {

@@ -5,6 +5,15 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-19a',
+    date: '2026-10-19',
+    title: 'Fundadores del archipiélago',
+    items: [
+      '🌅 Nuevo logro: <b>Fundador</b>. Lo reciben todos los que llegan al archipiélago en su primer mes, y se puede llevar de título junto a tu nombre desde tu perfil. ¡Gracias por estar desde el principio!',
+      '⚡ Arreglado: los logros <b>Azote de reyes</b> y <b>Azote de Tifón</b> se confundían (ganar uno marcaba los dos). Ahora cada uno va por su lado y el título que llevabas muestra el que ganaste.',
+    ],
+  },
+  {
     id: '2026-10-18g',
     date: '2026-10-18',
     title: 'Puerto y astillero',

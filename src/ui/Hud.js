@@ -13,6 +13,7 @@ import { questsHtml, rankingHtml } from './modals.js';
 import { openGuide } from './guide.js';
 import { Tutorial } from './tutorial.js';
 import { WorldMap } from './worldMap.js';
+import { openStats } from './stats.js';
 import { reportsHtml, playReplay, sharedReportHtml } from './reports.js';
 import { hasUnreadNews, markNewsRead, newsHtml } from './changelog.js';
 import { Social } from './social.js';
@@ -383,6 +384,13 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     this.menu.querySelector('[data-action="password"]').addEventListener('click', () => {
       this.menu.hidden = true;
       this.social.openPassword();
+    });
+    // Estadísticas del juego: solo para moderadores
+    const statsBtn = this.menu.querySelector('[data-action="stats"]');
+    statsBtn.hidden = !game.admin;
+    statsBtn.addEventListener('click', () => {
+      this.menu.hidden = true;
+      openStats(this);
     });
     this.menu.querySelector('[data-action="profile-me"]').addEventListener('click', () => {
       this.menu.hidden = true;
