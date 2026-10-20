@@ -1,4 +1,6 @@
-# Imperium
+# Aegium
+
+> Antes se llamaba Imperium: el repositorio, las rutas y los nombres internos (claves del navegador, servicio del servidor) lo conservan.
 
 Juego de estrategia multijugador en el navegador, al estilo de Ikariam u OGame: cada jugador funda su ciudad en un archipiélago 3D compartido (hecho con [Three.js](https://threejs.org/)), la hace crecer, explora, comercia y ataca a otros jugadores. El servidor es el árbitro de todo y el mundo sigue vivo aunque nadie esté conectado.
 

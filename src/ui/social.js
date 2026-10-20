@@ -408,7 +408,7 @@ export class Social {
     this.hud.showModal(
       'welcome',
       `<div class="modal-card">
-        ${head('⚜', `Bienvenido a Imperium, ${escapeHtml(this.game.username)}`, `Tu ciudad: ${escapeHtml(this.game.homeIsland?.name ?? '')}`)}
+        ${head('⚜', `Bienvenido a Aegium, ${escapeHtml(this.game.username)}`, `Tu ciudad: ${escapeHtml(this.game.homeIsland?.name ?? '')}`)}
         <ol class="welcome">
           <li><span>🏛️</span><div><b>Haz crecer tu isla.</b> Pulsa un edificio para mejorarlo. Los recursos se producen solos, también con el juego cerrado.</div></li>
           <li><span>📋</span><div><b>Sigue las misiones.</b> Te guían paso a paso y te dan recompensas.</div></li>

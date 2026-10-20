@@ -163,7 +163,7 @@ export function setGulls(k) {
   }
 }
 
-// ── Música: el tema de Imperium en bucle ────────────────────────────────────
+// ── Música: el tema de Aegium en bucle ────────────────────────────────────
 
 let music = null;
 

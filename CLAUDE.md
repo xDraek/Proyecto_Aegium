@@ -1,4 +1,6 @@
-# Imperium
+# Aegium (antes Imperium)
+
+- El juego se llama **Aegium** de cara a los jugadores (títulos, textos, correos, logo). Lo interno conserva «imperium»: carpeta, repositorio, `package.json`, servicio `imperium`, claves `imperium.*` de `localStorage` (no las cambies: cerraría la sesión de todos y perderían sus ajustes) y `window.__IMPERIUM__`.
 
 Juego de estrategia multijugador en el navegador al estilo de Ikariam/OGame: un archipiélago low-poly en 3D (Three.js + Vite) compartido por todos los jugadores. Hay un servidor Node (`server/`) que guarda las cuentas y el mundo (Postgres si hay `DATABASE_URL`, si no un archivo en `server/data/`).
 

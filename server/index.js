@@ -12,7 +12,7 @@ import { MAILS, publicUrl, sendMail } from './mail.js';
 import { openStore } from './store.js';
 import { UserError, WorldServer } from './WorldServer.js';
 
-// Servidor de Imperium: API JSON + archivos del juego.
+// Servidor de Aegium (antes Imperium): API JSON + archivos del juego.
 //   npm run dev   → con Vite integrado (recarga en caliente) y datos en server/data/
 //   npm start     → producción: sirve dist/ y usa Postgres si hay DATABASE_URL
 //
@@ -595,7 +595,7 @@ setInterval(() => {
 }, 30_000);
 
 server.listen(PORT, () => {
-  console.log(`Imperium en http://localhost:${PORT} · datos: ${store.kind} · velocidad ×${universe.speed} · ${world.users.size} jugadores`);
+  console.log(`Aegium en http://localhost:${PORT} · datos: ${store.kind} · velocidad ×${universe.speed} · ${world.users.size} jugadores`);
 });
 
 async function shutdown() {

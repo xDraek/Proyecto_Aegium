@@ -577,7 +577,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     mBadge.textContent = mail;
     // El título de la pestaña avisa aunque estés en otra
     const attack = this.game.raid || this.game.incoming?.length;
-    document.title = `${attack ? '⚔️ ' : ''}${unread + mail ? `(${unread + mail}) ` : ''}Imperium`;
+    document.title = `${attack ? '⚔️ ' : ''}${unread + mail ? `(${unread + mail}) ` : ''}Aegium`;
 
     // Avisar cuando una misión queda lista para reclamar
     const claimable = this.game.claimableQuests();

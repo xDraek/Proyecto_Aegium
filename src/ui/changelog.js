@@ -5,6 +5,15 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-20a',
+    date: '2026-10-20',
+    title: 'Nuevo nombre: Aegium',
+    items: [
+      '🏛️ El juego se llama ahora <b>Aegium</b>, como la antigua ciudad de Acaya junto al golfo de Corinto. Todo lo demás sigue igual: tu cuenta, tu ciudad y tus partidas.',
+      '🌿 El logo conserva la columna dorada entre laureles, que es también el nuevo icono de la pestaña.',
+    ],
+  },
+  {
     id: '2026-10-19d',
     date: '2026-10-19',
     title: 'El puerto acelera tus flotas',

@@ -86,10 +86,10 @@ async function boot() {
 function startLanding(message, opts = {}) {
   const now = clock.now();
   const world = new ClientWorld();
-  const home = { id: 'escaparate', type: 'jugador', x: 0, z: 0, size: 10, owner: 0, name: 'Imperium' };
+  const home = { id: 'escaparate', type: 'jugador', x: 0, z: 0, size: 10, owner: 0, name: 'Aegium' };
   const neutrals = generateSector(0, 3);
   world.apply({ islands: [home, ...neutrals], states: Object.fromEntries(neutrals.map((i) => [i.id, freshIslandState(i, now)])), players: {} });
-  const state = newState({ now, home: home.id, name: 'Imperium' });
+  const state = newState({ now, home: home.id, name: 'Aegium' });
   Object.assign(state.buildings, { ayuntamiento: 6, aserradero: 5, cantera: 4, granja: 4, mina: 3, fundicion: 3, mercado: 3, almacen: 5, academia: 4, templo: 3, cuartel: 3, puerto: 4, muralla: 3, coloso: 6 });
   Object.assign(state.units, { lancero: 14, arquero: 8, mercante: 2, trirreme: 1 });
   for (const isl of neutrals) state.known[isl.id] = { explored: true };
@@ -264,7 +264,7 @@ function startGame(game) {
     const important = kind === 'error' || /⚔️|🏴‍☠️|🛡️|✉️|🌋/.test(text);
     if (document.hidden && important && notifyOn()) {
       try {
-        new Notification('Imperium', { body: text, tag: 'imperium' });
+        new Notification('Aegium', { body: text, tag: 'imperium' });
       } catch {
         // algunos navegadores no dejan crear avisos así
       }
@@ -286,7 +286,7 @@ function startGame(game) {
       warned.add(m.id);
       if (document.hidden && notifyOn()) {
         try {
-          new Notification('Imperium · ¡Te atacan!', { body: m.size ? `${m.from} viene hacia tu isla con ${m.size} unidades` : `Una flota de ${m.from} viene hacia tu isla`, tag: `ataque-${m.id}` });
+          new Notification('Aegium · ¡Te atacan!', { body: m.size ? `${m.from} viene hacia tu isla con ${m.size} unidades` : `Una flota de ${m.from} viene hacia tu isla`, tag: `ataque-${m.id}` });
         } catch {
           // sin avisos
         }
