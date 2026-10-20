@@ -208,7 +208,7 @@ export class Hud {
           const id = dismiss.dataset.unit;
           const u = UNITS[id];
           const have = game.units[id] ?? 0;
-          const answer = prompt(`${u.icon} ${u.name}: ¿cuántas unidades das de baja? Tienes ${have} en casa.
+          const answer = prompt(`${u.emoji} ${u.name}: ¿cuántas unidades das de baja? Tienes ${have} en casa.
 Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bronce que costaron.`, String(have));
           const n = Math.floor(Number(answer));
           if (answer == null || !(n >= 1)) return;
@@ -999,7 +999,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       case 'train': {
         const id = btn.dataset.unit;
         const n = this.#countOf(root, `n-${id}`);
-        await this.#run(btn, () => game.train(id, n), `${UNITS[id].icon} ${n} × ${UNITS[id].name} en camino`);
+        await this.#run(btn, () => game.train(id, n), `${UNITS[id].emoji} ${n} × ${UNITS[id].name} en camino`);
         break;
       }
       case 'cancel-train':

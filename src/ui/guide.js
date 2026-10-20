@@ -45,7 +45,7 @@ import {
   WORLD_EVENTS,
 } from '../game/data.js';
 import { producerOutput, protectedAmount, storageCapacity } from '../game/rules.js';
-import { bag, escapeHtml, fmtDec, fmtNum } from './format.js';
+import { bag, escapeHtml, fmtDec, fmtNum, glyphs } from './format.js';
 
 // Guía del juego: capítulos con sus temas, un índice a un lado y un buscador.
 // Las tablas salen de los datos del juego (data.js y rules.js), así que no se
@@ -247,7 +247,7 @@ function heroTable() {
 function mercsTable() {
   return table(
     ['Compañía', 'Taberna', 'Tropa', 'Cuántos vienen', 'Precio por soldado'],
-    Object.values(MERCENARIES).map((m) => [`${m.icon} <b>${m.name}</b>`, `Nv ${m.taberna}`, unitName(m.unit), `${fmtDec(m.base)} y ${fmtDec(m.per)} más por cada nivel más de taberna`, bag(m.price)]),
+    Object.values(MERCENARIES).map((m) => [`${glyphs(m.icon)} <b>${m.name}</b>`, `Nv ${m.taberna}`, unitName(m.unit), `${fmtDec(m.base)} y ${fmtDec(m.per)} más por cada nivel más de taberna`, bag(m.price)]),
   );
 }
 

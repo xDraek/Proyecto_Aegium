@@ -75,7 +75,12 @@ export function bag(b) {
   return parts.join(' ') || '<span class="muted">nada</span>';
 }
 
-/** Unidades en línea: "🔱 12 · 🏹 8". */
+/** Los iconos que son imágenes, en un texto ya escapado: 🪖 es la Milicia con lanza. */
+export function glyphs(html) {
+  return String(html).replace(/🪖/g, UNITS.lancero.icon);
+}
+
+/** Unidades en línea: "🪖 12 · 🏹 8". */
 export function unitList(units) {
   const parts = Object.entries(units ?? {})
     .filter(([, n]) => n > 0)
@@ -125,7 +130,7 @@ export function escapeHtml(s) {
  * emoji del bronce: los textos guardan 🥉 (o 🔩, de cuando era hierro) porque viajan como texto.
  */
 export function richText(s) {
-  return linkCoords(escapeHtml(s).replace(/🥉|🔩/g, RESOURCES.hierro.icon));
+  return linkCoords(glyphs(escapeHtml(s).replace(/🥉|🔩/g, RESOURCES.hierro.icon)));
 }
 
 /** Las coordenadas «[47:52]» de un texto ya escapado, como enlaces al mapa del mundo. */

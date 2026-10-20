@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-20c',
+    date: '2026-10-20',
+    title: 'Nuevo icono de la milicia',
+    items: ['<img class="res-img unit-img" src="/ui/lancero.png" alt="" /> La <b>Milicia con lanza</b> tiene icono propio: su lanza con punta de bronce cruzada sobre el escudo de madera. Lo verás en tus tropas, en los avisos y en la taberna.'],
+  },
+  {
     id: '2026-10-20b',
     date: '2026-10-20',
     title: 'Nueva Milicia con lanza',

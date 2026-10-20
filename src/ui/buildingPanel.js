@@ -2,7 +2,7 @@ import { BUILDINGS, HERO, HERO_SKILLS, OCCUPATION, PORT_SAIL_SPEED, RELIC_RARITY
 import { favorMax, favorRate, hasWorkers, producerOutput, protectedAmount, requirementName, storageCapacity, townSpeedup, wallBonus, workShare, workTaxes } from '../game/rules.js';
 import { splitForces } from '../game/combat.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
-import { bag, costList, escapeHtml, fmtDec, fmtNum, fmtTime, unitList } from './format.js';
+import { bag, costList, escapeHtml, fmtDec, fmtNum, fmtTime, glyphs, unitList } from './format.js';
 import { resPicker } from './resPicker.js';
 
 const unitArt = (id) => unitIcon(id, 'card-art');
@@ -372,7 +372,7 @@ function nextMercenaries(offers) {
   const locked = offers.filter((o) => o.locked).sort((a, b) => a.taberna - b.taberna);
   if (!locked.length) return '';
   const soon = locked.filter((o) => o.taberna === locked[0].taberna);
-  return `<p class="hint">🔒 Con la taberna a nivel ${soon[0].taberna} llegarán: ${soon.map((o) => `${o.icon} ${o.name}`).join(' y ')}.</p>`;
+  return `<p class="hint">🔒 Con la taberna a nivel ${soon[0].taberna} llegarán: ${soon.map((o) => `${glyphs(o.icon)} ${o.name}`).join(' y ')}.</p>`;
 }
 
 function templeSection(game) {

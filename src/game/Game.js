@@ -853,7 +853,7 @@ export class Game extends EventTarget {
       if (k > 0) back[r] = k;
     }
     for (const [r, k] of Object.entries(back)) this.state.resources[r] += k;
-    this.#note(`${UNITS[id].icon} Das de baja ${n} × ${UNITS[id].name}${Object.keys(back).length ? `: recuperas ${fmtBag(back)}` : ''}`, 'info');
+    this.#note(`${UNITS[id].emoji} Das de baja ${n} × ${UNITS[id].name}${Object.keys(back).length ? `: recuperas ${fmtBag(back)}` : ''}`, 'info');
     return this.#done();
   }
 
@@ -2282,7 +2282,7 @@ export class Game extends EventTarget {
       q.shift();
       if (q[0]) q[0].start = t;
       const u = UNITS[head.unit];
-      this.#note(`${u.icon} ${head.count} × ${u.name} ${head.count === 1 ? 'listo' : 'listos'}`, 'success');
+      this.#note(`${u.emoji} ${head.count} × ${u.name} ${head.count === 1 ? 'listo' : 'listos'}`, 'success');
     }
   }
 
