@@ -1,5 +1,5 @@
 # Cada push a main: se pasan los tests y, si todo va bien, se publica en el servidor (Hetzner).
-# El servidor solo deja a esta llave lanzar el despliegue (/usr/local/bin/imperium-deploy),
+# El servidor solo deja a esta llave lanzar el despliegue (/usr/local/bin/aegium-deploy),
 # que actualiza el código, compila, guarda una copia de la base de datos y reinicia el juego.
 name: Desplegar
 
