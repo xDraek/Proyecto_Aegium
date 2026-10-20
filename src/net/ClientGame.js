@@ -121,6 +121,7 @@ export class ClientGame extends Game {
       }
     } catch (err) {
       if (err.status === 401) this.dispatchEvent(new Event('logout'));
+      else if (err.status === 503) location.reload();
       else if (!this.offline) {
         this.offline = true;
         this.dispatchEvent(new Event('offline'));
@@ -147,6 +148,7 @@ export class ClientGame extends Game {
       return result;
     } catch (err) {
       if (err.status === 401) this.dispatchEvent(new Event('logout'));
+      if (err.status === 503) location.reload();
       return { ok: false, reason: err.message };
     }
   }

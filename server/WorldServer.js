@@ -141,6 +141,10 @@ export class WorldServer {
     this.meta.friendRequests ??= {};
     this.meta.offers ??= [];
     this.meta.founderUntil ??= Date.now() + FOUNDER_DAYS * DAY_MS;
+    // Mantenimiento: MAINTENANCE=on/off en el entorno lo fija al arrancar; si no, se queda como estaba
+    const m = String(process.env.MAINTENANCE ?? '').toLowerCase();
+    if (m === 'on' && !this.meta.maintenance) this.meta.maintenance = { since: Date.now(), text: '' };
+    if (m === 'off') this.meta.maintenance = null;
     this.#grantFounders();
     this.memberOf = new Map();
     for (const a of Object.values(this.meta.alliances)) for (const uid of a.members) this.memberOf.set(uid, a.id);
@@ -2562,7 +2566,35 @@ export class WorldServer {
     const online = [...this.users.values()].filter((u) => now - u.lastSeen < ONLINE_MS).length;
     const ev = worldEventAt(clock.now());
     const event = ev.event ? { icon: ev.event.icon, name: ev.event.name, text: ev.event.text, end: ev.end } : null;
-    return { players: this.users.size, online, top: this.ranking(null).top.slice(0, 5), event };
+    return { players: this.users.size, online, top: this.ranking(null).top.slice(0, 5), event, maintenance: this.maintenanceText() };
+  }
+
+  // ── Mantenimiento ──────────────────────────────────────────────────────────
+  // Mientras dura, solo los moderadores entran; a los demás se les dice en la portada.
+
+  /** El aviso de mantenimiento, o null si el juego está abierto. */
+  maintenanceText() {
+    const m = this.meta.maintenance;
+    if (!m) return null;
+    return m.text || 'El servidor está en mantenimiento hasta nuevo aviso. Volvemos pronto.';
+  }
+
+  /** Si el juego está cerrado para este jugador (los moderadores siempre pueden entrar). */
+  closedFor(userId) {
+    return !!this.meta.maintenance && !this.isAdmin(userId);
+  }
+
+  /** Abre o cierra el juego (solo moderadores). Al cerrarlo, echa a quien esté conectado. */
+  setMaintenance(adminId, on, text = '') {
+    if (!this.isAdmin(adminId)) throw new UserError('Solo para moderadores.');
+    this.meta.maintenance = on ? { since: Date.now(), text: String(text ?? '').trim().slice(0, 300) } : null;
+    if (on) {
+      for (const [uid, set] of this.sockets) {
+        if (this.isAdmin(uid)) continue;
+        for (const ws of set) ws.close(4004, 'mantenimiento');
+      }
+    }
+    return { maintenance: this.maintenanceText() };
   }
 
   addChat(userId, text, channel = 'global') {

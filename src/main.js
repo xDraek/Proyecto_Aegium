@@ -73,7 +73,8 @@ async function boot() {
       return;
     } catch (err) {
       if (err.status === 401) setToken(null);
-      startLanding(err.status === 401 ? (/correo/.test(err.message) ? err.message : 'Tu sesión ha caducado. Vuelve a entrar.') : err.message);
+      // (en mantenimiento la sesión se guarda: al reabrir, entra solo)
+      startLanding(err.status === 401 ? (/correo/.test(err.message) ? err.message : 'Tu sesión ha caducado. Vuelve a entrar.') : err.status === 503 ? null : err.message);
       return;
     }
   }

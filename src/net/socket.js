@@ -31,6 +31,8 @@ export function connectLive(game, { onChat, onChatDelete, onBanned }) {
     ws.onclose = (e) => {
       game.live = false;
       if (e.code === 4003) return onBanned();
+      // Mantenimiento: a la portada, que lo explica
+      if (e.code === 4004) return location.reload();
       setTimeout(open, retry);
       retry = Math.min(retry * 2, 30_000);
     };

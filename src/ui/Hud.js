@@ -1506,6 +1506,15 @@ Al jurar, ${wars.join(' y ')}.` : '';
       // Los moderadores pueden hacer anuncios con /anuncio y despertar una gesta con
       // /gesta [continente] [minutos de presagios] (sin continente, la del libre más cercano)
       if (this.game.admin && text.startsWith('/anuncio ')) await api('POST', '/api/admin/broadcast', { text: text.slice(9) });
+      // /mantenimiento on [aviso] cierra el juego a los jugadores; /mantenimiento off lo abre
+      else if (this.game.admin && /^\/mantenimiento(\s|$)/.test(text)) {
+        const [, mode, note] = /^\/mantenimiento\s*(on|off)?\s*(.*)$/i.exec(text);
+        if (!mode) throw new Error('Escribe /mantenimiento on [aviso] para cerrar el juego o /mantenimiento off para abrirlo.');
+        const res = await api('POST', '/api/admin/maintenance', { on: mode.toLowerCase() === 'on', text: note });
+        this.toast(res.maintenance ? '🛠️ Juego cerrado por mantenimiento: solo entran los moderadores' : '✅ Juego abierto otra vez', 'success');
+        input.value = '';
+        return;
+      }
       else if (this.game.admin && /^\/gesta(\s|$)/.test(text)) {
         const [, site, minutes] = /^\/gesta\s*(.*?)\s*(\d+)?$/.exec(text);
         const res = await api('POST', '/api/admin/feat', { site: site || undefined, omenMinutes: minutes ? Number(minutes) : undefined });

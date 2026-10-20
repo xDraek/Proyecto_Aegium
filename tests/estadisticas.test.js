@@ -74,3 +74,22 @@ test('«Azote de reyes» y «Azote de Tifón» son logros distintos', async () =
   assert.equal(upgradeState(old).title, 'azotegesta');
   assert.equal(upgradeState({ ...old, stats: { ...old.stats, pvpWins: 6 } }).title, 'azote');
 });
+
+test('en mantenimiento solo entran los moderadores y la portada lo avisa', async () => {
+  const { world, players } = await makeWorld(['Lucio', 'Anibal']);
+  const [A, B] = players;
+  world.admins.add('lucio');
+  assert.equal(world.stats().maintenance, null);
+  assert.throws(() => world.setMaintenance(B.userId, true), /moderadores/);
+  const closed = [];
+  world.addSocket(B.userId, { readyState: 1, send() {}, close: (code) => closed.push(code) });
+  world.setMaintenance(A.userId, true);
+  assert.match(world.stats().maintenance, /mantenimiento/);
+  assert.equal(world.closedFor(B.userId), true);
+  assert.equal(world.closedFor(A.userId), false, 'el moderador sigue entrando');
+  assert.deepEqual(closed, [4004], 'echa a quien estaba conectado');
+  world.setMaintenance(A.userId, true, 'Volvemos el lunes');
+  assert.equal(world.stats().maintenance, 'Volvemos el lunes');
+  world.setMaintenance(A.userId, false);
+  assert.equal(world.closedFor(B.userId), false);
+});

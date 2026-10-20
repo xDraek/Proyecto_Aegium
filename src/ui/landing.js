@@ -159,6 +159,10 @@ async function loadStats() {
   const el = $('#world-stats');
   try {
     const s = await api('GET', '/api/stats');
+    // En mantenimiento, el aviso bien grande en la portada
+    const banner = $('#maintenance');
+    banner.hidden = !s.maintenance;
+    if (s.maintenance) banner.innerHTML = `<span>🛠️</span><div><b>Servidor en mantenimiento</b>${escapeHtml(s.maintenance)}</div>`;
     const top = s.top.length
       ? `<ol class="mini-rank">${s.top.map((r) => `<li><span>${escapeHtml(r.name)}</span><b>${fmtNum(r.points)}</b></li>`).join('')}</ol>`
       : '<p class="muted small">Todavía no hay nadie. ¡Sé el primero en fundar una ciudad!</p>';

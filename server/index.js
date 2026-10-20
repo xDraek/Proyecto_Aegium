@@ -237,6 +237,8 @@ async function api(req, res, url) {
     if (route.startsWith('POST /api/') && ['register', 'login', 'verify', 'email/start', 'forgot', 'reset'].includes(url.pathname.slice(5))) {
       if (limited(`auth:${ip(req)}`, 10, 60_000)) return send(res, 429, { error: 'Demasiados intentos. Espera un minuto.' });
       const body = await readJson(req);
+      // En mantenimiento no se crean cuentas
+      if (world.maintenanceText() && route === 'POST /api/register') return send(res, 503, { error: world.maintenanceText(), maintenance: true });
       if (route === 'POST /api/register') {
         if (mailLimited(body.email)) return send(res, 429, { error: 'Ya te hemos mandado varios correos. Espera unos minutos.' });
         const pending = await world.startRegistration(body);
@@ -250,6 +252,7 @@ async function api(req, res, url) {
       }
       if (route === 'POST /api/login') {
         const uid = world.login(body.username, body.password);
+        if (world.closedFor(uid)) return send(res, 503, { error: world.maintenanceText(), maintenance: true });
         // Cuenta de antes del correo: primero tiene que añadir uno
         if (!world.hasEmail(uid)) return send(res, 200, { needEmail: true, permit: await world.emailPermit(uid) });
         world.seen(uid);
@@ -282,6 +285,9 @@ async function api(req, res, url) {
       const needEmail = raw != null && world.games.has(raw) && !world.hasEmail(raw);
       return send(res, 401, { error: needEmail ? 'Ahora cada cuenta necesita un correo: vuelve a entrar para añadir el tuyo.' : 'Tienes que iniciar sesión.' });
     }
+
+    // En mantenimiento, fuera (salvo los moderadores)
+    if (world.closedFor(uid) && route !== 'POST /api/admin/maintenance') return send(res, 503, { error: world.maintenanceText(), maintenance: true });
 
     // Las versiones de la lista de islas y de su estado que ya tiene el navegador (lo que no ha
     // cambiado desde entonces no se repite)
@@ -340,6 +346,7 @@ async function api(req, res, url) {
       else if (sub === 'broadcast') world.broadcast(uid, body.text);
       else if (sub === 'reset') return send(res, 200, { password: await world.adminResetPassword(uid, body.name) });
       else if (sub === 'founder') return send(res, 200, world.setFounderUntil(uid, Number(body.until)));
+      else if (sub === 'maintenance') return send(res, 200, world.setMaintenance(uid, body.on === true, body.text));
       else if (sub === 'feat') {
         const site = typeof body.site === 'string' && body.site.length < 40 ? body.site : null;
         const omenMinutes = Number.isFinite(body.omenMinutes) && body.omenMinutes > 0 ? Math.min(body.omenMinutes, 24 * 60) : null;
@@ -569,6 +576,10 @@ server.on('upgrade', (req, socket, head) => {
   const uid = readToken(url.searchParams.get('token'), world.secret);
   if (uid == null || !world.games.has(uid) || world.isBanned(uid) || !world.hasEmail(uid)) {
     socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+    return socket.destroy();
+  }
+  if (world.closedFor(uid)) {
+    socket.write('HTTP/1.1 503 Service Unavailable\r\n\r\n');
     return socket.destroy();
   }
   wss.handleUpgrade(req, socket, head, (ws) => {
