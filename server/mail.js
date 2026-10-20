@@ -22,19 +22,64 @@ export function publicUrl(req) {
   throw new Error('Falta PUBLIC_URL: la dirección pública del juego para los enlaces de los correos.');
 }
 
-/** Un correo sencillo con el estilo del juego y un botón con el enlace. */
-function template({ title, lines, button, link, foot }) {
-  const p = (t) => `<p style="margin:0 0 14px;line-height:1.5">${t}</p>`;
-  const html = `<!doctype html><html lang="es"><body style="margin:0;padding:24px;background:#1d1813;font-family:Georgia,serif;color:#f3ead8">
-  <div style="max-width:520px;margin:0 auto;background:#28211a;border:1px solid #5a4a2a;border-radius:12px;padding:28px">
-    <h1 style="margin:0 0 18px;font-size:24px;color:#f2c94c;letter-spacing:1px">⚜ Aegium</h1>
-    <h2 style="margin:0 0 14px;font-size:18px;color:#f3ead8">${escapeHtml(title)}</h2>
-    ${lines.map((l) => p(l)).join('')}
-    <p style="margin:22px 0"><a href="${escapeHtml(link)}" style="display:inline-block;background:#e0b23e;color:#2b2014;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:8px;font-family:Arial,sans-serif">${escapeHtml(button)}</a></p>
-    <p style="margin:0 0 14px;font-size:12px;color:#b9ab90;line-height:1.5">Si el botón no funciona, copia esta dirección en el navegador:<br><span style="word-break:break-all">${escapeHtml(link)}</span></p>
-    <p style="margin:0;font-size:12px;color:#b9ab90">${foot}</p>
-  </div></body></html>`;
-  const text = `Aegium\n\n${title}\n\n${lines.map((l) => l.replace(/<[^>]+>/g, '')).join('\n\n')}\n\n${button}: ${link}\n\n${foot.replace(/<[^>]+>/g, '')}`;
+/**
+ * Un correo con el estilo del juego: el logo arriba, una tarjeta con el mensaje y un botón dorado.
+ * Va maquetado con tablas y estilos en línea, que es lo único que respetan Gmail, Outlook y los
+ * móviles; el logo es una imagen (los programas de correo no cargan las fuentes de la web).
+ */
+function template({ title, preheader, lines, button, link, foot }) {
+  const base = new URL(link).origin;
+  const site = base.replace(/^https?:\/\//, '');
+  const url = escapeHtml(link);
+  const serif = "Georgia,'Times New Roman',serif";
+  const p = (t) => `<p style="margin:0 0 16px;font-family:${serif};font-size:16px;line-height:1.6;color:#efe4cc">${t}</p>`;
+  const html = `<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>${escapeHtml(title)}</title></head>
+<body style="margin:0;padding:0;background:#15110d">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#15110d">${escapeHtml(preheader)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#15110d">
+<tr><td align="center" style="padding:32px 12px">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px">
+    <tr><td align="center" style="padding:0 0 22px">
+      <a href="${escapeHtml(base)}" style="text-decoration:none"><img src="${escapeHtml(base)}/ui/correo-logo.png" width="260" alt="AEGIUM" style="display:block;width:260px;max-width:70%;height:auto;border:0;margin:0 auto;font-family:${serif};font-size:32px;font-weight:bold;letter-spacing:6px;color:#f2c94c"></a>
+    </td></tr>
+    <tr><td style="background:#1f1913;border:1px solid #4a3b22;border-top:3px solid #d4a23a;border-radius:10px;padding:34px 34px 28px">
+      <h1 style="margin:0 0 20px;font-family:${serif};font-size:24px;font-weight:bold;line-height:1.3;color:#f2c94c">${escapeHtml(title)}</h1>
+      ${lines.map(p).join('\n      ')}
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px auto 26px"><tr>
+        <td align="center" bgcolor="#d9a73a" style="border-radius:8px;background:#d9a73a;background-image:linear-gradient(180deg,#f2c94c,#c48b22)">
+          <a href="${url}" style="display:inline-block;padding:14px 30px;font-family:${serif};font-size:17px;font-weight:bold;letter-spacing:.5px;color:#2a1c08;text-decoration:none;border-radius:8px;border:1px solid #8a5d14">${escapeHtml(button)}</a>
+        </td>
+      </tr></table>
+      <p style="margin:0 0 22px;font-family:Arial,sans-serif;font-size:12px;line-height:1.6;color:#a99a7d">Si el botón no funciona, copia esta dirección en el navegador:<br><a href="${url}" style="color:#d9b45a;word-break:break-all">${url}</a></p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-top:1px solid #3d311d;padding-top:18px;font-family:Arial,sans-serif;font-size:13px;line-height:1.6;color:#a99a7d">${foot}</td></tr></table>
+    </td></tr>
+    <tr><td align="center" style="padding:24px 12px 0;font-family:Arial,sans-serif;font-size:12px;line-height:1.7;color:#7d6f57">
+      <span style="font-family:${serif};font-size:13px;letter-spacing:3px;color:#b58d3c">AEGIUM</span> · Juego de estrategia en el navegador<br>
+      Este correo se envía automáticamente: no hace falta que lo respondas.<br>
+      <a href="${escapeHtml(base)}" style="color:#b58d3c;text-decoration:none">${escapeHtml(site)}</a>
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body></html>`;
+  const plain = (t) => t.replace(/<[^>]+>/g, '');
+  const text = [
+    'AEGIUM',
+    '══════',
+    '',
+    title,
+    '',
+    ...lines.map(plain).flatMap((l) => [l, '']),
+    `${button}:`,
+    link,
+    '',
+    '──────',
+    plain(foot),
+    '',
+    `Aegium · Juego de estrategia en el navegador · ${site}`,
+    'Este correo se envía automáticamente: no hace falta que lo respondas.',
+  ].join('\n');
   return { html, text };
 }
 
@@ -43,7 +88,8 @@ export const MAILS = {
     subject: 'Confirma tu cuenta de Aegium',
     ...template({
       title: `¡Bienvenido, ${username}!`,
-      lines: ['Solo falta un paso para fundar tu ciudad: confirma que este correo es tuyo.', 'El enlace vale durante 24 horas.'],
+      preheader: 'Confirma tu correo y funda tu primera ciudad en el Egeo.',
+      lines: ['Gracias por unirte a Aegium. Solo falta un paso para fundar tu ciudad: confirma que este correo es tuyo.', 'El enlace vale durante <b>24 horas</b>.'],
       button: 'Confirmar mi cuenta',
       link,
       foot: 'Si no has creado ninguna cuenta en Aegium, no hagas nada: sin confirmar, se borra sola.',
@@ -53,7 +99,8 @@ export const MAILS = {
     subject: 'Confirma tu correo en Aegium',
     ...template({
       title: `Hola, ${username}`,
-      lines: ['Has pedido usar este correo en tu cuenta de Aegium. Confírmalo con el botón.', 'El enlace vale durante 24 horas.'],
+      preheader: 'Confirma el correo nuevo de tu cuenta de Aegium.',
+      lines: ['Has pedido usar este correo en tu cuenta de Aegium. Confírmalo con el botón.', 'El enlace vale durante <b>24 horas</b>.'],
       button: 'Confirmar el correo',
       link,
       foot: 'Si no has sido tú, no hagas nada: el correo de tu cuenta no cambiará.',
@@ -63,7 +110,8 @@ export const MAILS = {
     subject: 'Cambia tu contraseña de Aegium',
     ...template({
       title: `Hola, ${username}`,
-      lines: ['Alguien (seguramente tú) ha pedido una contraseña nueva para tu cuenta.', 'El enlace vale durante 1 hora y solo se puede usar una vez.'],
+      preheader: 'Pon una contraseña nueva para volver a tu ciudad.',
+      lines: ['Alguien (seguramente tú) ha pedido una contraseña nueva para tu cuenta.', 'El enlace vale durante <b>1 hora</b> y solo se puede usar una vez.'],
       button: 'Poner una contraseña nueva',
       link,
       foot: 'Si no lo has pedido tú, no hagas nada: tu contraseña sigue igual.',
