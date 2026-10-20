@@ -2562,15 +2562,15 @@ function arm(g, s, pose, sleeve, skin) {
 
 /**
  * Una persona. Opciones: skin, hair, female, beard, long (vestido largo), color (ropa),
- * skirt (falda de otro color), drape (toga o manto cruzado), veil, shawl, belt, cloak,
- * cuirass, pteruges, greaves, helmet ('corintio' | 'legionario' | 'gorro' | 'panuelo'),
+ * top (túnica del torso, si es de otro color), bareArms (sin mangas), skirt (falda de otro color), drape (toga o manto cruzado), veil, shawl, belt, cloak,
+ * cuirass, pteruges, greaves, helmet ('corintio' | 'atico' | 'legionario' | 'gorro' | 'panuelo'),
  * crest, arms: [derecho, izquierdo] (poses).
  */
 export function figure(o) {
   const g = new THREE.Group();
   const skin = o.skin ?? SKIN[0];
   const hair = o.hair ?? HAIR[0];
-  const top = o.cuirass ? (o.cuirassColor ?? BRONZE_C) : o.color;
+  const top = o.cuirass ? (o.cuirassColor ?? BRONZE_C) : (o.top ?? o.color);
   // Piernas y sandalias (o grebas)
   for (const s of [-1, 1]) {
     g.add(cyl(0.022, 0.026, 0.22, 5, o.greaves ? (o.cuirassColor ?? BRONZE_C) : skin, s * 0.04, 0.02, 0));
@@ -2607,7 +2607,7 @@ export function figure(o) {
   }
   // Brazos
   const [right = 'abajo', left = 'abajo'] = o.arms ?? [];
-  const sleeve = o.cuirass ? (o.sleeve ?? o.color) : o.color;
+  const sleeve = o.bareArms ? skin : o.cuirass ? (o.sleeve ?? o.color) : o.color;
   const ra = arm(g, 1, right, sleeve, skin);
   const la = arm(g, -1, left, sleeve, skin);
   // Cuello, cabeza, cara y pelo
@@ -2636,16 +2636,18 @@ export function figure(o) {
     g.add(v, box(0.13, 0.2, 0.03, o.veil, 0, 0.37, -0.058));
   }
   if (o.helmet) {
-    const metal = o.helmet === 'corintio' ? BRONZE_C : o.helmet === 'legionario' ? IRON : o.helmet === 'gorro' ? LEATHER : '#b8442f';
+    const metal = o.helmet === 'corintio' || o.helmet === 'atico' ? BRONZE_C : o.helmet === 'legionario' ? IRON : o.helmet === 'gorro' ? LEATHER : '#b8442f';
     const h = mesh(new THREE.SphereGeometry(0.066, 9, 6, 0, Math.PI * 2, 0, Math.PI / 2), metal);
     h.position.y = 0.535;
     g.add(h);
     if (o.helmet === 'corintio') g.add(box(0.03, 0.06, 0.02, metal, -0.045, 0.49, 0.05), box(0.03, 0.06, 0.02, metal, 0.045, 0.49, 0.05));
     if (o.helmet === 'legionario') g.add(box(0.12, 0.04, 0.04, metal, 0, 0.5, -0.05));
+    // Ático: visera sobre la frente y carrilleras cortas a los lados, con la cara al aire
+    if (o.helmet === 'atico') g.add(box(0.13, 0.014, 0.035, metal, 0, 0.548, 0.045), box(0.018, 0.05, 0.05, metal, -0.06, 0.49, 0.015), box(0.018, 0.05, 0.05, metal, 0.06, 0.49, 0.015));
     if (o.helmet === 'panuelo') g.add(box(0.03, 0.05, 0.04, metal, 0.05, 0.53, -0.05));
     if (o.crest) {
       // Penacho de crin: de delante atrás (griego) o de lado a lado (centurión)
-      if (o.helmet === 'corintio') {
+      if (o.helmet === 'corintio' || o.helmet === 'atico') {
         g.add(box(0.022, 0.06, 0.15, o.crest, 0, 0.59, 0));
         g.add(box(0.022, 0.04, 0.06, o.crest, 0, 0.56, -0.09));
       } else g.add(box(0.11, 0.035, 0.018, o.crest, 0, 0.59, 0));
@@ -2678,6 +2680,35 @@ function aspis(g, color = BRONZE_C, emblem = '#a8231a') {
   e.rotation.x = Math.PI / 2;
   e.position.set(-0.12, 0.3, 0.085);
   g.add(e);
+}
+
+/** Lanza larga apoyada en el suelo: asta de madera, punta de hoja de bronce y regatón abajo. */
+function longSpear(g, h = 0.66) {
+  const x = 0.135, z = 0.03;
+  g.add(cyl(0.01, 0.012, h, 5, '#7a3f22', x, 0.02, z));
+  g.add(cyl(0.014, 0.005, 0.05, 5, BRONZE_C, x, 0, z));
+  g.add(cyl(0.015, 0.012, 0.03, 6, BRONZE_C, x, h + 0.005, z), cyl(0.013, 0.013, 0.012, 6, '#a8822e', x, h - 0.02, z));
+  const tip = mesh(new THREE.ConeGeometry(0.024, 0.13, 4), BRONZE_C);
+  tip.position.set(x, h + 0.1, z);
+  tip.scale.set(1, 1, 0.45);
+  g.add(tip);
+}
+
+/** Escudo redondo de madera con el borde y el umbo de bronce, al costado izquierdo y algo girado. */
+function woodShield(g, r = 0.15, x = -0.16, y = 0.29, z = 0.08, turn = -0.45) {
+  const sh = new THREE.Group();
+  const face = (o, dz) => (o.rotation.x = Math.PI / 2, o.position.z = dz, sh.add(o), o);
+  face(mesh(new THREE.CylinderGeometry(r, r, 0.024, 18), '#a5603a'), 0);
+  // Tablas de la madera
+  for (const dx of [-r * 0.4, 0, r * 0.4]) sh.add(box(0.006, Math.sqrt(r * r - dx * dx) * 1.9, 0.004, '#8a4a28', dx, -Math.sqrt(r * r - dx * dx) * 0.95, 0.013));
+  const rim = mesh(new THREE.TorusGeometry(r, 0.016, 5, 22), BRONZE_C);
+  rim.position.z = 0.012;
+  sh.add(rim);
+  face(mesh(new THREE.CylinderGeometry(r * 0.3, r * 0.3, 0.012, 12), '#a8822e'), 0.016);
+  face(mesh(new THREE.SphereGeometry(r * 0.2, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), BRONZE_C), 0.02);
+  sh.position.set(x, y, z);
+  sh.rotation.y = turn;
+  g.add(sh);
 }
 
 const VILLAGERS = [
@@ -3953,7 +3984,21 @@ function horse(g, color = '#7a5230') {
 }
 
 const TROOPS = {
-  lancero: { color: '#b8442f', helmet: 'corintio', greaves: true, arms: ['abajo', 'adelante'], extra: (g) => (spear(g), aspis(g, '#8b5a2b', '#e3b23c')) },
+  // Miliciano: calzón gris, túnica sin mangas y chal de lino crudo, tahalí de cuero, casco de bronce
+  // con penacho negro, lanza larga y escudo de madera con borde de bronce
+  lancero: { color: '#5f5c58', top: '#e6dcc4', bareArms: true, shawl: '#eee6d2', belt: '#6b4326', helmet: 'atico', crest: '#24201c', hair: HAIR[2], arms: ['abajo', 'abajo'], extra: (g) => {
+    // Calzón gris hasta la rodilla y faldón de lino por delante y por detrás
+    for (const sx of [-1, 1]) g.add(cyl(0.032, 0.034, 0.08, 6, '#5f5c58', sx * 0.042, 0.14, 0));
+    g.add(box(0.085, 0.15, 0.012, '#e6dcc4', 0.02, 0.19, 0.09), box(0.15, 0.13, 0.012, '#e6dcc4', 0, 0.19, -0.088));
+    // Tahalí cruzado del hombro derecho a la cadera izquierda, y la hebilla del cinturón
+    const strap = box(0.024, 0.22, 0.012, '#6b4326', 0.01, 0.26, 0.08);
+    strap.rotation.z = -0.62;
+    g.add(strap, box(0.026, 0.02, 0.012, BRONZE_C, 0.02, 0.322, 0.082));
+    // Barba corta por la mandíbula, dejando ver la cara
+    g.add(box(0.08, 0.026, 0.03, HAIR[2], 0, 0.476, 0.03), box(0.04, 0.008, 0.012, HAIR[2], 0, 0.505, 0.056));
+    longSpear(g);
+    woodShield(g);
+  } },
   hondero: { color: '#c9b48a', belt: LEATHER, hair: HAIR[3], arms: ['arriba', 'abajo'], extra: (g) => {
     g.add(cyl(0.006, 0.006, 0.22, 4, C.woodDark, 0.2, 0.62, 0));
     g.add(box(0.05, 0.05, 0.05, C.stone, 0.2, 0.84, 0));

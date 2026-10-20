@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-20b',
+    date: '2026-10-20',
+    title: 'Nueva Milicia con lanza',
+    items: ['🔱 La <b>Milicia con lanza</b> estrena aspecto: túnica y chal de lino, calzón gris, casco de bronce con penacho negro, lanza larga con punta de bronce y escudo redondo de madera con borde de bronce.'],
+  },
+  {
     id: '2026-10-20a',
     date: '2026-10-20',
     title: 'Nuevo nombre: Aegium',
