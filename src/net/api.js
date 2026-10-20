@@ -1,6 +1,6 @@
 // Llamadas al servidor. La sesión es un token que se guarda en el navegador.
 
-const TOKEN_KEY = 'imperium.token';
+const TOKEN_KEY = 'aegium.token';
 
 export function getToken() {
   try {

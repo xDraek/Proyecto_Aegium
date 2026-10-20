@@ -125,7 +125,7 @@ export function createWater(shores, level) {
       );
   };
   // Que three.js no reutilice el programa de otro material estándar
-  material.customProgramCacheKey = () => 'imperium-water';
+  material.customProgramCacheKey = () => 'aegium-water';
 
   const mesh = new THREE.Mesh(geo, material);
   mesh.position.y = level;

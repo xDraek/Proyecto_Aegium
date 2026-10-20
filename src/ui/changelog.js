@@ -331,7 +331,7 @@ export const CHANGELOG = [
     date: '2026-10-14',
     title: 'Nuevo logo',
     items: [
-      '🏛️ <b>Imperivm</b> estrena logo: la columna dorada entre laureles. También es el icono de la pestaña del navegador.',
+      '🏛️ <b>Aegium</b> estrena logo: la columna dorada entre laureles. También es el icono de la pestaña del navegador.',
       'Las imágenes del juego se guardan en tu navegador y ya no se descargan en cada visita: entra más rápido.',
     ],
   },
@@ -494,7 +494,7 @@ export const CHANGELOG = [
 ];
 
 /** La última nota que ha visto este navegador (para marcar el botón si hay una nueva). */
-const SEEN_KEY = 'imperium.newsSeen';
+const SEEN_KEY = 'aegium.newsSeen';
 
 /** Si hay una nota sin leer: ni en este navegador ni en tu cuenta (`seen`, la última vista en cualquier dispositivo). */
 export function hasUnreadNews(seen = null) {

@@ -57,7 +57,7 @@ export class ClientGame extends Game {
    * has visto se apunta en tu cuenta, así que otro dispositivo no te los vuelve a enseñar.
    */
   #showNotes(first) {
-    const key = `imperium.lastNote.${this.userId}`;
+    const key = `aegium.lastNote.${this.userId}`;
     let last = this.lastNote;
     if (last == null) {
       try {

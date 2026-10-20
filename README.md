@@ -1,7 +1,5 @@
 # Aegium
 
-> Antes se llamaba Imperium: el repositorio, las rutas y los nombres internos (claves del navegador, servicio del servidor) lo conservan.
-
 Juego de estrategia multijugador en el navegador, al estilo de Ikariam u OGame: cada jugador funda su ciudad en un archipiélago 3D compartido (hecho con [Three.js](https://threejs.org/)), la hace crecer, explora, comercia y ataca a otros jugadores. El servidor es el árbitro de todo y el mundo sigue vivo aunque nadie esté conectado.
 
 ## Arrancar en tu ordenador
@@ -19,18 +17,9 @@ Para probar más rápido: `GAME_SPEED=50 npm run dev` (en PowerShell: `$env:GAME
 
 El juego es un único servidor Node que sirve la página y la API, más una base de datos Postgres.
 
-### Render (gratis)
+### En un servidor
 
-1. Sube el repositorio a GitHub.
-2. En [Render](https://render.com): **New → Blueprint** y elige el repositorio. El archivo `render.yaml` crea el servidor y una base de datos.
-3. Cuando termine, abre la dirección que te da Render.
-4. Configura el correo (hace falta para crear cuentas): mira **Correo** más abajo.
-
-En el plan gratuito, el servidor se duerme tras 15 minutos sin visitas y tarda un poco en despertar; al hacerlo se pone al día con todo lo que pasó. La base de datos gratuita de Render caduca a los 30 días: para algo duradero, crea una gratis en [Neon](https://neon.tech) o [Supabase](https://supabase.com) y pon su dirección en la variable `DATABASE_URL`.
-
-### Otras nubes
-
-Hay un `Dockerfile` para cualquier servicio que acepte contenedores (Railway, Fly.io, un VPS…). Variables de entorno:
+El juego oficial corre en un VPS (Node + Postgres detrás de Caddy). También hay un `Dockerfile` para cualquier servicio que acepte contenedores (Railway, Fly.io…). Variables de entorno:
 
 | Variable | Para qué |
 | --- | --- |
@@ -41,8 +30,8 @@ Hay un `Dockerfile` para cualquier servicio que acepte contenedores (Railway, Fl
 | `PORT` | Puerto (las nubes lo ponen solas). |
 | `BREVO_API_KEY` | Clave de la API de [Brevo](https://www.brevo.com) para mandar los correos (confirmar la cuenta, contraseña olvidada). |
 | `MAIL_FROM` | Remitente de los correos, verificado en Brevo (puede ser tu Gmail). |
-| `MAIL_FROM_NAME` | Nombre del remitente (por defecto, «Imperium»). |
-| `PUBLIC_URL` | Dirección pública del juego para los enlaces de los correos (en Render no hace falta: se usa `RENDER_EXTERNAL_URL`). |
+| `MAIL_FROM_NAME` | Nombre del remitente (por defecto, «Aegium»). |
+| `PUBLIC_URL` | Dirección pública del juego para los enlaces de los correos. |
 
 El servidor guarda el mundo en memoria y lo vuelca a la base de datos cada 10 segundos, así que debe haber **una sola instancia**.
 
@@ -53,7 +42,7 @@ Cada cuenta va unida a un correo verificado: al registrarse llega un enlace para
 1. Crea una cuenta en Brevo.
 2. En **Remitentes y dominios** (Senders), añade y verifica el correo que firmará los mensajes (por ejemplo, tu Gmail).
 3. En **SMTP y API → Claves API**, crea una clave.
-4. En Render, en las variables de entorno del servicio, pon `BREVO_API_KEY` (la clave) y `MAIL_FROM` (el remitente verificado).
+4. En las variables de entorno del servidor, pon `BREVO_API_KEY` (la clave) y `MAIL_FROM` (el remitente verificado).
 
 Sin `BREVO_API_KEY` no se manda ningún correo: el texto con el enlace se escribe en los registros del servidor.
 
@@ -131,7 +120,7 @@ src/
   ui/                  pantalla principal, interfaz, paneles, informes, chat, alianza/correo/mercado (social.js), mapa del mundo (worldMap.js)
 ```
 
-En la consola del navegador, ya dentro de la partida, está `window.__IMPERIUM__` (`game`, `world`, `hud`, `select`, `setView`).
+En la consola del navegador, ya dentro de la partida, está `window.__AEGIUM__` (`game`, `world`, `hud`, `select`, `setView`).
 
 ## Próximos pasos posibles
 

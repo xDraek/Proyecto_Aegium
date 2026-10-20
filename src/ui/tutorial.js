@@ -1,7 +1,7 @@
 // Tutorial para los jugadores nuevos: un consejero que señala dónde pulsar y
 // avanza solo cuando haces cada cosa. Se puede saltar, y no vuelve a salir.
 
-const KEY = (uid) => `imperium.tutorial.${uid}`;
+const KEY = (uid) => `aegium.tutorial.${uid}`;
 
 const STEPS = [
   {

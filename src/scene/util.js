@@ -224,7 +224,7 @@ export function surfaceDetail(material, kind, { masonry = true } = {}) {
       );
     if (masonry) shader.defines = { ...(shader.defines ?? {}), DETAIL_MASONRY: '' };
   };
-  material.customProgramCacheKey = () => `imperium-detail-${kind}`;
+  material.customProgramCacheKey = () => `aegium-detail-${kind}`;
   return material;
 }
 

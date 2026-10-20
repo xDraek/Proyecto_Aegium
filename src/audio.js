@@ -3,10 +3,10 @@
 // El navegador no deja sonar nada hasta que el jugador interactúa, así que el
 // contexto se crea en el primer clic o tecla.
 
-const MUTE_KEY = 'imperium.muted';
-const MUSIC_KEY = 'imperium.music';
-const MUSIC_VOLUME_KEY = 'imperium.musicVolume';
-const AMBIENT_VOLUME_KEY = 'imperium.ambientVolume';
+const MUTE_KEY = 'aegium.muted';
+const MUSIC_KEY = 'aegium.music';
+const MUSIC_VOLUME_KEY = 'aegium.musicVolume';
+const AMBIENT_VOLUME_KEY = 'aegium.ambientVolume';
 // Volumen de la música a tope (el deslizador va de 0 a 1 sobre esto)
 const MUSIC_MAX = 0.65;
 

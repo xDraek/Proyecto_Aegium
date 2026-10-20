@@ -12,7 +12,7 @@ import { MAILS, publicUrl, sendMail } from './mail.js';
 import { openStore } from './store.js';
 import { UserError, WorldServer } from './WorldServer.js';
 
-// Servidor de Aegium (antes Imperium): API JSON + archivos del juego.
+// Servidor de Aegium: API JSON + archivos del juego.
 //   npm run dev   → con Vite integrado (recarga en caliente) y datos en server/data/
 //   npm start     → producción: sirve dist/ y usa Postgres si hay DATABASE_URL
 //

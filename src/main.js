@@ -1,3 +1,4 @@
+import './migrate.js';
 import './style.css';
 import { ambientVolume, isMuted, musicOn, musicVolume, play, setAmbienceLevel, setAmbientVolume, setMusic, setMusicVolume, setMuted, unlockAudio } from './audio.js';
 import { clock, universe } from './config.js';
@@ -13,9 +14,9 @@ import { warmPortraits } from './scene/portraits.js';
 import { Hud } from './ui/Hud.js';
 import { showLanding } from './ui/landing.js';
 
-const DAYNIGHT_KEY = 'imperium.daynight';
-const LABELS_KEY = 'imperium.labels';
-const QUALITY_KEY = 'imperium.quality';
+const DAYNIGHT_KEY = 'aegium.daynight';
+const LABELS_KEY = 'aegium.labels';
+const QUALITY_KEY = 'aegium.quality';
 
 /** Gráficos de alta calidad: por defecto sí en el ordenador y no en el móvil. */
 function readQuality() {
@@ -27,7 +28,7 @@ function readQuality() {
   }
   return !window.matchMedia?.('(pointer: coarse)').matches;
 }
-const NOTIFY_KEY = 'imperium.notify';
+const NOTIFY_KEY = 'aegium.notify';
 const scene = document.getElementById('scene');
 
 function notifyOn() {
@@ -265,7 +266,7 @@ function startGame(game) {
     const important = kind === 'error' || /⚔️|🏴‍☠️|🛡️|✉️|🌋/.test(text);
     if (document.hidden && important && notifyOn()) {
       try {
-        new Notification('Aegium', { body: text, tag: 'imperium' });
+        new Notification('Aegium', { body: text, tag: 'aegium' });
       } catch {
         // algunos navegadores no dejan crear avisos así
       }
@@ -298,7 +299,7 @@ function startGame(game) {
   // Jugadores nuevos: bienvenida; luego, el regalo del día si está disponible
   let welcomed = true;
   try {
-    welcomed = localStorage.getItem(`imperium.welcome.${game.userId}`) === '1';
+    welcomed = localStorage.getItem(`aegium.welcome.${game.userId}`) === '1';
   } catch {
     // sin almacenamiento
   }
@@ -330,5 +331,5 @@ function startGame(game) {
   });
 
   // Acceso para depurar desde la consola
-  window.__IMPERIUM__ = { game, world, hud, select, setView };
+  window.__AEGIUM__ = { game, world, hud, select, setView };
 }

@@ -1279,7 +1279,7 @@ export class World {
       const p = polar(2.5 + Math.sqrt(rand()) * (this.coast(deg) - 3), deg);
       if (free(p)) spots.push(p);
     }
-    const grass = new THREE.InstancedMesh(tuft, sway(new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true }), 'imperium-grass', '0.36'), spots.length);
+    const grass = new THREE.InstancedMesh(tuft, sway(new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true }), 'aegium-grass', '0.36'), spots.length);
     spots.forEach((p, i) => {
       dummy.position.set(p.x, 0.02, p.z);
       dummy.rotation.set(0, rand() * Math.PI * 2, 0);
@@ -1298,7 +1298,7 @@ export class World {
     stem.translate(0, 0.12, 0);
     const flowerGeo = mergeGeometries([petal.toNonIndexed(), stem.toNonIndexed()]);
     const blooms = spots.filter(() => rand() < 0.12);
-    const field = new THREE.InstancedMesh(flowerGeo, sway(new THREE.MeshStandardMaterial({ roughness: 0.8, flatShading: true }), 'imperium-flowers', '0.3'), blooms.length);
+    const field = new THREE.InstancedMesh(flowerGeo, sway(new THREE.MeshStandardMaterial({ roughness: 0.8, flatShading: true }), 'aegium-flowers', '0.3'), blooms.length);
     blooms.forEach((p, i) => {
       dummy.position.set(p.x + 0.15, 0.02, p.z - 0.1);
       dummy.rotation.set(0, 0, 0);

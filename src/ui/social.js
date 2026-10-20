@@ -759,7 +759,7 @@ export class Social {
       case 'welcome-done':
       case 'welcome-guide':
         try {
-          localStorage.setItem(`imperium.welcome.${this.game.userId}`, '1');
+          localStorage.setItem(`aegium.welcome.${this.game.userId}`, '1');
         } catch {
           // sin almacenamiento
         }

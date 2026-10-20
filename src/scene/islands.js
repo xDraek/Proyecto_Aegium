@@ -1566,7 +1566,7 @@ function volcanicSkin(veins, { flat = false, scale = 1 } = {}) {
         }`,
       );
   };
-  m.customProgramCacheKey = () => `imperium-volcanic-${flat}`;
+  m.customProgramCacheKey = () => `aegium-volcanic-${flat}`;
   volcanicSkins.set(key, m);
   return m;
 }

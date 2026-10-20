@@ -19,9 +19,9 @@ import { hasUnreadNews, markNewsRead, newsHtml } from './changelog.js';
 import { Social } from './social.js';
 
 const $ = (sel) => document.querySelector(sel);
-const CHAT_KEY = 'imperium.chatRead2';
-const DOCK_KEY = 'imperium.dockCollapsed';
-const SIDE_KEY = 'imperium.sideCollapsed';
+const CHAT_KEY = 'aegium.chatRead2';
+const DOCK_KEY = 'aegium.dockCollapsed';
+const SIDE_KEY = 'aegium.sideCollapsed';
 /** Qué botón de la barra de abajo abre cada ventana (para resaltarlo mientras está abierta). */
 const ACTIVE_BUTTON = {
   army: 'army-btn',
