@@ -258,3 +258,16 @@ test('lo leído (chat, avisos, novedades) se guarda en la cuenta y solo avanza',
   // Va en el estado que recibe el navegador
   assert.deepEqual(world.snapshot(g.userId).state.seen.chat, { global: 40, alianza: 3, gesta: 7 });
 });
+
+test('los nombres de jugador y de ciudad no se repiten (sin mirar mayúsculas, tildes ni espacios)', async () => {
+  const { world, players } = await makeWorld(['Lucio', 'Anibal']);
+  const [A] = players;
+  await assert.rejects(world.register('Lúcio', 'secreto1', 'Otra ciudad', { email: 'otro@prueba.es' }), /nombre ya está cogido/);
+  const cityA = world.islands.get(A.state.home).name;
+  await assert.rejects(world.register('Nuevo', 'secreto1', ` ${cityA.toUpperCase()} `, { email: 'nuevo@prueba.es' }), /ciudad con ese nombre/);
+  // Al rebautizar tampoco, salvo que sea la tuya
+  const B = players[1];
+  assert.throws(() => world.renameCity(B.userId, cityA), /ciudad con ese nombre/);
+  world.renameCity(A.userId, cityA.toLowerCase());
+  assert.equal(world.islands.get(A.state.home).name, cityA.toLowerCase());
+});

@@ -30,6 +30,11 @@ const INACTIVE_MS = 7 * 86_400_000; // una semana sin entrar: inactivo
 const MAX_THREADS = 40;
 const MAX_POSTS = 200;
 export const NAME_RE = /^[\p{L}\p{N}_ .-]{3,20}$/u;
+
+/** Un nombre para comparar: sin mayúsculas, tildes ni espacios de más («Lúcio » y «lucio» son el mismo). */
+export function nameKey(s) {
+  return String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
 export const EMAIL_RE = /^[^\s@<>()"',;]{1,64}@[^\s@<>()"',;]+\.[^\s@<>()"',;]{2,}$/;
 const HOUR = 3_600_000;
 /** Primera letra en mayúscula (para «la Hidra» al empezar una frase). */
@@ -174,9 +179,24 @@ export class WorldServer {
     if (!NAME_RE.test(username)) throw new UserError('El nombre debe tener entre 3 y 20 letras o números.');
     if (!NAME_RE.test(city)) throw new UserError('El nombre de la ciudad debe tener entre 3 y 20 letras o números.');
     if (password != null && (typeof password !== 'string' || password.length < 6 || password.length > 100)) throw new UserError('La contraseña debe tener al menos 6 caracteres.');
-    if (this.byName.has(username.toLowerCase())) throw new UserError('Ese nombre ya está cogido.');
+    if (this.byName.has(username.toLowerCase()) || this.#userTaken(username)) throw new UserError('Ese nombre ya está cogido.');
+    if (this.#cityTaken(city)) throw new UserError('Ya hay una ciudad con ese nombre: elige otro.');
     if (email != null) this.#checkEmail(email);
     return { username, city };
+  }
+
+  /** Si ya hay un jugador con ese nombre (sin mirar mayúsculas, tildes ni espacios). */
+  #userTaken(name) {
+    const key = nameKey(name);
+    for (const u of this.users.values()) if (nameKey(u.username) === key) return true;
+    return false;
+  }
+
+  /** Si ya hay una ciudad de otro jugador con ese nombre (sin mirar mayúsculas, tildes ni espacios). */
+  #cityTaken(name, exceptOwner = null) {
+    const key = nameKey(name);
+    for (const isl of this.islands.values()) if (isl.type === 'jugador' && isl.owner !== exceptOwner && nameKey(isl.name) === key) return true;
+    return false;
   }
 
   #checkEmail(email) {
@@ -2483,6 +2503,7 @@ export class WorldServer {
     const game = this.games.get(userId);
     const wait = (game.state.renamedAt ?? 0) + 7 * 86_400_000 - Date.now();
     if (wait > 0) throw new UserError(`Solo puedes cambiar el nombre una vez por semana (faltan ${Math.ceil(wait / 86_400_000)} días).`);
+    if (this.#cityTaken(name, userId)) throw new UserError('Ya hay una ciudad con ese nombre: elige otro.');
     const isl = this.islands.get(game.state.home);
     const old = isl.name;
     isl.name = name;
