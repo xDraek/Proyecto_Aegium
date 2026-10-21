@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-21d',
+    date: '2026-10-21',
+    title: 'El almirante, hasta el nivel 10',
+    items: ['🎖️ El <b>almirante</b> llega ahora como mucho al <b>nivel 10</b> (antes, al 30). Si el tuyo estaba más arriba, se queda en el 10 y recuperas sus 10 puntos de habilidad para repartirlos como quieras. Lo que da cada punto no cambia.'],
+  },
+  {
     id: '2026-10-21c',
     date: '2026-10-21',
     title: 'Nuevo icono del arquero',

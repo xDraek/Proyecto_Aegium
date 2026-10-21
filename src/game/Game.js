@@ -197,7 +197,29 @@ export function upgradeState(saved) {
     // Ya no hay colonias de oro: las de antes dan cristal
     colonies: (saved.colonies ?? base.colonies).map(withoutGold),
     ...migrateResearch(saved),
+    ...migrateHero(saved),
     title: migrateTitle(saved),
+  };
+}
+
+/**
+ * El almirante llegaba hasta el nivel 30 y ahora solo hasta el 10: quien lo tenía más alto se
+ * queda en el 10 con las habilidades a cero y sus 10 puntos para repartirlos de nuevo (y un aviso).
+ */
+function migrateHero(saved) {
+  const h = saved.hero;
+  if (!h || h.level <= HERO.maxLevel) return {};
+  const seq = saved.seq ?? 0;
+  const note = {
+    id: seq,
+    t: saved.lastUpdate,
+    text: `🎖️ El almirante llega ahora como mucho al nivel ${HERO.maxLevel}: ${h.name} se queda en él y recuperas sus ${HERO.maxLevel} puntos de habilidad para repartirlos de nuevo.`,
+    kind: 'info',
+  };
+  return {
+    seq: seq + 1,
+    notes: [...(saved.notes ?? []), note].slice(-MAX_NOTES),
+    hero: { ...h, level: HERO.maxLevel, xp: HERO.xpFor(HERO.maxLevel), points: HERO.maxLevel, skills: Object.fromEntries(Object.keys(HERO_SKILLS).map((k) => [k, 0])) },
   };
 }
 

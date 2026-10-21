@@ -1163,7 +1163,7 @@ export const ACHIEVEMENTS = [
 export const HERO = {
   cost: { oro: 600, comida: 400 },
   requires: { ayuntamiento: 3 },
-  maxLevel: 30,
+  maxLevel: 10,
   /** Experiencia total para llegar a `level`. */
   xpFor: (level) => Math.round(80 * (level - 1) ** 1.6),
   woundHours: 2,
