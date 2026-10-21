@@ -5556,13 +5556,14 @@ kbd {
   vertical-align: middle;
 }
 
-/* Iconos de tropa que son imagen (la lanza y el escudo de la milicia): algo más grandes que un emoji,
-   porque el dibujo va en diagonal, sin mover la línea de texto */
+/* Iconos de tropa que son imagen: algo más grandes que un emoji, sin mover la línea de texto (los
+   márgenes negativos lo compensan). Con ellos, -0.1em deja el centro del icono a la altura del
+   centro del número que lo acompaña */
 .res-img.unit-img {
   width: 1.6em;
   height: 1.6em;
   margin: -0.3em -0.05em;
-  vertical-align: -0.5em;
+  vertical-align: -0.1em;
 }
 
 /* ── La lista de la izquierda se pliega ──────────────────────────────────── */

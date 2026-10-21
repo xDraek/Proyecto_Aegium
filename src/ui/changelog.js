@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-21o',
+    date: '2026-10-21',
+    title: 'Iconos de tropas bien alineados',
+    items: ['🔧 Los nuevos iconos de tropas y barcos salían algo más bajos que las cantidades que los acompañan: ya están a la misma altura.'],
+  },
+  {
     id: '2026-10-21n',
     date: '2026-10-21',
     title: 'Nueva catapulta',
