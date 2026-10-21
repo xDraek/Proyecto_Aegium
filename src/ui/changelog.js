@@ -5,6 +5,16 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-21b',
+    date: '2026-10-21',
+    title: 'Nuevos espadachín y arquero',
+    items: [
+      '🏹 El <b>Arquero</b> aparece listo para tirar, con la flecha montada en su arco recurvo: túnica de lino con franja azul y manto al hombro sujeto con un broche de bronce, pelo rizado con cinta, brazal de cuero, carcaj de plumas blancas a la espalda y sandalias atadas hasta la rodilla.',
+      '⚔️ El <b>Espadachín</b> deja el escudo de legionario y se vuelve griego: túnica de lino, correas cruzadas, casco de bronce con cresta, espada de hoja ancha, la vaina al costado, sandalias atadas hasta la rodilla y un gran escudo redondo con banda azul y borde de bronce.',
+      '<img class="res-img unit-img" src="/ui/espadachin.png" alt="" /> Y el Espadachín estrena icono: su espada de bronce cruzada sobre un escudo redondo de bronce batido.',
+    ],
+  },
+  {
     id: '2026-10-21a',
     date: '2026-10-21',
     title: 'Nuevo hondero',

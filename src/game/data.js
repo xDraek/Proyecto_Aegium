@@ -268,7 +268,8 @@ export const UNITS = {
   },
   espadachin: {
     name: 'Espadachín',
-    icon: '⚔️',
+    icon: '🤺',
+    img: '/ui/espadachin.png',
     kind: 'tierra',
     building: 'cuartel',
     description: 'Soldado de élite con espada y escudo de bronce.',
@@ -532,7 +533,7 @@ export const UNITS = {
 };
 // Las tropas con `img` tienen de icono una imagen: `icon` pasa a ser el HTML y `emoji` se queda con
 // el carácter (único, que no use nada más), que es lo que va en los textos sin formato y que
-// glyphs()/richText() cambian por la imagen al pintarlos. 🪖 milicia con lanza, 👝 hondero.
+// glyphs()/richText() cambian por la imagen al pintarlos. 🪖 milicia con lanza, 👝 hondero, 🤺 espadachín.
 for (const u of Object.values(UNITS)) {
   u.emoji ??= u.icon;
   if (u.img) u.icon = `<img class="res-img unit-img" src="${u.img}" alt="" draggable="false" />`;

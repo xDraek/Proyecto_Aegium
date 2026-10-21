@@ -3951,13 +3951,47 @@ export function createBuilding(id, level) {
 
 // ── Tropas y barcos ──────────────────────────────────────────────────────────
 
-/** Escudo rectangular de legionario (scutum) con su umbo dorado. */
-function scutum(g, color = '#a8231a') {
-  g.add(box(0.17, 0.3, 0.03, color, -0.12, 0.15, 0.08));
-  g.add(box(0.02, 0.3, 0.032, C.gold, -0.12, 0.15, 0.081));
-  const boss = mesh(new THREE.SphereGeometry(0.03, 6, 4), C.gold);
-  boss.position.set(-0.12, 0.3, 0.1);
-  g.add(boss);
+/** Pelo rizado con cinta en la frente y barba corta, con la cara al aire (hondero, arquero). */
+function curlyHead(g, hair = HAIR[2], band = '#d8c49a') {
+  for (let k = 0; k < 9; k++) {
+    const a = (k / 9) * Math.PI * 2;
+    const curl = mesh(new THREE.SphereGeometry(0.021, 6, 4), hair);
+    curl.position.set(Math.sin(a) * 0.05, 0.58 + (k % 2) * 0.012, Math.cos(a) * 0.05 - 0.008);
+    g.add(curl);
+  }
+  g.add(cyl(0.064, 0.064, 0.013, 10, band, 0, 0.555, -0.004));
+  g.add(box(0.08, 0.026, 0.03, hair, 0, 0.476, 0.03), box(0.04, 0.008, 0.012, hair, 0, 0.505, 0.056));
+}
+
+/** Un brazo doblado a mano (hombro → codo → mano), para posturas que no caben en arm(). */
+function bentArm(g, shoulder, elbow, hand, skin) {
+  tileRod(g, shoulder, elbow, 0.024, skin, 0.022);
+  tileRod(g, elbow, hand, 0.021, skin, 0.019);
+  for (const p of [elbow, hand]) {
+    const j = mesh(new THREE.SphereGeometry(p === hand ? 0.022 : 0.021, 6, 4), skin);
+    j.position.copy(p);
+    g.add(j);
+  }
+}
+
+/** Escudo redondo grande: centro de piel clara, banda azul oscura y borde de bronce con remaches. */
+function bandedShield(g, r = 0.17, x = -0.13, y = 0.31, z = 0.2, turn = -0.35) {
+  const sh = new THREE.Group();
+  const face = (o, dz) => (o.rotation.x = Math.PI / 2, o.position.z = dz, sh.add(o), o);
+  face(mesh(new THREE.CylinderGeometry(r, r, 0.024, 20), '#2f3d5c'), 0);
+  face(mesh(new THREE.CylinderGeometry(r * 0.68, r * 0.68, 0.01, 20), '#e6d9bc'), 0.012);
+  const rim = mesh(new THREE.TorusGeometry(r, 0.014, 5, 24), BRONZE_C);
+  rim.position.z = 0.01;
+  sh.add(rim);
+  for (let k = 0; k < 14; k++) {
+    const a = (k / 14) * Math.PI * 2;
+    const rivet = mesh(new THREE.SphereGeometry(0.007, 5, 3), '#a8822e');
+    rivet.position.set(Math.cos(a) * r * 0.9, Math.sin(a) * r * 0.9, 0.016);
+    sh.add(rivet);
+  }
+  sh.position.set(x, y, z);
+  sh.rotation.y = turn;
+  g.add(sh);
 }
 
 /** Caballo (de pie, mirando a +Z). Devuelve la altura del lomo. */
@@ -4004,16 +4038,7 @@ const TROOPS = {
   // atadas a la pierna; la honda girando en la mano alzada y el otro brazo apuntando
   hondero: { color: '#e3d8c0', bareArms: true, belt: '#6b4326', hair: HAIR[2], arms: ['arriba', 'adelante'], extra: (g) => {
     const linen = '#e3d8c0', leather = '#6b4326', blue = '#3f5f9a';
-    // Rizos sobre el pelo y la cinta de la frente
-    for (let k = 0; k < 9; k++) {
-      const a = (k / 9) * Math.PI * 2;
-      const curl = mesh(new THREE.SphereGeometry(0.021, 6, 4), HAIR[2]);
-      curl.position.set(Math.sin(a) * 0.05, 0.58 + (k % 2) * 0.012, Math.cos(a) * 0.05 - 0.008);
-      g.add(curl);
-    }
-    g.add(cyl(0.064, 0.064, 0.013, 10, '#d8c49a', 0, 0.555, -0.004));
-    // Barba corta por la mandíbula, con la cara al aire
-    g.add(box(0.08, 0.026, 0.03, HAIR[2], 0, 0.476, 0.03), box(0.04, 0.008, 0.012, HAIR[2], 0, 0.505, 0.056));
+    curlyHead(g);
     // Tahalí cruzado y los cabos del cinturón trenzado
     const strap = box(0.02, 0.22, 0.012, leather, 0.01, 0.26, 0.08);
     strap.rotation.z = -0.62;
@@ -4044,19 +4069,112 @@ const TROOPS = {
     sling.add(pouch, stone);
     inHand(g.userData.hands.right, sling);
   } },
-  arquero: { color: '#3f8a3a', helmet: 'gorro', belt: LEATHER, arms: ['abajo', 'adelante'], extra: (g) => {
-    const bow = mesh(new THREE.TorusGeometry(0.17, 0.011, 4, 12, Math.PI), C.woodDark);
-    bow.position.set(-0.13, 0.32, 0.15);
-    bow.rotation.set(0, Math.PI / 2, Math.PI / 2);
-    g.add(bow);
-    const quiver = cyl(0.03, 0.03, 0.22, 6, LEATHER, 0.05, 0.28, -0.08);
-    quiver.rotation.z = -0.35;
+  // Arquero griego tensando el arco: túnica de lino con broche al hombro y franja azul en el bajo,
+  // pelo rizado con cinta, barba, tahalí y cinturón de cuero, carcaj a la espalda con flechas de
+  // plumas blancas, brazal de cuero en el brazo del arco y sandalias atadas hasta la rodilla
+  arquero: { color: '#e6dcc4', bareArms: true, belt: '#6b4326', hair: HAIR[2], arms: ['abajo', 'abajo'], extra: (g) => {
+    const leather = '#6b4326', wood = '#6b3f22', V = (x, y, z) => new THREE.Vector3(x, y, z);
+    curlyHead(g);
+    // Manto de lino sobre el hombro izquierdo, con su broche de bronce y el borde azul; franja azul
+    // en el bajo de la túnica, tahalí y el cabo del cinturón
+    g.add(box(0.045, 0.15, 0.1, '#ece3cf', 0.105, 0.29, 0), box(0.047, 0.014, 0.102, '#4a5f94', 0.105, 0.29, 0));
+    const brooch = mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.008, 8), BRONZE_C);
+    brooch.rotation.x = Math.PI / 2;
+    brooch.position.set(0.07, 0.425, 0.06);
+    g.add(brooch);
+    g.add(cyl(0.1, 0.1, 0.014, 9, '#4a5f94', 0, 0.2, 0));
+    const strap = box(0.02, 0.22, 0.012, leather, 0.01, 0.26, 0.08);
+    strap.rotation.z = 0.62;
+    g.add(strap, box(0.016, 0.09, 0.01, leather, 0.035, 0.24, 0.083));
+    // Sandalias atadas por la pierna hasta la rodilla
+    for (const sx of [-1, 1]) for (const y of [0.03, 0.065, 0.1, 0.135, 0.17]) g.add(cyl(0.027, 0.027, 0.009, 6, leather, sx * 0.04, y, 0));
+    // Carcaj de cuero a la espalda, con las flechas asomando por encima del hombro derecho
+    const quiver = new THREE.Group();
+    quiver.add(cyl(0.032, 0.028, 0.2, 7, '#5a3820', 0, 0, 0));
+    for (const y of [0.04, 0.16]) quiver.add(cyl(0.034, 0.034, 0.012, 7, leather, 0, y, 0));
+    for (const [dx, dz] of [[-0.012, 0], [0.012, 0.006], [0, -0.012], [0.004, 0.012]]) {
+      quiver.add(cyl(0.003, 0.003, 0.08, 4, '#c9a26a', dx, 0.2, dz));
+      quiver.add(box(0.004, 0.035, 0.018, '#f2ede2', dx, 0.25, dz));
+    }
+    quiver.position.set(-0.03, 0.23, -0.085);
+    quiver.rotation.z = 0.4;
     g.add(quiver);
-    for (let k = 0; k < 3; k++) g.add(box(0.012, 0.06, 0.012, '#e8e2d0', 0.1 + k * 0.012, 0.5, -0.08));
+    // Listo para tirar: el brazo del arco bajo y adelantado, con su brazal de cuero
+    const bowArm = g.userData.hands.right;
+    bowArm.rotation.set(-0.5, 0, 0.5);
+    bowArm.add(cyl(0.027, 0.027, 0.07, 6, '#5a3820', 0, -0.19, 0));
+    // El otro brazo, doblado, con la mano en el pecho sujetando la flecha por el culatín
+    g.userData.hands.left.visible = false;
+    const nock = V(0.04, 0.35, 0.095);
+    bentArm(g, V(-0.1, 0.43, 0), V(-0.15, 0.32, 0.05), nock, '#e8c39e');
+    // El arco recurvo, inclinado (la punta de arriba hacia fuera), con ataduras doradas
+    const grip = V(0.2, 0.27, 0.09);
+    const up = V(0.5, 0.866, 0), out = V(0.866, -0.5, 0);
+    const at = (t, b) => grip.clone().addScaledVector(up, t).addScaledVector(out, b);
+    const limb = [[0, 0], [0.07, 0.022], [0.14, 0.03], [0.2, 0.018], [0.24, 0.028]];
+    for (const sy of [1, -1]) {
+      for (let k = 1; k < limb.length; k++) tileRod(g, at(sy * limb[k - 1][0], limb[k - 1][1]), at(sy * limb[k][0], limb[k][1]), 0.0085, wood, 0.0075);
+      const wrap = mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.01, 6), '#d8b45a');
+      wrap.position.copy(at(sy * 0.09, 0.024));
+      wrap.quaternion.setFromUnitVectors(UP, up);
+      g.add(wrap);
+    }
+    // La cuerda, de cada punta a la mano, y la flecha cruzando el arco hacia abajo
+    for (const sy of [1, -1]) tileRod(g, at(sy * 0.24, 0.028), nock, 0.0025, '#e8e2d0');
+    const dir = grip.clone().sub(nock).normalize();
+    const point = grip.clone().addScaledVector(dir, 0.13);
+    tileRod(g, nock, point, 0.004, '#c9a26a');
+    const head = mesh(new THREE.ConeGeometry(0.011, 0.035, 4), '#8a8f96');
+    head.position.copy(point).addScaledVector(dir, 0.015);
+    head.quaternion.setFromUnitVectors(UP, dir);
+    g.add(head);
+    tileRod(g, nock.clone().addScaledVector(dir, 0.012), nock.clone().addScaledVector(dir, 0.05), 0.009, '#f2ede2', 0.004);
   } },
-  espadachin: { color: '#a8231a', cuirass: true, cuirassColor: IRON, pteruges: LEATHER, greaves: true, helmet: 'legionario', crest: '#a8231a', arms: ['adelante', 'adelante'], extra: (g) => {
-    scutum(g);
-    g.add(box(0.03, 0.03, 0.18, '#c9ced6', 0.12, 0.3, 0.17));
+  // Espadachín griego: túnica de lino sin mangas, correas cruzadas, cinturón ancho con la vaina
+  // al costado, casco de bronce con cresta y carrilleras, sandalias atadas hasta la rodilla,
+  // espada de hoja ancha al frente y escudo redondo con banda azul
+  espadachin: { color: '#e6dcc4', bareArms: true, belt: '#6b4326', helmet: 'atico', crest: '#a8822e', hair: HAIR[1], arms: ['adelante', 'adelante'], extra: (g) => {
+    const leather = '#6b4326';
+    // Barba corta, con la cara al aire, y la punta de la cresta curvada hacia delante
+    g.add(box(0.08, 0.026, 0.03, HAIR[1], 0, 0.476, 0.03), box(0.04, 0.008, 0.012, HAIR[1], 0, 0.505, 0.056));
+    g.add(box(0.022, 0.03, 0.035, '#a8822e', 0, 0.61, 0.085));
+    // Dos correas cruzadas en el pecho y la hebilla del cinturón
+    for (const rz of [-0.62, 0.62]) {
+      const strap = box(0.02, 0.22, 0.012, leather, 0, 0.26, 0.08);
+      strap.rotation.z = rz;
+      g.add(strap);
+    }
+    g.add(box(0.03, 0.022, 0.012, BRONZE_C, 0.015, 0.321, 0.082));
+    // La vaina colgando a la cadera izquierda, con su contera de bronce
+    const sheath = new THREE.Group();
+    sheath.add(box(0.025, 0.17, 0.018, leather, 0, -0.17, 0), box(0.027, 0.035, 0.02, BRONZE_C, 0, -0.17, 0), box(0.05, 0.012, 0.02, BRONZE_C, 0, 0, 0));
+    sheath.position.set(-0.075, 0.33, 0.06);
+    sheath.rotation.z = 0.35;
+    g.add(sheath);
+    // Sandalias atadas por la pierna hasta la rodilla
+    for (const sx of [-1, 1]) for (const y of [0.03, 0.065, 0.1, 0.135, 0.17]) g.add(cyl(0.027, 0.027, 0.009, 6, leather, sx * 0.04, y, 0));
+    // La espada en la mano derecha, de hoja ancha en forma de hoja, apuntando al frente
+    const sword = new THREE.Group();
+    sword.add(cyl(0.011, 0.011, 0.05, 5, '#5e3b1c', 0, -0.03, 0));
+    const pommel = mesh(new THREE.SphereGeometry(0.014, 6, 4), BRONZE_C);
+    pommel.position.y = 0.025;
+    sword.add(pommel, box(0.06, 0.012, 0.02, BRONZE_C, 0, -0.045, 0));
+    const blade = mesh(new THREE.CylinderGeometry(0.012, 0.022, 0.2, 4), '#c9b27a');
+    blade.position.y = -0.15;
+    blade.scale.z = 0.25;
+    const tip = mesh(new THREE.ConeGeometry(0.022, 0.06, 4), '#c9b27a');
+    tip.position.y = -0.28;
+    tip.rotation.x = Math.PI;
+    tip.scale.z = 0.25;
+    sword.add(blade, tip);
+    // El brazo, adelantado y abierto hacia fuera; la hoja, hacia fuera y algo arriba (se gira en
+    // coordenadas del mundo y se pasa a las del brazo)
+    const arm = g.userData.hands.right;
+    arm.rotation.set(-0.95, 0, 0.8);
+    const aim = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, -1, 0), new THREE.Vector3(0.8, 0.3, 0.5).normalize());
+    sword.quaternion.copy(arm.quaternion.clone().invert().multiply(aim));
+    inHand(arm, sword, -0.21);
+    bandedShield(g);
   } },
   hoplita: { color: '#a8231a', cuirass: true, pteruges: '#e8e2d0', greaves: true, helmet: 'corintio', crest: '#a8231a', cloak: '#a8231a', arms: ['abajo', 'adelante'], extra: (g) => (spear(g, 1.05), aspis(g)) },
   barbaro: { color: '#6b4a2a', skin: SKIN[2], beard: true, hair: '#c8862a', belt: '#3a2a1e', arms: ['abajo', 'abajo'], extra: (g) => {
