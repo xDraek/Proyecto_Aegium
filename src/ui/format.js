@@ -75,9 +75,13 @@ export function bag(b) {
   return parts.join(' ') || '<span class="muted">nada</span>';
 }
 
-/** Los iconos que son imágenes, en un texto ya escapado: 🪖 es la Milicia con lanza. */
+const IMAGE_UNITS = Object.values(UNITS).filter((u) => u.img);
+
+/** Los iconos que son imágenes, en un texto ya escapado: el emoji de cada tropa con `img` (🪖, 👝…), por su imagen. */
 export function glyphs(html) {
-  return String(html).replace(/🪖/g, UNITS.lancero.icon);
+  let s = String(html);
+  for (const u of IMAGE_UNITS) s = s.replaceAll(u.emoji, u.icon);
+  return s;
 }
 
 /** Unidades en línea: "🪖 12 · 🏹 8". */

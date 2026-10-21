@@ -5,6 +5,15 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-21a',
+    date: '2026-10-21',
+    title: 'Nuevo hondero',
+    items: [
+      '<img class="res-img unit-img" src="/ui/hondero.png" alt="" /> El <b>Hondero miliciano</b> estrena aspecto: túnica de lino sin mangas, pelo rizado con cinta, barba, zurrón con piedras a la cadera, manto a rayas azules y sandalias atadas a la pierna, con la honda volando en la mano alzada.',
+      'Y también tiene icono propio: la honda de cuero con su bolsa y dos piedras.',
+    ],
+  },
+  {
     id: '2026-10-20c',
     date: '2026-10-20',
     title: 'Nuevo icono de la milicia',

@@ -3999,10 +3999,50 @@ const TROOPS = {
     longSpear(g);
     woodShield(g);
   } },
-  hondero: { color: '#c9b48a', belt: LEATHER, hair: HAIR[3], arms: ['arriba', 'abajo'], extra: (g) => {
-    g.add(cyl(0.006, 0.006, 0.22, 4, C.woodDark, 0.2, 0.62, 0));
-    g.add(box(0.05, 0.05, 0.05, C.stone, 0.2, 0.84, 0));
-    g.add(box(0.08, 0.09, 0.05, LEATHER, -0.09, 0.2, 0.07));
+  // Pastor con honda: túnica de lino sin mangas, pelo rizado con cinta, barba, tahalí y cinturón
+  // de cuero trenzado, zurrón con piedras, manto a rayas azules colgando del hombro y sandalias
+  // atadas a la pierna; la honda girando en la mano alzada y el otro brazo apuntando
+  hondero: { color: '#e3d8c0', bareArms: true, belt: '#6b4326', hair: HAIR[2], arms: ['arriba', 'adelante'], extra: (g) => {
+    const linen = '#e3d8c0', leather = '#6b4326', blue = '#3f5f9a';
+    // Rizos sobre el pelo y la cinta de la frente
+    for (let k = 0; k < 9; k++) {
+      const a = (k / 9) * Math.PI * 2;
+      const curl = mesh(new THREE.SphereGeometry(0.021, 6, 4), HAIR[2]);
+      curl.position.set(Math.sin(a) * 0.05, 0.58 + (k % 2) * 0.012, Math.cos(a) * 0.05 - 0.008);
+      g.add(curl);
+    }
+    g.add(cyl(0.064, 0.064, 0.013, 10, '#d8c49a', 0, 0.555, -0.004));
+    // Barba corta por la mandíbula, con la cara al aire
+    g.add(box(0.08, 0.026, 0.03, HAIR[2], 0, 0.476, 0.03), box(0.04, 0.008, 0.012, HAIR[2], 0, 0.505, 0.056));
+    // Tahalí cruzado y los cabos del cinturón trenzado
+    const strap = box(0.02, 0.22, 0.012, leather, 0.01, 0.26, 0.08);
+    strap.rotation.z = -0.62;
+    g.add(strap);
+    for (const dx of [0.025, 0.045]) g.add(box(0.012, 0.1, 0.01, leather, dx, 0.23, 0.083));
+    // Zurrón de cuero a la cadera con sus piedras
+    g.add(box(0.065, 0.07, 0.04, '#6e4a2c', -0.075, 0.24, 0.07));
+    for (const [x, z] of [[-0.088, 0.072], [-0.064, 0.078]]) {
+      const st = mesh(new THREE.SphereGeometry(0.014, 6, 4), C.stone);
+      st.position.set(x, 0.315, z);
+      g.add(st);
+    }
+    // Manto de lino con rayas azules colgando del hombro izquierdo
+    g.add(box(0.035, 0.3, 0.09, linen, -0.115, 0.15, -0.02));
+    for (const y of [0.17, 0.2]) g.add(box(0.037, 0.012, 0.092, blue, -0.115, y, -0.02));
+    // Sandalias atadas por la espinilla
+    for (const sx of [-1, 1]) for (const y of [0.03, 0.07, 0.11]) g.add(cyl(0.027, 0.027, 0.01, 6, leather, sx * 0.04, y, 0));
+    // La honda en la mano alzada: dos cuerdas hasta la cazoleta con la piedra, volando hacia fuera
+    // y atrás (coordenadas del brazo, que está girado hacia arriba)
+    const sling = new THREE.Group();
+    const cup = new THREE.Vector3(-0.175, -0.036, -0.09);
+    for (const dz of [-0.01, 0.01]) tileRod(sling, new THREE.Vector3(0, 0, 0), cup.clone().add(new THREE.Vector3(0, 0, dz)), 0.004, '#8a6a44');
+    const pouch = mesh(new THREE.SphereGeometry(0.026, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2), '#5e3b1c');
+    pouch.position.copy(cup);
+    pouch.rotation.z = Math.PI;
+    const stone = mesh(new THREE.SphereGeometry(0.018, 6, 4), C.stone);
+    stone.position.copy(cup).add(new THREE.Vector3(0, 0.004, 0));
+    sling.add(pouch, stone);
+    inHand(g.userData.hands.right, sling);
   } },
   arquero: { color: '#3f8a3a', helmet: 'gorro', belt: LEATHER, arms: ['abajo', 'adelante'], extra: (g) => {
     const bow = mesh(new THREE.TorusGeometry(0.17, 0.011, 4, 12, Math.PI), C.woodDark);

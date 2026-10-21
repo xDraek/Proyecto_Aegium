@@ -222,9 +222,9 @@ export const BUILDING_KEYS = Object.keys(BUILDINGS);
 export const UNITS = {
   lancero: {
     name: 'Milicia con lanza',
-    // Su icono es una imagen (lanza y escudo); en los textos va 🪖, que se cambia por ella al pintarlos
-    icon: '<img class="res-img unit-img" src="/ui/lancero.png" alt="🪖" draggable="false" />',
-    emoji: '🪖',
+    // Icono con imagen (lanza y escudo): ver `img` más abajo
+    icon: '🪖',
+    img: '/ui/lancero.png',
     kind: 'tierra',
     building: 'cuartel',
     description: 'Ciudadanos armados con lanza: baratos y duros, la base de cualquier defensa. No cobran paga en oro, pero comen más.',
@@ -238,7 +238,8 @@ export const UNITS = {
   },
   hondero: {
     name: 'Hondero miliciano',
-    icon: '🪨',
+    icon: '👝',
+    img: '/ui/hondero.png',
     kind: 'tierra',
     building: 'cuartel',
     description: 'Pastores de la milicia con honda: baratos, rápidos de entrenar y certeros. Se entrenan con piedra y no cobran paga en oro, pero comen más.',
@@ -529,8 +530,13 @@ export const UNITS = {
   arquero_persa: { name: 'Arquero persa', icon: '🏹', kind: 'tierra', npc: true, atk: 12, hp: 14 },
   hidra: { name: 'Cabeza de la Hidra', icon: '🐉', kind: 'tierra', npc: true, atk: 100, hp: 1000 },
 };
-// `icon` puede ser HTML (una imagen); `emoji` es lo que va en los textos sin formato
-for (const u of Object.values(UNITS)) u.emoji ??= u.icon;
+// Las tropas con `img` tienen de icono una imagen: `icon` pasa a ser el HTML y `emoji` se queda con
+// el carácter (único, que no use nada más), que es lo que va en los textos sin formato y que
+// glyphs()/richText() cambian por la imagen al pintarlos. 🪖 milicia con lanza, 👝 hondero.
+for (const u of Object.values(UNITS)) {
+  u.emoji ??= u.icon;
+  if (u.img) u.icon = `<img class="res-img unit-img" src="${u.img}" alt="" draggable="false" />`;
+}
 
 export const UNIT_KEYS = Object.keys(UNITS);
 export const PLAYER_UNITS = UNIT_KEYS.filter((id) => !UNITS[id].npc);
@@ -1026,7 +1032,7 @@ export const HORDE = {
 
 export const MERCENARIES = {
   lanceros: { name: 'Milicia de lanceros', icon: '🪖', unit: 'lancero', taberna: 1, base: 15, per: 5, price: { oro: 5, comida: 4 } },
-  honderos: { name: 'Banda de honderos milicianos', icon: '🪨', unit: 'hondero', taberna: 1, base: 15, per: 5, price: { oro: 6, comida: 4 } },
+  honderos: { name: 'Banda de honderos milicianos', icon: '👝', unit: 'hondero', taberna: 1, base: 15, per: 5, price: { oro: 6, comida: 4 } },
   arqueros: { name: 'Arqueros de fortuna', icon: '🏹', unit: 'arquero', taberna: 3, base: 12, per: 4, price: { oro: 9, madera: 6 } },
   hoplitas: { name: 'Compañía de hoplitas', icon: '🛡️', unit: 'hoplita', taberna: 5, base: 12, per: 2.5, price: { oro: 20, hierro: 6 } },
   jinetes: { name: 'Jinetes de Tesalia', icon: '🐎', unit: 'caballero', taberna: 7, base: 8, per: 1.2, price: { oro: 45, comida: 20 } },
