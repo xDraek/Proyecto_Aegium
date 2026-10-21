@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-21c',
+    date: '2026-10-21',
+    title: 'Nuevo icono del arquero',
+    items: ['<img class="res-img unit-img" src="/ui/arquero.png" alt="" /> El <b>Arquero</b> también tiene icono propio: su arco recurvo con ataduras doradas y una flecha de plumas blancas.'],
+  },
+  {
     id: '2026-10-21b',
     date: '2026-10-21',
     title: 'Nuevos espadachín y arquero',
