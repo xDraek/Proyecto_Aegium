@@ -5,6 +5,20 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-21f',
+    date: '2026-10-21',
+    title: 'Iconos nuevos para siete tropas',
+    items: [
+      '<img class="res-img unit-img" src="/ui/arquero-arco.png" alt="" /> El <b>Arquero</b> cambia de icono: un arco recurvo con remates de bronce y grecas, cruzado con una flecha de punta de bronce.',
+      '<img class="res-img unit-img" src="/ui/espadachin-escudo.png" alt="" /> Y el <b>Espadachín</b>, también: su escudo redondo de bronce batido con remaches junto a su espada corta de hoja ancha.',
+      '<img class="res-img unit-img" src="/ui/caballero.png" alt="" /> El <b>Caballero</b> estrena icono: la cabeza de su caballo sobre un medallón de bronce con laurel, cruzada por su lanza. También lo llevan los Jinetes de Tesalia de la taberna.',
+      '<img class="res-img unit-img" src="/ui/catafracto.png" alt="" /> Y el <b>Catafracto</b> (y los Catafractos de Partia), el suyo: su caballo cubierto de escamas de bronce, con la lanza y el laurel.',
+      '<img class="res-img unit-img" src="/ui/espartano.png" alt="" /> Y el <b>Espartano</b> (y los Espartanos desterrados): su casco corintio con penacho rojo, la capa, la lanza y el escudo con la lambda de Lacedemonia.',
+      '<img class="res-img unit-img" src="/ui/cretense.png" alt="" /> Y el <b>Arquero cretense</b> (y los Arqueros de Creta): tensando su arco con la cinta azul de grecas, sobre un medallón de bronce con la cabeza del toro de Creta.',
+      '<img class="res-img unit-img" src="/ui/elefante.png" alt="" /> Y el <b>Elefante de guerra</b>: con su armadura de bronce, la gualdrapa roja y la torre con el estandarte del sol, sobre el medallón con laurel.',
+    ],
+  },
+  {
     id: '2026-10-21e',
     date: '2026-10-21',
     title: 'Nuevo icono del hoplita',

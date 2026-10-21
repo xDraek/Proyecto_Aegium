@@ -254,7 +254,7 @@ export const UNITS = {
   arquero: {
     name: 'Arquero',
     icon: '🪶',
-    img: '/ui/arquero.png',
+    img: '/ui/arquero-arco.png',
     kind: 'tierra',
     building: 'cuartel',
     description: 'Mucho daño a distancia, pero poca vida.',
@@ -270,7 +270,7 @@ export const UNITS = {
   espadachin: {
     name: 'Espadachín',
     icon: '🤺',
-    img: '/ui/espadachin.png',
+    img: '/ui/espadachin-escudo.png',
     kind: 'tierra',
     building: 'cuartel',
     description: 'Soldado de élite con espada y escudo de bronce.',
@@ -301,7 +301,8 @@ export const UNITS = {
   },
   caballero: {
     name: 'Caballero',
-    icon: '🐎',
+    icon: '🐴',
+    img: '/ui/caballero.png',
     kind: 'tierra',
     building: 'cuartel',
     description: 'Caballería pesada. Ocupa dos plazas en los barcos.',
@@ -333,7 +334,8 @@ export const UNITS = {
   // ── Tropas de élite: cobran una paga en oro además de comer ──
   espartano: {
     name: 'Espartano',
-    icon: '🗡️',
+    icon: '🔺',
+    img: '/ui/espartano.png',
     kind: 'tierra',
     building: 'cuartel',
     elite: true,
@@ -350,6 +352,7 @@ export const UNITS = {
   sagitario: {
     name: 'Arquero cretense',
     icon: '🎯',
+    img: '/ui/cretense.png',
     kind: 'tierra',
     building: 'cuartel',
     elite: true,
@@ -366,6 +369,7 @@ export const UNITS = {
   catafracto: {
     name: 'Catafracto',
     icon: '🏇',
+    img: '/ui/catafracto.png',
     kind: 'tierra',
     building: 'cuartel',
     elite: true,
@@ -381,7 +385,8 @@ export const UNITS = {
   },
   elefante: {
     name: 'Elefante de guerra',
-    icon: '🐘',
+    icon: '🦣',
+    img: '/ui/elefante.png',
     kind: 'tierra',
     building: 'cuartel',
     elite: true,
@@ -535,7 +540,7 @@ export const UNITS = {
 };
 // Las tropas con `img` tienen de icono una imagen: `icon` pasa a ser el HTML y `emoji` se queda con
 // el carácter (único, que no use nada más), que es lo que va en los textos sin formato y que
-// glyphs()/richText() cambian por la imagen al pintarlos. 🪖 milicia con lanza, 👝 hondero, 🤺 espadachín, 🪶 arquero, 🥏 hoplita.
+// glyphs()/richText() cambian por la imagen al pintarlos. 🪖 milicia con lanza, 👝 hondero, 🤺 espadachín, 🪶 arquero, 🥏 hoplita, 🐴 caballero, 🏇 catafracto, 🔺 espartano, 🎯 arquero cretense, 🦣 elefante.
 for (const u of Object.values(UNITS)) {
   u.emoji ??= u.icon;
   if (u.img) u.icon = `<img class="res-img unit-img" src="${u.img}" alt="" draggable="false" />`;
@@ -1038,8 +1043,8 @@ export const MERCENARIES = {
   honderos: { name: 'Banda de honderos milicianos', icon: '👝', unit: 'hondero', taberna: 1, base: 15, per: 5, price: { oro: 6, comida: 4 } },
   arqueros: { name: 'Arqueros de fortuna', icon: '🪶', unit: 'arquero', taberna: 3, base: 12, per: 4, price: { oro: 9, madera: 6 } },
   hoplitas: { name: 'Compañía de hoplitas', icon: '🥏', unit: 'hoplita', taberna: 5, base: 12, per: 2.5, price: { oro: 20, hierro: 6 } },
-  jinetes: { name: 'Jinetes de Tesalia', icon: '🐎', unit: 'caballero', taberna: 7, base: 8, per: 1.2, price: { oro: 45, comida: 20 } },
-  espartanos: { name: 'Espartanos desterrados', icon: '🗡️', unit: 'espartano', taberna: 9, base: 5, per: 1, price: { oro: 70, hierro: 25 } },
+  jinetes: { name: 'Jinetes de Tesalia', icon: '🐴', unit: 'caballero', taberna: 7, base: 8, per: 1.2, price: { oro: 45, comida: 20 } },
+  espartanos: { name: 'Espartanos desterrados', icon: '🔺', unit: 'espartano', taberna: 9, base: 5, per: 1, price: { oro: 70, hierro: 25 } },
   cretenses: { name: 'Arqueros de Creta', icon: '🎯', unit: 'sagitario', taberna: 9, base: 5, per: 1, price: { oro: 60, madera: 25 } },
   catafractos: { name: 'Catafractos de Partia', icon: '🏇', unit: 'catafracto', taberna: 12, base: 4, per: 0.8, price: { oro: 140, hierro: 40 } },
 };
