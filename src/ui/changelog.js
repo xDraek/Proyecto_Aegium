@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-21n',
+    date: '2026-10-21',
+    title: 'Nueva catapulta',
+    items: ['☄️ La <b>Catapulta</b> estrena aspecto: bastidor de vigas con herrajes de bronce verdoso, ruedas macizas con llanta, caballete en A con el travesaño atado con sogas, la madeja de cuerda que tensa el brazo, la cazoleta cargada con una piedra y unas piedras de repuesto.'],
+  },
+  {
     id: '2026-10-21m',
     date: '2026-10-21',
     title: 'Nuevo elefante de guerra',

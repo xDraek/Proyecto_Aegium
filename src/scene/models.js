@@ -4362,18 +4362,78 @@ const TROOPS = {
 export function createSoldier(id) {
   const g = new THREE.Group();
   if (id === 'catapulta') {
-    g.add(box(0.5, 0.12, 0.7, C.wood, 0, 0.08, 0));
-    for (const [x, z] of [[-0.27, -0.25], [0.27, -0.25], [-0.27, 0.25], [0.27, 0.25]]) {
-      const w = cyl(0.1, 0.1, 0.05, 8, C.woodDark, x, 0, z);
+    // Catapulta de torsión: bastidor de vigas con herrajes de bronce verdoso, cuatro ruedas macizas
+    // con llanta, un caballete en A con el travesaño atado con sogas, la madeja de cuerda que tensa
+    // el brazo y el brazo con la cazoleta cargada con una piedra; y unas piedras de repuesto
+    const wood = '#6b4a2e', woodDark = '#4e3420', patina = '#6f8a6a', bronze = '#8a7444', rope = '#b49a6a', rock = '#8e8a84', V = (x, y, z) => new THREE.Vector3(x, y, z);
+    const fitting = (x, y, z, w = 0.075, h = 0.075, d = 0.075) => g.add(box(w, h, d, patina, x, y - h / 2, z), box(w + 0.004, 0.012, d + 0.004, bronze, x, y + h / 2 - 0.012, z));
+    // El bastidor y sus herrajes en las esquinas
+    for (const sx of [-1, 1]) g.add(box(0.06, 0.06, 0.74, wood, sx * 0.19, 0.12, 0));
+    for (const z of [-0.33, 0, 0.33]) g.add(box(0.44, 0.055, 0.06, woodDark, 0, 0.122, z));
+    for (const sx of [-1, 1]) for (const z of [-0.36, 0.36]) fitting(sx * 0.19, 0.15, z);
+    // Ruedas macizas de tablones, con llanta y cubo
+    for (const [x, z] of [[-0.26, -0.24], [0.26, -0.24], [-0.26, 0.24], [0.26, 0.24]]) {
+      const w = cyl(0.11, 0.11, 0.05, 12, woodDark, 0, 0, 0);
       w.rotation.z = Math.PI / 2;
-      w.position.y = 0.1;
-      g.add(w);
+      w.position.set(x, 0.11, z);
+      const rim = mesh(new THREE.TorusGeometry(0.108, 0.012, 5, 16), '#5a5650');
+      rim.rotation.y = Math.PI / 2;
+      rim.position.set(x, 0.11, z);
+      const hub = cyl(0.03, 0.03, 0.065, 8, patina, 0, 0, 0);
+      hub.rotation.z = Math.PI / 2;
+      hub.position.set(x, 0.11, z);
+      g.add(w, rim, hub);
     }
-    const arm = box(0.06, 0.06, 0.8, C.woodLight, 0, 0, 0);
-    arm.position.set(0, 0.35, 0);
-    arm.rotation.x = 0.6;
-    g.add(arm);
-    g.add(box(0.14, 0.1, 0.14, C.stone, 0, 0.55, -0.3));
+    // El caballete en A a cada lado y el travesaño de arriba, atado con sogas
+    for (const sx of [-1, 1]) {
+      tileRod(g, V(sx * 0.19, 0.15, -0.16), V(sx * 0.17, 0.66, 0), 0.03, wood);
+      tileRod(g, V(sx * 0.19, 0.15, 0.2), V(sx * 0.17, 0.66, 0), 0.03, wood);
+      tileRod(g, V(sx * 0.19, 0.36, -0.1), V(sx * 0.19, 0.36, 0.13), 0.022, woodDark);
+      fitting(sx * 0.17, 0.7, 0, 0.08, 0.08, 0.08);
+      fitting(sx * 0.19, 0.4, -0.1, 0.06, 0.05, 0.06);
+    }
+    const top = box(0.44, 0.07, 0.08, wood, 0, 0, 0);
+    top.position.set(0, 0.69, 0);
+    g.add(top);
+    for (const x of [-0.08, 0.08]) {
+      const r = cyl(0.05, 0.05, 0.06, 10, rope, 0, 0, 0);
+      r.rotation.z = Math.PI / 2;
+      r.position.set(x, 0.69, 0);
+      g.add(r);
+    }
+    // La madeja de cuerda retorcida, abajo atrás, que tensa el brazo
+    const skein = cyl(0.06, 0.06, 0.36, 10, rope, 0, 0, 0);
+    skein.rotation.z = Math.PI / 2;
+    skein.position.set(0, 0.2, -0.22);
+    g.add(skein);
+    for (const x of [-0.12, 0, 0.12]) {
+      const band = cyl(0.064, 0.064, 0.02, 10, '#8a7448', 0, 0, 0);
+      band.rotation.z = Math.PI / 2;
+      band.position.set(x, 0.2, -0.22);
+      g.add(band);
+    }
+    // El brazo, de la madeja hacia delante y abajo, con la cazoleta y su piedra
+    const pivot = V(0, 0.2, -0.22), cup = V(0, 0.27, 0.42);
+    tileRod(g, pivot, V(0, 0.62, -0.02), 0.035, wood, 0.03);
+    tileRod(g, V(0, 0.62, -0.02), cup, 0.03, wood, 0.026);
+    for (const t of [0.35, 0.7]) {
+      const p = V(0, 0.62, -0.02).lerp(cup, t);
+      g.add(cyl(0.04, 0.04, 0.02, 8, patina, p.x, p.y - 0.01, p.z));
+    }
+    const bowl = mesh(new THREE.SphereGeometry(0.07, 10, 6, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), '#5a3820');
+    bowl.position.copy(cup);
+    g.add(bowl);
+    const stone = mesh(new THREE.DodecahedronGeometry(0.075, 0), rock);
+    stone.position.copy(cup).add(V(0, 0.04, 0));
+    g.add(stone);
+    // La soga que baja del travesaño al brazo
+    tileRod(g, V(0.05, 0.66, 0.02), V(0.03, 0.42, 0.2), 0.006, rope);
+    // Piedras de repuesto junto a una rueda
+    for (const [x, z, r] of [[0.38, 0.3, 0.05], [0.42, 0.2, 0.04], [0.35, 0.4, 0.035]]) {
+      const st = mesh(new THREE.DodecahedronGeometry(r, 0), rock);
+      st.position.set(x, r * 0.8, z);
+      g.add(st);
+    }
     return g;
   }
   if (id === 'catafracto') {
