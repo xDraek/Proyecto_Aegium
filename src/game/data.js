@@ -300,12 +300,12 @@ export const UNITS = {
     requires: { cuartel: 4, armaduras: 1 },
   },
   caballero: {
-    name: 'Caballero',
+    name: 'Jinete',
     icon: '🐴',
     img: '/ui/caballero.png',
     kind: 'tierra',
     building: 'cuartel',
-    description: 'Caballería pesada. Ocupa dos plazas en los barcos.',
+    description: 'Jinete con lanza larga: la caballería de las ciudades griegas. Ocupa dos plazas en los barcos.',
     cost: { hierro: 90, comida: 80, oro: 25 },
     time: 140,
     atk: 28,
@@ -403,6 +403,7 @@ export const UNITS = {
   bote: {
     name: 'Bote explorador',
     icon: '🛶',
+    img: '/ui/bote.png',
     kind: 'barco',
     building: 'puerto',
     description: 'Rápido y discreto. Descubre islas desconocidas sin entrar en combate.',
@@ -420,7 +421,8 @@ export const UNITS = {
   },
   mercante: {
     name: 'Barco mercante',
-    icon: '⛵',
+    icon: '🛥',
+    img: '/ui/mercante.png',
     kind: 'barco',
     building: 'puerto',
     description: 'Transporta 12 soldados y mucho botín. No combate: solo se pierde si cae todo tu ejército.',
@@ -437,7 +439,8 @@ export const UNITS = {
   },
   trirreme: {
     name: 'Trirreme',
-    icon: '🚣',
+    icon: '🚣‍♂️',
+    img: '/ui/trirreme.png',
     kind: 'barco',
     building: 'puerto',
     description: 'Barco de guerra rápido con espolón.',
@@ -454,7 +457,8 @@ export const UNITS = {
   },
   brulote: {
     name: 'Brulote',
-    icon: '🔥',
+    icon: '🧨',
+    img: '/ui/brulote.png',
     kind: 'barco',
     building: 'puerto',
     description: 'Barco cargado de brea que se lanza en llamas contra el enemigo. Mucho daño y poca vida.',
@@ -471,7 +475,8 @@ export const UNITS = {
   },
   galeon: {
     name: 'Quinquerreme',
-    icon: '🚢',
+    icon: '🚤',
+    img: '/ui/quinquerreme.png',
     kind: 'barco',
     building: 'puerto',
     description: 'Fortaleza flotante de cinco filas de remeros: torres con arqueros, catapulta en cubierta, bodega enorme y sitio para 15 soldados.',
@@ -489,7 +494,8 @@ export const UNITS = {
 
   dromon: {
     name: 'Dromón',
-    icon: '⚓',
+    icon: '🛳',
+    img: '/ui/dromon.png',
     kind: 'barco',
     building: 'puerto',
     description: 'El mayor barco de guerra del archipiélago: dos velas, cien remos, sifón de fuego y sitio para 20 soldados.',
@@ -507,6 +513,7 @@ export const UNITS = {
   liburna: {
     name: 'Liburna',
     icon: '⛴️',
+    img: '/ui/liburna.png',
     kind: 'barco',
     building: 'puerto',
     elite: true,
@@ -540,7 +547,7 @@ export const UNITS = {
 };
 // Las tropas con `img` tienen de icono una imagen: `icon` pasa a ser el HTML y `emoji` se queda con
 // el carácter (único, que no use nada más), que es lo que va en los textos sin formato y que
-// glyphs()/richText() cambian por la imagen al pintarlos. 🪖 milicia con lanza, 👝 hondero, 🤺 espadachín, 🪶 arquero, 🥏 hoplita, 🐴 caballero, 🏇 catafracto, 🔺 espartano, 🎯 arquero cretense, 🦣 elefante.
+// glyphs()/richText() cambian por la imagen al pintarlos. 🪖 milicia con lanza, 👝 hondero, 🤺 espadachín, 🪶 arquero, 🥏 hoplita, 🐴 jinete, 🏇 catafracto, 🔺 espartano, 🎯 arquero cretense, 🦣 elefante, 🛳 dromón, ⛴️ liburna, 🚤 quinquerreme, 🧨 brulote, 🚣‍♂️ trirreme, 🛥 mercante, 🛶 bote.
 for (const u of Object.values(UNITS)) {
   u.emoji ??= u.icon;
   if (u.img) u.icon = `<img class="res-img unit-img" src="${u.img}" alt="" draggable="false" />`;
@@ -654,8 +661,8 @@ export const RESEARCH = {
   equitacion: {
     name: 'Equitación',
     icon: '🐎',
-    description: 'Cría y doma de animales de guerra. Nivel 2: caballeros y catafractos. Nivel 4: permite investigar la Doma de elefantes.',
-    effect: (n) => (n >= 4 ? 'Caballería, y se puede investigar la Doma de elefantes' : n >= 2 ? 'Caballería (caballeros y catafractos)' : 'Cuadras y potros: aún sin caballería'),
+    description: 'Cría y doma de animales de guerra. Nivel 2: jinetes y catafractos. Nivel 4: permite investigar la Doma de elefantes.',
+    effect: (n) => (n >= 4 ? 'Caballería, y se puede investigar la Doma de elefantes' : n >= 2 ? 'Caballería (jinetes y catafractos)' : 'Cuadras y potros: aún sin caballería'),
     baseCost: { hierro: 300, cristal: 250, oro: 120 },
     baseTime: 400,
     maxLevel: 4,

@@ -78,7 +78,9 @@ export function portrait(kind, id, { level = 1, width = 320, height = 180, model
     const { renderer, scene, sun, rim, camera } = stage;
     const model = build ? build() : kind === 'building' ? createBuilding(id, Math.max(1, level)) : kind === 'ship' ? createShip(id) : createSoldier(id);
     if (kind === 'ship') model.rotation.y = -0.9;
-    if (kind === 'unit') model.rotation.y = 0.5;
+    // Las tropas, algo giradas; la caballería, de perfil para que se vean el caballo y la lanza, y el
+    // elefante, de tres cuartos para que se vean la trompa alzada y su armadura
+    if (kind === 'unit') model.rotation.y = id === 'caballero' || id === 'catafracto' ? -1.15 : id === 'elefante' ? -0.8 : 0.5;
     const root = new THREE.Group();
     root.add(model);
     root.updateMatrixWorld(true);

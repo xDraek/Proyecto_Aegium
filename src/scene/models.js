@@ -3974,6 +3974,48 @@ function bentArm(g, shoulder, elbow, hand, skin) {
   }
 }
 
+/** Escudo espartano: bronce batido con borde marcado y la gran lambda roja de Lacedemonia. */
+function lambdaShield(g, r = 0.19, x = -0.15, y = 0.31, z = 0.13, turn = -0.35) {
+  const sh = new THREE.Group();
+  const face = (o, dz) => (o.rotation.x = Math.PI / 2, o.position.z = dz, sh.add(o), o);
+  face(mesh(new THREE.CylinderGeometry(r, r, 0.028, 24), '#b48a3c'), 0);
+  face(mesh(new THREE.CylinderGeometry(r * 0.86, r * 0.86, 0.006, 24), '#c49a48'), 0.015);
+  const rim = mesh(new THREE.TorusGeometry(r, 0.017, 5, 28), '#9a7430');
+  rim.position.z = 0.012;
+  sh.add(rim);
+  for (const sx of [-1, 1]) {
+    const leg = box(0.034, r * 1.3, 0.006, '#9e1f17', 0, 0, 0);
+    leg.position.set(sx * r * 0.2, -r * 0.05, 0.02);
+    leg.rotation.z = sx * 0.36;
+    sh.add(leg);
+  }
+  sh.position.set(x, y, z);
+  sh.rotation.y = turn;
+  g.add(sh);
+}
+
+/** Escudo de hoplita: azul oscuro con el sol de Vergina dorado, borde y umbo de bronce. */
+function sunShield(g, r = 0.18, x = -0.17, y = 0.3, z = 0.1, turn = -0.5) {
+  const sh = new THREE.Group();
+  const face = (o, dz) => (o.rotation.x = Math.PI / 2, o.position.z = dz, sh.add(o), o);
+  face(mesh(new THREE.CylinderGeometry(r, r, 0.026, 22), '#2c3a66'), 0);
+  const rim = mesh(new THREE.TorusGeometry(r, 0.016, 5, 26), BRONZE_C);
+  rim.position.z = 0.012;
+  sh.add(rim);
+  // Los rayos del sol, alternando largos y cortos
+  for (let k = 0; k < 16; k++) {
+    const a = (k / 16) * Math.PI * 2, len = k % 2 ? r * 0.5 : r * 0.78;
+    const ray = box(0.016, len, 0.006, '#d8b45a', 0, 0, 0);
+    ray.position.set(Math.cos(a) * (len / 2 + r * 0.1), Math.sin(a) * (len / 2 + r * 0.1), 0.014);
+    ray.rotation.z = a - Math.PI / 2;
+    sh.add(ray);
+  }
+  face(mesh(new THREE.SphereGeometry(r * 0.2, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), BRONZE_C), 0.016);
+  sh.position.set(x, y, z);
+  sh.rotation.y = turn;
+  g.add(sh);
+}
+
 /** Escudo redondo grande: centro de piel clara, banda azul oscura y borde de bronce con remaches. */
 function bandedShield(g, r = 0.17, x = -0.13, y = 0.31, z = 0.2, turn = -0.35) {
   const sh = new THREE.Group();
@@ -3995,7 +4037,7 @@ function bandedShield(g, r = 0.17, x = -0.13, y = 0.31, z = 0.2, turn = -0.35) {
 }
 
 /** Caballo (de pie, mirando a +Z). Devuelve la altura del lomo. */
-function horse(g, color = '#7a5230') {
+function horse(g, color = '#7a5230', saddle = '#a8231a') {
   g.add(box(0.2, 0.2, 0.52, color, 0, 0.3, 0));
   for (const [x, z] of [[-0.07, -0.2], [0.07, -0.2], [-0.07, 0.2], [0.07, 0.2]]) {
     g.add(cyl(0.025, 0.03, 0.3, 5, color, x, 0, z));
@@ -4013,7 +4055,7 @@ function horse(g, color = '#7a5230') {
   const tail = box(0.05, 0.2, 0.05, '#2a2420', 0, 0.24, -0.28);
   tail.rotation.x = -0.4;
   g.add(tail);
-  g.add(box(0.22, 0.03, 0.22, '#a8231a', 0, 0.5, 0));
+  if (saddle) g.add(box(0.22, 0.03, 0.22, saddle, 0, 0.5, 0));
   return 0.42;
 }
 
@@ -4176,33 +4218,137 @@ const TROOPS = {
     inHand(arm, sword, -0.21);
     bandedShield(g);
   } },
-  hoplita: { color: '#a8231a', cuirass: true, pteruges: '#e8e2d0', greaves: true, helmet: 'corintio', crest: '#a8231a', cloak: '#a8231a', arms: ['abajo', 'adelante'], extra: (g) => (spear(g, 1.05), aspis(g)) },
+  // Hoplita: coraza musculada de bronce sobre quitón de lino con greca azul, faldellín de tiras de
+  // cuero, manto azul oscuro, casco corintio con penacho azul, grebas, espada al costado, lanza
+  // larga en la mano derecha y el gran escudo azul con el sol de Vergina
+  hoplita: { color: '#ece4d0', sleeve: '#ece4d0', cuirass: true, pteruges: '#6b4326', belt: '#5a3820', greaves: true, helmet: 'corintio', crest: '#1f2a4d', cloak: '#2c3a66', arms: ['abajo', 'abajo'], extra: (g) => {
+    const leather = '#6b4326', shade = '#a88a3e';
+    // Músculos de la coraza: pectorales y abdominales en relieve
+    for (const sx of [-1, 1]) g.add(box(0.05, 0.035, 0.012, shade, sx * 0.03, 0.37, 0.068));
+    for (const y of [0.31, 0.335]) for (const sx of [-1, 1]) g.add(box(0.026, 0.018, 0.01, shade, sx * 0.016, y, 0.074));
+    // Rosetas de bronce en las hombreras
+    for (const sx of [-1, 1]) {
+      const r = mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.008, 8), '#d8b45a');
+      r.rotation.x = Math.PI / 2;
+      r.position.set(sx * 0.06, 0.43, 0.05);
+      g.add(r);
+    }
+    // Greca azul en el bajo del quitón
+    g.add(cyl(0.1, 0.1, 0.018, 9, '#2c3a66', 0, 0.198, 0), cyl(0.101, 0.101, 0.005, 9, '#d8c49a', 0, 0.212, 0));
+    // Tahalí cruzado y la espada envainada a la cadera izquierda
+    const strap = box(0.02, 0.22, 0.012, leather, 0.01, 0.26, 0.08);
+    strap.rotation.z = -0.62;
+    g.add(strap, box(0.03, 0.022, 0.012, BRONZE_C, 0.015, 0.321, 0.082));
+    const sheath = new THREE.Group();
+    sheath.add(box(0.025, 0.16, 0.018, leather, 0, -0.16, 0), box(0.027, 0.03, 0.02, BRONZE_C, 0, -0.16, 0), box(0.05, 0.012, 0.02, BRONZE_C, 0, 0, 0));
+    sheath.position.set(-0.075, 0.33, 0.06);
+    sheath.rotation.z = 0.35;
+    g.add(sheath);
+    // Sandalias atadas al tobillo
+    for (const sx of [-1, 1]) g.add(cyl(0.027, 0.027, 0.01, 6, leather, sx * 0.04, 0.025, 0));
+    // Penacho grande de crin azul, cayendo por la nuca, y el manto azul sobre los hombros
+    g.add(box(0.03, 0.08, 0.17, '#1f2a4d', 0, 0.6, -0.01), box(0.03, 0.1, 0.05, '#1f2a4d', 0, 0.53, -0.09));
+    for (const sx of [-1, 1]) g.add(box(0.06, 0.03, 0.1, '#2c3a66', sx * 0.075, 0.425, -0.02));
+    longSpear(g, 0.78);
+    sunShield(g);
+  } },
   barbaro: { color: '#6b4a2a', skin: SKIN[2], beard: true, hair: '#c8862a', belt: '#3a2a1e', arms: ['abajo', 'abajo'], extra: (g) => {
     g.add(box(0.22, 0.08, 0.12, '#a07a50', 0, 0.39, 0));
     g.add(cyl(0.012, 0.012, 0.32, 4, C.woodDark, 0.12, 0.05, 0.03));
     g.add(box(0.03, 0.08, 0.07, '#c9ced6', 0.12, 0.3, 0.07));
   } },
   // Élites
-  espartano: { color: '#8f1d16', cuirass: true, pteruges: '#8f1d16', greaves: true, helmet: 'corintio', crest: '#8f1d16', cloak: '#a8231a', beard: true, arms: ['abajo', 'adelante'], extra: (g) => {
-    spear(g, 1.1);
-    aspis(g, BRONZE_C, '#a8231a');
-    // La lambda de Lacedemonia en el escudo
-    const l = box(0.02, 0.1, 0.012, '#f4efe4', -0.11, 0.25, 0.092);
-    l.rotation.z = 0.35;
-    const r = box(0.02, 0.1, 0.012, '#f4efe4', -0.13, 0.25, 0.092);
-    r.rotation.z = -0.35;
-    g.add(l, r);
+  // Espartano: casco corintio con un gran penacho negro y rojo, barba, capa roja sobre los hombros,
+  // coraza musculada de bronce, faldellín de cuero sobre lino blanco, brazales, grebas y sandalias;
+  // la lanza baja apuntando al frente y el gran escudo de bronce con la lambda roja
+  espartano: { color: '#ece4d0', sleeve: '#ece4d0', cuirass: true, pteruges: '#6b4326', belt: '#5a3820', greaves: true, helmet: 'corintio', crest: '#1a1512', cloak: '#9e1f17', beard: true, hair: '#2a2018', arms: ['abajo', 'abajo'], extra: (g) => {
+    const red = '#9e1f17', leather = '#6b4326', shade = '#a88a3e', V = (x, y, z) => new THREE.Vector3(x, y, z);
+    // Penacho alto de crin negra con una franja roja, cayendo por la nuca
+    g.add(box(0.034, 0.1, 0.18, '#1a1512', 0, 0.6, -0.01), box(0.036, 0.03, 0.182, red, 0, 0.64, -0.01), box(0.03, 0.12, 0.05, '#1a1512', 0, 0.5, -0.095));
+    // Capa roja sobre los hombros y cayendo por el costado derecho
+    for (const sx of [-1, 1]) g.add(box(0.065, 0.035, 0.11, red, sx * 0.075, 0.425, -0.015));
+    g.add(box(0.04, 0.3, 0.09, red, 0.115, 0.13, -0.04));
+    // Músculos de la coraza
+    for (const sx of [-1, 1]) g.add(box(0.05, 0.035, 0.012, shade, sx * 0.03, 0.37, 0.068));
+    for (const y of [0.31, 0.335]) for (const sx of [-1, 1]) g.add(box(0.026, 0.018, 0.01, shade, sx * 0.016, y, 0.074));
+    // Brazales de cuero y sandalias
+    for (const hand of [g.userData.hands.right, g.userData.hands.left]) hand.add(cyl(0.026, 0.026, 0.06, 6, leather, 0, -0.18, 0));
+    for (const sx of [-1, 1]) g.add(cyl(0.027, 0.027, 0.01, 6, leather, sx * 0.04, 0.025, 0));
+    // La lanza, baja y apuntando al frente, en la mano derecha
+    g.userData.hands.right.rotation.set(-0.5, 0, 0.15);
+    const hand = V(0.13, 0.246, 0.1), dir = V(-0.15, -0.18, 1).normalize();
+    const butt = hand.clone().addScaledVector(dir, -0.42), tipBase = hand.clone().addScaledVector(dir, 0.42);
+    tileRod(g, butt, tipBase, 0.01, '#6b3f22', 0.009);
+    g.add(cyl(0.006, 0.014, 0.045, 5, BRONZE_C, butt.x, butt.y - 0.02, butt.z));
+    const tip = mesh(new THREE.ConeGeometry(0.024, 0.13, 4), '#c9ced6');
+    tip.position.copy(tipBase).addScaledVector(dir, 0.065);
+    tip.quaternion.setFromUnitVectors(UP, dir);
+    tip.scale.set(1, 1, 0.45);
+    g.add(tip);
+    lambdaShield(g);
   } },
-  sagitario: { color: '#5aa0c8', belt: LEATHER, helmet: 'gorro', hair: HAIR[1], greaves: true, arms: ['adelante', 'adelante'], extra: (g) => {
-    const bow = mesh(new THREE.TorusGeometry(0.2, 0.012, 4, 14, Math.PI), '#4a2e18');
-    bow.position.set(0, 0.36, 0.2);
-    bow.rotation.set(0, 0, Math.PI / 2);
-    g.add(bow);
-    g.add(box(0.012, 0.012, 0.3, '#e8e2d0', 0, 0.36, 0.2));
-    const quiver = cyl(0.035, 0.03, 0.26, 6, '#8f1d16', 0.05, 0.28, -0.08);
-    quiver.rotation.z = -0.35;
+  // Arquero cretense tensando el arco: casco de bronce con remate, coraza musculada, túnica y
+  // manto azules con greca, faldellín de cuero, brazales y grebas de bronce, carcaj de plumas rojas
+  // a la espalda y otro a la cadera, espada al costado y un gran arco recurvo
+  sagitario: { color: '#3b6fb0', sleeve: '#3b6fb0', cuirass: true, pteruges: '#6b4326', belt: '#5a3820', greaves: true, helmet: 'corintio', cloak: '#3b6fb0', beard: true, hair: '#2a2018', arms: ['abajo', 'abajo'], extra: (g) => {
+    const leather = '#6b4326', blue = '#3b6fb0', shade = '#a88a3e', wood = '#7a4a22', V = (x, y, z) => new THREE.Vector3(x, y, z);
+    // Remate del casco y manto azul sobre los hombros, con el borde claro
+    g.add(cyl(0.004, 0.012, 0.04, 5, BRONZE_C, 0, 0.6, 0));
+    for (const sx of [-1, 1]) g.add(box(0.065, 0.035, 0.11, blue, sx * 0.075, 0.425, -0.015));
+    g.add(box(0.2, 0.012, 0.03, '#9cc2e6', 0, 0.075, -0.09));
+    // Músculos de la coraza y la greca en el bajo de la túnica
+    for (const sx of [-1, 1]) g.add(box(0.05, 0.035, 0.012, shade, sx * 0.03, 0.37, 0.068));
+    g.add(cyl(0.1, 0.1, 0.012, 9, '#9cc2e6', 0, 0.2, 0));
+    // Tahalí y espada al costado, carcaj pequeño a la cadera, sandalias
+    const strap = box(0.02, 0.22, 0.012, leather, 0.01, 0.26, 0.08);
+    strap.rotation.z = -0.62;
+    g.add(strap);
+    const sheath = box(0.024, 0.17, 0.018, leather, 0, 0, 0);
+    sheath.position.set(-0.075, 0.22, 0.06);
+    sheath.rotation.z = 0.3;
+    g.add(sheath);
+    const hipQuiver = cyl(0.022, 0.02, 0.12, 6, '#5a3820', 0.09, 0.2, 0.03);
+    hipQuiver.rotation.z = -0.3;
+    g.add(hipQuiver);
+    for (const dx of [0, 0.012]) g.add(box(0.004, 0.03, 0.016, '#a8231a', 0.115 + dx, 0.33, 0.03));
+    for (const sx of [-1, 1]) g.add(cyl(0.027, 0.027, 0.01, 6, leather, sx * 0.04, 0.025, 0));
+    // Carcaj grande a la espalda, con flechas de plumas rojas asomando por el hombro
+    const quiver = new THREE.Group();
+    quiver.add(cyl(0.034, 0.03, 0.22, 7, '#5a3820', 0, 0, 0), cyl(0.036, 0.036, 0.014, 7, BRONZE_C, 0, 0.19, 0));
+    for (const [dx, dz] of [[-0.012, 0], [0.012, 0.006], [0, -0.012], [0.004, 0.012]]) {
+      quiver.add(cyl(0.003, 0.003, 0.08, 4, '#c9a26a', dx, 0.21, dz));
+      quiver.add(box(0.004, 0.035, 0.018, '#a8231a', dx, 0.26, dz));
+    }
+    quiver.position.set(-0.04, 0.22, -0.085);
+    quiver.rotation.z = 0.4;
     g.add(quiver);
-    for (let k = 0; k < 4; k++) g.add(box(0.012, 0.07, 0.012, '#f4efe4', 0.1 + k * 0.012, 0.52, -0.08));
+    // El brazo del arco, extendido hacia el blanco, con su brazal de bronce
+    const bowArm = g.userData.hands.right;
+    bowArm.rotation.set(-0.15, 0, 1.85);
+    bowArm.add(cyl(0.028, 0.026, 0.08, 6, BRONZE_C, 0, -0.19, 0));
+    // El otro brazo, doblado, tirando de la cuerda hasta la mejilla, con su brazal
+    g.userData.hands.left.visible = false;
+    const nock = V(0.03, 0.495, 0.045), elbow = V(-0.19, 0.49, -0.085);
+    bentArm(g, V(-0.1, 0.43, 0), elbow, nock, SKIN[0]);
+    tileRod(g, elbow.clone().lerp(nock, 0.35), elbow.clone().lerp(nock, 0.8), 0.028, BRONZE_C, 0.026);
+    // El gran arco recurvo, con las puntas vueltas y ataduras de cuero
+    const grip = V(0.3, 0.495, 0.03);
+    const limb = [[0, 0], [0.08, 0.025], [0.16, 0.034], [0.23, 0.02], [0.28, 0.034]];
+    for (const sy of [1, -1]) {
+      for (let k = 1; k < limb.length; k++) {
+        const [y0, x0] = limb[k - 1], [y1, x1] = limb[k];
+        tileRod(g, V(grip.x + x0, grip.y + sy * y0, grip.z), V(grip.x + x1, grip.y + sy * y1, grip.z), 0.009, wood, 0.008);
+      }
+      g.add(cyl(0.012, 0.012, 0.012, 6, leather, grip.x + 0.026, grip.y + sy * 0.1, grip.z));
+    }
+    // La cuerda y la flecha apuntando al blanco
+    for (const sy of [1, -1]) tileRod(g, V(grip.x + 0.034, grip.y + sy * 0.28, grip.z), nock, 0.0025, '#e8e2d0');
+    tileRod(g, nock, V(0.48, 0.495, 0.025), 0.004, '#c9a26a');
+    const head = mesh(new THREE.ConeGeometry(0.01, 0.035, 4), BRONZE_C);
+    head.position.set(0.495, 0.495, 0.025);
+    head.rotation.z = -Math.PI / 2;
+    g.add(head);
+    for (const dz of [-0.008, 0.008]) g.add(box(0.04, 0.014, 0.003, '#a8231a', 0.05, 0.488, 0.045 + dz));
   } },
   pirata: { color: '#e8e2d0', belt: '#b8442f', helmet: 'panuelo', beard: true, hair: HAIR[2], arms: ['abajo', 'abajo'], extra: (g) => {
     const blade = box(0.025, 0.24, 0.05, '#c9ced6', 0.13, 0.04, 0.04);
@@ -4231,73 +4377,282 @@ export function createSoldier(id) {
     return g;
   }
   if (id === 'catafracto') {
-    // Caballo y jinete cubiertos de escamas de bronce, con lanza larga (contus)
-    const back = horse(g, '#5a4636');
-    g.add(box(0.24, 0.16, 0.5, IRON, 0, 0.3, 0), box(0.12, 0.16, 0.14, IRON, 0, 0.42, 0.28));
-    for (let k = 0; k < 5; k++) g.add(box(0.245, 0.012, 0.5, '#6e737a', 0, 0.33 + k * 0.025, 0));
-    const rider = figure({ color: '#4a4f57', cuirass: true, cuirassColor: IRON, greaves: true, helmet: 'legionario', crest: '#c9a24a', cloak: '#6a2a7a', arms: ['adelante', 'abajo'] });
-    spear(rider, 1.2);
+    // Catafracto: caballo oscuro cubierto de escamas de bronce del testuz a la grupa, con frontalera
+    // de bronce, grebas en las patas y gualdrapa azul con greca y borlas. El jinete, con coraza y
+    // mangas de escamas, grebas, casco corintio, manto azul y la lanza larga (contus) terciada
+    const dark = '#3a2a20', black = '#1a1512', leather = '#5a3820', scale = '#a8843a', blue = '#2c3a66', V = (x, y, z) => new THREE.Vector3(x, y, z);
+    const back = horse(g, dark, null);
+    // Escamas sobre el cuerpo y el pecho (bandas en relieve que imitan las hileras)
+    g.add(box(0.235, 0.2, 0.5, BRONZE_C, 0, 0.29, -0.01), box(0.17, 0.2, 0.06, BRONZE_C, 0, 0.26, 0.25));
+    // Las escamas, en hileras al tresbolillo por los costados y el pecho
+    for (let k = 0; k < 7; k++) {
+      const y = 0.3 + k * 0.028, shift = k % 2 ? 0.024 : 0;
+      for (let c = 0; c < 10; c++) {
+        const z = -0.24 + c * 0.048 + shift;
+        if (z > 0.23) continue;
+        const col = (c + k) % 3 ? scale : '#c49a45';
+        for (const sx of [-1, 1]) g.add(box(0.006, 0.026, 0.04, col, sx * 0.119, y, z));
+      }
+      for (let c = 0; c < 3; c++) g.add(box(0.04, 0.026, 0.006, (c + k) % 2 ? scale : '#c49a45', -0.05 + c * 0.05 + (k % 2 ? 0.02 : 0), y - 0.03, 0.281));
+    }
+    // Cuello acorazado, con su crin asomando
+    const neck = new THREE.Group();
+    neck.position.set(0, 0.46, 0.25);
+    neck.rotation.x = 0.5;
+    neck.add(box(0.12, 0.26, 0.14, BRONZE_C, 0, -0.13, 0));
+    for (let k = 0; k < 7; k++) neck.add(box(0.125, 0.007, 0.145, scale, 0, -0.11 + k * 0.032, 0));
+    neck.add(box(0.03, 0.24, 0.04, black, 0, -0.1, -0.08));
+    g.add(neck);
+    // Frontalera de bronce sobre la cara, con las orejas y los ojos fuera; cabezada de cuero
+    const hg = new THREE.Group();
+    hg.position.set(0, 0.56, 0.36);
+    hg.rotation.x = 0.35;
+    hg.add(box(0.1, 0.075, 0.17, BRONZE_C, 0, -0.03, 0.005));
+    for (const sx of [-1, 1]) {
+      const ear = mesh(new THREE.ConeGeometry(0.016, 0.05, 4), dark);
+      ear.position.set(sx * 0.028, 0.07, -0.07);
+      hg.add(ear);
+      hg.add(box(0.012, 0.016, 0.02, black, sx * 0.051, 0.02, -0.04));
+      const disc = mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.006, 8), '#d8b45a');
+      disc.rotation.z = Math.PI / 2;
+      disc.position.set(sx * 0.052, 0.01, -0.07);
+      hg.add(disc);
+    }
+    hg.add(box(0.104, 0.016, 0.02, leather, 0, 0.035, -0.05));
+    g.add(hg);
+    // Grebas de bronce en las cuatro patas
+    for (const [x, z] of [[-0.07, -0.2], [0.07, -0.2], [-0.07, 0.2], [0.07, 0.2]]) g.add(cyl(0.034, 0.032, 0.11, 6, BRONZE_C, x, 0.04, z));
+    // Cola larga y oscura
+    const tail = box(0.07, 0.3, 0.06, black, 0, 0, 0);
+    tail.position.set(0, 0.24, -0.31);
+    tail.rotation.x = -0.22;
+    g.add(tail);
+    // Gualdrapa azul con greca dorada y borlas, por debajo de las escamas
+    g.add(box(0.24, 0.014, 0.24, blue, 0, 0.5, -0.03));
+    for (const sx of [-1, 1]) {
+      g.add(box(0.012, 0.13, 0.26, blue, sx * 0.124, 0.26, -0.03));
+      g.add(box(0.014, 0.016, 0.262, '#d8b45a', sx * 0.125, 0.3, -0.03), box(0.014, 0.008, 0.262, '#d8b45a', sx * 0.125, 0.275, -0.03));
+      for (let k = 0; k < 7; k++) {
+        const z = -0.15 + k * 0.04;
+        g.add(cyl(0.008, 0.012, 0.03, 5, k % 2 ? '#d8b45a' : blue, sx * 0.126, 0.235, z));
+      }
+    }
+    // Disco de bronce en el pretal
+    const boss = mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.01, 10), '#d8b45a');
+    boss.rotation.x = Math.PI / 2;
+    boss.position.set(0, 0.38, 0.285);
+    g.add(boss);
+    // El jinete, con coraza y mangas de escamas de bronce
+    const rider = figure({ color: blue, cuirass: true, sleeve: BRONZE_C, pteruges: blue, belt: leather, helmet: 'corintio', cloak: blue, arms: ['adelante', 'abajo'] });
+    for (let k = 0; k < 5; k++) rider.add(cyl(0.079, 0.079, 0.006, 9, scale, 0, 0.3 + k * 0.03, 0));
+    rider.add(box(0.21, 0.035, 0.1, blue, 0, 0.41, -0.025));
+    for (const hand of [rider.userData.hands.right, rider.userData.hands.left]) for (const y of [-0.12, -0.16, -0.2]) hand.add(cyl(0.025, 0.025, 0.012, 6, scale, 0, y, 0));
+    const sheath = box(0.024, 0.15, 0.018, leather, 0, 0, 0);
+    sheath.position.set(-0.08, 0.25, 0.06);
+    sheath.rotation.z = 0.4;
+    rider.add(sheath, box(0.05, 0.012, 0.02, BRONZE_C, -0.06, 0.32, 0.06));
     rider.scale.setScalar(0.72);
     rider.position.set(0, back - 0.1, -0.02);
     g.add(rider);
+    // Sus piernas a horcajadas, con quijotes de escamas y grebas de bronce
+    for (const sx of [-1, 1]) {
+      const hip = V(sx * 0.05, 0.5, 0), knee = V(sx * 0.14, 0.43, 0.09), ankle = V(sx * 0.14, 0.29, 0.05);
+      tileRod(g, hip, knee, 0.03, BRONZE_C, 0.026);
+      tileRod(g, knee, ankle, 0.027, '#d8b45a', 0.023);
+      g.add(box(0.045, 0.03, 0.08, leather, sx * 0.14, 0.27, 0.07));
+    }
+    for (const sx of [-1, 1]) tileRod(g, V(sx * 0.05, 0.53, 0.43), V(sx * 0.03, 0.5, 0.06), 0.0035, leather);
+    // La lanza larga terciada por encima de la cabeza del caballo
+    const hand = V(0.08, 0.57, 0.12), dir = V(0, 0.75, 1).normalize();
+    const butt = hand.clone().addScaledVector(dir, -0.45), tipBase = hand.clone().addScaledVector(dir, 0.6);
+    tileRod(g, butt, tipBase, 0.01, '#7a3f22', 0.009);
+    const tip = mesh(new THREE.ConeGeometry(0.022, 0.13, 4), '#c9ced6');
+    tip.position.copy(tipBase).addScaledVector(dir, 0.065);
+    tip.quaternion.setFromUnitVectors(UP, dir);
+    tip.scale.set(1, 1, 0.45);
+    g.add(tip);
     return g;
   }
   if (id === 'elefante') {
-    // Elefante con su torre de arqueros y el cornaca en el cuello
-    const grey = '#8a8c8f';
-    const body = mesh(new THREE.SphereGeometry(0.32, 10, 8), grey);
+    // Elefante de guerra acorazado: testera de bronce, trompa alzada forrada de anillas de bronce,
+    // colmillos al frente, láminas de bronce por los costados con el borde azul, y una torre de
+    // madera chapada de bronce con escudos redondos, desde la que tiran dos arqueros
+    const grey = '#7e7a74', bronze = '#a8843a', bronze2 = '#c49a45', dark = '#7a5e28', V = (x, y, z) => new THREE.Vector3(x, y, z);
+    const body = mesh(new THREE.SphereGeometry(0.32, 12, 9), grey);
     body.scale.set(0.95, 0.85, 1.35);
     body.position.y = 0.62;
     g.add(body);
-    for (const [x, z] of [[-0.17, -0.25], [0.17, -0.25], [-0.17, 0.25], [0.17, 0.25]]) g.add(cyl(0.085, 0.09, 0.42, 7, grey, x, 0, z));
-    const head = mesh(new THREE.SphereGeometry(0.2, 9, 7), grey);
+    for (const [x, z] of [[-0.17, -0.25], [0.17, -0.25], [-0.17, 0.25], [0.17, 0.25]]) {
+      g.add(cyl(0.085, 0.09, 0.42, 8, grey, x, 0, z));
+      g.add(cyl(0.093, 0.093, 0.025, 8, '#d8d2c4', x, 0, z));
+    }
+    // Costados de láminas de bronce, en cuadrícula, con el borde azul y una franja dorada
+    for (const sx of [-1, 1]) {
+      g.add(box(0.02, 0.32, 0.56, bronze, sx * 0.3, 0.47, -0.03));
+      for (let k = 0; k <= 5; k++) g.add(box(0.026, 0.008, 0.562, dark, sx * 0.3, 0.47 + k * 0.064, -0.03));
+      for (let k = 0; k <= 7; k++) g.add(box(0.026, 0.32, 0.008, dark, sx * 0.3, 0.47, -0.31 + k * 0.08));
+      g.add(box(0.026, 0.04, 0.58, '#2c3a66', sx * 0.302, 0.44, -0.03), box(0.028, 0.01, 0.58, '#d8b45a', sx * 0.303, 0.475, -0.03));
+    }
+    // La cabeza con su testera de bronce, ojos y rosetas
+    const head = mesh(new THREE.SphereGeometry(0.2, 10, 8), grey);
     head.position.set(0, 0.78, 0.48);
     g.add(head);
-    for (const s of [-1, 1]) {
-      const ear = box(0.03, 0.24, 0.2, '#7d7f82', s * 0.2, 0.68, 0.42);
-      ear.rotation.y = s * 0.5;
-      g.add(ear);
-      const tusk = mesh(new THREE.ConeGeometry(0.025, 0.25, 5), '#f4efe4');
-      tusk.position.set(s * 0.09, 0.58, 0.68);
-      tusk.rotation.x = -1.2;
-      g.add(tusk);
+    const helm = mesh(new THREE.SphereGeometry(0.208, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), bronze);
+    helm.position.set(0, 0.78, 0.48);
+    helm.rotation.x = 0.55;
+    g.add(helm);
+    for (let k = 0; k < 3; k++) {
+      const band = mesh(new THREE.TorusGeometry(0.205 - k * 0.03, 0.007, 4, 18, Math.PI), dark);
+      band.position.set(0, 0.78 + k * 0.05, 0.5 + k * 0.03);
+      band.rotation.set(-0.4, 0, 0);
+      g.add(band);
     }
-    const trunk = cyl(0.04, 0.07, 0.42, 7, grey, 0, 0, 0);
-    trunk.position.set(0, 0.3, 0.64);
-    trunk.rotation.x = 0.25;
-    g.add(trunk);
-    const tail = box(0.03, 0.22, 0.03, grey, 0, 0.5, -0.45);
+    for (const sx of [-1, 1]) {
+      g.add(box(0.02, 0.022, 0.03, '#1a1512', sx * 0.172, 0.79, 0.58));
+      const rose = mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.01, 10), '#d8b45a');
+      rose.rotation.z = Math.PI / 2;
+      rose.position.set(sx * 0.19, 0.86, 0.47);
+      g.add(rose);
+      const ear = box(0.03, 0.26, 0.22, '#6f6b65', sx * 0.21, 0.66, 0.4);
+      ear.rotation.y = sx * 0.55;
+      g.add(ear);
+      // Colmillo al frente, algo alzado, con su anilla de bronce
+      const base = V(sx * 0.085, 0.66, 0.63), dir = V(sx * 0.15, 0.28, 1).normalize();
+      const tusk = mesh(new THREE.ConeGeometry(0.026, 0.28, 6), '#f0e8d6');
+      tusk.position.copy(base).addScaledVector(dir, 0.14);
+      tusk.quaternion.setFromUnitVectors(UP, dir);
+      g.add(tusk);
+      const ring = cyl(0.03, 0.03, 0.025, 8, bronze2, 0, 0, 0);
+      ring.position.copy(base).addScaledVector(dir, 0.05);
+      ring.quaternion.setFromUnitVectors(UP, dir);
+      g.add(ring);
+    }
+    // La trompa alzada, forrada de anillas de bronce
+    const path = [V(0, 0.7, 0.64), V(0, 0.6, 0.73), V(0, 0.58, 0.84), V(0, 0.66, 0.93), V(0, 0.8, 0.97), V(0, 0.94, 0.95), V(0, 1.04, 0.88)];
+    for (let k = 1; k < path.length; k++) {
+      const r0 = 0.075 - (k - 1) * 0.007, r1 = 0.075 - k * 0.007;
+      tileRod(g, path[k - 1], path[k], r0, k % 2 ? bronze : bronze2, r1);
+      const j = mesh(new THREE.SphereGeometry(r1, 8, 6), k % 2 ? bronze2 : bronze);
+      j.position.copy(path[k]);
+      g.add(j);
+    }
+    const tail = box(0.03, 0.24, 0.03, grey, 0, 0.48, -0.45);
     tail.rotation.x = -0.3;
     g.add(tail);
-    // Gualdrapa roja y la torre de madera con escudos
-    g.add(box(0.5, 0.06, 0.6, '#a8231a', 0, 0.86, -0.05), box(0.52, 0.03, 0.62, C.gold, 0, 0.84, -0.05));
-    g.add(box(0.4, 0.3, 0.4, C.wood, 0, 0.92, -0.08));
-    for (const [x, z] of [[-0.18, -0.26], [0.18, -0.26], [-0.18, 0.1], [0.18, 0.1]]) g.add(box(0.06, 0.1, 0.06, C.wood, x, 1.22, z));
-    for (const s of [-1, 1]) {
-      const sh = mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.02, 10), BRONZE_C);
-      sh.rotation.z = Math.PI / 2;
-      sh.position.set(s * 0.21, 1.06, -0.08);
-      g.add(sh);
+    // La torre: madera chapada de bronce, con escudos redondos y almenas
+    g.add(box(0.46, 0.04, 0.46, dark, 0, 0.86, -0.08));
+    g.add(box(0.42, 0.26, 0.42, C.wood, 0, 0.9, -0.08));
+    for (const sx of [-1, 1]) {
+      g.add(box(0.012, 0.22, 0.4, bronze, sx * 0.215, 0.92, -0.08));
+      for (const z of [-0.2, 0.04]) {
+        const sh = mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.018, 12), bronze2);
+        sh.rotation.z = Math.PI / 2;
+        sh.position.set(sx * 0.225, 1.03, z);
+        g.add(sh);
+      }
     }
-    const archer = figure({ color: '#5aa0c8', helmet: 'gorro', arms: ['adelante', 'adelante'] });
-    archer.scale.setScalar(0.55);
-    archer.position.set(0, 1.1, -0.08);
-    g.add(archer);
-    const mahout = figure({ color: '#e3b23c', skin: SKIN[2], arms: ['adelante', 'adelante'] });
-    mahout.scale.setScalar(0.5);
-    mahout.position.set(0, 0.82, 0.3);
-    g.add(mahout);
+    g.add(box(0.4, 0.22, 0.012, bronze, 0, 0.92, 0.135));
+    const front = mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.018, 12), bronze2);
+    front.rotation.x = Math.PI / 2;
+    front.position.set(0, 1.03, 0.145);
+    g.add(front);
+    g.add(box(0.44, 0.02, 0.44, '#d8b45a', 0, 1.16, -0.08));
+    for (const [x, z] of [[-0.19, -0.27], [0.19, -0.27], [-0.19, 0.11], [0.19, 0.11], [0, 0.11], [0, -0.27], [-0.19, -0.08], [0.19, -0.08]]) g.add(box(0.05, 0.06, 0.05, C.wood, x, 1.18, z));
+    // Dos arqueros con casco de bronce y manto azul, tensando sus arcos
+    for (const [x, z, turn] of [[-0.09, -0.02, 0.3], [0.1, -0.15, -0.2]]) {
+      const archer = figure({ color: '#3b6fb0', cuirass: true, sleeve: '#3b6fb0', helmet: 'corintio', cloak: '#3b6fb0', arms: ['adelante', 'adelante'] });
+      const bow = mesh(new THREE.TorusGeometry(0.2, 0.012, 4, 14, Math.PI), '#4a2e18');
+      bow.position.set(0, 0.36, 0.2);
+      bow.rotation.set(0, 0, Math.PI / 2);
+      archer.add(bow, box(0.012, 0.012, 0.3, '#e8e2d0', 0, 0.36, 0.2));
+      archer.scale.setScalar(0.5);
+      archer.position.set(x, 1.12, z);
+      archer.rotation.y = turn;
+      g.add(archer);
+    }
     g.scale.setScalar(0.85);
     return g;
   }
   if (id === 'caballero') {
-    // Jinete con capa azul y lanza sobre su caballo
-    const back = horse(g);
-    const rider = figure({ color: '#3f6fa8', cuirass: true, helmet: 'corintio', crest: '#f6f1e7', cloak: '#3f6fa8', arms: ['adelante', 'abajo'] });
-    spear(rider, 0.9);
+    // Jinete griego: caballo castaño de crin y cola negras, calcetines blancos, bridas y pretal de
+    // cuero con discos de bronce, y gualdrapa de lana con greca azul. Él, con quitón sin mangas,
+    // manto azul, casco corintio, tahalí con la espada, brazal, botas altas atadas y la lanza larga
+    // terciada hacia delante
+    const bay = '#7a3e22', black = '#1f1a17', leather = '#5a3820', V = (x, y, z) => new THREE.Vector3(x, y, z);
+    const back = horse(g, bay, null);
+    // Crin larga por el cuello, tupé y una cola larga y poblada
+    const mane = box(0.045, 0.24, 0.07, black, 0, 0, 0);
+    mane.position.set(0, 0.5, 0.2);
+    mane.rotation.x = 0.5;
+    g.add(mane);
+    const tail = box(0.07, 0.3, 0.06, black, 0, 0, 0);
+    tail.position.set(0, 0.24, -0.31);
+    tail.rotation.x = -0.22;
+    g.add(tail);
+    // Calcetines blancos y cascos
+    for (const [x, z] of [[-0.07, -0.2], [0.07, -0.2], [-0.07, 0.2], [0.07, 0.2]]) g.add(cyl(0.031, 0.031, 0.06, 6, '#f2ede2', x, 0.03, z));
+    // La cabeza: orejas, tupé, cabezada y muserola de cuero con discos de bronce
+    const hg = new THREE.Group();
+    hg.position.set(0, 0.56, 0.36);
+    hg.rotation.x = 0.35;
+    for (const sx of [-1, 1]) {
+      const ear = mesh(new THREE.ConeGeometry(0.016, 0.05, 4), bay);
+      ear.position.set(sx * 0.028, 0.065, -0.07);
+      hg.add(ear);
+      hg.add(box(0.008, 0.1, 0.018, leather, sx * 0.047, -0.05, -0.02));
+      const disc = mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.006, 8), BRONZE_C);
+      disc.rotation.z = Math.PI / 2;
+      disc.position.set(sx * 0.05, 0.005, -0.05);
+      hg.add(disc);
+    }
+    hg.add(box(0.06, 0.03, 0.03, black, 0, 0.04, -0.07));
+    hg.add(box(0.1, 0.016, 0.02, leather, 0, 0.03, -0.035), box(0.1, 0.018, 0.02, leather, 0, -0.03, 0.06));
+    g.add(hg);
+    // Pretal de cuero por el pecho con su disco de bronce
+    g.add(box(0.22, 0.03, 0.03, leather, 0, 0.36, 0.25), box(0.03, 0.12, 0.02, leather, 0, 0.27, 0.26));
+    const boss = mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.01, 10), BRONZE_C);
+    boss.rotation.x = Math.PI / 2;
+    boss.position.set(0, 0.37, 0.27);
+    g.add(boss);
+    // Gualdrapa de lana cruda con la greca azul y flecos, cayendo por los costados
+    g.add(box(0.23, 0.014, 0.26, '#e6dcc4', 0, 0.5, -0.03));
+    for (const sx of [-1, 1]) {
+      g.add(box(0.012, 0.11, 0.26, '#e6dcc4', sx * 0.108, 0.4, -0.03));
+      g.add(box(0.014, 0.022, 0.262, '#2c3a66', sx * 0.109, 0.415, -0.03), box(0.014, 0.012, 0.262, '#d8c49a', sx * 0.109, 0.395, -0.03));
+    }
+    // El jinete
+    const rider = figure({ color: '#ece4d0', bareArms: true, belt: leather, helmet: 'corintio', cloak: '#2c3a66', arms: ['adelante', 'abajo'] });
+    rider.add(box(0.21, 0.035, 0.1, '#2c3a66', 0, 0.41, -0.025));
+    const strap = box(0.02, 0.22, 0.012, leather, 0.01, 0.26, 0.08);
+    strap.rotation.z = -0.62;
+    rider.add(strap);
+    const sheath = box(0.024, 0.15, 0.018, leather, 0, 0, 0);
+    sheath.position.set(-0.08, 0.25, 0.06);
+    sheath.rotation.z = 0.4;
+    rider.add(sheath, box(0.05, 0.012, 0.02, BRONZE_C, -0.06, 0.32, 0.06));
+    rider.userData.hands.right.add(cyl(0.027, 0.027, 0.07, 6, leather, 0, -0.19, 0));
     rider.scale.setScalar(0.72);
     rider.position.set(0, back - 0.1, -0.02);
     g.add(rider);
+    // Sus piernas a horcajadas por los costados, con botas altas atadas
+    for (const sx of [-1, 1]) {
+      const hip = V(sx * 0.05, 0.5, 0), knee = V(sx * 0.13, 0.43, 0.09), ankle = V(sx * 0.13, 0.29, 0.05);
+      tileRod(g, hip, knee, 0.028, SKIN[0], 0.024);
+      tileRod(g, knee, ankle, 0.026, leather, 0.022);
+      g.add(box(0.045, 0.03, 0.08, leather, sx * 0.13, 0.27, 0.07));
+      for (const t of [0.3, 0.6]) g.add(cyl(0.027, 0.027, 0.008, 6, '#3a2616', sx * 0.13, knee.y - (knee.y - ankle.y) * t, knee.z - (knee.z - ankle.z) * t));
+    }
+    // Las riendas, de la boca del caballo a la mano izquierda
+    for (const sx of [-1, 1]) tileRod(g, V(sx * 0.05, 0.53, 0.43), V(sx * 0.03, 0.5, 0.06), 0.0035, leather);
+    // La lanza larga terciada: pasa por la mano derecha y apunta adelante y arriba
+    const hand = V(0.08, 0.57, 0.12), dir = V(0, 0.75, 1).normalize();
+    const butt = hand.clone().addScaledVector(dir, -0.42), tipBase = hand.clone().addScaledVector(dir, 0.55);
+    tileRod(g, butt, tipBase, 0.01, '#7a3f22', 0.009);
+    const tip = mesh(new THREE.ConeGeometry(0.022, 0.12, 4), BRONZE_C);
+    tip.position.copy(tipBase).addScaledVector(dir, 0.06);
+    tip.quaternion.setFromUnitVectors(UP, dir);
+    tip.scale.set(1, 1, 0.45);
+    g.add(tip);
     return g;
   }
   const t = TROOPS[id] ?? TROOPS.lancero;

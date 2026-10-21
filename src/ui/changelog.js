@@ -5,6 +5,56 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-21m',
+    date: '2026-10-21',
+    title: 'Nuevo elefante de guerra',
+    items: ['<img class="res-img unit-img" src="/ui/elefante.png" alt="" /> El <b>Elefante de guerra</b> se acoraza: testera de bronce, la trompa alzada forrada de anillas, colmillos con anillas de bronce, láminas de bronce por los costados con el borde azul y una torre chapada de bronce con escudos, desde la que tiran dos arqueros.'],
+  },
+  {
+    id: '2026-10-21l',
+    date: '2026-10-21',
+    title: 'Nuevo arquero cretense',
+    items: ['<img class="res-img unit-img" src="/ui/cretense.png" alt="" /> El <b>Arquero cretense</b> aparece tensando su gran arco recurvo: casco de bronce con remate, coraza musculada, túnica y manto azules, faldellín de cuero, brazales y grebas de bronce, carcaj de plumas rojas a la espalda y otro a la cadera, y la espada al costado.'],
+  },
+  {
+    id: '2026-10-21k',
+    date: '2026-10-21',
+    title: 'Nuevo espartano',
+    items: ['<img class="res-img unit-img" src="/ui/espartano.png" alt="" /> El <b>Espartano</b> estrena aspecto: casco corintio con un gran penacho negro y rojo, barba, capa roja, coraza musculada de bronce, faldellín de cuero sobre lino, brazales y grebas, la lanza baja apuntando al frente y el gran escudo de bronce con la lambda roja de Lacedemonia.'],
+  },
+  {
+    id: '2026-10-21j',
+    date: '2026-10-21',
+    title: 'Nuevo catafracto',
+    items: ['<img class="res-img unit-img" src="/ui/catafracto.png" alt="" /> El <b>Catafracto</b> estrena aspecto: caballo cubierto de escamas de bronce del cuello a la grupa, con frontalera, grebas en las patas y gualdrapa azul con greca y borlas; y el jinete, con coraza y mangas de escamas, casco corintio, manto azul y la lanza larga terciada.'],
+  },
+  {
+    id: '2026-10-21i',
+    date: '2026-10-21',
+    title: 'El caballero pasa a ser el Jinete',
+    items: ['<img class="res-img unit-img" src="/ui/caballero.png" alt="" /> El <b>Caballero</b> se llama ahora <b>Jinete</b> y estrena aspecto: caballo castaño de crin y cola negras con calcetines blancos, bridas y pretal con discos de bronce y gualdrapa con greca azul; y él, con quitón sin mangas, manto azul, casco corintio, espada al costado, botas altas y la lanza larga terciada. Sus estadísticas no cambian.'],
+  },
+  {
+    id: '2026-10-21h',
+    date: '2026-10-21',
+    title: 'Nuevo hoplita',
+    items: ['<img class="res-img unit-img" src="/ui/hoplita.png" alt="" /> El <b>Hoplita</b> estrena aspecto: coraza musculada de bronce sobre un quitón de lino con greca azul, faldellín de cuero, manto azul, casco corintio con gran penacho azul, grebas, espada al costado, lanza larga y el gran escudo azul con el sol de Vergina.'],
+  },
+  {
+    id: '2026-10-21g',
+    date: '2026-10-21',
+    title: 'Nuevos iconos para todos los barcos',
+    items: [
+      '<img class="res-img unit-img" src="/ui/bote.png" alt="" /> El <b>Bote explorador</b> estrena icono: la barca de vela con su vigía oteando el horizonte desde la proa.',
+      '<img class="res-img unit-img" src="/ui/mercante.png" alt="" /> El <b>Barco mercante</b> estrena icono: el carguero de vela recogida, cargado de fardos, cajas y ánforas.',
+      '<img class="res-img unit-img" src="/ui/trirreme.png" alt="" /> El <b>Trirreme</b> estrena icono: la galera de vela blanca y azul con el sol, sus hoplitas en cubierta, los remos y el ojo pintado en la proa.',
+      '<img class="res-img unit-img" src="/ui/brulote.png" alt="" /> El <b>Brulote</b> estrena icono: el barco cargado de barriles y brea, ardiendo, con la vela a rayas medio quemada.',
+      '<img class="res-img unit-img" src="/ui/quinquerreme.png" alt="" /> El <b>Quinquerreme</b> estrena icono: la gran galera de velas a rayas, con sus torres de soldados, escudos en la borda y las filas de remos.',
+      '<img class="res-img unit-img" src="/ui/liburna.png" alt="" /> La <b>Liburna</b> estrena icono: la galera ligera de vela azul y blanca y casco rojo, con sus remos, el espolón de bronce y el ojo pintado en la proa.',
+      '<img class="res-img unit-img" src="/ui/dromon.png" alt="" /> El <b>Dromón</b> estrena icono: la gran galera de velas azules con el sol, torres de soldados, sus remos y el sifón escupiendo fuego griego por la proa.',
+    ],
+  },
+  {
     id: '2026-10-21f',
     date: '2026-10-21',
     title: 'Iconos nuevos para siete tropas',
