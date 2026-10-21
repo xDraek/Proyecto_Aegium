@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-21e',
+    date: '2026-10-21',
+    title: 'Nuevo icono del hoplita',
+    items: ['<img class="res-img unit-img" src="/ui/hoplita.png" alt="" /> El <b>Hoplita</b> estrena icono: su lanza con punta de bronce cruzada sobre el gran escudo redondo de bronce.'],
+  },
+  {
     id: '2026-10-21d',
     date: '2026-10-21',
     title: 'El almirante, hasta el nivel 10',
