@@ -41,7 +41,7 @@ function template({ title, preheader, lines, button, link, foot }) {
 <tr><td align="center" style="padding:32px 12px">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px">
     <tr><td align="center" style="padding:0 0 22px">
-      <a href="${escapeHtml(base)}" style="text-decoration:none"><img src="${escapeHtml(base)}/ui/correo-logo-v2.png" width="260" alt="AEGIUM" style="display:block;width:260px;max-width:70%;height:auto;border:0;margin:0 auto;font-family:${serif};font-size:32px;font-weight:bold;letter-spacing:6px;color:#f2c94c"></a>
+      <a href="${escapeHtml(base)}" style="text-decoration:none"><img src="${escapeHtml(base)}/ui/correo-logo-v3.png" width="260" alt="AEGIUM" style="display:block;width:260px;max-width:70%;height:auto;border:0;margin:0 auto;font-family:${serif};font-size:32px;font-weight:bold;letter-spacing:6px;color:#f2c94c"></a>
     </td></tr>
     <tr><td style="background:#1f1913;border:1px solid #4a3b22;border-top:3px solid #d4a23a;border-radius:10px;padding:34px 34px 28px">
       <h1 style="margin:0 0 20px;font-family:${serif};font-size:24px;font-weight:bold;line-height:1.3;color:#f2c94c">${escapeHtml(title)}</h1>

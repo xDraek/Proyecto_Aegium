@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-22e',
+    date: '2026-10-22',
+    title: 'El logo, con laureles verdes',
+    items: ['🌿 Retoque al logo nuevo: la columna y el nombre siguen siendo de oro, pero los laureles ahora son de hojas verdes. En la portada y en los correos.'],
+  },
+  {
     id: '2026-10-22d',
     date: '2026-10-22',
     title: 'Nuevo logo',
