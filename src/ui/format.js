@@ -107,7 +107,7 @@ export function intelRows(intel) {
   }
   const unseen = (level) => `<span class="muted small">sin ver: hacen falta ${SPY_TIERS[level - 1].boats} botes</span>`;
   const out = [row('Recursos', bag(intel.stock)), row('🏰 Muralla · 🏛️ Ayuntamiento', `Nv ${intel.wall ?? 0} · Nv ${intel.town ?? 1}`)];
-  out.push(row('⛵ Barcos en el puerto', intel.ships ? unitList(intel.ships) : unseen(2)));
+  out.push(row(`${UNITS.trirreme.icon} Barcos en el puerto`, intel.ships ? unitList(intel.ships) : unseen(2)));
   out.push(row('⚔️ Tropas de tierra', intel.troops ? unitList(intel.troops) : unseen(3)));
   const d = intel.defenses;
   out.push(
