@@ -1341,6 +1341,8 @@ export const FEAT_THEMES = {
     kind: 'armada',
     name: 'La Armada del Gran Rey',
     enemy: 'Jerjes',
+    // El aviso cuando emerge (si no, «¡<enemigo> emerge en <continente>!»)
+    arrives: (name) => `¡Las huestes del Gran Rey Jerjes han venido a saquear ${name}!`,
     icon: '👑',
     text: 'La flota persa fondea frente al continente. Cerrad sus fondeaderos y asaltad el campamento mientras pasa hambre.',
     phases: [

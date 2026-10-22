@@ -5,6 +5,15 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-22c',
+    date: '2026-10-22',
+    title: 'Nuevos aspectos para las gestas y la granja',
+    items: [
+      '🌾 Los <b>campos de cultivo</b> de detrás de la granja ya no están desde el principio: aparecen cuando la granja llega al <b>nivel 8</b>, con su cerca de piedra, los almiares y el espantapájaros.',
+      '🐂 Los <b>carros de bueyes</b> solo recorren la avenida del puerto cuando ya has construido el puerto.',
+      '👑 El <b>campamento del Gran Rey</b> en la gesta de la Armada se renueva: el gran pabellón de muros púrpura con el disco alado y techo a franjas rojas y doradas, tiendas rojas, púrpuras y de lona, toldos de mercado con cajas y ánforas, lanzas, estandartes, palmeras y cipreses, todo tras una empalizada de estacas. Y cuando llega, el aviso lo dice claro: <i>las huestes del Gran Rey Jerjes han venido a saquear</i> el continente.','🐉 La <b>Hidra de Lerna</b> sale de su pantano con otro aspecto: una bestia de escamas verdes y vientre claro sobre cuatro patas con garras, la cola larga erizada de púas doradas y un abanico de cuellos con crestas de oro, cada uno con su cabeza de dragón y las fauces abiertas. Sigue mostrando tantas cabezas como le quedan.'],
+  },
+  {
     id: '2026-10-22b',
     date: '2026-10-22',
     title: 'Otro icono para el jinete',

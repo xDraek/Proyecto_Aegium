@@ -1196,9 +1196,10 @@ export class WorldServer {
     f.boss = { ...boss, phase: 0, full: bossFull(theme, boss) };
     f.stage = 'lucha';
     f.emergedAt = t;
-    this.announce(`${theme.icon} ¡${cap(theme.enemy)} emerge en ${name}! ${pledged.length} imperios han jurado combatirlo.`);
+    const headline = theme.arrives ? theme.arrives(name) : `¡${cap(theme.enemy)} emerge en ${name}!`;
+    this.announce(`${theme.icon} ${headline} ${pledged.length} imperios han jurado hacerle frente.`);
     for (const uid of Object.keys(f.pledged)) {
-      this.games.get(Number(uid))?.receiveNews(null, `${theme.icon} ¡${cap(theme.enemy)} emerge en ${name}! La primera oleada, en cuanto lleguen las flotas.`, 'error');
+      this.games.get(Number(uid))?.receiveNews(null, `${theme.icon} ${headline} La primera oleada, en cuanto lleguen las flotas.`, 'error');
       this.pendingPush.add(Number(uid));
     }
     this.touch(id);

@@ -61,6 +61,9 @@ test('la Armada: tomar un fondeadero exige barcos de guerra, uno por jugador, y 
   assert.equal(B.sendMission('bloquear', site, { dromon: 30 }, null, { post: 0 }).ok, true);
   arriveAll(env, [A, B]);
   env.until(f.start);
+  // Al emerger: las huestes del Gran Rey Jerjes han venido a saquear el continente
+  const land = env.world.islands.get(site).name;
+  assert.ok(env.world.chat.some((m) => m.text.includes(`¡Las huestes del Gran Rey Jerjes han venido a saquear ${land}!`)));
   env.until(f.nextWave);
   assert.equal(f.boss.posts[0].holder, A.userId, 'lo toma el primero');
   for (const g of [A, B]) {

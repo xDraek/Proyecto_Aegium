@@ -107,6 +107,8 @@ const LAYOUT = {
   puerto: { coast: 1.4, angle: GATE_ANGLE, y: BEACH_Y, hit: 3.2, hitZ: -2.6 },
 };
 const INNER = ['academia', 'almacen', 'templo', 'cuartel', 'mercado', 'taberna'];
+// Nivel de la granja con el que aparecen los campos de cultivo de detrás
+const FIELDS_LEVEL = 8;
 const OUTER = ['granja', 'aserradero', 'forja', 'cantera', 'mina', 'fundicion', 'torre', 'coloso'];
 const COAST = ['astillero', 'faro'];
 // Sierra junto a la costa, a `inset` de la orilla. La cantera y la mina están excavadas en la
@@ -727,6 +729,13 @@ export class World {
     // Campos de cultivo agrupados en la pradera de detrás de la granja: un mosaico de parcelas
     // pegadas unas a otras (trigo, cebada, hortalizas, barbecho y amapolas en las lindes) sin hierba
     // ni árboles por medio, una cerca de piedra seca alrededor, almiares y un espantapájaros
+    // (van aparte, y solo se ven con la granja a nivel FIELDS_LEVEL; mientras, su sitio queda de prado)
+    const fields = new Batch();
+    const placeField = (obj, p, rotY = 0) => {
+      obj.position.copy(p);
+      obj.rotation.y = rotY;
+      fields.add(obj);
+    };
     const farm = L.granja;
     const farmPos = polar(farm.r, farm.angle);
     const farmRot = Math.atan2(-farmPos.x, -farmPos.z);
@@ -791,7 +800,7 @@ export class World {
             field.add(poppy);
           }
         }
-        place(field, p.clone().setY(0.01), farmRot);
+        placeField(field, p.clone().setY(0.01), farmRot);
       }
     }
     // Todo el mosaico (y la cerca) queda libre de hierba, árboles, casas y piedras
@@ -816,7 +825,7 @@ export class World {
           stone.position.set(q.x, 0.08, q.z);
           stone.scale.set(1.4, 0.75, 1.0);
           stone.rotation.y = fieldRand() * Math.PI;
-          decor.add(stone);
+          fields.add(stone);
         }
       };
       wall(x0, z0, x1, z0);
@@ -835,7 +844,7 @@ export class World {
         const top = mesh(new THREE.ConeGeometry(0.3, 0.42, 9), '#cfa84e');
         top.position.y = 0.55;
         stack.add(top);
-        place(stack, q);
+        placeField(stack, q);
       }
       const mid = plots[Math.floor(plots.length / 2)];
       const crow = new THREE.Group();
@@ -844,8 +853,11 @@ export class World {
       const hat = mesh(new THREE.ConeGeometry(0.13, 0.12, 7), '#c9a65a');
       hat.position.y = 0.82;
       crow.add(hat);
-      place(crow, mid.p.clone().setY(0.05), farmRot);
+      placeField(crow, mid.p.clone().setY(0.05), farmRot);
     }
+    this.farmFields = fields.build();
+    this.farmFields.visible = false;
+    scene.add(this.farmFields);
 
     // Barrios: las casas van apareciendo al subir el ayuntamiento (primero dentro de la muralla)
     this.houseSpots = [];
@@ -1380,10 +1392,11 @@ export class World {
       this.lifeGroup.add(d);
       this.dolphins.push(d);
     }
-    // Carros de bueyes por la avenida del puerto
+    // Carros de bueyes por la avenida del puerto (solo con el puerto construido: ver #syncCarts)
     for (let i = 0; i < 4; i++) {
       const c = cart();
       c.userData.walk = { avenue: true, cart: true, s: AVENUE_IN + 1.5 + i * 5.5, dir: i % 2 ? -1 : 1, speed: 0.7 + i * 0.04 };
+      c.visible = false;
       this.lifeGroup.add(c);
       this.carts.push(c);
     }
@@ -1564,6 +1577,17 @@ export class World {
     this.flashLight.intensity = w.flash * w.flash * 3;
   }
 
+  /** Los campos de cultivo de detrás de la granja: salen cuando la granja llega al nivel FIELDS_LEVEL. */
+  #syncFields() {
+    if (this.farmFields) this.farmFields.visible = this.game.level('granja') >= FIELDS_LEVEL;
+  }
+
+  /** Los carros de bueyes de la avenida del puerto: solo cuando hay puerto. */
+  #syncCarts() {
+    const on = this.game.level('puerto') >= 1;
+    for (const c of this.carts) c.visible = on;
+  }
+
   /** Casas de los barrios: más cuanto más grande es el ayuntamiento. */
   #syncHouses() {
     const level = this.game.level('ayuntamiento');
@@ -1643,7 +1667,7 @@ export class World {
     };
     const onAvenue = (s, lane) => new THREE.Vector3(gx * s + gz * lane, 0, gz * s - gx * lane);
     // Primero los carros: si dos se esperan mutuamente, pasa antes el que va antes en la lista
-    const movers = [...this.carts, ...this.villagers];
+    const movers = [...this.carts.filter((c) => c.visible), ...this.villagers];
     const state = movers.map((v) => {
       const w = v.userData.walk;
       w.lane ??= laneOf(w);
@@ -2128,6 +2152,8 @@ export class World {
     this.#syncBattles();
     this.#syncVillagers();
     this.#syncHouses();
+    this.#syncFields();
+    this.#syncCarts();
     this.#syncBuildings();
     this.#syncWall();
     this.#syncExtras();

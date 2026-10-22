@@ -1981,52 +1981,230 @@ function typhonSerpent(rand, fury) {
 const PURPLE = '#6a2c8a';
 const PURPLE_DARK = '#4a1d63';
 const PERSIAN_GOLD = '#d8b84a';
+const RED = '#a3242a';
+const CANVAS = '#e8dcc0';
+const BRONZE = '#b08a3e';
 
 /**
- * El campamento persa junto a la costa: empalizada, tiendas púrpura y doradas, el pabellón del
- * Gran Rey y sus estandartes; enfrente, las trirremes fenicias que guardan los fondeaderos
- * (`code`: cuántos fondeaderos han tomado los juramentados, o «p» en presagios).
+ * El campamento persa junto a la costa: empalizada de estacas con la entrada hacia el mar, el
+ * gran pabellón del Gran Rey (muros púrpura con el disco alado, techo a franjas rojas y doradas,
+ * remates de oro y alfombra roja), tiendas rojas, púrpuras y de lona con sus franjas, toldos de
+ * mercado con cajas y ánforas, astilleros de lanzas, estandartes con el disco alado, hogueras,
+ * palmeras y cipreses; enfrente, las trirremes fenicias que guardan los fondeaderos (`code`:
+ * cuántos fondeaderos han tomado los juramentados, o «p» en presagios).
  */
 function persianCamp(g, isl, R, rand, code) {
   const { deg, coastR } = featSpot(isl, R, rand);
-  const cr = R * 0.2;
-  const c = polar(coastR - cr * 1.2, deg);
-  // Empalizada
-  const posts = 26;
-  for (let i = 0; i < posts; i++) {
-    const p = polar(cr, (i / posts) * 360, 0);
-    g.add(cyl(0.16, 0.2, 1.6 + rand() * 0.3, 5, C.woodDark, c.x + p.x, 0, c.z + p.z));
+  const cr = R * 0.22;
+  const c = polar(coastR - cr * 1.15, deg);
+  // Todo se construye mirando al mar (+Z hacia la costa) y se gira de una vez
+  const camp = new THREE.Group();
+  camp.position.set(c.x, 0, c.z);
+  camp.rotation.y = THREE.MathUtils.degToRad(deg);
+  g.add(camp);
+  const k = cr / 6.5;
+  const s = new THREE.Group();
+  s.scale.setScalar(k);
+  camp.add(s);
+  const P = (x, z) => [x, z];
+  const finial = (parent, x, y, z, r = 0.12) => {
+    const ball = mesh(new THREE.SphereGeometry(r, 8, 6), PERSIAN_GOLD, { metalness: 0.5, roughness: 0.35 });
+    ball.position.set(x, y + r, z);
+    const tip = mesh(new THREE.ConeGeometry(r * 0.6, r * 2.6, 6), PERSIAN_GOLD, { metalness: 0.5, roughness: 0.35 });
+    tip.position.set(x, y + r * 2.9, z);
+    parent.add(ball, tip);
+  };
+  // El disco alado (faravahar), dorado sobre la tela
+  const emblem = (parent, x, y, z, w = 0.9, rotY = 0) => {
+    const e = new THREE.Group();
+    e.position.set(x, y, z);
+    e.rotation.y = rotY;
+    for (const sx of [-1, 1]) {
+      for (let i = 0; i < 3; i++) {
+        const f = box(w * 0.42 - i * w * 0.08, w * 0.07, 0.03, PERSIAN_GOLD, 0, 0, 0);
+        f.position.set(sx * (w * 0.25 + i * w * 0.02), w * 0.05 - i * w * 0.09, 0);
+        f.rotation.z = sx * (0.12 + i * 0.08);
+        e.add(f);
+      }
+    }
+    const disc = mesh(new THREE.CylinderGeometry(w * 0.12, w * 0.12, 0.04, 12), PERSIAN_GOLD);
+    disc.rotation.x = Math.PI / 2;
+    e.add(disc, box(w * 0.08, w * 0.26, 0.03, PERSIAN_GOLD, 0, -w * 0.3, 0));
+    parent.add(e);
+  };
+
+  // ── La empalizada de estacas afiladas, abierta hacia el mar ──
+  const stakes = 40;
+  for (let i = 0; i < stakes; i++) {
+    const a = (i / stakes) * Math.PI * 2;
+    if (Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) < 0.3) continue; // la entrada
+    const r = 6.4 + (rand() - 0.5) * 0.25;
+    const x = Math.sin(a) * r, z = Math.cos(a) * r;
+    const h = 1.5 + rand() * 0.5;
+    s.add(cyl(0.17, 0.2, h, 6, C.woodDark, x, 0, z));
+    const tip = mesh(new THREE.ConeGeometry(0.17, 0.4, 6), '#5a3b22');
+    tip.position.set(x, h + 0.2, z);
+    s.add(tip);
   }
-  // Tiendas en anillos
-  for (let i = 0; i < 12; i++) {
-    const p = polar(cr * (0.45 + (i % 2) * 0.28), (i / 12) * 360 + rand() * 12, 0);
-    const tent = mesh(new THREE.ConeGeometry(0.9 + rand() * 0.3, 1.5, 6), i % 3 ? PURPLE : PERSIAN_GOLD);
-    tent.position.set(c.x + p.x, 0.75, c.z + p.z);
-    g.add(tent);
+
+  // ── El pabellón del Gran Rey ──
+  const pav = new THREE.Group();
+  s.add(pav);
+  const W = 3.4, H = 2.4;
+  pav.add(box(W, H, W, PURPLE, 0, 0, 0));
+  // Franjas doradas arriba y abajo, y una cenefa roja con rombos
+  pav.add(box(W + 0.06, 0.16, W + 0.06, PERSIAN_GOLD, 0, H - 0.16, 0), box(W + 0.06, 0.12, W + 0.06, PERSIAN_GOLD, 0, 0, 0));
+  pav.add(box(W + 0.08, 0.32, W + 0.08, RED, 0, H - 0.5, 0));
+  for (let i = 0; i < 6; i++) for (const side of [-1, 1]) {
+    const d = box(0.14, 0.14, 0.02, PERSIAN_GOLD, -W / 2 + 0.3 + i * 0.56, H - 0.35, 0);
+    d.rotation.z = Math.PI / 4;
+    d.position.z = side * (W / 2 + 0.06);
+    pav.add(d);
   }
-  // El pabellón del Gran Rey
-  g.add(cyl(1.6, 1.8, 1.4, 10, PERSIAN_GOLD, c.x, 0, c.z));
-  const roof = mesh(new THREE.ConeGeometry(2.0, 1.6, 10), PURPLE_DARK);
-  roof.position.set(c.x, 2.2, c.z);
-  g.add(roof);
-  g.add(cyl(0.05, 0.05, 1.2, 5, C.gold, c.x, 3.0, c.z, { metalness: 0.6, roughness: 0.3 }));
-  // Estandartes que ondean
-  for (let i = 0; i < 4; i++) {
-    const p = polar(cr * 1.05, deg + 150 + i * 20, 0);
-    g.add(cyl(0.05, 0.05, 3.4, 5, C.dark, c.x + p.x, 0, c.z + p.z));
-    const flag = box(1.0, 0.7, 0.03, PURPLE, 0, 0, 0);
-    flag.geometry.translate(0.5, 0, 0);
-    flag.position.set(c.x + p.x, 3.1, c.z + p.z);
-    flag.userData.wave = true;
-    g.add(flag);
+  // El techo a franjas: cono de ocho caras rojo con nervios dorados, y el remate
+  const roof = mesh(new THREE.ConeGeometry(2.45, 1.9, 16), RED);
+  roof.position.y = H + 0.95;
+  pav.add(roof);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + Math.PI / 16;
+    campRib(pav, new THREE.Vector3(Math.sin(a) * 2.38, H + 0.05, Math.cos(a) * 2.38), new THREE.Vector3(0, H + 1.9, 0), 0.45, PERSIAN_GOLD);
   }
-  // Hogueras
-  for (let i = 0; i < 3; i++) {
-    const p = polar(cr * 0.62, deg + 60 + i * 110, 0);
-    const fire = makeFire(c.x + p.x, 0.075, c.z + p.z, 0.862);
-    g.add(fire);
+  // Faldón del techo con flecos
+  pav.add(cyl(2.5, 2.5, 0.22, 16, PERSIAN_GOLD, 0, H - 0.05, 0));
+  finial(pav, 0, H + 1.85, 0, 0.18);
+  for (const [x, z] of [P(-W / 2, -W / 2), P(W / 2, -W / 2), P(-W / 2, W / 2), P(W / 2, W / 2)]) {
+    pav.add(cyl(0.09, 0.09, H + 0.5, 6, PERSIAN_GOLD, x, 0, z));
+    finial(pav, x, H + 0.5, z, 0.12);
   }
-  // Las trirremes fenicias que siguen libres frente a la costa
+  // La entrada con cortinas recogidas, el trono dentro y la alfombra roja
+  pav.add(box(1.3, 1.5, 0.05, '#2a1430', 0, 0, W / 2 + 0.01));
+  for (const sx of [-1, 1]) pav.add(box(0.35, 1.6, 0.08, PURPLE_DARK, sx * 0.75, 0, W / 2 + 0.04));
+  pav.add(box(0.6, 0.7, 0.4, PERSIAN_GOLD, 0, 0, W / 2 - 0.3), box(0.6, 0.6, 0.12, '#a8231a', 0, 0.7, W / 2 - 0.45));
+  pav.add(box(1.0, 0.03, 2.4, '#a8231a', 0, 0, W / 2 + 1.25), box(1.06, 0.025, 2.46, PERSIAN_GOLD, 0, 0, W / 2 + 1.25));
+  emblem(pav, 0, H - 0.75, W / 2 + 0.07, 1.4);
+  emblem(pav, 0, H - 0.75, -W / 2 - 0.07, 1.4, Math.PI);
+
+  // ── Las tiendas ──
+  const TENTS = [
+    { x: -3.4, z: 2.3, r: 1.0, h: 1.9, color: RED, band: PERSIAN_GOLD },
+    { x: 3.3, z: 2.6, r: 1.0, h: 1.9, color: RED, band: PERSIAN_GOLD },
+    { x: -3.9, z: -0.6, r: 1.05, h: 1.7, color: PURPLE, band: PERSIAN_GOLD },
+    { x: 3.9, z: -0.4, r: 1.1, h: 1.8, color: CANVAS, band: PURPLE },
+    { x: -2.6, z: -3.4, r: 1.0, h: 1.9, color: CANVAS, band: PURPLE },
+    { x: 2.5, z: -3.5, r: 1.0, h: 2.0, color: RED, band: PERSIAN_GOLD, striped: true },
+    { x: 0.2, z: -4.4, r: 0.95, h: 1.7, color: PURPLE, band: PERSIAN_GOLD },
+  ];
+  for (const t of TENTS) {
+    const tent = new THREE.Group();
+    tent.position.set(t.x + (rand() - 0.5) * 0.2, 0, t.z + (rand() - 0.5) * 0.2);
+    tent.rotation.y = Math.atan2(-t.x, 4 - t.z) + Math.PI;
+    tent.add(cyl(t.r, t.r, 0.55, 10, t.color, 0, 0, 0));
+    const cone = mesh(new THREE.ConeGeometry(t.r * 1.08, t.h, 10), t.color);
+    cone.position.y = 0.55 + t.h / 2;
+    tent.add(cone);
+    if (t.striped) {
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2;
+        campRib(tent, new THREE.Vector3(Math.sin(a) * t.r * 1.05, 0.58, Math.cos(a) * t.r * 1.05), new THREE.Vector3(0, 0.55 + t.h, 0), 0.35, PERSIAN_GOLD);
+      }
+    }
+    // Cenefa con rombos, puerta y remate
+    tent.add(cyl(t.r * 1.09, t.r * 1.09, 0.14, 10, t.band, 0, 0.55, 0));
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const d = box(0.13, 0.13, 0.02, t.band, Math.sin(a) * (t.r + 0.01), 0.32, Math.cos(a) * (t.r + 0.01));
+      d.rotation.set(0, a, Math.PI / 4);
+      tent.add(d);
+    }
+    tent.add(box(0.45, 0.7, 0.05, '#2a1a12', 0, 0, t.r + 0.01));
+    finial(tent, 0, 0.55 + t.h, 0, 0.09);
+    if (t.color === RED) emblem(tent, 0, 0.95, t.r * 0.62 + 0.02, 0.7);
+    s.add(tent);
+  }
+
+  // ── Toldos de mercado con cajas y ánforas ──
+  const stall = (x, z, rot, colors) => {
+    const st = new THREE.Group();
+    st.position.set(x, 0, z);
+    st.rotation.y = rot;
+    for (const [px, pz] of [[-0.8, -0.5], [0.8, -0.5], [-0.8, 0.5], [0.8, 0.5]]) st.add(cyl(0.05, 0.05, pz < 0 ? 1.3 : 1.1, 5, C.woodDark, px, 0, pz));
+    colors.forEach((col, i) => {
+      const cloth = box(1.8 / colors.length, 0.04, 1.2, col, -0.9 + (i + 0.5) * (1.8 / colors.length), 1.2, 0);
+      cloth.rotation.x = 0.17;
+      st.add(cloth);
+    });
+    st.add(box(1.5, 0.08, 0.6, C.wood, 0, 0.55, 0));
+    for (let i = 0; i < 4; i++) {
+      if (i % 2) {
+        st.add(cyl(0.11, 0.07, 0.3, 7, '#b9643a', -0.55 + i * 0.36, 0.63, 0));
+        const neck = cyl(0.05, 0.05, 0.08, 6, '#b9643a', -0.55 + i * 0.36, 0.93, 0);
+        st.add(neck);
+      } else st.add(box(0.26, 0.24, 0.26, C.wood, -0.55 + i * 0.36, 0.63, 0));
+    }
+    st.add(box(0.4, 0.4, 0.4, C.wood, 0.9, 0, 0.75), box(0.32, 0.3, 0.32, C.woodDark, 1.25, 0, 0.6));
+    s.add(st);
+  };
+  stall(-2.2, 4.4, 0.35, [CANVAS, PURPLE, PERSIAN_GOLD]);
+  stall(2.4, 4.3, -0.3, [CANVAS, RED]);
+  stall(4.6, 1.6, -1.2, [PURPLE, CANVAS]);
+
+  // ── Astilleros con lanzas y un escudo ──
+  const rack = (x, z, rot) => {
+    const r = new THREE.Group();
+    r.position.set(x, 0, z);
+    r.rotation.y = rot;
+    for (const px of [-0.55, 0.55]) r.add(cyl(0.05, 0.05, 1.3, 5, C.woodDark, px, 0, 0));
+    r.add(box(1.2, 0.07, 0.08, C.woodDark, 0, 1.05, 0), box(1.2, 0.07, 0.08, C.woodDark, 0, 0.35, 0));
+    for (let i = 0; i < 5; i++) {
+      const x0 = -0.44 + i * 0.22;
+      r.add(cyl(0.025, 0.025, 1.6, 4, C.wood, x0, 0, 0.05));
+      const tip = mesh(new THREE.ConeGeometry(0.05, 0.22, 4), '#c9ced6');
+      tip.position.set(x0, 1.71, 0.05);
+      r.add(tip);
+    }
+    const shield = mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.05, 12), BRONZE);
+    shield.rotation.x = Math.PI / 2;
+    shield.position.set(0.75, 0.4, 0.15);
+    r.add(shield);
+    s.add(r);
+  };
+  rack(-1.2, 2.6, 0.2);
+  rack(1.3, 2.7, -0.2);
+  rack(-4.6, 2.0, 1.1);
+
+  // ── Estandartes con el disco alado ──
+  const banner = (x, z, color, rot) => {
+    const b = new THREE.Group();
+    b.position.set(x, 0, z);
+    b.rotation.y = rot;
+    b.add(cyl(0.05, 0.05, 3.2, 5, C.dark, 0, 0, 0), box(0.9, 0.06, 0.06, PERSIAN_GOLD, 0, 2.9, 0));
+    finial(b, 0, 3.2, 0, 0.1);
+    b.add(box(0.8, 1.3, 0.04, color, 0, 1.6, 0.04), box(0.84, 0.08, 0.05, PERSIAN_GOLD, 0, 1.6, 0.045));
+    emblem(b, 0, 2.3, 0.08, 0.6);
+    s.add(b);
+  };
+  banner(-1.4, 5.6, PURPLE, 0);
+  banner(1.4, 5.6, RED, 0);
+  banner(-5.3, -2.2, RED, -2.0);
+  banner(5.2, -2.6, PURPLE, 2.0);
+  banner(-1.6, -5.4, RED, Math.PI);
+  banner(1.9, -5.3, PURPLE, Math.PI);
+
+  // ── Hogueras, cajas sueltas, palmeras y cipreses ──
+  for (const [x, z] of [P(-1.6, -1.9), P(2.0, 0.9)]) s.add(makeFire(x, 0.075, z, 0.862));
+  for (let i = 0; i < 6; i++) {
+    const a = rand() * Math.PI * 2, r = 4.8 + rand() * 1;
+    s.add(box(0.35, 0.3, 0.35, i % 2 ? C.wood : C.woodDark, Math.sin(a) * r, 0, Math.cos(a) * r));
+  }
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + rand() * 0.3, r = 7.4 + rand() * 1.2;
+    const tree = i % 2 ? palmTree(rand) : cypress('#2f5e34');
+    tree.position.set(Math.sin(a) * r, 0, Math.cos(a) * r);
+    tree.scale.setScalar(1.4);
+    s.add(tree);
+  }
+
+  // ── Las trirremes fenicias que siguen libres frente a la costa ──
   const held = code === 'p' ? 0 : Number(code) || 0;
   const ships = Math.max(1, 4 - held);
   for (let i = 0; i < ships; i++) {
@@ -2040,9 +2218,27 @@ function persianCamp(g, isl, R, rand, code) {
   }
 }
 
+/** Una tira plana de tela de `a` a `b` (los nervios dorados de los techos de las tiendas). */
+function campRib(parent, a, b, w, color) {
+  const d = new THREE.Vector3().subVectors(b, a);
+  const strip = box(w, d.length(), 0.04, color, 0, 0, 0);
+  strip.position.copy(a).addScaledVector(d, 0.5);
+  // Su eje largo a lo largo de la tela y la cara mirando hacia fuera del cono
+  const y = d.clone().normalize();
+  const z = new THREE.Vector3(a.x, 0, a.z).normalize();
+  z.addScaledVector(y, -z.dot(y)).normalize();
+  const x = new THREE.Vector3().crossVectors(y, z);
+  strip.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z));
+  strip.position.addScaledVector(z, 0.03);
+  parent.add(strip);
+}
+
+
 /**
- * La Hidra en su pantano, junto a la costa: agua negra, juncos, un lomo escamoso y tantos cuellos
- * como cabezas le quedan (como mucho doce a la vista; «p» en presagios, solo burbujas y tres).
+ * La Hidra en su pantano, junto a la costa: agua negra y juncos, y la bestia sobre cuatro patas
+ * con garras, la cola larga erizada de púas y tantos cuellos como cabezas le quedan (como mucho
+ * doce a la vista), en abanico, con crestas doradas y bocas abiertas. «p» en presagios: medio
+ * hundida, con tres cabezas asomando.
  */
 function hydraSwamp(g, isl, R, rand, code) {
   const { deg, coastR } = featSpot(isl, R, rand);
@@ -2058,18 +2254,180 @@ function hydraSwamp(g, isl, R, rand, code) {
     reed.position.set(c.x + p.x, 0.6, c.z + p.z);
     g.add(reed);
   }
-  // El lomo
-  const back = mesh(new THREE.SphereGeometry(sr * 0.32, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), SERPENT);
-  back.position.set(c.x, 0.05, c.z);
-  back.scale.y = 0.6;
-  g.add(back);
-  const heads = code === 'p' ? 3 : Math.max(1, Math.min(12, Number(code) || 1));
+  const omen = code === 'p';
+  const heads = omen ? 3 : Math.max(1, Math.min(12, Number(code) || 1));
+  const beast = hydraBeast(rand, heads, omen);
+  beast.scale.setScalar(sr / 3.1);
+  beast.position.set(c.x, omen ? -sr * 0.45 : 0.05, c.z);
+  // Mirando hacia el centro del continente, con las cabezas sobre la isla
+  beast.rotation.y = Math.atan2(-c.x, -c.z);
+  g.add(beast);
+}
+
+const HYDRA = { scale: '#3f5f2e', dark: '#2c4521', belly: '#d9c894', gold: '#c9962e', gold2: '#e2b04a', mouth: '#7a1717', tongue: '#d4566a', teeth: '#f2ead8', claw: '#2a2420' };
+
+/** Una pieza redonda de `a` a `b` (que se estrecha de `r` a `r2`). */
+function hydraRod(parent, a, b, r, color, r2 = r) {
+  const d = new THREE.Vector3().subVectors(b, a);
+  const m = mesh(new THREE.CylinderGeometry(r2, r, d.length(), 8), color);
+  m.position.copy(a).addScaledVector(d, 0.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+  parent.add(m);
+}
+
+/** Una púa en `at`, apuntando hacia `dir`. */
+function hydraSpike(parent, at, dir, len, r = len * 0.22, color = HYDRA.gold) {
+  const s = mesh(new THREE.ConeGeometry(r, len, 5), color);
+  const d = dir.clone().normalize();
+  s.position.copy(at).addScaledVector(d, len * 0.45);
+  s.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d);
+  parent.add(s);
+}
+
+/**
+ * La Hidra (unas 6 unidades de largo, mirando a +Z): el cuerpo con el vientre claro, las cuatro
+ * patas con garras, la cola enroscada y los cuellos en abanico, cada uno con su cabeza.
+ */
+function hydraBeast(rand, heads, omen) {
+  const g = new THREE.Group();
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  // El cuerpo y el vientre de escamas claras
+  const body = mesh(new THREE.SphereGeometry(1, 14, 10), HYDRA.scale);
+  body.scale.set(1.25, 0.95, 1.85);
+  body.position.y = 1.5;
+  g.add(body);
+  const belly = mesh(new THREE.SphereGeometry(1, 14, 10), HYDRA.belly);
+  belly.scale.set(1.1, 0.72, 1.7);
+  belly.position.set(0, 1.18, 0.08);
+  g.add(belly);
+  // Placas de escamas oscuras por el lomo y la fila de púas doradas
+  for (let i = 0; i < 9; i++) {
+    const z = -1.45 + i * 0.36;
+    const y = 1.5 + 0.95 * Math.sqrt(Math.max(0, 1 - (z / 1.85) ** 2));
+    for (const x of [-0.42, 0.42]) {
+      const plate = mesh(new THREE.SphereGeometry(0.22, 6, 4), HYDRA.dark);
+      plate.scale.set(1, 0.35, 1.2);
+      plate.position.set(x, y - 0.08, z);
+      g.add(plate);
+    }
+    hydraSpike(g, V(0, y - 0.05, z), V(0, 1, -0.45), 0.55 + (i % 2) * 0.15);
+  }
+  // Las patas: muslo, pierna, pie y tres garras negras
+  for (const [sx, z] of [[-1, 1.05], [1, 1.05], [-1, -1.05], [1, -1.05]]) {
+    const hip = V(sx * 0.95, 1.35, z), knee = V(sx * 1.65, 0.95, z + 0.2), ankle = V(sx * 1.6, 0.18, z + 0.42);
+    hydraRod(g, hip, knee, 0.42, HYDRA.scale, 0.32);
+    hydraRod(g, knee, ankle, 0.3, HYDRA.scale, 0.22);
+    const joint = mesh(new THREE.SphereGeometry(0.32, 8, 6), HYDRA.scale);
+    joint.position.copy(knee);
+    g.add(joint);
+    hydraSpike(g, knee, V(sx, 0.6, -0.5), 0.45);
+    const foot = mesh(new THREE.SphereGeometry(0.3, 8, 6), HYDRA.scale);
+    foot.scale.set(1, 0.45, 1.3);
+    foot.position.set(ankle.x, 0.12, ankle.z + 0.12);
+    g.add(foot);
+    for (const dx of [-0.16, 0, 0.16]) hydraSpike(g, V(ankle.x + dx, 0.12, ankle.z + 0.42), V(dx * 2, -0.35, 1), 0.32, 0.06, HYDRA.claw);
+  }
+  // La cola: larga, enroscada hacia un lado y hacia arriba, con púas
+  const tail = [V(0, 1.35, -1.6), V(-0.3, 1.05, -2.6), V(-1.1, 0.95, -3.4), V(-2.1, 1.25, -3.6), V(-2.75, 1.85, -3.1), V(-2.85, 2.45, -2.3), V(-2.5, 2.8, -1.7)];
+  for (let i = 1; i < tail.length; i++) {
+    const r0 = 0.55 * (1 - (i - 1) / tail.length) + 0.06, r1 = 0.55 * (1 - i / tail.length) + 0.06;
+    hydraRod(g, tail[i - 1], tail[i], r0, i % 2 ? HYDRA.scale : HYDRA.dark, r1);
+    const j = mesh(new THREE.SphereGeometry(r1, 8, 6), HYDRA.scale);
+    j.position.copy(tail[i]);
+    g.add(j);
+    const up = new THREE.Vector3().subVectors(tail[i], tail[i - 1]).cross(V(1, 0, 0)).normalize();
+    hydraSpike(g, tail[i - 1].clone().lerp(tail[i], 0.5), up.y < 0 ? up.negate() : up, 0.5 - i * 0.04);
+  }
+  hydraSpike(g, tail.at(-1), new THREE.Vector3().subVectors(tail.at(-1), tail.at(-2)), 0.45, 0.12);
+  // Los cuellos en abanico desde los hombros: el del centro, el más alto
   for (let i = 0; i < heads; i++) {
-    const neck = typhonNeck(rand, false);
-    const p = polar(sr * 0.18, (i / heads) * 360 + rand() * 15, 0);
-    neck.position.set(c.x + p.x, 0.3, c.z + p.z);
-    neck.rotation.y = THREE.MathUtils.degToRad((i / heads) * 360);
-    neck.scale.setScalar(code === 'p' ? 0.55 : 0.8);
+    const t = heads === 1 ? 0 : (i / (heads - 1)) * 2 - 1;
+    const yaw = t * 1.5 + (rand() - 0.5) * 0.12;
+    const height = (omen ? 0.6 : 1) * (1 - 0.38 * Math.abs(t)) * (0.85 + rand() * 0.3);
+    const neck = hydraNeck(rand, height, heads > 7 ? 0.85 : 1);
+    neck.position.set(Math.sin(yaw) * 1.0, 1.95, 0.55 + Math.cos(yaw) * 0.75);
+    neck.rotation.y = yaw;
+    neck.userData.wiggle = { base: 0, amp: 0.05, speed: 0.6 + rand() * 0.4, phase: rand() * 6 };
     g.add(neck);
   }
+  return g;
+}
+
+/** Un cuello de la Hidra (en S, hacia +Z y arriba) con la cresta dorada por detrás y su cabeza. */
+function hydraNeck(rand, height, thick) {
+  const g = new THREE.Group();
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  // (cada uno con su propia ondulación, para que no salgan todos iguales)
+  const w = () => (rand() - 0.5) * 0.5;
+  const curve = new THREE.CatmullRomCurve3([V(0, 0, 0), V(w(), 1.7, 0.9), V(w(), 3.3, 1.0), V(w(), 4.6, 2.0), V(0, 5.3, 3.1)].map((p) => p.multiply(V(1, height, 1))));
+  const pts = curve.getPoints(9);
+  for (let i = 1; i < pts.length; i++) {
+    const r0 = (0.38 - (i - 1) * 0.02) * thick, r1 = (0.38 - i * 0.02) * thick;
+    hydraRod(g, pts[i - 1], pts[i], r0, HYDRA.scale, r1);
+    // La franja clara del vientre por delante
+    const front = (p) => p.clone().add(V(0, -0.04, r0 * 0.72));
+    hydraRod(g, front(pts[i - 1]), front(pts[i]), r0 * 0.3, HYDRA.belly, r1 * 0.3);
+    const j = mesh(new THREE.SphereGeometry(r1, 8, 6), HYDRA.scale);
+    j.position.copy(pts[i]);
+    g.add(j);
+    // La cresta: púas doradas por la nuca
+    const tangent = new THREE.Vector3().subVectors(pts[i], pts[i - 1]).normalize();
+    const back = new THREE.Vector3().crossVectors(tangent, V(1, 0, 0)).normalize();
+    if (back.z > 0) back.negate();
+    hydraSpike(g, pts[i].clone().addScaledVector(back, r1 * 0.7), back.add(V(0, 0.25, 0)), 0.42 * thick, 0.1 * thick, i % 2 ? HYDRA.gold : HYDRA.gold2);
+  }
+  const head = hydraHead(thick * 1.45);
+  head.position.copy(pts.at(-1));
+  const dir = new THREE.Vector3().subVectors(pts.at(-1), pts.at(-3)).normalize();
+  head.rotation.x = -Math.atan2(dir.y, dir.z) * 0.45 + 0.15;
+  head.userData.wiggle = { base: 0, amp: 0.12, speed: 0.9 + rand() * 0.5, phase: rand() * 6 };
+  g.add(head);
+  return g;
+}
+
+/** Una cabeza de dragón con la boca abierta: colmillos, lengua bífida, ojos de oro y cresta de púas. */
+function hydraHead(k = 1) {
+  const h = new THREE.Group();
+  h.scale.setScalar(k);
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  // Cráneo y morro (mandíbula de arriba)
+  const skull = mesh(new THREE.SphereGeometry(0.36, 10, 8), HYDRA.scale);
+  skull.scale.set(1, 0.85, 1.1);
+  h.add(skull);
+  const snout = mesh(new THREE.ConeGeometry(0.3, 0.95, 6), HYDRA.scale);
+  snout.rotation.x = Math.PI / 2 + 0.12;
+  snout.position.set(0, 0.04, 0.55);
+  h.add(snout);
+  // La mandíbula de abajo, abierta, con el vientre claro
+  const jaw = new THREE.Group();
+  jaw.position.set(0, -0.12, 0.05);
+  jaw.rotation.x = 0.55;
+  const lower = mesh(new THREE.ConeGeometry(0.24, 0.85, 6), HYDRA.belly);
+  lower.rotation.x = Math.PI / 2;
+  lower.position.z = 0.42;
+  jaw.add(lower);
+  for (const x of [-0.09, 0.09]) hydraSpike(jaw, V(x, 0.08, 0.62), V(0, 1, 0.15), 0.16, 0.035, HYDRA.teeth);
+  // La lengua bífida, colgando
+  hydraRod(jaw, V(0, 0.02, 0.2), V(0, -0.02, 0.85), 0.04, HYDRA.tongue, 0.03);
+  for (const x of [-0.06, 0.06]) hydraRod(jaw, V(0, -0.02, 0.85), V(x, -0.12, 1.02), 0.025, HYDRA.tongue, 0.012);
+  h.add(jaw);
+  // El interior rojo de la boca y los colmillos de arriba
+  const mouth = mesh(new THREE.SphereGeometry(0.22, 8, 6), HYDRA.mouth);
+  mouth.scale.set(0.9, 0.7, 1.4);
+  mouth.position.set(0, -0.12, 0.42);
+  h.add(mouth);
+  for (const [x, z] of [[-0.14, 0.78], [0.14, 0.78], [-0.18, 0.5], [0.18, 0.5]]) hydraSpike(h, V(x, -0.05, z), V(0, -1, 0.1), 0.2, 0.04, HYDRA.teeth);
+  // Los ojos de oro, que brillan, con una púa encima
+  for (const x of [-0.2, 0.2]) {
+    const eye = mesh(new THREE.SphereGeometry(0.07, 6, 4), '#ffb21a', { emissive: '#ff9a00', emissiveIntensity: 2 });
+    eye.position.set(x, 0.14, 0.32);
+    h.add(eye);
+    hydraSpike(h, V(x * 0.9, 0.2, 0.3), V(x * 2, 0.6, -0.5), 0.22, 0.05);
+  }
+  // La cresta de púas doradas en abanico hacia atrás
+  for (let i = 0; i < 7; i++) {
+    const a = -1.1 + (i / 6) * 2.2;
+    hydraSpike(h, V(Math.sin(a) * 0.28, 0.12 + Math.cos(a) * 0.12, -0.15), V(Math.sin(a) * 0.9, 0.55 + Math.cos(a) * 0.35, -1), 0.5 + Math.cos(a) * 0.25, 0.08, i % 2 ? HYDRA.gold : HYDRA.gold2);
+  }
+  return h;
 }
