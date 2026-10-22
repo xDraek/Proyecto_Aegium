@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-22d',
+    date: '2026-10-22',
+    title: 'Nuevo logo',
+    items: ['🏛️ <b>Aegium</b> estrena logo: la columna jónica de oro entre laureles, el nombre en letras de oro labradas y la raya con el rombo. Lo verás en la portada y en los correos.'],
+  },
+  {
     id: '2026-10-22c',
     date: '2026-10-22',
     title: 'Nuevos aspectos para las gestas y la granja',

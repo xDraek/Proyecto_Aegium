@@ -1633,40 +1633,18 @@ body.landing-mode #chat {
   line-height: 0;
 }
 
-/* El logo: la columna entre laureles, el nombre en letras de oro y la raya con el rombo */
+/* El logo: la columna entre laureles, el nombre en letras de oro y la raya con el rombo (una imagen) */
 .landing-brand {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  width: clamp(220px, 32vw, 400px);
+  width: clamp(240px, 34vw, 440px);
   filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.55));
 }
 
-.landing-brand .brand-emblem {
-  width: 62%;
+.landing-brand .brand-logo {
+  width: 100%;
   height: auto;
-}
-
-.landing-brand .brand-name {
-  margin-top: 0.02em;
-  font-family: var(--font-title);
-  font-weight: 700;
-  font-size: clamp(54px, 7.4vw, 92px);
-  line-height: 1;
-  letter-spacing: 0.05em;
-  color: #e9b949;
-  background: linear-gradient(180deg, #fff4c8 0%, #f7d56e 28%, #dca233 55%, #a86d18 80%, #6e440c 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  -webkit-text-stroke: 1.5px rgba(66, 38, 6, 0.9);
-  filter: drop-shadow(0 3px 0 rgba(54, 31, 5, 0.95));
-}
-
-.landing-brand .brand-rule {
-  width: 78%;
-  height: auto;
-  margin-top: 0.35em;
 }
 
 .tagline {
