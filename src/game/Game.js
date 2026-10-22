@@ -108,9 +108,11 @@ const MAX_NOTES = 30;
 // Piratas: el primer asalto llega un rato después de que el ayuntamiento alcance
 // el nivel 3; luego, cada 4-7 horas. Se avistan 20 minutos antes de llegar.
 const RAID_TOWN_LEVEL = 3;
-const RAID_FIRST_H = 1.5;
-const RAID_MIN_H = 4;
-const RAID_MAX_H = 7;
+// Los piratas: el primero, un día después de llegar al ayuntamiento 3; luego, cada 3 o 4 días
+// (unas dos veces por semana)
+const RAID_FIRST_H = 24;
+const RAID_MIN_H = 72;
+const RAID_MAX_H = 96;
 const RAID_WARNING_MIN = 20;
 const RAID_THEFT = 0.2;
 // Se saquea todo lo que haya a la vista (menos lo protegido) mientras quepa en los barcos

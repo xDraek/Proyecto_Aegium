@@ -4,6 +4,7 @@ import { clock } from '../src/config.js';
 import { CANCEL_REFUND, PVP_RANGE, RESOURCES, TRAIN_CANCEL_REFUND, UNITS } from '../src/game/data.js';
 import { newState, upgradeState } from '../src/game/Game.js';
 import { costFor, payPerHour, protectedAmount, worldEventAt } from '../src/game/rules.js';
+import { featHours } from '../src/game/feats.js';
 import { makeWorld, sendAndArrive } from './world.js';
 
 // Ajustes de equilibrio: cancelar con penalización, impuestos del mercado, abandonar colonias,
@@ -95,6 +96,9 @@ test('los piratas traen barcos para todos sus piratas, más cuantos más puntos 
   assert.equal(rep.outcome, 'derrota');
   assert.equal(rep.battle.landed, true, 'desembarcan');
   assert.ok(Object.keys(rep.loot ?? {}).length > 0, 'y saquean');
+  // El siguiente asalto, dentro de 3 o 4 días (unos dos por semana)
+  const gap = (A.state.nextRaidAt - raid.arrival) / featHours(1);
+  assert.ok(gap >= 72 - 0.01 && gap <= 96 + 0.01, `el siguiente, a ${gap} h`);
 });
 
 test('al saquear una ciudad se lleva todo lo que no protege el almacén, si cabe en los barcos', async () => {

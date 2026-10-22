@@ -397,7 +397,7 @@ const TOPICS = {
     title: 'Defender tu ciudad',
     body: () => `<p>Cuando te atacan defienden todas tus tropas y barcos <b>que estén en casa</b>, las tropas de apoyo de tus aliados, la muralla y sus torres. Tu flota es la primera línea: si vence a la suya, no llegan a desembarcar.</p>
       <h5>Piratas</h5>
-      <p>Desde el <b>ayuntamiento 3</b> llegan piratas cada pocas horas, cada vez más fuertes. Los ves venir unos minutos antes (aviso arriba y su flota en el mapa). Si te vencen, se llevan parte de lo que no esconde el almacén; si los rechazas, te dejan su botín.</p>
+      <p>Desde el <b>ayuntamiento 3</b> llegan piratas unas <b>dos veces por semana</b> (cada 3 o 4 días), cada vez más fuertes. Los ves venir unos minutos antes (aviso arriba y su flota en el mapa). Si te vencen, se llevan parte de lo que no esconde el almacén; si los rechazas, te dejan su botín.</p>
       <h5>Cómo prepararte</h5>
       ${list([
         'Ten en casa tropas que aguanten (hoplitas, espartanos) y algunos barcos de guerra.',

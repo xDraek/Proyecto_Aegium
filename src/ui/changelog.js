@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-22i',
+    date: '2026-10-22',
+    title: 'Menos asaltos piratas',
+    items: ['🏴‍☠️ Los <b>piratas</b> atacan ahora unas <b>dos veces por semana</b> (cada 3 o 4 días) en vez de cada pocas horas. El primero llega un día después de tener el ayuntamiento a nivel 3. Siguen siendo más fuertes cuanto más crece tu imperio.'],
+  },
+  {
     id: '2026-10-22h',
     date: '2026-10-22',
     title: 'El rebaño, con la granja a nivel 8',
