@@ -3466,10 +3466,24 @@ export class Game extends EventTarget {
     this.state.nextVisitAt = t + hours(VISIT_MIN_H + Math.random() * (VISIT_MAX_H - VISIT_MIN_H));
   }
 
-  #spawnVisitor(t) {
+  /** Moderadores: que lleguen ya los piratas o un visitante (`variant`: mercader, mercenarios, peregrinos o naufragio). */
+  summonEvent(kind, variant = null, now = this.now()) {
+    this.#advance(now);
+    const s = this.state;
+    if (kind === 'piratas') {
+      if (s.raid) return this.#fail('Ya hay piratas en camino a esa isla.');
+      this.#spawnRaid(now);
+    } else if (kind === 'visitante') {
+      if (s.visitor) return this.#fail('Ya hay un visitante esperando en esa isla.');
+      this.#spawnVisitor(now, variant);
+    } else return this.#fail('Evento desconocido.');
+    return this.#done();
+  }
+
+  #spawnVisitor(t, variant = null) {
     const s = this.state;
     s.nextVisitAt = null;
-    const roll = Math.random();
+    const roll = { mercader: 0, mercenarios: 0.5, peregrinos: 0.75, naufragio: 0.9 }[variant] ?? Math.random();
     const scale = 1 + this.level('ayuntamiento') * 0.4;
     if (roll < 0.45) {
       // Compra lo que te sobra y paga en algo escaso, mejor que el mercado
@@ -3478,7 +3492,7 @@ export class Game extends EventTarget {
       const give = Math.round((300 + Math.random() * 500) * scale);
       const get = Math.round((give * RESOURCES[common].value * (0.8 + Math.random() * 0.3)) / RESOURCES[rare].value);
       s.visitor = { kind: 'mercader', give: { [common]: give }, get: { [rare]: get }, expires: t + hours(1) };
-    } else if (roll < 0.7 && this.level('cuartel') >= 1) {
+    } else if (roll < 0.7 && (variant === 'mercenarios' || this.level('cuartel') >= 1)) {
       const type = ['lancero', 'arquero', 'espadachin'][Math.floor(Math.random() * 3)];
       const n = Math.round((6 + Math.random() * 8) * Math.sqrt(scale));
       const price = Math.round(n * (type === 'espadachin' ? 22 : 12));

@@ -1,6 +1,6 @@
 import { play } from '../audio.js';
 import { clock, universe } from '../config.js';
-import { BUILDING_KEYS, BUILDINGS, CANCEL_REFUND, TRAIN_CANCEL_REFUND, FEAT_THEMES, FEATS, ISLAND_TYPES, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCE_KEYS, RESOURCES, UNITS, VISITORS } from '../game/data.js';
+import { BUILDING_KEYS, BUILDINGS, CANCEL_REFUND, TRAIN_CANCEL_REFUND, FEAT_THEMES, FEATS, ISLAND_TYPES, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCE_KEYS, RESOURCES, UNITS, VISITORS, WORLD_EVENTS } from '../game/data.js';
 import { HOUR_MS, canAfford, colonyYield, multiplyCost, upcomingWorldEvents } from '../game/rules.js';
 import { featAt, featCycle } from '../game/feats.js';
 import { api } from '../net/api.js';
@@ -1515,7 +1515,14 @@ Al jurar, ${wars.join(' y ')}.` : '';
         input.value = '';
         return;
       }
-      else if (this.game.admin && /^\/gesta(\s|$)/.test(text)) {
+      // Eventos a mano: /temporada, /kraken, /horda, /piratas, /visitante y /competicion (/eventos: la lista)
+      else if (this.game.admin && /^\/(eventos|temporada|kraken|horda|piratas|visitante|competici[oó]n)(\s|$)/i.test(text)) {
+        const [, cmd, arg] = /^\/(\S+)\s*(.*)$/.exec(text);
+        const kind = cmd.toLowerCase().replace('ó', 'o');
+        if (kind === 'eventos') this.#adminEventsHelp();
+        else this.toast((await api('POST', '/api/admin/event', { kind, arg })).text, 'success');
+        if (kind === 'eventos') return;
+      } else if (this.game.admin && /^\/gesta(\s|$)/.test(text)) {
         const [, site, minutes] = /^\/gesta\s*(.*?)\s*(\d+)?$/.exec(text);
         const res = await api('POST', '/api/admin/feat', { site: site || undefined, omenMinutes: minutes ? Number(minutes) : undefined });
         this.toast(`🌋 Gesta en ${res.name}: ${res.players} ${res.players === 1 ? 'imperio convocado' : 'imperios convocados'}`, 'success');
@@ -1525,6 +1532,26 @@ Al jurar, ${wars.join(' y ')}.` : '';
       input.value = text;
       this.toast(err.message, 'error');
     }
+  }
+
+  /** La lista de comandos de eventos para los moderadores (/eventos). */
+  #adminEventsHelp() {
+    const code = (t) => `<code>${t}</code>`;
+    const rows = [
+      [code('/temporada oro 6'), `Una temporada del archipiélago desde ya, durante las horas dichas (6 si no). Son: ${Object.entries(WORLD_EVENTS).map(([k, e]) => `${e.icon} ${k}`).join(', ')}. ${code('/temporada off')} la termina.`],
+      [code('/gesta [tema] [continente] [minutos]'), `Una Gesta de la Liga. Temas: ${Object.entries(FEAT_THEMES).map(([k, t]) => `${t.icon} ${k}`).join(', ')} (Tifón si no se dice). Los minutos son los presagios.`],
+      [code('/kraken'), '🐙 Despierta al Kraken en una fosa al azar.'],
+      [code('/horda [continente]'), '🔥 Una horda bárbara en ese continente o en el más cercano con colonias.'],
+      [code('/piratas [jugador]'), '🏴‍☠️ Un asalto pirata contra ese jugador (sin nombre, contra ti).'],
+      [code('/visitante [tipo] [jugador]'), `Un visitante en su puerto. Tipos: ${Object.entries(VISITORS).map(([k, v]) => `${v.icon} ${k}`).join(', ')} (al azar si no).`],
+      [code('/competicion'), '🏅 Termina ya la competición semanal: reparte los premios y empieza otra.'],
+      [code('/anuncio texto'), '📢 Un anuncio para todos.'],
+      [code('/mantenimiento on|off [aviso]'), '🛠️ Cierra o abre el juego.'],
+    ];
+    this.showModal('admin-events', `<div class="modal-card">
+      <div class="panel-head"><span class="panel-icon">🛠️</span><div><h3>Comandos de moderador</h3><div class="panel-lvl">Se escriben en el chat</div></div><button class="icon-btn" data-action="close-modal" title="Cerrar">✕</button></div>
+      ${rows.map(([c, t]) => `<div class="info-row"><span>${c}</span><span>${t}</span></div>`).join('')}
+    </div>`);
   }
 
   #setHtml(el, key, html) {

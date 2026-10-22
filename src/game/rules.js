@@ -291,7 +291,17 @@ export function worldEventAt(t) {
   const r = hash01(universe.eventSeed, idx);
   const keys = Object.keys(WORLD_EVENTS);
   const id = r < WORLD_EVENT_CHANCE ? keys[Math.floor((r / WORLD_EVENT_CHANCE) * keys.length)] : null;
-  return { id, event: id ? WORLD_EVENTS[id] : null, start: idx * span, end: (idx + 1) * span };
+  let start = idx * span;
+  let end = (idx + 1) * span;
+  // Una temporada puesta a mano por los moderadores manda sobre el calendario mientras dura (y
+  // recorta los tramos de alrededor, para que la producción cambie justo al empezar y al acabar)
+  const o = universe.eventOverride;
+  if (o && WORLD_EVENTS[o.id]) {
+    if (t >= o.start && t < o.end) return { id: o.id, event: WORLD_EVENTS[o.id], start: o.start, end: o.end };
+    if (t < o.start && end > o.start) end = o.start;
+    if (t >= o.end && start < o.end) start = o.end;
+  }
+  return { id, event: id ? WORLD_EVENTS[id] : null, start, end };
 }
 
 /** Los `n` tramos siguientes al de `t` (para el calendario). */

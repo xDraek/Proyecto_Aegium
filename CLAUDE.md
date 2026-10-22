@@ -73,6 +73,7 @@ Juego de estrategia multijugador en el navegador al estilo de Ikariam/OGame: un 
 
 ## Probar
 
+- Comandos de moderador en el chat (Hud.#sendChat): `/anuncio`, `/mantenimiento`, `/gesta [tema] [continente] [minutos]` (`adminStartFeat`) y los eventos de `WorldServer.adminEvent` (`POST /api/admin/event`): `/temporada id [horas]|off` (pone `meta.eventOverride`, que se copia a `universe.eventOverride` y va en el estado al navegador: `worldEventAt` le hace caso en los dos lados), `/kraken`, `/horda [continente]`, `/piratas [jugador]`, `/visitante [tipo] [jugador]` (`Game.summonEvent`) y `/competicion`. `/eventos` abre la lista.
 - Servidor de desarrollo: configuración `aegium` en `.claude/launch.json` (`npm run dev`, puerto 5173). Es el servidor del juego con Vite dentro.
 - `GAME_SPEED=N` acelera el universo. `DATA_FILE=ruta` usa otro archivo de mundo, útil para probar sin tocar el de desarrollo.
 - Para probar varios jugadores, registra cuentas por la API (`POST /api/register`) o en ventanas privadas. Para una partida avanzada, prepara `server/data/world.json` con un script que use `WorldServer` + `FileStore` (cambiando edificios y recursos) antes de arrancar, y entra poniendo en `localStorage['aegium.token']` el token de `signToken`. Borra ese archivo al acabar.

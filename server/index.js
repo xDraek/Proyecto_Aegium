@@ -347,6 +347,7 @@ async function api(req, res, url) {
       else if (sub === 'reset') return send(res, 200, { password: await world.adminResetPassword(uid, body.name) });
       else if (sub === 'founder') return send(res, 200, world.setFounderUntil(uid, Number(body.until)));
       else if (sub === 'maintenance') return send(res, 200, world.setMaintenance(uid, body.on === true, body.text));
+      else if (sub === 'event') return send(res, 200, { text: world.adminEvent(uid, String(body.kind ?? ''), String(body.arg ?? '').slice(0, 100)) });
       else if (sub === 'feat') {
         const site = typeof body.site === 'string' && body.site.length < 40 ? body.site : null;
         const omenMinutes = Number.isFinite(body.omenMinutes) && body.omenMinutes > 0 ? Math.min(body.omenMinutes, 24 * 60) : null;

@@ -26,7 +26,7 @@ El juego oficial corre en un VPS (Node + Postgres detrás de Caddy). También ha
 | `DATABASE_URL` | Postgres donde se guarda el mundo. Sin ella se usa un archivo local (no sirve en la nube: se borra en cada despliegue). |
 | `AUTH_SECRET` | Clave para firmar las sesiones. Pon una larga y aleatoria. |
 | `GAME_SPEED` | Velocidad del universo (1 = normal). |
-| `ADMINS` | Nombres de los moderadores, separados por comas (pueden silenciar, suspender, borrar mensajes y hacer anuncios con `/anuncio texto` en el chat). |
+| `ADMINS` | Nombres de los moderadores, separados por comas (pueden silenciar, suspender, borrar mensajes y, desde el chat, hacer anuncios con `/anuncio texto`, cerrar el juego con `/mantenimiento on` y desencadenar eventos: `/temporada`, `/gesta`, `/kraken`, `/horda`, `/piratas`, `/visitante` y `/competicion`; `/eventos` los explica). |
 | `PORT` | Puerto (las nubes lo ponen solas). |
 | `BREVO_API_KEY` | Clave de la API de [Brevo](https://www.brevo.com) para mandar los correos (confirmar la cuenta, contraseña olvidada). |
 | `MAIL_FROM` | Remitente de los correos, verificado en Brevo (puede ser tu Gmail). |

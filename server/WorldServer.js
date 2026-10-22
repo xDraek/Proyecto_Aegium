@@ -4,7 +4,7 @@ import { assault, battle, combineGroups, count, hasCombat, shareSurvivors, split
 import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, forgeBonus, forgeGoal, forgeHours, forgeRoom, pledgeEmpires, relicDuel, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
 import { Game, newState, rebuilding } from '../src/game/Game.js';
 import { fmtEs } from '../src/game/num.js';
-import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, QUESTS, UNITS, WONDERS } from '../src/game/data.js';
+import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
 import { playerCombat, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
 import { coordsOf, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
@@ -114,6 +114,7 @@ export class WorldServer {
     // Semilla del calendario de eventos (aparte de la del mapa: el navegador la conoce)
     this.meta.eventSeed ??= Math.floor(Math.random() * 2 ** 31);
     universe.eventSeed = this.meta.eventSeed;
+    universe.eventOverride = this.meta.eventOverride ?? null;
     // (las tierras que daban oro, de mundos de antes, ahora dan cristal)
     for (const isl of data.islands) this.islands.set(isl.id, withoutGold(isl));
     // Las fosas de antes guardaban cada una su Kraken: ahora solo hay uno para todos (ver #updateKraken)
@@ -1003,6 +1004,15 @@ export class WorldServer {
   /** Moderación: lanza ya una gesta en el continente más cercano a quien la pide (o en el que se nombre). */
   adminStartFeat(adminId, { site = null, omenMinutes = null } = {}) {
     if (!this.isAdmin(adminId)) throw new UserError('Solo para moderadores.');
+    // «/gesta hidra Kalos 5»: la primera palabra puede ser el tema (tifon, armada o hidra)
+    let theme = null;
+    if (site) {
+      const [first, ...rest] = String(site).trim().split(/\s+/);
+      if (FEAT_THEMES[nameKey(first)]) {
+        theme = nameKey(first);
+        site = rest.join(' ') || null;
+      }
+    }
     const me = this.islands.get(this.games.get(adminId)?.state.home) ?? { x: 0, z: 0 };
     const free = [...this.islands.values()].filter((c) => c.type === 'continente' && (!site || c.id === site || c.name === site));
     free.sort((a, b) => Math.hypot(a.x - me.x, a.z - me.z) - Math.hypot(b.x - me.x, b.z - me.z));
@@ -1021,8 +1031,9 @@ export class WorldServer {
       .map((x) => x.g.userId);
     const omen = now;
     const start = omen + Math.round(omenMinutes != null ? (Math.max(1, Number(omenMinutes) || 1) * 60_000) / universe.speed : featHours(FEATS.omenHours));
-    this.startFeat(cont.id, { omen, start, players }, now);
-    this.announce(`${FEAT_THEMES.tifon.icon} Los moderadores despiertan una gesta en ${cont.name}`);
+    this.startFeat(cont.id, { ...(theme ? { theme } : {}), omen, start, players }, now);
+    const t = FEAT_THEMES[theme ?? Object.keys(FEAT_THEMES)[0]];
+    this.announce(`${t.icon} Los moderadores despiertan una gesta en ${cont.name}: ${t.name}`);
     return { site: cont.id, name: cont.name, players: players.length };
   }
 
@@ -1845,6 +1856,109 @@ export class WorldServer {
     this.announce(`🐙 ${name} ha derrotado al Kraken en ${where}. Vuelve a dormir en las profundidades… hasta quién sabe cuándo.`);
   }
 
+  // ── Eventos a mano (moderadores) ───────────────────────────────────────────
+
+  /**
+   * Desencadena ya un evento del juego (los comandos del chat /temporada, /kraken, /horda,
+   * /piratas, /visitante y /competicion; la gesta va por adminStartFeat). `arg` es el resto
+   * del comando. Devuelve el texto con lo que ha pasado.
+   */
+  adminEvent(adminId, kind, arg = '') {
+    if (!this.isAdmin(adminId)) throw new UserError('Solo para moderadores.');
+    const now = clock.now();
+    const words = String(arg ?? '').trim().split(/\s+/).filter(Boolean);
+    if (kind === 'temporada') return this.#adminSeason(words, now);
+    if (kind === 'kraken') return this.#adminKraken(now);
+    if (kind === 'horda') return this.#adminHorde(adminId, words.join(' '), now);
+    if (kind === 'piratas' || kind === 'visitante') return this.#adminVisit(adminId, kind, words, now);
+    if (kind === 'competicion') return this.#adminContest();
+    throw new UserError('Evento desconocido.');
+  }
+
+  /** «/temporada oro 6»: una temporada del archipiélago desde ya (manda sobre el calendario). «/temporada off» la termina. */
+  #adminSeason([id, hours], now) {
+    const list = Object.keys(WORLD_EVENTS).join(', ');
+    if (!id) throw new UserError(`Escribe /temporada y una de estas: ${list}; y si quieres, las horas. /temporada off la termina.`);
+    const key = nameKey(id);
+    if (key === 'off' || key === 'fin') {
+      const o = this.meta.eventOverride;
+      if (!o || now >= o.end) throw new UserError('No hay ninguna temporada puesta a mano.');
+      o.end = Math.max(o.start, now);
+      universe.eventOverride = o;
+      this.#pushAll();
+      return '⏹️ Temporada terminada: vuelve el calendario de siempre';
+    }
+    const ev = WORLD_EVENTS[key];
+    if (!ev) throw new UserError(`No hay ninguna temporada «${id}». Son: ${list}.`);
+    const h = Math.min(72, Math.max(0.1, Number(String(hours ?? '').replace(',', '.')) || WORLD_EVENT_HOURS));
+    this.meta.eventOverride = { id: key, start: now, end: now + this.#hoursMs(h) };
+    universe.eventOverride = this.meta.eventOverride;
+    this.#pushAll();
+    return `${ev.icon} ${ev.name} durante ${String(h).replace('.', ',')} h`;
+  }
+
+  /** Despierta al Kraken ya, en una fosa al azar. */
+  #adminKraken(now) {
+    const k = this.meta.kraken;
+    if (k?.lair != null && this.islandStates.get(k.lair)?.kraken) {
+      const isl = this.islands.get(k.lair);
+      throw new UserError(`El Kraken ya está despierto, en ${isl.name} ${fmtCoords(coordsOf(isl.x, isl.z))}.`);
+    }
+    this.meta.kraken = { ...(k ?? {}), lair: null, wakeAt: now };
+    this.#updateKraken(now);
+    const lair = this.meta.kraken.lair;
+    if (lair == null) throw new UserError('No hay ninguna fosa libre donde pueda despertar.');
+    const isl = this.islands.get(lair);
+    return `🐙 El Kraken despierta en ${isl.name} ${fmtCoords(coordsOf(isl.x, isl.z))}`;
+  }
+
+  /** Una horda bárbara ya, en el continente dicho o en el más cercano con colonias. */
+  #adminHorde(adminId, site, now) {
+    const me = this.islands.get(this.games.get(adminId)?.state.home) ?? { x: 0, z: 0 };
+    const colonists = this.#colonistsByLand();
+    const lands = [...colonists.keys()]
+      .map((id) => this.islands.get(id))
+      .filter((c) => c && (!site || c.id === site || nameKey(c.name) === nameKey(site)))
+      .sort((a, b) => Math.hypot(a.x - me.x, a.z - me.z) - Math.hypot(b.x - me.x, b.z - me.z));
+    const cont = lands.find((c) => {
+      const rt = this.islandStates.get(c.id);
+      return rt && !rt.horde && !(rt.feat && rt.feat.stage !== 'fin');
+    });
+    if (!cont) throw new UserError(site ? 'Ese continente no tiene colonias, ya tiene una horda o hay una gesta en marcha.' : 'No hay ningún continente con colonias libre de hordas y de gestas.');
+    this.#spawnHorde(cont, this.islandStates.get(cont.id), colonists.get(cont.id), now);
+    return `🔥 Horda bárbara en ${cont.name} (${colonists.get(cont.id).size} ${colonists.get(cont.id).size === 1 ? 'colono' : 'colonos'})`;
+  }
+
+  /** Piratas o un visitante para un jugador (sin nombre, para el propio moderador). */
+  #adminVisit(adminId, kind, words, now) {
+    let variant = null;
+    if (kind === 'visitante' && words[0] && VISITORS[nameKey(words[0])]) variant = nameKey(words.shift());
+    const name = words.join(' ');
+    const uid = name ? this.byName.get(name.toLowerCase()) : adminId;
+    const game = uid != null ? this.games.get(uid) : null;
+    if (!game) throw new UserError('No hay ningún jugador con ese nombre.');
+    const res = game.summonEvent(kind, variant, now);
+    if (!res.ok) throw new UserError(res.reason);
+    const who = this.users.get(uid).username;
+    if (kind === 'piratas') return `🏴‍☠️ Velas piratas rumbo a la isla de ${who}`;
+    const v = VISITORS[game.state.visitor?.kind ?? variant];
+    return `${v?.icon ?? '🧳'} ${v?.name ?? 'Un visitante'} en la isla de ${who}`;
+  }
+
+  /** Termina ya la competición semanal: reparte los premios y empieza otra. */
+  #adminContest() {
+    const c = this.meta.contest;
+    if (!c) throw new UserError('No hay ninguna competición en marcha.');
+    c.end = Date.now();
+    this.#finishContest();
+    return `🏅 Competición ${c.n} terminada: premios repartidos y empieza la siguiente`;
+  }
+
+  /** Que todos los jugadores reciban el estado nuevo (p. ej. al cambiar la temporada). */
+  #pushAll() {
+    for (const uid of this.games.keys()) this.pendingPush.add(uid);
+  }
+
   // ── Competición semanal ────────────────────────────────────────────────────
 
   #contestStats(game) {
@@ -2390,6 +2504,7 @@ export class WorldServer {
       serverTime: now,
       speed: universe.speed,
       eventSeed: universe.eventSeed,
+      eventOverride: universe.eventOverride,
       userId,
       username: user.username,
       alliance: a ? { id: a.id, tag: a.tag, name: a.name } : null,

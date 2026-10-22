@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-22b',
+    date: '2026-10-22',
+    title: 'Otro icono para el jinete',
+    items: ['<img class="res-img unit-img" src="/ui/caballero-v2.png" alt="" /> El <b>Jinete</b> cambia de icono: la cabeza de su caballo dentro del aro de bronce, cruzada por la lanza, ya sin laureles (quedan para la élite).'],
+  },
+  {
     id: '2026-10-22a',
     date: '2026-10-22',
     title: 'Otros iconos para seis barcos',

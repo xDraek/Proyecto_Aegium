@@ -29,6 +29,7 @@ export class ClientGame extends Game {
     clock.offset = snap.serverTime - Date.now();
     universe.speed = snap.speed ?? universe.speed;
     universe.eventSeed = snap.eventSeed ?? universe.eventSeed;
+    if ('eventOverride' in snap) universe.eventOverride = snap.eventOverride;
     this.username = snap.username;
     this.alliance = snap.alliance ?? null;
     this.admin = !!snap.admin;

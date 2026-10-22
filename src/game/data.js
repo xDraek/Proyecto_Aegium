@@ -302,7 +302,7 @@ export const UNITS = {
   caballero: {
     name: 'Jinete',
     icon: '🐴',
-    img: '/ui/caballero.png',
+    img: '/ui/caballero-v2.png',
     kind: 'tierra',
     building: 'cuartel',
     description: 'Jinete con lanza larga: la caballería de las ciudades griegas. Ocupa dos plazas en los barcos.',
