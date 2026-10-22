@@ -403,7 +403,7 @@ export const UNITS = {
   bote: {
     name: 'Bote explorador',
     icon: '🛶',
-    img: '/ui/bote.png',
+    img: '/ui/bote-v2.png',
     kind: 'barco',
     building: 'puerto',
     description: 'Rápido y discreto. Descubre islas desconocidas sin entrar en combate.',
@@ -422,7 +422,7 @@ export const UNITS = {
   mercante: {
     name: 'Barco mercante',
     icon: '🛥',
-    img: '/ui/mercante.png',
+    img: '/ui/mercante-v2.png',
     kind: 'barco',
     building: 'puerto',
     description: 'Transporta 12 soldados y mucho botín. No combate: solo se pierde si cae todo tu ejército.',
@@ -440,7 +440,7 @@ export const UNITS = {
   trirreme: {
     name: 'Trirreme',
     icon: '🚣‍♂️',
-    img: '/ui/trirreme.png',
+    img: '/ui/trirreme-v2.png',
     kind: 'barco',
     building: 'puerto',
     description: 'Barco de guerra rápido con espolón.',
@@ -458,7 +458,7 @@ export const UNITS = {
   brulote: {
     name: 'Brulote',
     icon: '🧨',
-    img: '/ui/brulote.png',
+    img: '/ui/brulote-v2.png',
     kind: 'barco',
     building: 'puerto',
     description: 'Barco cargado de brea que se lanza en llamas contra el enemigo. Mucho daño y poca vida.',
@@ -476,7 +476,7 @@ export const UNITS = {
   galeon: {
     name: 'Quinquerreme',
     icon: '🚤',
-    img: '/ui/quinquerreme.png',
+    img: '/ui/quinquerreme-v2.png',
     kind: 'barco',
     building: 'puerto',
     description: 'Fortaleza flotante de cinco filas de remeros: torres con arqueros, catapulta en cubierta, bodega enorme y sitio para 15 soldados.',
@@ -495,7 +495,7 @@ export const UNITS = {
   dromon: {
     name: 'Dromón',
     icon: '🛳',
-    img: '/ui/dromon.png',
+    img: '/ui/dromon-v2.png',
     kind: 'barco',
     building: 'puerto',
     description: 'El mayor barco de guerra del archipiélago: dos velas, cien remos, sifón de fuego y sitio para 20 soldados.',

@@ -5,6 +5,19 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-22a',
+    date: '2026-10-22',
+    title: 'Otros iconos para seis barcos',
+    items: [
+      '<img class="res-img unit-img" src="/ui/bote-v2.png" alt="" /> El <b>Bote explorador</b> cambia de icono: su vigía otea el horizonte desde la proa, con el mar encrespado dentro del aro de bronce.',
+      '<img class="res-img unit-img" src="/ui/mercante-v2.png" alt="" /> Y el <b>Barco mercante</b>, también: el carguero de vela recogida con su toldo, fardos, cajas y ánforas, sobre el mar dentro del aro de bronce.',
+      '<img class="res-img unit-img" src="/ui/trirreme-v2.png" alt="" /> Y el <b>Trirreme</b>: la galera de vela azul con greca, sus hoplitas en cubierta, las filas de remos y el ojo pintado en la proa.',
+      '<img class="res-img unit-img" src="/ui/brulote-v2.png" alt="" /> Y el <b>Brulote</b>: ardiendo con su carga de barriles y brea, la vela a rayas medio quemada y el humo negro saliendo del aro de bronce.',
+      '<img class="res-img unit-img" src="/ui/quinquerreme-v2.png" alt="" /> Y el <b>Quinquerreme</b>: la gran galera de velas a rayas con dos torres de arqueros, la borda llena de escudos y hoplitas, la greca roja y sus filas de remos.',
+      '<img class="res-img unit-img" src="/ui/dromon-v2.png" alt="" /> Y el <b>Dromón</b>: la gran galera de velas azules con greca, sus torres y escudos, y el sifón de la proa escupiendo fuego griego.',
+    ],
+  },
+  {
     id: '2026-10-21o',
     date: '2026-10-21',
     title: 'Iconos de tropas bien alineados',
