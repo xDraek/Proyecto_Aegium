@@ -107,7 +107,7 @@ const LAYOUT = {
   puerto: { coast: 1.4, angle: GATE_ANGLE, y: BEACH_Y, hit: 3.2, hitZ: -2.6 },
 };
 const INNER = ['academia', 'almacen', 'templo', 'cuartel', 'mercado', 'taberna'];
-// Nivel de la granja con el que aparecen los campos de cultivo de detrás
+// Nivel de la granja con el que aparecen los campos de cultivo de detrás (y las ovejas)
 const FIELDS_LEVEL = 8;
 const OUTER = ['granja', 'aserradero', 'forja', 'cantera', 'mina', 'fundicion', 'torre', 'coloso'];
 const COAST = ['astillero', 'faro'];
@@ -884,7 +884,8 @@ export class World {
     this.houseGroup = new THREE.Group();
     scene.add(this.houseGroup);
 
-    // El rebaño, en el prado de la granja (donde no hay casas ni campos)
+    // El rebaño, en el prado de la granja (donde no hay casas ni campos); como los campos, solo con
+    // la granja a nivel FIELDS_LEVEL (ver #syncFields)
     for (let i = 0; i < 60 && this.flock.length < 10; i++) {
       const p = polar(farm.r + 2.2 + rand() * 4.5, farm.angle + 20 + rand() * 26);
       // Cada una pasta en su corro: se mueve un poco alrededor de donde está
@@ -895,6 +896,7 @@ export class World {
       s.rotation.y = rand() * Math.PI * 2;
       s.scale.setScalar(0.95 + rand() * 0.3);
       s.userData.graze = { home: p.clone(), state: 'pace', t: rand() * 6, speed: 0, phase: rand() * 10 };
+      s.visible = false;
       scene.add(s);
       this.flock.push(s);
     }
@@ -1577,9 +1579,11 @@ export class World {
     this.flashLight.intensity = w.flash * w.flash * 3;
   }
 
-  /** Los campos de cultivo de detrás de la granja: salen cuando la granja llega al nivel FIELDS_LEVEL. */
+  /** Los campos de cultivo de detrás de la granja y el rebaño: salen cuando la granja llega al nivel FIELDS_LEVEL. */
   #syncFields() {
-    if (this.farmFields) this.farmFields.visible = this.game.level('granja') >= FIELDS_LEVEL;
+    const on = this.game.level('granja') >= FIELDS_LEVEL;
+    if (this.farmFields) this.farmFields.visible = on;
+    this.flockOn = on;
   }
 
   /** Los carros de bueyes de la avenida del puerto: solo cuando hay puerto. */
@@ -2957,7 +2961,8 @@ export class World {
     this.#updateSky(now);
     // Lo pequeño, de lejos, ni se dibuja ni se mueve
     const near = dist < DETAIL_DIST;
-    for (const o of [this.grass, this.flowers, this.lifeGroup, ...this.flock, ...this.gulls]) if (o) o.visible = near;
+    for (const o of [this.grass, this.flowers, this.lifeGroup, ...this.gulls]) if (o) o.visible = near;
+    for (const s of this.flock) s.visible = near && !!this.flockOn;
     if (near) this.#updateLife(dt, t);
 
     for (const cloud of this.clouds) {

@@ -5,6 +5,18 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-22h',
+    date: '2026-10-22',
+    title: 'El rebaño, con la granja a nivel 8',
+    items: ['🐑 Las <b>ovejas</b> del prado de la granja llegan a la vez que los campos de cultivo: cuando la granja alcanza el <b>nivel 8</b>.'],
+  },
+  {
+    id: '2026-10-22g',
+    date: '2026-10-22',
+    title: 'Icono nuevo',
+    items: ['🏛️ El icono de la pestaña del navegador y el de la barra de arriba pasan a ser la columna del logo nuevo, con sus laureles verdes.'],
+  },
+  {
     id: '2026-10-22f',
     date: '2026-10-22',
     title: 'Regalo diario más pequeño',
