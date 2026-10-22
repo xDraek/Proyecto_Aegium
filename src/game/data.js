@@ -1071,27 +1071,39 @@ export const BANNER_EMBLEMS = ['🦅', '🐂', '🦁', '🐬', '🔱', '⚓', '�
 // equipan hasta RELIC_SLOTS a la vez; las que sobran se venden por oro.
 
 export const RELICS = {
-  espada: { name: 'Espada de Jasón', icon: '🗡️', rarity: 'basica', stat: 'ataque', value: 0.02, text: '+2 % de ataque de tus tropas' },
-  escudo: { name: 'Escudo de Aquiles', icon: '🛡️', rarity: 'basica', stat: 'defensa', value: 0.03, text: '+3 % de vida de tus tropas' },
-  tridente: { name: 'Tridente de bronce', icon: '🔱', rarity: 'basica', stat: 'velocidad', value: 0.03, text: 'Flotas un 3 % más rápidas' },
-  ancla: { name: 'Ancla de Poseidón', icon: '⚓', rarity: 'basica', stat: 'botin', value: 0.05, text: '+5 % de carga en tus barcos' },
-  cuerno: { name: 'Cuerno de la abundancia', icon: '📯', rarity: 'basica', stat: 'comida', value: 0.04, text: '+4 % de comida' },
-  lira: { name: 'Lira de Orfeo', icon: '🎶', rarity: 'basica', stat: 'favor', value: 0.05, text: '+5 % de favor de los dioses' },
+  espada: { name: 'Espada de Jasón', icon: '🔪', img: '/ui/espada-jason.png', rarity: 'basica', stat: 'ataque', value: 0.02, text: '+2 % de ataque de tus tropas' },
+  escudo: { name: 'Escudo de Aquiles', icon: '🔰', img: '/ui/escudo-aquiles.png', rarity: 'basica', stat: 'defensa', value: 0.03, text: '+3 % de vida de tus tropas' },
+  tridente: { name: 'Tridente de bronce', icon: '🍴', img: '/ui/tridente-bronce.png', rarity: 'basica', stat: 'velocidad', value: 0.03, text: 'Flotas un 3 % más rápidas' },
+  ancla: { name: 'Ancla de Poseidón', icon: '🪝', img: '/ui/ancla-poseidon.png', rarity: 'basica', stat: 'botin', value: 0.05, text: '+5 % de carga en tus barcos' },
+  cuerno: { name: 'Cuerno de la abundancia', icon: '📯', img: '/ui/cuerno-abundancia.png', rarity: 'basica', stat: 'comida', value: 0.04, text: '+4 % de comida' },
+  lira: { name: 'Lira de Orfeo', icon: '🎶', img: '/ui/lira-orfeo.png', rarity: 'basica', stat: 'favor', value: 0.05, text: '+5 % de favor de los dioses' },
   // Del Kraken
-  hoz: { name: 'Hoz de Cronos', icon: '🌙', rarity: 'epica', stat: 'produccion', value: 0.03, text: '+3 % de toda la producción' },
-  yelmo: { name: 'Yelmo de Hades', icon: '⛑️', rarity: 'epica', stat: 'sigilo', value: 0.3, text: 'Tus espías se dejan ver un 30 % menos' },
-  colmillo: { name: 'Colmillo del Kraken', icon: '🦷', rarity: 'epica', stat: 'ataque', value: 0.05, text: '+5 % de ataque de tus tropas' },
-  perla: { name: 'Perla del abismo', icon: '🦪', rarity: 'epica', stat: 'oro', value: 0.08, text: '+8 % de oro' },
-  ojo: { name: 'Ojo del Kraken', icon: '👁️', rarity: 'epica', stat: 'velocidad', value: 0.06, text: 'Flotas un 6 % más rápidas' },
+  hoz: { name: 'Hoz de Cronos', icon: '🌘', img: '/ui/hoz-cronos.png', rarity: 'epica', stat: 'produccion', value: 0.03, text: '+3 % de toda la producción' },
+  yelmo: { name: 'Yelmo de Hades', icon: '⛑️', img: '/ui/yelmo-hades.png', rarity: 'epica', stat: 'sigilo', value: 0.3, text: 'Tus espías se dejan ver un 30 % menos' },
+  colmillo: { name: 'Colmillo del Kraken', icon: '🦷', img: '/ui/colmillo-kraken.png', rarity: 'epica', stat: 'ataque', value: 0.05, text: '+5 % de ataque de tus tropas' },
+  perla: { name: 'Perla del abismo', icon: '🦪', img: '/ui/perla-abismo.png', rarity: 'epica', stat: 'oro', value: 0.08, text: '+8 % de oro' },
+  ojo: { name: 'Ojo del Kraken', icon: '🧿', img: '/ui/ojo-kraken.png', rarity: 'epica', stat: 'velocidad', value: 0.06, text: 'Flotas un 6 % más rápidas' },
   // De las gestas: primero las de su tema (`source`, no salen en ningún otro sitio) y luego las demás
-  mascara: { name: 'Máscara del Minotauro', icon: '🐂', rarity: 'legendaria', stat: 'ataque', value: 0.12, text: '+12 % de ataque de tus tropas' },
-  vellocino: { name: 'Vellocino de oro', icon: '🐏', rarity: 'legendaria', stat: 'oro', value: 0.3, text: '+30 % de oro' },
-  rayozeus: { name: 'Rayo de Zeus', icon: '⚡', rarity: 'legendaria', stat: 'ataque', value: 0.1, text: '+10 % de ataque de tus tropas', source: 'tifon' },
-  escama: { name: 'Escama de Tifón', icon: '🐉', rarity: 'legendaria', stat: 'defensa', value: 0.12, text: '+12 % de vida de tus tropas', source: 'tifon' },
-  tiara: { name: 'Tiara del Gran Rey', icon: '👑', rarity: 'legendaria', stat: 'botin', value: 0.3, text: '+30 % de botín', source: 'armada' },
-  remo: { name: 'Remo de Temístocles', icon: '🚣', rarity: 'legendaria', stat: 'velocidad', value: 0.15, text: '+15 % de velocidad de tus flotas', source: 'armada' },
-  nemea: { name: 'Piel del león de Nemea', icon: '🦁', rarity: 'legendaria', stat: 'defensa', value: 0.15, text: '+15 % de vida de tus tropas', source: 'hidra' },
+  mascara: { name: 'Máscara del Minotauro', icon: '🐃', img: '/ui/mascara-minotauro.png', rarity: 'legendaria', stat: 'ataque', value: 0.12, text: '+12 % de ataque de tus tropas' },
+  vellocino: { name: 'Vellocino de oro', icon: '🐏', img: '/ui/vellocino-oro.png', rarity: 'legendaria', stat: 'oro', value: 0.3, text: '+30 % de oro' },
+  rayozeus: { name: 'Rayo de Zeus', icon: '🌩', img: '/ui/rayo-zeus.png', rarity: 'legendaria', stat: 'ataque', value: 0.1, text: '+10 % de ataque de tus tropas', source: 'tifon' },
+  escama: { name: 'Escama de Tifón', icon: '🦎', img: '/ui/escama-tifon.png', rarity: 'legendaria', stat: 'defensa', value: 0.12, text: '+12 % de vida de tus tropas', source: 'tifon' },
+  tiara: { name: 'Tiara del Gran Rey', icon: '💠', img: '/ui/tiara-gran-rey.png', rarity: 'legendaria', stat: 'botin', value: 0.3, text: '+30 % de botín', source: 'armada' },
+  remo: { name: 'Remo de Temístocles', icon: '🏏', img: '/ui/remo-temistocles.png', rarity: 'legendaria', stat: 'velocidad', value: 0.15, text: '+15 % de velocidad de tus flotas', source: 'armada' },
+  nemea: { name: 'Piel del león de Nemea', icon: '🐾', img: '/ui/piel-nemea.png', rarity: 'legendaria', stat: 'defensa', value: 0.15, text: '+15 % de vida de tus tropas', source: 'hidra' },
 };
+// Como las tropas: las que tienen `img` llevan de icono la imagen; `emoji` es el carácter para los
+// textos sin formato, que glyphs()/richText() cambian por la imagen al pintarlos (🔪 espada de Jasón,
+// 🔰 escudo de Aquiles, 🍴 tridente de bronce,
+// 🪝 ancla de Poseidón, 📯 cuerno de la abundancia, 🎶 lira de Orfeo,
+// 🌘 hoz de Cronos, ⛑️ yelmo de Hades, 🦷 colmillo del Kraken,
+// 🦪 perla del abismo, 🧿 ojo del Kraken, 🐃 máscara del Minotauro,
+// 🐏 vellocino de oro, 🌩 rayo de Zeus, 🦎 escama de Tifón,
+// 💠 tiara del Gran Rey, 🏏 remo de Temístocles, 🐾 piel del león de Nemea). Ese carácter no lo debe usar nada más del juego
+for (const r of Object.values(RELICS)) {
+  r.emoji ??= r.icon;
+  if (r.img) r.icon = `<img class="res-img unit-img" src="${r.img}" alt="" draggable="false" />`;
+}
 export const RELIC_SLOTS = 3;
 export const RELIC_RARITY = {
   basica: { name: 'Básica', color: '#9fb3c8', sell: 600 },

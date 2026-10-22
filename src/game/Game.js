@@ -960,7 +960,7 @@ export class Game extends EventTarget {
     const price = RELIC_RARITY[RELICS[id].rarity].sell;
     this.state.relics = this.state.relics.filter((x) => x !== r);
     this.#gain({ oro: price });
-    this.#note(`${RELICS[id].icon} Vendes ${RELICS[id].name} por 🪙 ${fmtEs(price)}`, 'success');
+    this.#note(`${RELICS[id].emoji} Vendes ${RELICS[id].name} por 🪙 ${fmtEs(price)}`, 'success');
     return this.#done();
   }
 
@@ -982,7 +982,7 @@ export class Game extends EventTarget {
     }
     const def = RELICS[id];
     this.state.relics = [...(this.state.relics ?? []), { id, t, equipped: (this.state.relics ?? []).filter((r) => r.equipped).length < RELIC_SLOTS }];
-    this.#report({ t, kind: 'reliquia', outcome: 'victoria', title: `Reliquia ${RELIC_RARITY[def.rarity].name.toLowerCase()}: ${def.name}`, text: `${def.icon} La has encontrado ${where}. ${def.text}. Equípala o véndela desde el ayuntamiento.` });
+    this.#report({ t, kind: 'reliquia', outcome: 'victoria', title: `Reliquia ${RELIC_RARITY[def.rarity].name.toLowerCase()}: ${def.name}`, text: `${def.emoji} La has encontrado ${where}. ${def.text}. Equípala o véndela desde el ayuntamiento.` });
     this.#note(`🏺 ¡Has encontrado ${def.name}!`, 'success');
     if (def.rarity === 'legendaria') this.world.announce?.(`🏺 ${this.state.name} ha encontrado ${def.name}`);
   }

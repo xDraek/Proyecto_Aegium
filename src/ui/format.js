@@ -1,5 +1,5 @@
 import { clock } from '../config.js';
-import { RESOURCES, SPY_TIERS, UNITS } from '../game/data.js';
+import { RELICS, RESOURCES, SPY_TIERS, UNITS } from '../game/data.js';
 import { fmtEs } from '../game/num.js';
 
 const nf1 = { format: (n) => fmtEs(n, 1) };
@@ -75,12 +75,12 @@ export function bag(b) {
   return parts.join(' ') || '<span class="muted">nada</span>';
 }
 
-const IMAGE_UNITS = Object.values(UNITS).filter((u) => u.img);
+const IMAGE_ICONS = [...Object.values(UNITS), ...Object.values(RELICS)].filter((u) => u.img);
 
-/** Los iconos que son imágenes, en un texto ya escapado: el emoji de cada tropa con `img` (🪖, 👝…), por su imagen. */
+/** Los iconos que son imágenes, en un texto ya escapado: el emoji de cada tropa o reliquia con `img` (🪖, 👝, ⛑️…), por su imagen. */
 export function glyphs(html) {
   let s = String(html);
-  for (const u of IMAGE_UNITS) s = s.replaceAll(u.emoji, u.icon);
+  for (const u of IMAGE_ICONS) s = s.replaceAll(u.emoji, u.icon);
   return s;
 }
 
