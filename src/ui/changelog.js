@@ -5,6 +5,12 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-22f',
+    date: '2026-10-22',
+    title: 'Regalo diario más pequeño',
+    items: ['🎁 El <b>regalo diario</b> da la mitad que antes (el del séptimo día: 125 de oro, 125 de cristal y 10 de favor) y crece menos con el ayuntamiento: un 10 % por nivel en vez de un 25 %. Los encargos diarios no cambian.'],
+  },
+  {
     id: '2026-10-22e',
     date: '2026-10-22',
     title: 'El logo, con laureles verdes',

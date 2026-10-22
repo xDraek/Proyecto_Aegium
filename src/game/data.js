@@ -1009,18 +1009,19 @@ export const QUESTS = [
 // ── Visitantes que llegan a la isla de vez en cuando ─────────────────────────
 
 // ── Recompensa diaria ────────────────────────────────────────────────────────
-// Un regalo por día seguido que entras (el séptimo es el mejor). Se multiplica
-// por el nivel del ayuntamiento para que siga valiendo la pena.
+// Un regalo por día seguido que entras (el séptimo es el mejor). Crece un
+// `DAILY_TOWN_BONUS` por cada nivel del ayuntamiento por encima del primero.
 
 export const DAILY_REWARDS = [
-  { madera: 200, piedra: 150 },
-  { comida: 300, madera: 150 },
-  { piedra: 250, hierro: 80 },
-  { cristal: 120, comida: 200 },
-  { hierro: 150, oro: 60 },
-  { cristal: 200, oro: 100 },
-  { oro: 250, cristal: 250, favor: 20 },
+  { madera: 100, piedra: 75 },
+  { comida: 150, madera: 75 },
+  { piedra: 125, hierro: 40 },
+  { cristal: 60, comida: 100 },
+  { hierro: 75, oro: 30 },
+  { cristal: 100, oro: 50 },
+  { oro: 125, cristal: 125, favor: 10 },
 ];
+export const DAILY_TOWN_BONUS = 0.1;
 
 // ── Logros ───────────────────────────────────────────────────────────────────
 // Se ganan solos al cumplirse y se enseñan en el perfil del jugador.

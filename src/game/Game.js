@@ -13,6 +13,7 @@ import {
   COLONY,
   COLONY_RAID,
   DAILY_REWARDS,
+  DAILY_TOWN_BONUS,
   DAILY_TASKS,
   DAILY_TASK_BONUS,
   DAILY_TASK_REWARD,
@@ -553,7 +554,7 @@ export class Game extends EventTarget {
     const available = d.last !== today;
     const streak = available ? (d.last === today - 1 ? d.streak + 1 : 1) : d.streak;
     const day = ((streak - 1) % DAILY_REWARDS.length) + 1;
-    const k = 1 + 0.25 * Math.max(0, this.level('ayuntamiento') - 1);
+    const k = 1 + DAILY_TOWN_BONUS * Math.max(0, this.level('ayuntamiento') - 1);
     const reward = {};
     for (const [res, n] of Object.entries(DAILY_REWARDS[day - 1])) reward[res] = res === 'favor' ? n : Math.round(n * k);
     return { available, streak, day, reward, today };
