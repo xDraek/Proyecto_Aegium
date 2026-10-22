@@ -84,6 +84,23 @@ function template({ title, preheader, lines, button, link, foot }) {
 }
 
 export const MAILS = {
+  // Aviso a todos los jugadores: el fin del mantenimiento y el wipe (ver /correo-reapertura)
+  reapertura: ({ username, link }) => ({
+    subject: 'Aegium vuelve el domingo 25 a las 18:00, con un mundo nuevo',
+    ...template({
+      title: `Hola, ${username}`,
+      preheader: 'El mantenimiento acaba el domingo 25 de octubre a las 18:00. Habrá wipe: el mundo empieza de cero.',
+      lines: [
+        'El mantenimiento termina este <b>domingo, 25 de octubre, a las 18:00</b> (hora peninsular española).',
+        'Volvemos con un gran parche: tropas y barcos renovados, iconos nuevos para todas las reliquias, la Hidra de Lerna y el campamento del Gran Rey rediseñados, y muchos ajustes de equilibrio.',
+        '<b>Habrá wipe</b>: el mundo empieza de cero. Tu ciudad, tus recursos, tropas, colonias, reliquias y tu puesto en la clasificación se reinician.',
+        'Tu cuenta se conserva: entrarás con el mismo nombre, contraseña y correo, y fundarás tu ciudad en el mundo nuevo.',
+      ],
+      button: 'Ir a Aegium',
+      link,
+      foot: 'Recibes este aviso porque tienes una cuenta en Aegium.',
+    }),
+  }),
   registro: ({ username, link }) => ({
     subject: 'Confirma tu cuenta de Aegium',
     ...template({

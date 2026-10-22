@@ -318,6 +318,20 @@ export class WorldServer {
     return !!this.users.get(userId)?.email;
   }
 
+  /**
+   * A quién mandar un aviso por correo (moderadores): todas las cuentas con correo, o solo la del
+   * moderador si es una prueba. Un aviso de verdad no se repite en 12 horas, por si se pide dos veces.
+   */
+  mailingList(adminId, { test = false } = {}) {
+    if (!this.isAdmin(adminId)) throw new UserError('Solo para moderadores.');
+    const all = [...this.users.values()].filter((u) => u.email).map((u) => ({ id: u.id, email: u.email, username: u.username }));
+    if (test) return all.filter((u) => u.id === adminId);
+    const last = this.meta.mailAllAt ?? 0;
+    if (Date.now() - last < 12 * HOUR) throw new UserError('El aviso ya se mandó hace menos de 12 horas.');
+    this.meta.mailAllAt = Date.now();
+    return all;
+  }
+
   #issue(kind, data) {
     const token = randomBytes(32).toString('base64url');
     this.meta.tokens[tokenHash(token)] = { kind, ...data, expires: Date.now() + TOKEN_HOURS[kind] * HOUR };

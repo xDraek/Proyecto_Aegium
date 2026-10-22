@@ -1522,6 +1522,12 @@ Al jurar, ${wars.join(' y ')}.` : '';
         if (kind === 'eventos') this.#adminEventsHelp();
         else this.toast((await api('POST', '/api/admin/event', { kind, arg })).text, 'success');
         if (kind === 'eventos') return;
+      } else if (this.game.admin && /^\/correo-reapertura(\s|$)/i.test(text)) {
+        // /correo-reapertura prueba: solo a ti; /correo-reapertura enviar: a todos los jugadores
+        const mode = text.split(/\s+/)[1]?.toLowerCase();
+        if (mode !== 'prueba' && mode !== 'enviar') throw new Error('Escribe /correo-reapertura prueba (te llega solo a ti) o /correo-reapertura enviar (a todos los jugadores).');
+        const res = await api('POST', '/api/admin/mail-all', { test: mode === 'prueba' });
+        this.toast(`✉️ Aviso mandado a ${res.sent} de ${res.total}${res.failed.length ? ` · falló con ${res.failed.join(', ')}` : ''}`, res.failed.length ? 'error' : 'success');
       } else if (this.game.admin && /^\/gesta(\s|$)/.test(text)) {
         const [, site, minutes] = /^\/gesta\s*(.*?)\s*(\d+)?$/.exec(text);
         const res = await api('POST', '/api/admin/feat', { site: site || undefined, omenMinutes: minutes ? Number(minutes) : undefined });
@@ -1547,6 +1553,7 @@ Al jurar, ${wars.join(' y ')}.` : '';
       [code('/competicion'), '🏅 Termina ya la competición semanal: reparte los premios y empieza otra.'],
       [code('/anuncio texto'), '📢 Un anuncio para todos.'],
       [code('/mantenimiento on|off [aviso]'), '🛠️ Cierra o abre el juego.'],
+      [code('/correo-reapertura prueba|enviar'), '✉️ El aviso por correo de la reapertura (domingo 25, 18:00, con wipe): «prueba» te llega solo a ti; «enviar», a todos los jugadores (una vez cada 12 h).'],
     ];
     this.showModal('admin-events', `<div class="modal-card">
       <div class="panel-head"><span class="panel-icon">🛠️</span><div><h3>Comandos de moderador</h3><div class="panel-lvl">Se escriben en el chat</div></div><button class="icon-btn" data-action="close-modal" title="Cerrar">✕</button></div>
