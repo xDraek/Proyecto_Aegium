@@ -5,6 +5,15 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-22j',
+    date: '2026-10-22',
+    title: 'Iconos más de la época',
+    items: [
+      '🕯️ Los <b>visitantes</b> dejan los iconos modernos: los peregrinos llegan con su vela, el mercader ambulante en 🐫 camello y los restos de un naufragio con 🌊 la marea.',
+      '⛵ En el informe de espionaje, los barcos del puerto usan el icono del trirreme.',
+    ],
+  },
+  {
     id: '2026-10-22-parche',
     date: '2026-10-22',
     title: 'Gran parche de mantenimiento y mejora',

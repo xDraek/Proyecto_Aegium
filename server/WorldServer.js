@@ -1943,7 +1943,7 @@ export class WorldServer {
     const who = this.users.get(uid).username;
     if (kind === 'piratas') return `🏴‍☠️ Velas piratas rumbo a la isla de ${who}`;
     const v = VISITORS[game.state.visitor?.kind ?? variant];
-    return `${v?.icon ?? '🧳'} ${v?.name ?? 'Un visitante'} en la isla de ${who}`;
+    return `${v?.icon ?? '🐫'} ${v?.name ?? 'Un visitante'} en la isla de ${who}`;
   }
 
   /** Termina ya la competición semanal: reparte los premios y empieza otra. */

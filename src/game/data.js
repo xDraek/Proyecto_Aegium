@@ -1259,10 +1259,10 @@ export const VACATION = {
 };
 
 export const VISITORS = {
-  mercader: { name: 'Mercader ambulante', icon: '🧳' },
+  mercader: { name: 'Mercader ambulante', icon: '🐫' },
   mercenarios: { name: 'Mercenarios', icon: '🗡️' },
   peregrinos: { name: 'Peregrinos', icon: '🕯️' },
-  naufragio: { name: 'Restos de un naufragio', icon: '🛟' },
+  naufragio: { name: 'Restos de un naufragio', icon: '🌊' },
 };
 
 // ── Gestas de la Liga ────────────────────────────────────────────────────────

@@ -1,10 +1,13 @@
-import { UNITS } from '../game/data.js';
+import { UNITS, VISITORS } from '../game/data.js';
 import { unitIcon } from '../scene/portraits.js';
 import { bag, escapeHtml, fmtAgo, fmtNum, intelRows, richText, unitList } from './format.js';
 
 // Informes de combate, exploración y colonias.
 
-const KIND_ICON = { reliquia: '🏺', ataque: '⚔️', defensa: '🏴‍☠️', exploracion: '🔭', colonia: '🚩', expedicion: '🧭', visita: '🧳', victoria: '🗽', ocupacion: '🦅', gesta: '🌋' };
+const KIND_ICON = { reliquia: '🏺', ataque: '⚔️', defensa: '🏴‍☠️', exploracion: '🔭', colonia: '🚩', expedicion: '🧭', visita: '🕯️', victoria: '🗽', ocupacion: '🦅', gesta: '🌋' };
+
+/** El icono de un informe: el de su tipo (las visitas, el de quien vino: peregrinos o naufragio). */
+const reportIcon = (r) => (r.kind === 'visita' && /naufragio/i.test(r.title ?? '') ? VISITORS.naufragio.icon : KIND_ICON[r.kind] ?? '📜');
 
 function sideTable(title, side) {
   const rows = Object.entries(side.start)
@@ -164,7 +167,7 @@ export function reportsHtml(reports) {
           const where = placeLink(r);
           return `<details class="report ${r.outcome ?? ''} ${r.read ? '' : 'unread'}">
             <summary>
-              <span class="r-icon">${KIND_ICON[r.kind] ?? '📜'}</span>
+              <span class="r-icon">${reportIcon(r)}</span>
               <span class="r-title">${escapeHtml(r.title)}</span>
               <span class="r-meta">${where} · ${fmtAgo(r.t)}</span>
             </summary>
