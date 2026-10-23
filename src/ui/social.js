@@ -1,6 +1,6 @@
 import { universe } from '../config.js';
 import { ACHIEVEMENTS, BANNER_COLORS, BANNER_EMBLEMS, DAILY_REWARDS, RESOURCES, VACATION } from '../game/data.js';
-import { api } from '../net/api.js';
+import { api, setToken } from '../net/api.js';
 import { bag, escapeHtml, fmtAgo, fmtDec, fmtNum, fmtTime } from './format.js';
 import { resPicker } from './resPicker.js';
 import { runSimulation, simulatorHtml } from './simulator.js';
@@ -879,7 +879,8 @@ export class Social {
           this.hud.toast('Las contraseñas nuevas no coinciden.', 'error');
           return;
         }
-        const res = await this.#call('POST', '/api/password', { current: data.current, next: data.next }, '🔑 Contraseña cambiada');
+        const res = await this.#call('POST', '/api/password', { current: data.current, next: data.next }, '🔑 Contraseña cambiada: se han cerrado tus otras sesiones');
+        if (res?.token) setToken(res.token);
         if (res) this.hud.closeModal();
       } else if (form.dataset.form === 'rename-city') {
         const res = await this.#call('POST', '/api/city', { name: data.name }, '🏰 Tu ciudad tiene nombre nuevo');

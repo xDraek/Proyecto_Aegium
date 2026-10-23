@@ -428,6 +428,7 @@ export class WorldServer {
     const user = this.users.get(t.uid);
     user.pass = hashPassword(password);
     await this.store.updatePassword(t.uid, user.pass);
+    this.endSessions(t.uid);
     await this.store.save({ meta: this.meta });
     return t.uid;
   }
@@ -449,6 +450,7 @@ export class WorldServer {
     const user = this.users.get(id);
     user.pass = hashPassword(temp);
     await this.store.updatePassword(id, user.pass);
+    this.endSessions(id);
     return temp;
   }
 
@@ -3509,6 +3511,22 @@ export class WorldServer {
     if (typeof next !== 'string' || next.length < 6 || next.length > 100) throw new UserError('La contraseña nueva debe tener al menos 6 caracteres.');
     user.pass = hashPassword(next);
     await this.store.updatePassword(userId, user.pass);
+    this.endSessions(userId);
+  }
+
+  // ── Sesiones ───────────────────────────────────────────────────────────────
+  // Las sesiones son tokens firmados que no se guardan en el servidor; para cerrarlas todas (al
+  // cambiar la contraseña) se apunta desde cuándo valen y se rechazan las firmadas antes.
+
+  /** Cierra todas las sesiones abiertas de un jugador (y sus conexiones en vivo). */
+  endSessions(userId) {
+    (this.meta.sessionsSince ??= {})[userId] = Date.now();
+    for (const ws of this.sockets.get(userId) ?? []) ws.close(4001, 'sesion cerrada');
+  }
+
+  /** Si una sesión firmada en `iat` se cerró después (por un cambio de contraseña). */
+  sessionClosed(userId, iat) {
+    return (this.meta.sessionsSince?.[userId] ?? 0) > iat;
   }
 
   // ── Correo ─────────────────────────────────────────────────────────────────

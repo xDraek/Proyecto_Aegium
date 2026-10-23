@@ -191,9 +191,15 @@ async function readJson(req) {
   }
 }
 
+/** El jugador de un token, si la sesión sigue abierta (no se cerró al cambiar la contraseña). */
+function sessionUser(token) {
+  const t = readToken(token, world.secret, { withTime: true });
+  return t && !world.sessionClosed(t.uid, t.iat) ? t.uid : null;
+}
+
 function authUser(req) {
   const header = req.headers.authorization ?? '';
-  const uid = readToken(header.replace(/^Bearer /, ''), world.secret);
+  const uid = sessionUser(header.replace(/^Bearer /, ''));
   if (uid == null || !world.games.has(uid) || world.isBanned(uid) || !world.hasEmail(uid)) return null;
   world.seen(uid);
   return uid;
@@ -281,7 +287,7 @@ async function api(req, res, url) {
     const uid = authUser(req);
     if (uid == null) {
       // Una sesión de antes del correo: que vuelva a entrar para añadirlo
-      const raw = readToken(String(req.headers.authorization ?? '').replace(/^Bearer /, ''), world.secret);
+      const raw = sessionUser(String(req.headers.authorization ?? '').replace(/^Bearer /, ''));
       const needEmail = raw != null && world.games.has(raw) && !world.hasEmail(raw);
       return send(res, 401, { error: needEmail ? 'Ahora cada cuenta necesita un correo: vuelve a entrar para añadir el tuyo.' : 'Tienes que iniciar sesión.' });
     }
@@ -393,7 +399,8 @@ async function api(req, res, url) {
       if (limited(`auth:${ip(req)}`, 10, 60_000)) return send(res, 429, { error: 'Demasiados intentos. Espera un minuto.' });
       const { current, next } = await readJson(req);
       await world.changePassword(uid, current, next);
-      return send(res, 200, { ok: true });
+      // Se cierran todas las sesiones; la de quien la ha cambiado sigue con un token nuevo
+      return send(res, 200, { ok: true, token: signToken(uid, world.secret) });
     }
 
     // Alianzas
@@ -614,7 +621,7 @@ server.on('upgrade', (req, socket, head) => {
     return socket.destroy();
   }
   if (url.pathname !== '/ws') return; // otras conexiones (p. ej. la recarga de Vite) no son nuestras
-  const uid = readToken(url.searchParams.get('token'), world.secret);
+  const uid = sessionUser(url.searchParams.get('token'));
   if (uid == null || !world.games.has(uid) || world.isBanned(uid) || !world.hasEmail(uid)) {
     socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
     return socket.destroy();

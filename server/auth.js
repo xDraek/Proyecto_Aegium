@@ -41,13 +41,17 @@ export function newSecret() {
 const b64 = (buf) => Buffer.from(buf).toString('base64url');
 
 export function signToken(userId, secret) {
-  const data = b64(JSON.stringify({ uid: userId, exp: Date.now() + TOKEN_DAYS * 86_400_000 }));
+  const now = Date.now();
+  const data = b64(JSON.stringify({ uid: userId, iat: now, exp: now + TOKEN_DAYS * 86_400_000 }));
   const sig = createHmac('sha256', secret).update(data).digest('base64url');
   return `${data}.${sig}`;
 }
 
-/** Devuelve el id del usuario o null si el token no vale. */
-export function readToken(token, secret) {
+/**
+ * Devuelve el id del usuario o null si el token no vale. Con `withTime`, { uid, iat } (iat: cuándo
+ * se firmó; 0 en los tokens de antes, que no lo llevaban).
+ */
+export function readToken(token, secret, { withTime = false } = {}) {
   if (typeof token !== 'string') return null;
   const [data, sig] = token.split('.');
   if (!data || !sig) return null;
@@ -55,8 +59,9 @@ export function readToken(token, secret) {
   const given = Buffer.from(sig, 'base64url');
   if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null;
   try {
-    const { uid, exp } = JSON.parse(Buffer.from(data, 'base64url').toString());
-    return exp > Date.now() ? uid : null;
+    const { uid, exp, iat } = JSON.parse(Buffer.from(data, 'base64url').toString());
+    if (!(exp > Date.now())) return null;
+    return withTime ? { uid, iat: Number(iat) || 0 } : uid;
   } catch {
     return null;
   }
