@@ -3,7 +3,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { brotliCompressSync, constants as zlib, gzipSync } from 'node:zlib';
 import { createServer } from 'node:http';
 import { WebSocketServer } from 'ws';
-import { extname, join, normalize } from 'node:path';
+import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { universe } from '../src/config.js';
 import { BUILDINGS, HERO_SKILLS, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCES, UNITS } from '../src/game/data.js';
@@ -513,8 +513,16 @@ const TYPES = {
 };
 
 async function serveStatic(req, res, url) {
-  let file = normalize(join(DIST, decodeURIComponent(url.pathname)));
-  if (!file.startsWith(DIST)) return send(res, 403, { error: 'No.' });
+  // Una dirección mal codificada («/%E0%A4%A») no puede tumbar el servidor
+  let path;
+  try {
+    path = decodeURIComponent(url.pathname);
+  } catch {
+    return send(res, 400, { error: 'Dirección no válida.' });
+  }
+  let file = normalize(join(DIST, path));
+  // Solo lo que hay dentro de dist/ (con el separador: «dist-otra» no vale)
+  if (file !== DIST && !file.startsWith(DIST + sep)) return send(res, 403, { error: 'No.' });
   try {
     if ((await stat(file)).isDirectory()) file = join(file, 'index.html');
   } catch {
@@ -578,17 +586,33 @@ if (DEV) {
 }
 
 const server = createServer((req, res) => {
-  const url = new URL(req.url, 'http://localhost');
+  let url;
+  try {
+    url = new URL(req.url, 'http://localhost');
+  } catch {
+    res.writeHead(400);
+    return res.end();
+  }
   if (url.pathname.startsWith('/api/')) return api(req, res, url);
   if (vite) return vite.middlewares(req, res);
-  return serveStatic(req, res, url);
+  // Si algo falla sirviendo un archivo, se responde con un error, no se cae el servidor
+  serveStatic(req, res, url).catch((err) => {
+    console.error(err);
+    if (!res.headersSent) send(res, 500, { error: 'Error del servidor.' });
+    else res.destroy();
+  });
 });
 
 // Conexión en vivo: el servidor empuja estados y mensajes del chat al momento
 // Los mensajes grandes (el estado de la partida) van comprimidos si el navegador lo admite
 const wss = new WebSocketServer({ noServer: true, maxPayload: 4096, perMessageDeflate: { threshold: 2048 } });
 server.on('upgrade', (req, socket, head) => {
-  const url = new URL(req.url, 'http://localhost');
+  let url;
+  try {
+    url = new URL(req.url, 'http://localhost');
+  } catch {
+    return socket.destroy();
+  }
   if (url.pathname !== '/ws') return; // otras conexiones (p. ej. la recarga de Vite) no son nuestras
   const uid = readToken(url.searchParams.get('token'), world.secret);
   if (uid == null || !world.games.has(uid) || world.isBanned(uid) || !world.hasEmail(uid)) {
