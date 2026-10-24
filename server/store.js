@@ -19,6 +19,12 @@ export async function openStore({ databaseUrl, file }) {
   return store;
 }
 
+/**
+ * Lo que sobrevive a un wipe en `meta`: la firma de las sesiones, los enlaces de correo pendientes,
+ * sanciones, amigos, quién es Fundador, el mantenimiento y los contadores (para no repetir números).
+ */
+export const WIPE_KEEP = ['secret', 'tokens', 'mod', 'friends', 'friendRequests', 'founderUntil', 'maintenance', 'mailAllAt', 'sessionsSince', 'mailSeq', 'chatSeq', 'allianceSeq', 'threadSeq', 'postSeq', 'offerSeq', 'nextUserId'];
+
 const emptyData = () => ({ meta: {}, users: [], players: {}, islands: [], islandStates: {}, chat: [] });
 
 export class FileStore {
@@ -70,6 +76,16 @@ export class FileStore {
     for (const [id, st] of islandStates ?? []) this.data.islandStates[id] = st;
     for (const msg of chat ?? []) this.data.chat.push(msg);
     if (this.data.chat.length > 200) this.data.chat.splice(0, this.data.chat.length - 200);
+    await this.#write();
+  }
+
+  /** Wipe: borra partidas, islas, chat y lo de `meta` que no esté en `keep`; las cuentas se quedan. */
+  async wipe(keep = WIPE_KEEP) {
+    this.data.players = {};
+    this.data.islands = [];
+    this.data.islandStates = {};
+    this.data.chat = [];
+    this.data.meta = Object.fromEntries(Object.entries(this.data.meta).filter(([k]) => keep.includes(k)));
     await this.#write();
   }
 
@@ -173,6 +189,24 @@ export class PgStore {
         await client.query('update islands set state = $2 where id = $1', [id, JSON.stringify(st)]);
       }
       for (const msg of chat ?? []) await client.query('insert into chat (msg) values ($1)', [JSON.stringify(msg)]);
+      await client.query('commit');
+    } catch (err) {
+      await client.query('rollback');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  /** Wipe: borra partidas, islas, chat y lo de `meta` que no esté en `keep`; las cuentas se quedan. Todo o nada. */
+  async wipe(keep = WIPE_KEEP) {
+    const client = await this.pool.connect();
+    try {
+      await client.query('begin');
+      await client.query('delete from players');
+      await client.query('delete from islands');
+      await client.query('delete from chat');
+      await client.query('delete from meta where not (key = any($1::text[]))', [keep]);
       await client.query('commit');
     } catch (err) {
       await client.query('rollback');

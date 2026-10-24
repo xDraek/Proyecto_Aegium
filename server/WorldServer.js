@@ -217,8 +217,13 @@ export class WorldServer {
     this.users.set(id, { id, username, pass, created, lastSeen: created, email });
     this.byName.set(username.toLowerCase(), id);
     if (email) this.byEmail.set(email, id);
+    this.#settle(id, username, city);
+    await this.persist(true);
+    return id;
+  }
 
-    // Cada jugador nuevo abre un sector del archipiélago
+  /** Cada jugador nuevo (o cada cuenta tras un wipe) abre un sector del archipiélago con su ciudad. */
+  #settle(id, username, city) {
     const sector = this.meta.sectors++;
     const now = clock.now();
     const home = homeIsland(sector, id, city);
@@ -234,8 +239,22 @@ export class WorldServer {
     if (this.meta.contest) this.meta.contest.base[id] = this.#contestStats(game);
     this.rankingCache = null;
     this.announce(`⚓ ${username} funda la ciudad de ${city}`);
+  }
+
+  /** Una cuenta sin ciudad (tras un wipe): le falta fundarla para jugar. */
+  needsCity(userId) {
+    return this.users.has(userId) && !this.games.has(userId);
+  }
+
+  /** Tras un wipe, cada jugador funda su ciudad nueva con el nombre que elija. */
+  async foundCity(userId, city) {
+    if (!this.needsCity(userId)) throw new UserError('Ya tienes una ciudad.');
+    const { username } = this.users.get(userId);
+    city = String(city ?? '').trim() || username;
+    if (!NAME_RE.test(city)) throw new UserError('El nombre de la ciudad debe tener entre 3 y 20 letras o números.');
+    if (this.#cityTaken(city)) throw new UserError('Ya hay una ciudad con ese nombre: elige otro.');
+    this.#settle(userId, username, city);
     await this.persist(true);
-    return id;
   }
 
   #addIsland(isl, now) {

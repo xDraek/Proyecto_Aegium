@@ -73,6 +73,8 @@ async function boot() {
       startGame(await ClientGame.connect());
       return;
     } catch (err) {
+      // Tras un wipe: la cuenta sigue, pero tiene que fundar su ciudad nueva
+      if (err.data?.needCity) return startLanding(null, { mode: 'city' });
       if (err.status === 401) setToken(null);
       // (en mantenimiento la sesión se guarda: al reabrir, entra solo)
       startLanding(err.status === 401 ? (/correo/.test(err.message) ? err.message : 'Tu sesión ha caducado. Vuelve a entrar.') : err.status === 503 ? null : err.message);

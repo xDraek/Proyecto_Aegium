@@ -26,9 +26,10 @@ export function setToken(token) {
 export const session = { islandsRev: null, statesRev: null };
 
 export class ApiError extends Error {
-  constructor(message, status) {
+  constructor(message, status, data = {}) {
     super(message);
     this.status = status;
+    this.data = data;
   }
 }
 
@@ -50,6 +51,6 @@ export async function api(method, path, body) {
   } catch {
     // respuesta vacía
   }
-  if (!res.ok) throw new ApiError(data.error ?? `Error ${res.status}`, res.status);
+  if (!res.ok) throw new ApiError(data.error ?? `Error ${res.status}`, res.status, data);
   return data;
 }

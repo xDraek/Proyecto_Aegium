@@ -42,13 +42,13 @@
               <p class="auth-note" hidden></p>
               <label data-modes="register forgot email">Correo electrónico <input name="email" type="email" autocomplete="email" maxlength="120" /></label>
               <label data-modes="login register"><span data-label-login="Nombre de jugador o correo">Nombre de jugador</span> <input name="username" autocomplete="username" minlength="3" maxlength="120" /></label>
-              <label data-modes="register" data-optional>Nombre de tu ciudad <input name="city" maxlength="20" placeholder="Si lo dejas vacío, tu nombre" /></label>
+              <label data-modes="register city" data-optional>Nombre de tu ciudad <input name="city" maxlength="20" placeholder="Si lo dejas vacío, tu nombre" /></label>
               <label data-modes="login register reset"><span data-label-reset="Contraseña nueva">Contraseña</span> <input name="password" type="password" autocomplete="current-password" minlength="6" maxlength="100" /></label>
               <label data-modes="register reset">Repite la contraseña <input name="password2" type="password" autocomplete="new-password" maxlength="100" /></label>
               <button class="primary" type="submit">Entrar</button>
               <div class="form-error" role="alert"></div>
               <button type="button" class="link small" data-modes="login" data-action="go-forgot">¿Has olvidado tu contraseña?</button>
-              <button type="button" class="link small" data-modes="forgot reset email" data-action="go-login">← Volver a entrar</button>
+              <button type="button" class="link small" data-modes="forgot reset email city" data-action="go-login">← Volver a entrar</button>
             </form>
             <div class="mail-card" hidden>
               <div class="mail-icon">✉️</div>

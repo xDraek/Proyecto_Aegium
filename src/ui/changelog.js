@@ -5,6 +5,16 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-25-mundo',
+    date: '2026-10-25',
+    title: 'Un mundo nuevo',
+    items: [
+      '🌊 <b>El archipiélago empieza de cero</b>: todas las ciudades, flotas, alianzas y foros del mundo anterior se han borrado, y todos salimos desde la misma casilla.',
+      '🪪 <b>Tu cuenta sigue siendo tuya</b>: el mismo nombre, contraseña y correo. También conservas a tus <b>amigos</b> y, si lo eras, el título de <b>Fundador</b>.',
+      '🏛️ Al entrar, eliges el <b>nombre de tu ciudad nueva</b> y la fundas en un rincón del mapa recién trazado.',
+    ],
+  },
+  {
     id: '2026-10-22j',
     date: '2026-10-22',
     title: 'Iconos más de la época',

@@ -12,6 +12,7 @@ const MODES = {
   register: { submit: 'Crear la cuenta', tabs: true, note: 'Te mandaremos un correo para confirmar la cuenta. Tu ciudad se funda al abrir el enlace.' },
   forgot: { submit: 'Mandarme un enlace', note: 'Escribe el correo de tu cuenta y te mandaremos un enlace para poner otra contraseña.' },
   reset: { submit: 'Guardar la contraseña', note: 'Elige tu contraseña nueva.' },
+  city: { submit: 'Fundar mi ciudad', note: 'El mundo ha empezado de cero. Tu cuenta sigue siendo la misma: elige el nombre de tu ciudad nueva.' },
   email: { submit: 'Confirmar mi correo', note: 'Ahora cada cuenta necesita un correo, para poder recuperarla si olvidas la contraseña. Añade el tuyo y confírmalo para seguir jugando.' },
 };
 
@@ -138,6 +139,9 @@ export function showLanding({ onLogin, message, mode: firstMode = 'login', reset
         const send = () => api('POST', '/api/forgot', body);
         await send();
         showSent(`Si <b>${escapeHtml(data.email.trim())}</b> es el correo de una cuenta, te llegará un enlace para poner otra contraseña. Vale durante 1 hora.`, send);
+      } else if (mode === 'city') {
+        await api('POST', '/api/found', { city: data.city });
+        onLogin();
       } else if (mode === 'reset') {
         const res = await api('POST', '/api/reset', { token: resetToken, password: data.password, password2: data.password2 });
         setToken(res.token);

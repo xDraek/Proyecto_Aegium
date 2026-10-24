@@ -286,6 +286,18 @@ async function api(req, res, url) {
 
     const uid = authUser(req);
     if (uid == null) {
+      // Tras un wipe la cuenta sigue, pero sin ciudad: solo puede fundarla
+      const acc = sessionUser(String(req.headers.authorization ?? '').replace(/^Bearer /, ''));
+      if (acc != null && world.needsCity(acc) && !world.isBanned(acc) && world.hasEmail(acc)) {
+        if (world.closedFor(acc)) return send(res, 503, { error: world.maintenanceText(), maintenance: true });
+        if (route === 'POST /api/found') {
+          if (limited(`act:${acc}`, 40, 10_000)) return send(res, 429, { error: 'Vas demasiado rápido.' });
+          const { city } = await readJson(req);
+          await world.foundCity(acc, city);
+          return send(res, 200, { ok: true });
+        }
+        return send(res, 409, { error: 'El mundo ha empezado de cero: funda tu ciudad nueva.', needCity: true });
+      }
       // Una sesión de antes del correo: que vuelva a entrar para añadirlo
       const raw = sessionUser(String(req.headers.authorization ?? '').replace(/^Bearer /, ''));
       const needEmail = raw != null && world.games.has(raw) && !world.hasEmail(raw);
