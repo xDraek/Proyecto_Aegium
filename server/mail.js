@@ -101,6 +101,22 @@ export const MAILS = {
       foot: 'Recibes este aviso porque tienes una cuenta en Aegium.',
     }),
   }),
+  // Aviso a todos los jugadores: la reapertura se retrasa a las 21:00 (ver /correo-retraso)
+  retraso: ({ username, link }) => ({
+    subject: 'Aegium abre hoy a las 21:00, no a las 18:00',
+    ...template({
+      title: `Hola, ${username}`,
+      preheader: 'La reapertura se retrasa: Aegium abre hoy, domingo 25, a las 21:00.',
+      lines: [
+        'Retrasamos un poco la reapertura: Aegium abre hoy, <b>domingo 25 de octubre, a las 21:00</b> (hora peninsular española), en lugar de a las 18:00.',
+        'Todo lo demás sigue igual: el mundo empieza de cero y tu cuenta se conserva. Al entrar elegirás el nombre de tu ciudad nueva.',
+        'Perdona las molestias. ¡Nos vemos a las 21:00!',
+      ],
+      button: 'Ir a Aegium',
+      link,
+      foot: 'Recibes este aviso porque tienes una cuenta en Aegium.',
+    }),
+  }),
   registro: ({ username, link }) => ({
     subject: 'Confirma tu cuenta de Aegium',
     ...template({

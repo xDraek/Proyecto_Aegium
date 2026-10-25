@@ -367,14 +367,15 @@ async function api(req, res, url) {
       else if (sub === 'maintenance') return send(res, 200, world.setMaintenance(uid, body.on === true, body.text));
       else if (sub === 'event') return send(res, 200, { text: world.adminEvent(uid, String(body.kind ?? ''), String(body.arg ?? '').slice(0, 100)) });
       else if (sub === 'mail-all') {
-        // El aviso de reapertura por correo: «prueba», solo al moderador; si no, a todas las cuentas
-        const list = world.mailingList(uid, { test: body.test === true });
+        // Un aviso por correo (la reapertura o su retraso): «prueba», solo al moderador; si no, a todas las cuentas
+        const kind = ['reapertura', 'retraso'].includes(body.kind) ? body.kind : 'reapertura';
+        const list = world.mailingList(uid, { test: body.test === true, kind });
         const link = publicUrl(req);
         let sent = 0;
         const failed = [];
         for (const u of list) {
           try {
-            await sendMail(u.email, MAILS.reapertura({ username: u.username, link }));
+            await sendMail(u.email, MAILS[kind]({ username: u.username, link }));
             sent++;
           } catch {
             failed.push(u.username);

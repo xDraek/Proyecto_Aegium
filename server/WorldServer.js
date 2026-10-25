@@ -339,15 +339,16 @@ export class WorldServer {
 
   /**
    * A quién mandar un aviso por correo (moderadores): todas las cuentas con correo, o solo la del
-   * moderador si es una prueba. Un aviso de verdad no se repite en 12 horas, por si se pide dos veces.
+   * moderador si es una prueba. Cada aviso (`kind`) de verdad no se repite en 12 horas, por si se pide dos veces.
    */
-  mailingList(adminId, { test = false } = {}) {
+  mailingList(adminId, { test = false, kind = 'reapertura' } = {}) {
     if (!this.isAdmin(adminId)) throw new UserError('Solo para moderadores.');
     const all = [...this.users.values()].filter((u) => u.email).map((u) => ({ id: u.id, email: u.email, username: u.username }));
     if (test) return all.filter((u) => u.id === adminId);
-    const last = this.meta.mailAllAt ?? 0;
-    if (Date.now() - last < 12 * HOUR) throw new UserError('El aviso ya se mandó hace menos de 12 horas.');
-    this.meta.mailAllAt = Date.now();
+    // (antes se guardaba solo la hora del aviso de reapertura)
+    if (typeof this.meta.mailAllAt !== 'object' || !this.meta.mailAllAt) this.meta.mailAllAt = { reapertura: this.meta.mailAllAt ?? 0 };
+    if (Date.now() - (this.meta.mailAllAt[kind] ?? 0) < 12 * HOUR) throw new UserError('Ese aviso ya se mandó hace menos de 12 horas.');
+    this.meta.mailAllAt[kind] = Date.now();
     return all;
   }
 
