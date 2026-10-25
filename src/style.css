@@ -2979,7 +2979,7 @@ input[type='text'] {
   width: min(320px, calc(100vw - 16px));
   padding: 12px 14px;
   border-radius: var(--radius);
-  background: rgba(30, 24, 16, 0.97);
+  background: #1e1810;
   border: 1px solid rgba(242, 201, 76, 0.7);
   box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
   font-size: 13px;
@@ -5617,6 +5617,12 @@ kbd {
   #sidebar ~ #toasts {
     top: calc(var(--top, 170px) - 20px);
     bottom: auto;
+  }
+
+  /* …salvo con una ventana abierta: ahí arriba está su cabecera, así que van abajo, sobre la barra */
+  #sidebar ~ #modal:not([hidden]) ~ #toasts {
+    top: auto;
+    bottom: calc(var(--bottom) + 12px);
   }
 
   /* Con un panel, el chat, las opciones o el cuadro de lo que está en marcha, los botones de la

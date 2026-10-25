@@ -7,6 +7,24 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-25i',
+    date: '2026-10-25',
+    title: 'Arreglos en el móvil',
+    items: [
+      '🪟 Arreglado: a veces, al volver a abrir una ventana (la cuenta, el perfil, los amigos…) salía vacía y había que recargar la página. Ahora se abren siempre con su contenido.',
+      '📱 La guía de inicio ya no tapa lo que explica en el móvil: su tarjeta se aparta, el panel se desplaza solo hasta el botón que hay que pulsar y el aro dorado queda justo encima.',
+      '📱 Con una ventana abierta en el móvil, los avisos salen abajo y no tapan su cabecera.',
+    ],
+    en: {
+      title: 'Mobile fixes',
+      items: [
+        '🪟 Fixed: sometimes, when reopening a window (account, profile, friends…) it came up empty and you had to reload the page. Now they always open with their content.',
+        '📱 The getting-started guide no longer covers what it explains on mobile: its card moves out of the way, the panel scrolls by itself to the button you need to press and the golden ring sits right on it.',
+        '📱 With a window open on mobile, notifications appear at the bottom and don’t cover its header.',
+      ],
+    },
+  },
+  {
     id: '2026-10-25h',
     date: '2026-10-25',
     title: 'Avisa de los fallos',

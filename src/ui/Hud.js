@@ -475,6 +475,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
 
   openReports() {
     this.modalKind = 'reports';
+    this.cache.modal = '';
     this.modal.innerHTML = reportsHtml(this.game.reports);
     this.#reveal();
     this.#syncActive();
@@ -496,6 +497,9 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
 
   /** Abre (o actualiza) una ventana con el HTML dado. */
   showModal(kind, html) {
+    // Una ventana que se abre (o que sustituye a otra) se pinta siempre: lo que recuerda la caché
+    // es de lo que había antes, y con el mismo HTML se quedaría vacía
+    if (this.modal.hidden || this.modalKind !== kind) this.cache.modal = '';
     this.modalKind = kind;
     this.#reveal();
     this.#syncActive();
@@ -524,6 +528,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     this.modalKind = null;
     this.modal.hidden = true;
     this.modal.innerHTML = '';
+    this.cache.modal = '';
     this.#syncActive();
   }
 

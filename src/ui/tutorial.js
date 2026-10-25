@@ -128,17 +128,40 @@ export class Tutorial {
     }
     this.card.hidden = false;
     this.ring.hidden = false;
-    // Anillo alrededor de lo que hay que pulsar y la tarjeta al lado (abajo en el móvil)
+    // Si lo que hay que pulsar está dentro de un panel con scroll y no se ve entero, se trae a la vista
+    // (moviendo solo el panel: scrollIntoView movería también la página; y con margen, que los adornos
+    // del marco tapan el borde de abajo). Se sigue vigilando por si el panel cambia de sitio, hasta
+    // que el jugador lo mueve él: entonces se le deja en paz (hasta que abra otro edificio)
+    const box = target.closest('.scroll');
+    if (box) {
+      const key = `${step.id}:${this.hud.selected}`;
+      if (this.follow?.key !== key || this.follow.box !== box) this.follow = { key, box, top: box.scrollTop, on: true };
+      if (box.scrollTop !== this.follow.top) this.follow.on = false;
+      if (this.follow.on) {
+        const b = box.getBoundingClientRect();
+        const t = target.getBoundingClientRect();
+        const MARGIN = 40;
+        if (t.bottom > b.bottom - MARGIN) box.scrollTop += t.bottom - b.bottom + MARGIN;
+        else if (t.top < b.top) box.scrollTop -= b.top - t.top + MARGIN;
+        this.follow.top = box.scrollTop;
+      }
+    }
+    // Anillo alrededor de lo que hay que pulsar (sin salirse de su panel) y la tarjeta al lado
     const r = target.getBoundingClientRect();
+    const clip = box?.getBoundingClientRect();
+    const top0 = clip ? Math.max(r.top, clip.top) : r.top;
+    const bottom0 = clip ? Math.min(r.bottom, clip.bottom) : r.bottom;
     const pad = 4;
-    Object.assign(this.ring.style, { left: `${r.left - pad}px`, top: `${r.top - pad}px`, width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px` });
+    Object.assign(this.ring.style, { left: `${r.left - pad}px`, top: `${top0 - pad}px`, width: `${r.width + pad * 2}px`, height: `${Math.max(0, bottom0 - top0) + pad * 2}px` });
     const card = this.card.getBoundingClientRect();
     const mobile = innerWidth <= 800;
     let left;
     let top;
     if (mobile) {
+      // En el móvil no cabe al lado: arriba del todo si lo señalado está en la mitad de abajo (así no
+      // tapa lo que explica, como el coste encima del botón), y debajo si está en la de arriba
       left = (innerWidth - card.width) / 2;
-      top = r.top + r.height / 2 > innerHeight / 2 ? Math.max(8, r.top - card.height - 14) : Math.min(innerHeight - card.height - 8, r.bottom + 14);
+      top = r.top + r.height / 2 > innerHeight / 2 ? 8 : Math.min(innerHeight - card.height - 8, r.bottom + 14);
     } else {
       left = Math.min(innerWidth - card.width - 12, Math.max(12, r.left + r.width / 2 - card.width / 2));
       top = r.bottom + 14 + card.height < innerHeight ? r.bottom + 14 : Math.max(12, r.top - card.height - 14);
