@@ -74,9 +74,11 @@ function compile(dict) {
       })
       .join('');
     // Lo que tiene más texto fijo, primero (es más concreto). Las plantillas casi sin texto fijo
-    // («{0} · {1} de {2}») se comerían frases que no son suyas: no se usan
+    // («{0} · {1} de {2}») se comerían frases que no son suyas: no se usan (con uno o dos huecos
+    // basta una palabra corta, «{0} Es {1}.»)
     const literal = key.replace(/\{\d+\}/g, '').length;
-    if (key.replace(/\{\d+\}/g, '').replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ]/g, '').length < 4) continue;
+    const letters = key.replace(/\{\d+\}/g, '').replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ]/g, '').length;
+    if (letters < (order.length >= 3 ? 4 : 2)) continue;
     patterns.push({ re: new RegExp(`^${source}$`, 's'), order, en, literal });
   }
   patterns.sort((a, b) => b.literal - a.literal);
@@ -198,8 +200,9 @@ export async function startTranslation() {
   if (LANG === 'es') return;
   const { default: dict } = await DICTS[LANG]();
   compile(dict);
-  // Para buscar desde la consola lo que falta por traducir en la pantalla abierta
+  // Para buscar desde la consola lo que falta por traducir en la pantalla abierta (y probar textos)
   window.__faltan = missingTexts;
+  window.__tr = tr;
   document.title = tr(document.title);
   translateTree(document.body);
   new MutationObserver((records) => {

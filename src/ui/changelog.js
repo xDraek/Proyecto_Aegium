@@ -7,6 +7,18 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-25f',
+    date: '2026-10-25',
+    title: 'Noticias e informes en inglés',
+    items: [
+      '🌐 En inglés ya salen también las noticias, los informes de combate y espionaje, los avisos del chat y los mensajes de «no se puede» que manda el juego.',
+    ],
+    en: {
+      title: 'News and reports in English',
+      items: ['🌐 In English, the news, battle and spy reports, chat announcements and the «you can’t do that» messages the game sends are now translated too.'],
+    },
+  },
+  {
     id: '2026-10-25e',
     date: '2026-10-25',
     title: 'Aegium in English',

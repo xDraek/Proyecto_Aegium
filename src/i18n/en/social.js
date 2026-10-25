@@ -192,8 +192,6 @@ export default {
   "No hay ofertas ahora mismo.": "There are no offers right now.",
   "Mercado del archipiélago": "Archipelago market",
   "Ofertas de otros jugadores, sin impuestos. Lo que ofreces queda apartado hasta que alguien acepta (o caduca a los 3 días).": "Offers from other players, tax-free. What you offer is set aside until someone accepts (or it expires after 3 days).",
-  "Doy {0}": "I give {0}",
-  "Pido {1}": "I ask for {1}",
   "Doy": "I give",
   "Pido": "I ask for",
   "Publicar oferta": "Post offer",
