@@ -164,7 +164,7 @@ export default {
   "una obra a la vez": "one thing at a time",
   "El ayuntamiento manda": "The town hall is in charge",
   "Además de desbloquear edificios, el ayuntamiento marca hasta dónde puedes subir los demás: hasta el nivel {1} no pide nada, y a partir de ahí hace falta tenerlo a cierto nivel.": "Besides unlocking buildings, the town hall sets how far you can raise the others: up to level {1} it asks for nothing, and from there on it has to be at a certain level.",
-  "Al subir de nivel ganan detalle: enlosado y cipreses (nivel 5), pebeteros y estatua (10) y remate dorado con estandartes (15). El Coloso no tiene tope: cada nivel suma producción y cada cinco se anuncia a todo el archipiélago.": "As they level up they gain detail: paving and cypresses (level 5), braziers and a statue (10) and a golden finial with banners (15). The Colossus has no cap: each level adds production and every five is announced to the whole archipelago.",
+  "Al subir de nivel ganan detalle: enlosado y cipreses (nivel 5), pebeteros y estatua (10) y remate dorado con estandartes (15). El Coloso llega como mucho al nivel 10: cada nivel suma producción, y los niveles 5 y 10 se anuncian a todo el archipiélago.": "As they level up they gain detail: paving and cypresses (level 5), braziers and a statue (10) and a golden finial with banners (15). The Colossus goes up to level 10 at most: each level adds production, and levels 5 and 10 are announced to the whole archipelago.",
   "Investigaciones": "Research",
   "La": "The",
   "academia": "academy",

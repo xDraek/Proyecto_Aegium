@@ -334,7 +334,7 @@ const TOPICS = {
       <h5>El ayuntamiento manda</h5>
       <p>Además de desbloquear edificios, el ayuntamiento marca hasta dónde puedes subir los demás: hasta el nivel ${TOWN_HALL_GATE.free} no pide nada, y a partir de ahí hace falta tenerlo a cierto nivel.</p>
       ${townHallTable()}
-      <p class="muted small">Al subir de nivel ganan detalle: enlosado y cipreses (nivel 5), pebeteros y estatua (10) y remate dorado con estandartes (15). El Coloso no tiene tope: cada nivel suma producción y cada cinco se anuncia a todo el archipiélago.</p>`,
+      <p class="muted small">Al subir de nivel ganan detalle: enlosado y cipreses (nivel 5), pebeteros y estatua (10) y remate dorado con estandartes (15). El Coloso llega como mucho al nivel 10: cada nivel suma producción, y los niveles 5 y 10 se anuncian a todo el archipiélago.</p>`,
   },
   investigacion: {
     icon: '📚',

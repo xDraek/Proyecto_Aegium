@@ -54,7 +54,7 @@ export default {
   "Astillero": "Shipyard",
   "Gradas y carpinteros de ribera. Cada nivel construye los barcos un 8 % más rápido y desbloquea barcos de guerra nuevos: sin astillero solo se botan botes y mercantes.": "Slipways and shipwrights. Each level builds ships 8 % faster and unlocks new warships: without a shipyard only boats and merchant ships can be launched.",
   "Coloso": "Colossus",
-  "Una maravilla que vigila el mar y nunca deja de crecer. Cada nivel aumenta un 5 % toda la producción; al nivel 10, ya terminado, se adorna de oro y enciende su antorcha.": "A wonder that watches over the sea and never stops growing. Each level raises all production by 5 %; at level 10, once finished, it is adorned with gold and lights its torch.",
+  "Una maravilla que vigila el mar. Cada nivel aumenta un 5 % toda la producción; en el nivel 10, el último, queda terminado: se adorna de oro y enciende su antorcha.": "A wonder that watches over the sea. Each level raises all production by 5 %; at level 10, the last one, it is finished: it is adorned with gold and lights its torch.",
 
   // Unidades
   "Milicia con lanza": "Spear militia",

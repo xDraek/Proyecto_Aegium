@@ -7,6 +7,18 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26a',
+    date: '2026-10-26',
+    title: 'El Coloso, hasta el nivel 10',
+    items: [
+      '🗽 El <b>Coloso</b> tiene ahora nivel máximo: el <b>10</b>. Ahí queda terminado, con su oro y la antorcha encendida, y da +50 % a toda la producción.',
+    ],
+    en: {
+      title: 'The Colossus, up to level 10',
+      items: ['🗽 The <b>Colossus</b> now has a maximum level: <b>10</b>. There it is finished, with its gold and the torch lit, and gives +50 % to all production.'],
+    },
+  },
+  {
     id: '2026-10-25i',
     date: '2026-10-25',
     title: 'Arreglos en el móvil',
