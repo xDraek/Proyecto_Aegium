@@ -65,7 +65,7 @@ const medal = (n) => (n === 1 ? '🥇' : n === 2 ? '🥈' : n === 3 ? '🥉' : n
 
 const RANK_TABS = {
   semana: { name: '🏅 Semana', sub: 'la competición semanal: premios para los tres mejores de cada categoría' },
-  players: { name: 'Imperios', sub: 'un punto por cada 100 recursos invertidos' },
+  players: { name: '🏛️ Imperios', sub: 'un punto por cada 100 recursos invertidos' },
   military: { name: '⚔️ Militar', sub: 'enemigos abatidos en combate (atacando y defendiendo)', key: 'kills', col: 'Bajas' },
   raiders: { name: '💰 Saqueo', sub: 'recursos saqueados a piratas, bárbaros y otros jugadores', key: 'loot', col: 'Botín' },
   alliances: { name: '🤝 Alianzas', sub: 'la suma de los puntos de sus miembros' },
