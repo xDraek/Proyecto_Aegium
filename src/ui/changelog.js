@@ -5,6 +5,14 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-25b',
+    date: '2026-10-25',
+    title: 'Desde los cimientos',
+    items: [
+      '🪓 Las ciudades nuevas empiezan solo con el <b>ayuntamiento</b>: el <b>aserradero</b> y la <b>cantera</b> los construyes tú con los recursos iniciales, que no cambian. Las primeras misiones y el consejero te guían para levantarlos.',
+    ],
+  },
+  {
     id: '2026-10-25-mundo',
     date: '2026-10-25',
     title: 'Un mundo nuevo',

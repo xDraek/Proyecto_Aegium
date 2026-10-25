@@ -13,13 +13,13 @@ const STEPS = [
   {
     id: 'edificio',
     target: '#sidebar [data-id="aserradero"]',
-    text: 'Para crecer hay que construir. Pulsa el <b>aserradero</b> (en la lista o en la isla) para ver qué hace.',
+    text: 'Para crecer hay que construir. Empieza por el <b>aserradero</b>, que te dará madera: púlsalo en la lista o en la isla.',
     done: (hud) => hud.selected === 'aserradero' || hud.game.queue,
   },
   {
     id: 'mejorar',
     target: '#panel [data-action="upgrade"]',
-    text: 'Aquí ves lo que cuesta y lo que tarda. Pulsa <b>Mejorar</b>: tus obreros se ponen a trabajar.',
+    text: 'Aquí ves lo que cuesta y lo que tarda. Pulsa <b>Construir</b>: tus obreros se ponen a trabajar.',
     done: (hud) => !!hud.game.queue,
     when: (hud) => hud.selected && !hud.game.queue,
   },

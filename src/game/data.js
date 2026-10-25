@@ -45,7 +45,6 @@ export const BUILDINGS = {
     baseCost: { madera: 60, piedra: 15 },
     costFactor: 1.5,
     baseTime: 30,
-    startLevel: 1,
   },
   cantera: {
     name: 'Cantera',
@@ -56,7 +55,6 @@ export const BUILDINGS = {
     baseCost: { madera: 50, piedra: 25 },
     costFactor: 1.5,
     baseTime: 35,
-    startLevel: 1,
   },
   granja: {
     name: 'Granja',
@@ -969,9 +967,9 @@ const res = (id, n) => (g) => [Math.min(g.researchLevel(id), n), n];
 const stat = (key, n) => (g) => [Math.min(g.stats[key] ?? 0, n), n];
 
 export const QUESTS = [
-  { id: 'q-aserradero', title: 'Más madera', text: 'Mejora el aserradero a nivel 2.', goal: lvl('aserradero', 2), reward: { madera: 150, piedra: 100 } },
+  { id: 'q-aserradero', title: 'Más madera', text: 'Construye el aserradero.', goal: lvl('aserradero', 1), reward: { madera: 150, piedra: 100 } },
   { id: 'q-granja', title: 'Pan para todos', text: 'Construye la granja.', goal: lvl('granja', 1), reward: { comida: 250, madera: 100 } },
-  { id: 'q-cantera', title: 'Cimientos', text: 'Mejora la cantera a nivel 2.', goal: lvl('cantera', 2), reward: { piedra: 200 } },
+  { id: 'q-cantera', title: 'Cimientos', text: 'Construye la cantera.', goal: lvl('cantera', 1), reward: { piedra: 200 } },
   { id: 'q-almacen', title: 'Un lugar para todo', text: 'Construye el almacén.', goal: lvl('almacen', 1), reward: { madera: 200, piedra: 150 } },
   { id: 'q-ayto2', title: 'Villa en crecimiento', text: 'Mejora el ayuntamiento a nivel 2.', goal: lvl('ayuntamiento', 2), reward: { madera: 300, piedra: 300, comida: 200 } },
   { id: 'q-academia', title: 'Amor al saber', text: 'Construye la academia.', goal: lvl('academia', 1), reward: { madera: 250, piedra: 250 } },
