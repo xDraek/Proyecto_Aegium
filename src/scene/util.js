@@ -50,6 +50,56 @@ export function paintByNormal(geo, pick) {
 }
 
 /** Meseta low-poly con bordes irregulares, con la cara superior en y = top. */
+/**
+ * Una nube de algodón (cúmulo): bolas lisas que se solapan, las grandes en el centro y más
+ * altas, con la base plana y la panza en sombra (blanco arriba, gris azulado abajo, en colores
+ * de vértice). `width` es el largo aproximado; `depth`, cuánto se abre hacia los lados.
+ */
+export function cloudGeometry(rand, { puffs = 7, width = 6, depth = 1.6, size = 1.4, detail = 2 } = {}) {
+  const parts = [];
+  const ball = (r, x, y, z) => parts.push(new THREE.IcosahedronGeometry(r, detail).translate(x, y, z));
+  for (let i = 0; i < puffs; i++) {
+    const t = puffs === 1 ? 0.5 : i / (puffs - 1);
+    const middle = Math.sin(Math.PI * t); // 0 en los extremos, 1 en el centro
+    const r = size * (0.6 + 0.5 * middle) * (0.9 + rand() * 0.2);
+    const x = (t - 0.5) * width + (rand() - 0.5) * 0.3 * size;
+    ball(r, x, r * 0.3 + middle * size * 0.4, (rand() - 0.5) * depth * 0.4);
+    // Otra fila delante y detrás, algo más baja: la nube tiene cuerpo y no se ve en fila
+    if (middle > 0.3) ball(r * 0.8, x + (rand() - 0.5) * size * 0.4, r * 0.15, (rand() < 0.5 ? -1 : 1) * depth * (0.35 + rand() * 0.15));
+  }
+  // Unas bolas más pequeñas por encima, para que la copa no quede lisa
+  for (let i = 0; i < Math.max(1, Math.round(puffs / 3)); i++) {
+    const r = size * (0.5 + rand() * 0.25);
+    ball(r, (rand() - 0.5) * width * 0.45, size * (0.85 + rand() * 0.35), (rand() - 0.5) * depth * 0.4);
+  }
+  const geo = mergeGeometries(parts);
+  for (const g of parts) g.dispose();
+  // Base plana y color: la parte de abajo, aplastada y en sombra
+  const pos = geo.attributes.position;
+  const colors = new Float32Array(pos.count * 3);
+  const top = new THREE.Color('#ffffff');
+  const belly = new THREE.Color('#c6d1de');
+  const c = new THREE.Color();
+  let maxY = 0;
+  for (let i = 0; i < pos.count; i++) maxY = Math.max(maxY, pos.getY(i));
+  for (let i = 0; i < pos.count; i++) {
+    let y = pos.getY(i);
+    if (y < 0) y *= 0.25;
+    pos.setY(i, y);
+    c.copy(belly).lerp(top, THREE.MathUtils.smoothstep(y / maxY, 0.05, 0.75));
+    colors.set([c.r, c.g, c.b], i * 3);
+  }
+  // (las normales de cada bola ya son las de una esfera: sombreado liso, sin facetas)
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return geo;
+}
+
+/** El material de las nubes: liso (sin facetas), mate y algo transparente en los bordes. */
+export function cloudMaterial(opacity = 0.92) {
+  // (un poco de luz propia: la sombra de una nube nunca es oscura)
+  return new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: true, roughness: 1, metalness: 0, emissive: '#ffffff', emissiveIntensity: 0.22, transparent: true, opacity });
+}
+
 export function plateauGeometry(rTop, rBottom, height, segments, seed, top = 0) {
   const geo = new THREE.CylinderGeometry(rTop, rBottom, height, segments, 2).toNonIndexed();
   geo.translate(0, top - height / 2, 0);

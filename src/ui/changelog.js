@@ -7,6 +7,18 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-25g',
+    date: '2026-10-25',
+    title: 'Nubes de algodón',
+    items: [
+      '☁️ Las <b>nubes</b> se renuevan: cúmulos blancos y redondeados, con la panza en sombra, en vez de bloques de piedra. También las que tapan las islas sin explorar y los bancos de niebla del Mar de las Brumas.',
+    ],
+    en: {
+      title: 'Cotton clouds',
+      items: ['☁️ The <b>clouds</b> are renewed: round white cumulus clouds with shaded bellies, instead of blocks of stone. The ones covering unexplored islands and the fog banks of the Sea of Mists too.'],
+    },
+  },
+  {
     id: '2026-10-25f',
     date: '2026-10-25',
     title: 'Noticias e informes en inglés',

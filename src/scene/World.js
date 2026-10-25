@@ -40,7 +40,7 @@ import {
 } from './models.js';
 import { createIslandBase, createIslandFeature, featStatueModel, islandExtent, islandLook, islandProxy, islandRadius, ownerColor, shoreRadius } from './islands.js';
 import { escapeHtml, fmtTime } from '../ui/format.js';
-import { Batch, bakeStatic, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng, surfaceDetail } from './util.js';
+import { Batch, bakeStatic, cloudGeometry, cloudMaterial, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng, surfaceDetail } from './util.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createWater, setShores, swellAt } from './water.js';
 import { coastFactor, coastMax, islandCoast, shapeGeometry } from './coast.js';
@@ -488,6 +488,7 @@ export class World {
     this.hemi.intensity = num('hemiI') * (1 - 0.45 * dark);
     this.hemiBase = this.hemi.intensity;
     this.cloudMaterial?.color.set('#ffffff').lerp(new THREE.Color('#7f8894'), dark);
+    if (this.cloudMaterial) this.cloudMaterial.emissiveIntensity = 0.22 * (1 - dark);
     // De día el sol cruza el cielo; de noche la luna sale por el lado contrario
     const a = phase * Math.PI * 2;
     this.sun.position.set(Math.cos(a) * 34, 14 + Math.abs(s) * 32, 18 + Math.sin(a) * 10);
@@ -1357,24 +1358,15 @@ export class World {
 
   #buildClouds() {
     const rand = rng(42);
-    const geo = new THREE.IcosahedronGeometry(1, 0);
-    const material = new THREE.MeshStandardMaterial({ color: '#ffffff', flatShading: true, roughness: 1, transparent: true, opacity: 0.95 });
+    const material = cloudMaterial(0.94);
     this.cloudMaterial = material;
     for (let i = 0; i < 22; i++) {
-      // Las bolas de cada nube, en una sola malla
-      const puffs = 3 + Math.floor(rand() * 3);
-      const parts = [];
-      for (let k = 0; k < puffs; k++) {
-        const x = k * 1.3 - puffs * 0.6;
-        const y = rand() * 0.6;
-        const z = (rand() - 0.5) * 1.2;
-        const size = 1 + rand() * 0.9;
-        parts.push(geo.clone().scale(size, size, size).translate(x, y, z));
-      }
-      const cloud = new THREE.Mesh(mergeGeometries(parts), material);
-      for (const g of parts) g.dispose();
+      // Cada nube, un cúmulo de bolas lisas en una sola malla
+      const puffs = 5 + Math.floor(rand() * 4);
+      const cloud = new THREE.Mesh(cloudGeometry(rand, { puffs, width: puffs * 0.95, depth: 1.8, size: 1.3 }), material);
       const near = i < 8;
       cloud.position.set((rand() - 0.5) * (near ? 140 : 560), 18 + rand() * 12, (rand() - 0.5) * (near ? 100 : 500));
+      cloud.rotation.y = (rand() - 0.5) * 0.6;
       if (!near) cloud.scale.setScalar(2 + rand() * 1.5);
       cloud.userData.speed = 0.8 + rand() * 1.2;
       cloud.userData.span = near ? 80 : 300;

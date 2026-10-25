@@ -3,7 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { C, box, colonnade, column, createShip, createSoldier, cyl, cypress, dome, figure, gableRoof, greekKey, hipRoof, makeFire, mat, mediterraneanTree, mesh, palmTree, smokeColumn, stylobate, WINDOW_GLOW } from './models.js';
 import { wonderLevel, wonderOf } from '../game/rules.js';
 import { FEAT_THEMES } from '../game/data.js';
-import { Batch, bakeStatic, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng } from './util.js';
+import { Batch, bakeStatic, cloudGeometry, cloudMaterial, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng } from './util.js';
 import { coastFactor, coastMax, islandCoast, shapeGeometry } from './coast.js';
 
 // Islas del archipiélago. La base (relieve, playa, árboles) no cambia; lo que hay
@@ -436,34 +436,35 @@ export function createIslandFeature(isl, fullLook) {
 }
 
 function mist(g, R, rand) {
-  const material = new THREE.MeshStandardMaterial({ color: '#f4f7fb', flatShading: true, roughness: 1, transparent: true, opacity: 0.88 });
-  // Las nubecillas van en una sola malla que gira entera
-  const puffs = [];
-  for (let i = 0; i < 9; i++) {
-    const geo = new THREE.IcosahedronGeometry(R * (0.28 + rand() * 0.2), 0);
-    const p = polar(R * (0.15 + rand() * 0.6), rand() * 360, 1.2 + rand() * 2.2);
-    geo.translate(p.x, p.y, p.z);
-    puffs.push(geo);
+  // Unos cúmulos bajos que tapan la isla; giran despacio todos juntos
+  const material = cloudMaterial(0.9);
+  const parts = [];
+  for (let i = 0; i < 6; i++) {
+    const puffs = 4 + Math.floor(rand() * 3);
+    const geo = cloudGeometry(rand, { puffs, width: R * 0.95, depth: R * 0.45, size: R * 0.27 });
+    const p = polar(i ? R * (0.3 + rand() * 0.3) : 0, (i / 5) * 360 + rand() * 30, 1.2 + rand() * 1.6);
+    geo.rotateY(rand() * Math.PI).translate(p.x, p.y, p.z);
+    parts.push(geo);
   }
-  const cloud = new THREE.Mesh(mergeGeometries(puffs), material);
-  for (const geo of puffs) geo.dispose();
+  const cloud = new THREE.Mesh(mergeGeometries(parts), material);
+  for (const geo of parts) geo.dispose();
   cloud.userData.spin = { axis: 'y', speed: 0.08 };
   g.add(cloud);
 }
 
 function fogBank(g, R, rand) {
-  const material = new THREE.MeshStandardMaterial({ color: '#e9eef3', flatShading: true, roughness: 1, transparent: true, opacity: 0.75 });
+  const material = cloudMaterial(0.8);
   for (let ring = 0; ring < 2; ring++) {
-    // Cada anillo, en una sola malla que gira entera
-    const puffs = [];
-    for (let i = 0; i < 14; i++) {
-      const geo = new THREE.IcosahedronGeometry(2 + rand() * 2.5, 0);
-      const p = polar(R * (1.2 + ring * 1.3 + rand() * 0.8), (i / 14) * 360 + rand() * 20, SEA + 0.8 + rand() * 1.5);
-      geo.scale(1, 0.55, 1).translate(p.x, p.y, p.z);
-      puffs.push(geo);
+    // Cada anillo de bancos de niebla, en una sola malla que gira entera
+    const parts = [];
+    for (let i = 0; i < 9; i++) {
+      const geo = cloudGeometry(rand, { puffs: 4, width: 9, depth: 3, size: 2.4 });
+      const p = polar(R * (1.2 + ring * 1.3 + rand() * 0.8), (i / 9) * 360 + rand() * 20, SEA + 0.6 + rand() * 1.2);
+      geo.scale(1, 0.6, 1).rotateY(rand() * Math.PI).translate(p.x, p.y, p.z);
+      parts.push(geo);
     }
-    const bank = new THREE.Mesh(mergeGeometries(puffs), material);
-    for (const geo of puffs) geo.dispose();
+    const bank = new THREE.Mesh(mergeGeometries(parts), material);
+    for (const geo of parts) geo.dispose();
     bank.userData.spin = { axis: 'y', speed: ring ? -0.05 : 0.08 };
     g.add(bank);
   }
