@@ -263,4 +263,6 @@ export default {
   "{0} ¡{1}! Fondeaderos {2}/{3} · campamento {4}": "{0} {1}! Anchorages {2}/{3} · camp {4}",
   "{0} ¡La Hidra! {1} {2}": "{0} The Hydra! {1} {2}",
   "Fosa del Kraken": "Kraken's Trench",
+  "Cuéntanos un poco más: qué pasó y qué estabas haciendo.": "Tell us a bit more: what happened and what you were doing.",
+  "Ya nos has mandado varios avisos. Espera un rato antes de mandar otro.": "You've already sent us several reports. Wait a while before sending another.",
 }

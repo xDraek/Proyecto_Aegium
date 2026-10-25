@@ -3581,6 +3581,27 @@ export class WorldServer {
     this.#deliverMail(userId, [toId], this.users.get(toId).username, subject, text);
   }
 
+  /**
+   * Un jugador avisa de un fallo: se guarda (los últimos 300) y les llega por correo a los
+   * moderadores, de su parte (así pueden contestarle), con los datos que manda el navegador.
+   */
+  reportBug(userId, text, context = {}) {
+    text = String(text ?? '').trim().slice(0, 1500);
+    if (text.length < 10) throw new UserError('Cuéntanos un poco más: qué pasó y qué estabas haciendo.');
+    const info = Object.entries(context && typeof context === 'object' ? context : {})
+      .slice(0, 12)
+      .map(([k, v]) => [String(k).slice(0, 20), String(Array.isArray(v) ? v.join(' | ') : v ?? '').slice(0, 300)]);
+    const username = this.users.get(userId).username;
+    const id = (this.meta.bugSeq = (this.meta.bugSeq ?? 0) + 1);
+    this.meta.bugs = [{ id, t: Date.now(), user: username, text, context: Object.fromEntries(info) }, ...(this.meta.bugs ?? [])].slice(0, 300);
+    const admins = [...this.users.values()].filter((u) => this.isAdmin(u.id) && this.games.has(u.id)).map((u) => u.id);
+    if (admins.length) {
+      const details = info.map(([k, v]) => `${k}: ${v}`).join('\n');
+      this.#deliverMail(userId, admins, 'Moderadores', `🐞 Fallo #${id}: ${text.replace(/\s+/g, ' ').slice(0, 50)}`, `${text}\n\n— Datos del navegador —\n${details}`);
+    }
+    return id;
+  }
+
   /** Deja una carta en el buzón de cada destinatario y una copia en los enviados. */
   #deliverMail(userId, recipients, toLabel, subject, text) {
     subject = String(subject ?? '').replace(/\s+/g, ' ').trim().slice(0, 80) || '(sin asunto)';

@@ -1,12 +1,13 @@
 import { universe } from '../config.js';
 import { ACHIEVEMENTS, BANNER_COLORS, BANNER_EMBLEMS, DAILY_REWARDS, RESOURCES, VACATION } from '../game/data.js';
+import { recentErrors } from '../errors.js';
 import { api, setToken } from '../net/api.js';
 import { bag, escapeHtml, fmtAgo, fmtDec, fmtNum, fmtTime } from './format.js';
 import { resPicker } from './resPicker.js';
 import { runSimulation, simulatorHtml } from './simulator.js';
 
 /** Ventanas que gestiona este módulo. */
-export const SOCIAL_MODALS = ['alliance', 'mail', 'profile', 'daily', 'welcome', 'password', 'sim', 'friends'];
+export const SOCIAL_MODALS = ['alliance', 'mail', 'profile', 'daily', 'welcome', 'password', 'sim', 'friends', 'bug'];
 
 // Alianza, correo y mercado del archipiélago: lo que se habla con otros
 // jugadores. Los datos llegan del servidor aparte del estado de la partida.
@@ -474,6 +475,36 @@ export class Social {
     );
   }
 
+  // ── Avisos de fallos ───────────────────────────────────────────────────────
+
+  openBugReport() {
+    this.hud.showModal(
+      'bug',
+      `<div class="modal-card narrow">
+        ${head('🐞', 'Reportar un fallo', 'Les llega a los moderadores')}
+        <form class="stack" data-form="bug">
+          <textarea name="text" rows="7" minlength="10" maxlength="1500" placeholder="¿Qué ha pasado? Cuéntanos qué estabas haciendo, qué esperabas que pasara y qué pasó." required></textarea>
+          <p class="muted small">Con tu aviso se manda también, para encontrar el fallo: lo que tenías abierto en el juego, tu navegador, el tamaño de la pantalla, el idioma y los últimos errores de la página. Te pueden contestar por ✉️ correo.</p>
+          <button class="primary">Enviar el aviso</button>
+        </form>
+      </div>`,
+    );
+    this.hud.modal.querySelector('textarea')?.focus();
+  }
+
+  /** Lo que se adjunta a un aviso de fallo (sin nada personal: qué se veía y en qué navegador). */
+  #bugContext() {
+    const build = [...document.scripts].map((s) => s.src).find((src) => /\/assets\/index/.test(src));
+    return {
+      vista: `${this.hud.view ?? '?'}${this.hud.selected ? ` · ${this.hud.selected}` : ''}`,
+      navegador: navigator.userAgent,
+      pantalla: `${innerWidth}×${innerHeight} @${devicePixelRatio}`,
+      idioma: `${document.documentElement.lang} (${navigator.language})`,
+      version: build ? build.split('/').pop() : 'desarrollo',
+      errores: recentErrors().length ? recentErrors() : 'ninguno',
+    };
+  }
+
   // ── Amigos ─────────────────────────────────────────────────────────────────
 
   /**
@@ -881,6 +912,9 @@ export class Social {
         }
         const res = await this.#call('POST', '/api/password', { current: data.current, next: data.next }, '🔑 Contraseña cambiada: se han cerrado tus otras sesiones');
         if (res?.token) setToken(res.token);
+        if (res) this.hud.closeModal();
+      } else if (form.dataset.form === 'bug') {
+        const res = await this.#call('POST', '/api/bug', { text: data.text, context: this.#bugContext() }, '🐞 ¡Gracias! Los moderadores ya tienen tu aviso');
         if (res) this.hud.closeModal();
       } else if (form.dataset.form === 'rename-city') {
         const res = await this.#call('POST', '/api/city', { name: data.name }, '🏰 Tu ciudad tiene nombre nuevo');

@@ -234,4 +234,11 @@ export default {
   "La gráfica aparecerá cuando lleve al menos dos días en el archipiélago.": "The chart will appear once they've been in the archipelago for at least two days.",
   "📈 Puntos de los últimos {0} días": "📈 Points over the last {0} days",
   "Puntos de {4} a {5} en {6} días": "Points from {4} to {5} over {6} days",
+  "🐞 Reportar un fallo": "🐞 Report a bug",
+  "Reportar un fallo": "Report a bug",
+  "Les llega a los moderadores": "It goes to the moderators",
+  "¿Qué ha pasado? Cuéntanos qué estabas haciendo, qué esperabas que pasara y qué pasó.": "What happened? Tell us what you were doing, what you expected to happen and what happened.",
+  "Con tu aviso se manda también, para encontrar el fallo: lo que tenías abierto en el juego, tu navegador, el tamaño de la pantalla, el idioma y los últimos errores de la página. Te pueden contestar por ✉️ correo.": "Along with your report we also send, to help find the bug: what you had open in the game, your browser, the screen size, the language and the page's latest errors. They can reply to you by ✉️ mail.",
+  "Enviar el aviso": "Send the report",
+  "🐞 ¡Gracias! Los moderadores ya tienen tu aviso": "🐞 Thank you! The moderators have your report",
 }

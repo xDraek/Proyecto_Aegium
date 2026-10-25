@@ -23,7 +23,7 @@ export async function openStore({ databaseUrl, file }) {
  * Lo que sobrevive a un wipe en `meta`: la firma de las sesiones, los enlaces de correo pendientes,
  * sanciones, amigos, quién es Fundador, el mantenimiento y los contadores (para no repetir números).
  */
-export const WIPE_KEEP = ['secret', 'tokens', 'mod', 'friends', 'friendRequests', 'founderUntil', 'maintenance', 'mailAllAt', 'sessionsSince', 'mailSeq', 'chatSeq', 'allianceSeq', 'threadSeq', 'postSeq', 'offerSeq', 'nextUserId'];
+export const WIPE_KEEP = ['secret', 'tokens', 'mod', 'friends', 'friendRequests', 'founderUntil', 'maintenance', 'mailAllAt', 'sessionsSince', 'mailSeq', 'chatSeq', 'allianceSeq', 'threadSeq', 'postSeq', 'offerSeq', 'nextUserId', 'bugs', 'bugSeq'];
 
 const emptyData = () => ({ meta: {}, users: [], players: {}, islands: [], islandStates: {}, chat: [] });
 

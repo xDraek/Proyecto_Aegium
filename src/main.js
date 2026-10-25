@@ -1,4 +1,5 @@
 import './migrate.js';
+import './errors.js';
 import './style.css';
 import { ambientVolume, isMuted, musicOn, musicVolume, play, setAmbienceLevel, setAmbientVolume, setMusic, setMusicVolume, setMuted, unlockAudio } from './audio.js';
 import { clock, universe } from './config.js';

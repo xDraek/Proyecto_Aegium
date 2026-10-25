@@ -480,6 +480,12 @@ async function api(req, res, url) {
       world.sendMail(uid, to, subject, text);
       return send(res, 200, { mail: world.mailbox(uid) });
     }
+    // Avisos de fallos: van a los moderadores
+    if (route === 'POST /api/bug') {
+      if (limited(`bug:${uid}`, 5, 3_600_000)) return send(res, 429, { error: 'Ya nos has mandado varios avisos. Espera un rato antes de mandar otro.' });
+      const { text, context } = await readJson(req);
+      return send(res, 200, { id: world.reportBug(uid, text, context) });
+    }
     // Lo último que has visto (chat, avisos, novedades): se guarda en la cuenta para todos tus dispositivos
     if (route === 'POST /api/seen') {
       if (limited(`seen:${uid}`, 30, 60_000)) return send(res, 429, { error: 'Vas demasiado rápido.' });

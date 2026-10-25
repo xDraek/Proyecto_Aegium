@@ -392,6 +392,10 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       this.menu.hidden = true;
       openStats(this);
     });
+    this.menu.querySelector('[data-action="bug"]').addEventListener('click', () => {
+      this.menu.hidden = true;
+      this.social.openBugReport();
+    });
     this.menu.querySelector('[data-action="profile-me"]').addEventListener('click', () => {
       this.menu.hidden = true;
       this.social.openProfile(game.username);

@@ -7,6 +7,18 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-25h',
+    date: '2026-10-25',
+    title: 'Avisa de los fallos',
+    items: [
+      '🐞 Nuevo <b>Reportar un fallo</b> en el menú ⚙: cuéntanos qué ha pasado y les llega a los moderadores, que te pueden contestar por correo. Con el aviso va lo que tenías abierto, tu navegador y los últimos errores de la página, para encontrarlo antes.',
+    ],
+    en: {
+      title: 'Report bugs',
+      items: ['🐞 New <b>Report a bug</b> in the ⚙ menu: tell us what happened and it goes to the moderators, who can reply to you by mail. The report includes what you had open, your browser and the page’s latest errors, so it can be found sooner.'],
+    },
+  },
+  {
     id: '2026-10-25g',
     date: '2026-10-25',
     title: 'Nubes de algodón',
