@@ -42,7 +42,7 @@ import { createIslandBase, createIslandFeature, featStatueModel, islandExtent, i
 import { escapeHtml, fmtTime } from '../ui/format.js';
 import { Batch, bakeStatic, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng, surfaceDetail } from './util.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { createWater, setShores } from './water.js';
+import { createWater, setShores, swellAt } from './water.js';
 import { coastFactor, coastMax, islandCoast, shapeGeometry } from './coast.js';
 import { clock } from '../config.js';
 import { setGulls, setRain, thunder } from '../audio.js';
@@ -2708,6 +2708,11 @@ export class World {
     }
   }
 
+  /** Altura de un barco en el mar: encima de la ola que tiene debajo, con algo de borda fuera del agua. */
+  #floatY(pos) {
+    return WATER_Y + swellAt(pos.x, pos.z, this.waterTime?.value ?? 0) + 0.15;
+  }
+
   /**
    * Etiqueta que acompaña a un barco por el mapa del mundo: `mine` (tus flotas, con su destino y
    * lo que les falta), `enemy` (las que te atacan), `ally` u `other` (las de otros que pasan cerca).
@@ -3051,7 +3056,7 @@ export class World {
       }
       f.route.at(u, pos, dir);
       if (back) dir.negate();
-      f.group.position.set(pos.x, WATER_Y + Math.sin(t * 1.4 + m.id) * 0.12, pos.z);
+      f.group.position.set(pos.x, this.#floatY(pos), pos.z);
       f.group.rotation.y = Math.atan2(dir.x, dir.z);
       f.group.scale.setScalar(shipScale);
       f.line.visible = this.view === 'mapa';
@@ -3064,7 +3069,7 @@ export class World {
       const u = back ? 1 - (now - m.arrive) / Math.max(1, (m.back ?? m.arrive) - m.arrive) : (now - m.depart) / (m.arrive - m.depart);
       f.route.at(THREE.MathUtils.clamp(u, 0, 1), pos, dir);
       if (back) dir.negate();
-      f.group.position.set(pos.x, WATER_Y + Math.sin(t * 1.2 + pos.x) * 0.12, pos.z);
+      f.group.position.set(pos.x, this.#floatY(pos), pos.z);
       f.group.rotation.y = Math.atan2(dir.x, dir.z);
       f.group.scale.setScalar(shipScale * 0.85);
     }
@@ -3073,7 +3078,7 @@ export class World {
       if (!f.incoming) continue;
       const m = f.incoming;
       f.route.at((now - m.depart) / (m.arrive - m.depart), pos, dir);
-      f.group.position.set(pos.x, WATER_Y + Math.sin(t * 1.3) * 0.12, pos.z);
+      f.group.position.set(pos.x, this.#floatY(pos), pos.z);
       f.group.rotation.y = Math.atan2(dir.x, dir.z);
       f.group.scale.setScalar(shipScale);
       f.line.visible = this.view === 'mapa';
@@ -3084,7 +3089,7 @@ export class World {
       if (raid) {
         const u = (now - raid.spawn) / (raid.arrival - raid.spawn);
         this.raidRoute.at(u, pos, dir);
-        this.raidGroup.position.set(pos.x, WATER_Y + Math.sin(t * 1.2) * 0.15, pos.z);
+        this.raidGroup.position.set(pos.x, this.#floatY(pos), pos.z);
         this.raidGroup.rotation.y = Math.atan2(dir.x, dir.z);
         this.raidGroup.scale.setScalar(shipScale);
       }

@@ -26,6 +26,7 @@ const MAX_OFFERS = 5;
 const OFFER_DAYS = 3;
 const RANK_SIZE = 50; // filas de las clasificaciones por categoría
 const MAP_CACHE_MS = 30_000;
+const ISLAND_LAYOUT = 2; // versión del reparto de islas (ver #respaceSectors)
 const INACTIVE_MS = 7 * 86_400_000; // una semana sin entrar: inactivo
 const MAX_THREADS = 40;
 const MAX_POSTS = 200;
@@ -154,6 +155,11 @@ export class WorldServer {
     this.#grantFounders();
     this.memberOf = new Map();
     for (const a of Object.values(this.meta.alliances)) for (const uid of a.members) this.memberOf.set(uid, a.id);
+    // Islas de antes, con poco mar entre ellas: se recolocan una vez con el reparto de ahora
+    if ((this.meta.layout ?? 1) < ISLAND_LAYOUT) {
+      this.#respaceSectors();
+      this.meta.layout = ISLAND_LAYOUT;
+    }
     // Mundos de antes de los continentes: se añaden donde quepan
     for (let s = 0; s < this.meta.sectors; s++) this.#addContinents(s, clock.now());
     this.#refreshWonders();
@@ -228,8 +234,7 @@ export class WorldServer {
     const now = clock.now();
     const home = homeIsland(sector, id, city);
     const c = sectorCenter(sector);
-    const lands = this.#landsNear(c.x, c.z, 520).filter((o) => o.type === 'continente');
-    const neutrals = generateSector(sector, this.meta.seed, lands);
+    const neutrals = generateSector(sector, this.meta.seed, this.#landsNear(c.x, c.z, 520));
     for (const isl of [home, ...neutrals]) this.#addIsland(isl, now);
     this.#addContinents(sector, now);
     const game = this.#makeGame(id, newState({ now, home: home.id, name: username }));
@@ -303,9 +308,28 @@ export class WorldServer {
     const out = [];
     for (const isl of this.islands.values()) {
       if (isl.land) continue; // los asentamientos van dentro de su continente
-      if (Math.hypot(isl.x - x, isl.z - z) <= radius) out.push({ x: isl.x, z: isl.z, r: footprint(isl), type: isl.type });
+      if (Math.hypot(isl.x - x, isl.z - z) <= radius) out.push({ id: isl.id, x: isl.x, z: isl.z, r: footprint(isl), type: isl.type });
     }
     return out;
+  }
+
+  /**
+   * Vuelve a repartir las islas neutrales de cada sector con generateSector (mismas islas, mismos
+   * ids, solo cambia dónde están), esquivando las tierras que ya hay alrededor.
+   */
+  #respaceSectors() {
+    for (let sector = 0; sector < this.meta.sectors; sector++) {
+      const c = sectorCenter(sector);
+      const mine = (isl) => isl.sector === sector && isl.type !== 'jugador';
+      const lands = this.#landsNear(c.x, c.z, 520).filter((o) => !mine(this.islands.get(o.id)));
+      for (const isl of generateSector(sector, this.meta.seed, lands)) {
+        const old = this.islands.get(isl.id);
+        if (!old || old.type !== isl.type || (old.x === isl.x && old.z === isl.z)) continue;
+        Object.assign(old, { x: isl.x, z: isl.z });
+        this.newIslands.push(old);
+      }
+    }
+    this.#islandsChanged();
   }
 
   /** Continentes en los vértices de un sector (cada vértice se decide una sola vez). */

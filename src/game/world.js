@@ -43,29 +43,29 @@ export function withoutGold(x) {
 }
 
 const TEMPLATE = [
-  { type: 'barbaros', tier: 1, dist: 68, size: 6, garrison: { barbaro: 8 }, regenHours: 6, loot: { max: 1500, rate: 150, mix: { madera: 0.5, comida: 0.5 } } },
-  { type: 'ruinas', dist: 82, size: 4.5, treasure: { piedra: 600, cristal: 300, oro: 150 } },
-  { type: 'libre', dist: 76, size: 7, specialties: ['madera', 'comida', 'piedra'] },
+  { type: 'barbaros', tier: 1, dist: 96, size: 6, garrison: { barbaro: 8 }, regenHours: 6, loot: { max: 1500, rate: 150, mix: { madera: 0.5, comida: 0.5 } } },
+  { type: 'ruinas', dist: 102, size: 4.5, treasure: { piedra: 600, cristal: 300, oro: 150 } },
+  { type: 'libre', dist: 106, size: 7, specialties: ['madera', 'comida', 'piedra'] },
   {
-    type: 'barbaros', tier: 2, dist: 94, size: 5.5, garrison: { barbaro: 18, arquero: 6 }, regenHours: 6,
+    type: 'barbaros', tier: 2, dist: 112, size: 5.5, garrison: { barbaro: 18, arquero: 6 }, regenHours: 6,
     loot: { max: 3200, rate: 260, mix: { madera: 0.3, piedra: 0.3, comida: 0.4 } },
   },
-  { type: 'libre', dist: 104, size: 8, specialties: ['hierro', 'cristal', 'piedra'] },
+  { type: 'libre', dist: 124, size: 8, specialties: ['hierro', 'cristal', 'piedra'] },
   {
-    type: 'barbaros', tier: 3, dist: 136, size: 7, garrison: { barbaro: 40, arquero: 22 }, regenHours: 8,
+    type: 'barbaros', tier: 3, dist: 146, size: 7, garrison: { barbaro: 40, arquero: 22 }, regenHours: 8,
     loot: { max: 7000, rate: 450, mix: { madera: 0.25, piedra: 0.25, hierro: 0.25, cristal: 0.25 } },
   },
-  { type: 'ruinas', dist: 128, size: 5, treasure: { hierro: 1200, cristal: 800, oro: 500 } },
-  { type: 'libre', dist: 146, size: 7.5, specialties: ['cristal', 'hierro'] },
+  { type: 'ruinas', dist: 140, size: 5, treasure: { hierro: 1200, cristal: 800, oro: 500 } },
+  { type: 'libre', dist: 156, size: 7.5, specialties: ['cristal', 'hierro'] },
   {
-    type: 'piratas', tier: 4, dist: 160, size: 8, garrison: { pirata: 45, corsario: 6 }, wall: 0.2, regenHours: 10,
+    type: 'piratas', tier: 4, dist: 168, size: 8, garrison: { pirata: 45, corsario: 6 }, wall: 0.2, regenHours: 10,
     loot: { max: 14000, rate: 700, mix: { hierro: 0.3, cristal: 0.3, oro: 0.4 } },
   },
-  { type: 'brumas', dist: 178, size: 5 },
+  { type: 'brumas', dist: 184, size: 5 },
 ];
 
 const PIRATE_LORD = {
-  type: 'piratas', tier: 5, dist: 172, size: 9, garrison: { pirata: 90, corsario: 14 }, wall: 0.3, regenHours: 12,
+  type: 'piratas', tier: 5, dist: 178, size: 9, garrison: { pirata: 90, corsario: 14 }, wall: 0.3, regenHours: 12,
   loot: { max: 24000, rate: 1000, mix: { madera: 0.2, hierro: 0.3, cristal: 0.2, oro: 0.3 } },
 };
 /**
@@ -74,7 +74,7 @@ const PIRATE_LORD = {
  */
 export const KRAKEN_LAIR = { garrison: { pirata: 130, corsario: 26 }, wall: 0.4, regenHours: 36 };
 const KRAKEN = {
-  type: 'kraken', tier: 7, dist: 186, size: 8, ...KRAKEN_LAIR,
+  type: 'kraken', tier: 7, dist: 190, size: 8, ...KRAKEN_LAIR,
   loot: { max: 60000, rate: 1200, mix: { hierro: 0.2, cristal: 0.3, oro: 0.5 } },
 };
 
@@ -143,9 +143,10 @@ export function generateSector(index, worldSeed = 1, obstacles = []) {
   if (index % 3 === 1) entries.push({ ...PIRATE_LORD });
   if (index % 4 === 0) entries.push({ ...KRAKEN });
 
-  // Cada isla en un ángulo al azar, sin pisar a las demás ni a la isla del jugador
-  const radius = (size) => size * 2.4 * 1.32 + 4;
-  const placed = [{ x: center.x, z: center.z, r: radius(10) }, ...obstacles.map((o) => ({ ...o, r: o.r + 4 }))];
+  // Cada isla en un ángulo al azar, con mar de por medio: unas 18 leguas entre islas y 40 alrededor
+  // de la ciudad del jugador (antes bastaban 8 y alguna quedaba casi pegada a ella)
+  const radius = (size) => size * 2.4 * 1.32 + 9;
+  const placed = [{ x: center.x, z: center.z, r: radius(10) + 22 }, ...obstacles.map((o) => ({ ...o, r: o.r + 9 }))];
   const spots = entries.map((t) => {
     let best = null;
     for (let tries = 0; tries < 200; tries++) {
@@ -229,7 +230,7 @@ export function generateContinent(v, worldSeed = 1, obstacles = []) {
   if (rand() > CONTINENT_CHANCE) return null;
   const clearance = (R) => Math.min(Infinity, ...obstacles.map((o) => Math.hypot(o.x - v.x, o.z - v.z) - o.r - R * 1.15));
   let R = 44;
-  while (R >= 28 && clearance(R) < 4) R -= 2;
+  while (R >= 28 && clearance(R) < 14) R -= 2;
   if (R < 28) return null;
 
   const id = `c${v.key}`;

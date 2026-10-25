@@ -27,6 +27,14 @@ function packShore(s, i, A, B, Cc) {
 }
 
 /**
+ * Altura de la ola en mar abierto en (x, z) del mundo: la misma cuenta que hace la GPU, para que
+ * los barcos suban y bajen con el agua que tienen debajo en vez de hundirse en ella.
+ */
+export function swellAt(x, z, time) {
+  return Math.sin(x * 0.21 + time * 1.1) * 0.12 + Math.cos(z * 0.17 - time * 0.9) * 0.1 + Math.sin((x + z) * 0.11 + time * 0.7) * 0.08;
+}
+
+/**
  * @param {{ x: number, z: number, r: number, h?: {a: number, p: number}[] }[]} shores  islas: centro, radio y forma de la orilla
  */
 export function createWater(shores, level) {

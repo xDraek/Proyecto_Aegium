@@ -5,6 +5,15 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-25c',
+    date: '2026-10-25',
+    title: 'Más mar entre las islas',
+    items: [
+      '🌊 Las islas ya no nacen pegadas: hay más mar alrededor de tu ciudad y entre las islas vecinas, y los continentes dejan su hueco. Las islas que ya existían se han recolocado (las mismas islas, solo más separadas).',
+      '🛶 Los barcos flotan sobre las olas que tienen debajo: los botes pequeños ya no se hunden entre ellas mientras navegan.',
+    ],
+  },
+  {
     id: '2026-10-25b',
     date: '2026-10-25',
     title: 'Desde los cimientos',
