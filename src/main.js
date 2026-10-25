@@ -13,6 +13,7 @@ import { World } from './scene/World.js';
 import { warmPortraits } from './scene/portraits.js';
 import { Hud } from './ui/Hud.js';
 import { showLanding } from './ui/landing.js';
+import { startTranslation } from './i18n/index.js';
 
 const DAYNIGHT_KEY = 'aegium.daynight';
 const LABELS_KEY = 'aegium.labels';
@@ -51,7 +52,10 @@ function readDayNight() {
 window.addEventListener('pointerdown', unlockAudio, { once: true });
 window.addEventListener('keydown', unlockAudio, { once: true });
 
-boot();
+// (en inglés, primero el diccionario: así nada sale en español ni un momento)
+startTranslation()
+  .catch((err) => console.error(err))
+  .finally(boot);
 
 async function boot() {
   // Enlaces de los correos: ?verificar=… confirma la cuenta (o un correo nuevo); ?clave=… pide otra contraseña

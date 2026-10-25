@@ -1448,7 +1448,7 @@ Al jurar, ${wars.join(' y ')}.` : '';
         const time = new Date(m.t).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
         return m.system
           ? `<div class="msg system"><span>${richText(m.text)}</span><time>${time}</time></div>`
-          : `<div class="msg${m.name === this.game.username ? ' mine' : ''}"><b data-profile="${escapeHtml(m.name)}">${escapeHtml(m.name)}</b>${m.title ? `<em class="msg-title">${escapeHtml(m.title)}</em>` : ''} <span>${linkCoords(escapeHtml(m.text))}</span>${
+          : `<div class="msg${m.name === this.game.username ? ' mine' : ''}"><b data-profile="${escapeHtml(m.name)}" translate="no">${escapeHtml(m.name)}</b>${m.title ? `<em class="msg-title">${escapeHtml(m.title)}</em>` : ''} <span translate="no">${linkCoords(escapeHtml(m.text))}</span>${
               m.report ? `<button class="link small" data-shared="${m.id}">Ver informe ▶</button>` : ''
             }<time>${time}</time>${
               this.game.admin ? `<button class="msg-del" data-delete="${m.id}" title="Borrar mensaje">✕</button>` : ''

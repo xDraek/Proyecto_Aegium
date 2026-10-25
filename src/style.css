@@ -5936,3 +5936,25 @@ kbd {
   font-family: var(--font-title);
   color: var(--gold);
 }
+
+/* Idioma: en Ajustes, el selector a la derecha; en la portada, arriba a la derecha del recuadro */
+.menu .lang-row select {
+  margin-left: auto;
+  width: auto;
+  padding: 2px 6px;
+  font-size: 13px;
+}
+
+.lang-pick {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.lang-pick select {
+  width: auto;
+  padding: 4px 8px;
+  font-size: 13px;
+}

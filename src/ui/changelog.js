@@ -1,9 +1,25 @@
+import { LANG } from '../i18n/index.js';
 import { escapeHtml } from './format.js';
 
 // Notas de las actualizaciones, la más reciente primero. Para publicar una nueva, añádela arriba
 // con un `id` distinto: a quien no la haya leído se le marca el botón 📰 de la barra de abajo.
+// Con `en: { title, items }` sale también en inglés (las que no lo tienen se ven en español).
 
 export const CHANGELOG = [
+  {
+    id: '2026-10-25e',
+    date: '2026-10-25',
+    title: 'Aegium in English',
+    items: [
+      '🌐 Ya se puede jugar en <b>inglés</b>: elige el idioma en ⚙ Ajustes o en la portada. Están traducidos los menús, los paneles, los edificios, las tropas, las misiones y la guía; las noticias e informes que manda el juego llegarán en inglés en una próxima actualización.',
+    ],
+    en: {
+      title: 'Aegium in English',
+      items: [
+        '🌐 You can now play in <b>English</b>: choose the language in ⚙ Settings or on the home page. Menus, panels, buildings, troops, missions and the guide are translated; the news and reports the game sends will come in English in an upcoming update.',
+      ],
+    },
+  },
   {
     id: '2026-10-25d',
     date: '2026-10-25',
@@ -11,6 +27,10 @@ export const CHANGELOG = [
     items: [
       '🏖️ Las cabañas de pescadores, los embarcaderos, las barcas, las redes y las palmeras ya no se meten en los montes de la cantera y la mina: buscan su sitio en la arena libre.',
     ],
+    en: {
+      title: 'Tidy beaches',
+      items: ['🏖️ Fishermen’s huts, piers, boats, nets and palm trees no longer poke into the quarry and mine mountains: they find their spot on the free sand.'],
+    },
   },
   {
     id: '2026-10-25c',
@@ -20,6 +40,13 @@ export const CHANGELOG = [
       '🌊 Las islas ya no nacen pegadas: hay más mar alrededor de tu ciudad y entre las islas vecinas, y los continentes dejan su hueco. Las islas que ya existían se han recolocado (las mismas islas, solo más separadas).',
       '🛶 Los barcos flotan sobre las olas que tienen debajo: los botes pequeños ya no se hunden entre ellas mientras navegan.',
     ],
+    en: {
+      title: 'More sea between the islands',
+      items: [
+        '🌊 Islands are no longer born stuck together: there’s more sea around your city and between neighbouring islands, and continents leave their gap. Existing islands have been moved (the same islands, just further apart).',
+        '🛶 Ships float on the waves beneath them: small boats no longer sink between them while sailing.',
+      ],
+    },
   },
   {
     id: '2026-10-25b',
@@ -28,6 +55,10 @@ export const CHANGELOG = [
     items: [
       '🪓 Las ciudades nuevas empiezan solo con el <b>ayuntamiento</b>: el <b>aserradero</b> y la <b>cantera</b> los construyes tú con los recursos iniciales, que no cambian. Las primeras misiones y el consejero te guían para levantarlos.',
     ],
+    en: {
+      title: 'From the foundations',
+      items: ['🪓 New cities start with just the <b>town hall</b>: you build the <b>sawmill</b> and the <b>quarry</b> yourself with the starting resources, which haven’t changed. The first missions and the advisor guide you through it.'],
+    },
   },
   {
     id: '2026-10-25-mundo',
@@ -38,6 +69,14 @@ export const CHANGELOG = [
       '🪪 <b>Tu cuenta sigue siendo tuya</b>: el mismo nombre, contraseña y correo. También conservas a tus <b>amigos</b> y, si lo eras, el título de <b>Fundador</b>.',
       '🏛️ Al entrar, eliges el <b>nombre de tu ciudad nueva</b> y la fundas en un rincón del mapa recién trazado.',
     ],
+    en: {
+      title: 'A new world',
+      items: [
+        '🌊 <b>The archipelago starts from scratch</b>: every city, fleet, alliance and forum from the previous world has been erased, and we all start from the same square.',
+        '🪪 <b>Your account is still yours</b>: the same name, password and email. You also keep your <b>friends</b> and, if you had it, the <b>Founder</b> title.',
+        '🏛️ When you log in, you choose the <b>name of your new city</b> and found it in a corner of the freshly drawn map.',
+      ],
+    },
   },
   {
     id: '2026-10-22j',
@@ -581,15 +620,17 @@ export function markNewsRead() {
   return CHANGELOG[0].id;
 }
 
-const dateFmt = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+const dateFmt = new Intl.DateTimeFormat(LANG === 'en' ? 'en-GB' : 'es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
 
 export function newsHtml() {
-  const entries = CHANGELOG.map(
-    (e, i) => `<article class="news-entry${i === 0 ? ' latest' : ''}">
-      <header><h4>${escapeHtml(e.title)}</h4><time datetime="${e.date}">${dateFmt.format(new Date(`${e.date}T12:00:00`))}</time></header>
-      <ul>${e.items.map((it) => `<li>${it}</li>`).join('')}</ul>
-    </article>`,
-  ).join('');
+  // En inglés, las notas que tienen su versión (`en`); las demás se quedan en español, enteras
+  const entries = CHANGELOG.map((e, i) => {
+    const t = (LANG !== 'es' && e[LANG]) || null;
+    return `<article class="news-entry${i === 0 ? ' latest' : ''}"${t || LANG === 'es' ? '' : ' translate="no"'}>
+      <header><h4>${escapeHtml(t?.title ?? e.title)}</h4><time datetime="${e.date}">${dateFmt.format(new Date(`${e.date}T12:00:00`))}</time></header>
+      <ul>${(t?.items ?? e.items).map((it) => `<li>${it}</li>`).join('')}</ul>
+    </article>`;
+  }).join('');
   return `<div class="modal-card">
     <div class="panel-head"><span class="panel-icon">📰</span><div><h3>Novedades</h3><div class="panel-lvl">Lo que ha cambiado en las últimas actualizaciones</div></div>
       <button class="icon-btn" data-action="close-modal" title="Cerrar">✕</button></div>

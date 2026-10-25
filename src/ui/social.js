@@ -80,7 +80,7 @@ export class Social {
       ? `<form class="stack" data-form="description"><textarea name="text" maxlength="500" rows="3" placeholder="Mensaje para los miembros…">${escapeHtml(a.description ?? '')}</textarea>
           <button class="ghost small">Guardar descripción</button></form>`
       : a.description
-        ? `<p class="desc">${escapeHtml(a.description)}</p>`
+        ? `<p class="desc" translate="no">${escapeHtml(a.description)}</p>`
         : '';
     return `<div class="modal-card">
       ${head('🤝', `${escapeHtml(a.name)} <span class="tag">[${escapeHtml(a.tag)}]</span>`, `${a.members.length} miembros · ${fmtNum(a.points)} puntos`, 'alianzas')}
@@ -126,11 +126,11 @@ export class Social {
     if (this.thread) {
       const th = this.thread;
       const posts = th.posts
-        .map((p) => `<article class="post"><div class="post-head"><button class="link" data-action="profile" data-name="${escapeHtml(p.author)}">${escapeHtml(p.author)}</button><span class="muted small">${fmtAgo(p.t)}</span></div><p>${text(p.text)}</p></article>`)
+        .map((p) => `<article class="post"><div class="post-head"><button class="link" data-action="profile" data-name="${escapeHtml(p.author)}">${escapeHtml(p.author)}</button><span class="muted small">${fmtAgo(p.t)}</span></div><p translate="no">${text(p.text)}</p></article>`)
         .join('');
       return `<div class="thread-head">
           <button class="ghost small" data-action="forum-back">← Temas</button>
-          <h4>${th.pinned ? '📌 ' : ''}${escapeHtml(th.title)}</h4>
+          <h4>${th.pinned ? '📌 ' : ''}<span translate="no">${escapeHtml(th.title)}</span></h4>
           <div class="row-actions">
             ${th.canModerate ? `<button class="ghost small" data-action="forum-pin" data-id="${th.id}">${th.pinned ? 'Desfijar' : '📌 Fijar'}</button>` : ''}
             ${th.canModerate || th.mine ? `<button class="ghost small" data-action="forum-delete" data-id="${th.id}" title="Borrar el tema">🗑️</button>` : ''}
@@ -145,7 +145,7 @@ export class Social {
     const rows = this.forum.threads
       .map(
         (th) => `<li data-action="forum-open" data-id="${th.id}" class="${th.unread ? 'unread' : ''}">
-          <span class="who">${th.pinned ? '📌 ' : ''}${escapeHtml(th.title)}</span>
+          <span class="who" translate="no">${th.pinned ? '📌 ' : ''}${escapeHtml(th.title)}</span>
           <span class="muted small">${th.count} ${th.count === 1 ? 'mensaje' : 'mensajes'} · ${escapeHtml(th.lastBy)}, ${fmtAgo(th.last)}</span></li>`,
       )
       .join('');
@@ -280,8 +280,8 @@ export class Social {
       const m = this.openMail;
       body = `<article class="letter">
         <div class="muted small">${m.box === 'in' ? `De <b>${escapeHtml(m.from)}</b>` : `Para <b>${escapeHtml(m.to)}</b>`} · ${fmtAgo(m.t)}</div>
-        <h4>${escapeHtml(m.subject)}</h4>
-        <p>${escapeHtml(m.text).replace(/\n/g, '<br />')}</p>
+        <h4 translate="no">${escapeHtml(m.subject)}</h4>
+        <p translate="no">${escapeHtml(m.text).replace(/\n/g, '<br />')}</p>
         <div class="modal-actions">
           ${m.box === 'in' ? `<button class="primary small auto" data-action="reply" data-id="${m.id}">Responder</button>` : ''}
           <button class="ghost small" data-action="mail-back">Volver</button>
