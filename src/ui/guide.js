@@ -533,7 +533,7 @@ const TOPICS = {
     body: () => `<h5>Espiar</h5>
       <p>Manda <b>botes exploradores</b> a espiar una ciudad (no hace falta para atacarla, pero así sabes a qué te enfrentas). Cuantos más botes, más averiguan:</p>
       ${list(SPY_TIERS.map((t) => `<b>${t.boats} ${t.boats === 1 ? 'bote' : 'botes'}</b>: ${t.boats > 1 ? 'además, ' : ''}${t.text.charAt(0).toLowerCase() + t.text.slice(1)}.`))}
-      <p>Pero también es más fácil que los vean. Cada bote corre un ${pct(SPY.base)} de riesgo, más un ${pct1(SPY.guardPerLevel)} por nivel de la <b>torre de vigía</b> del espiado (como mucho, un ${pct(SPY.guardMax)}, en el nivel ${Math.round(SPY.guardMax / SPY.guardPerLevel)}); cada bote de más suma la mitad de ese riesgo. Si los descubren, los hunden todos y no averiguas nada.</p>
+      <p>Pero también es más fácil que los vean. Cada bote corre un ${pct(SPY.base)} de riesgo, más un ${pct1(SPY.guardPerLevel)} por nivel de la <b>torre de vigía</b> del espiado (como mucho, un ${pct(SPY.guardMax)}, en el nivel ${Math.round(SPY.guardMax / SPY.guardPerLevel)}); cada bote de más suma la mitad de ese riesgo. Si los descubren, los hunden todos y no averiguas nada; si no, el informe te llega cuando vuelven a casa.</p>
       <h5>Sabotear</h5>
       <p>Los saboteadores también van en botes. Si no los pillan, o <b>retrasan la obra</b> en marcha (un 30 % de lo que le queda, como mucho una hora) o <b>queman</b> parte de lo que no esconde su almacén. La probabilidad de que los pillen es de un 15 % de base, más un 8 % por nivel de muralla y lo que vigile su torre (como mucho, un 65 %). Si los pillan, pierdes los botes.</p>
       ${tip('El <b>Yelmo de Hades</b> hace que tus espías y saboteadores se dejen ver la mitad de veces.')}`,

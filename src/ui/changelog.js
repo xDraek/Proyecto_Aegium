@@ -7,6 +7,18 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26b',
+    date: '2026-10-26',
+    title: 'Los espías traen el informe a casa',
+    items: [
+      '🔭 El <b>informe de los espías</b> ya no llega en cuanto los botes alcanzan la ciudad espiada: lo traen ellos, así que lo tienes cuando <b>vuelven a casa</b> (o a la base desde la que zarparon). Si los descubren y los hunden, te enteras igual que antes.',
+    ],
+    en: {
+      title: 'Spies bring the report home',
+      items: ['🔭 The <b>spy report</b> no longer arrives as soon as the boats reach the city being spied on: they carry it, so you get it when they <b>return home</b> (or to the base they sailed from). If they are discovered and sunk, you find out as before.'],
+    },
+  },
+  {
     id: '2026-10-26a',
     date: '2026-10-26',
     title: 'El Coloso, hasta el nivel 10',

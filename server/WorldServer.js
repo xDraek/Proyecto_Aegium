@@ -2559,8 +2559,10 @@ export class WorldServer {
       players[uid] = { ...info, online: this.seesOnline(userId, uid) ? info?.online : null, rel: this.relation(userId, uid), hitMe: uid !== userId && this.attackedBy(userId, uid) };
     }
     const a = this.allianceOf(userId);
-    // El correo va aparte (puede ser largo): aquí solo cuántos sin leer
+    // El correo va aparte (puede ser largo): aquí solo cuántos sin leer. Y lo que han visto los espías
+    // que aún vuelven no se manda: su informe se conoce al llegar a casa
     const { mail, ...state } = game.state;
+    state.missions = state.missions.map(({ spied, ...m }) => m);
     return {
       serverTime: now,
       speed: universe.speed,

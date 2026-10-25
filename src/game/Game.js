@@ -2320,6 +2320,7 @@ export class Game extends EventTarget {
       for (const [res, n] of Object.entries(m.cargo)) this.state.resources[res] += n;
       this.state.missions = this.state.missions.filter((x) => x !== m);
       if (m.hero && this.state.hero) this.state.hero.mission = null;
+      if (this.#spiesHome(m, t)) return;
       const loot = fmtBag(m.cargo);
       if (m.type === 'tributo') this.#note(`💰 Llega a tu capital lo que mandas desde ${m.targetName}${loot ? `: ${loot}` : ''}`, 'success');
       else this.#note(`⚓ Ha vuelto la flota de ${m.targetName}${loot ? `: ${loot}` : ''}`, 'success');
@@ -2547,18 +2548,26 @@ export class Game extends EventTarget {
     }
     this.state.stats.explorations = (this.state.stats.explorations ?? 0) + 1;
     const intel = spyIntel(info, spyTier(boats), t);
-    this.#know(isl.id, { intel });
     const more = intel.level < SPY_TIERS.length ? ' Con más botes habrían averiguado más, aunque es más fácil que los vean.' : '';
-    this.#report({
-      t,
-      kind: 'exploracion',
+    // Lo que han visto viaja con los botes: el informe llega cuando vuelven (ver #spiesHome)
+    m.spied = {
       island: isl.id,
       islandName: isl.name,
       title: `Espionaje: ${isl.name}`,
       text: `Ciudad de ${info.name}, espiada con ${boats} ${boats === 1 ? 'bote' : 'botes'}. Ayuntamiento nivel ${info.town}, muralla nivel ${info.wall}.${more}`,
       intel,
-    });
-    this.#note(`🔭 Tus espías vuelven de ${isl.name}`, 'success');
+    };
+  }
+
+  /** Los espías vuelven (a casa o a su base) con lo que vieron: ahora sí llega su informe. */
+  #spiesHome(m, t) {
+    const s = m.spied;
+    if (!s) return false;
+    delete m.spied;
+    this.#know(s.island, { intel: s.intel });
+    this.#report({ t, kind: 'exploracion', island: s.island, islandName: s.islandName, title: s.title, text: s.text, intel: s.intel });
+    this.#note(`🔭 Tus espías vuelven de ${s.islandName} con su informe`, 'success');
+    return true;
   }
 
   #arriveTransport(m, isl, t) {
@@ -2896,6 +2905,7 @@ export class Game extends EventTarget {
       if (colonyBase) this.#gain(m.cargo);
       else for (const [r, n] of Object.entries(m.cargo)) if (n > 0) base.cargo[r] = (base.cargo[r] ?? 0) + n;
       this.state.missions = this.state.missions.filter((x) => x !== m);
+      if (this.#spiesHome(m, t)) return;
       const loot = fmtBag(m.cargo);
       this.#note(colonyBase ? `🏕️ Tus tropas vuelven a ${base.targetName}${loot ? ` y mandan a la capital ${loot}` : ''}` : `🦅 Tus tropas vuelven a ${base.targetName}${loot ? ` con ${loot}` : ''}`, 'success');
       return;

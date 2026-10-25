@@ -44,13 +44,39 @@ async function spyWith(boats, rand) {
   A.state.units.bote = boats;
   const real = Math.random;
   Math.random = () => rand;
+  let m;
   try {
-    sendAndArrive(env, A, 'explorar', B.state.home, { bote: boats });
+    m = sendAndArrive(env, A, 'explorar', B.state.home, { bote: boats });
   } finally {
     Math.random = real;
   }
+  // El informe llega cuando vuelven los botes (si los han hundido, se sabe ya)
+  if (m.back) env.until(m.back);
   return { A, B, rep: A.state.reports.find((r) => r.kind === 'exploracion') };
 }
+
+test('el informe de los espías llega cuando vuelven a casa, no al llegar', async () => {
+  const env = await makeWorld();
+  const [A, B] = env.players;
+  A.state.units.bote = 2;
+  const real = Math.random;
+  Math.random = () => 0.99;
+  let m;
+  try {
+    m = sendAndArrive(env, A, 'explorar', B.state.home, { bote: 2 });
+  } finally {
+    Math.random = real;
+  }
+  assert.equal(m.phase, 'vuelta');
+  assert.equal(A.state.reports.some((r) => r.title?.startsWith('Espionaje')), false, 'aún no hay informe');
+  assert.equal(A.state.known[B.state.home]?.intel, undefined, 'ni se sabe nada de la ciudad');
+  env.until(m.back);
+  const rep = A.state.reports.find((r) => r.title?.startsWith('Espionaje'));
+  assert.ok(rep, 'al volver llega el informe');
+  assert.equal(rep.intel.level, 2);
+  assert.equal(A.state.known[B.state.home].intel.level, 2);
+  assert.equal(A.state.units.bote, 2, 'y los botes están en casa');
+});
 
 test('con un bote solo se ven los recursos; con cinco, todo', async () => {
   const one = await spyWith(1, 0.99);

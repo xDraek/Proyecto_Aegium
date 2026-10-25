@@ -338,6 +338,7 @@ export default {
   "bote": "boat",
   "botes": "boats",
   "🔭 Tus espías vuelven de {0}": "🔭 Your spies return from {0}",
+  "🔭 Tus espías vuelven de {0} con su informe": "🔭 Your spies return from {0} with their report",
   "{0} ocupa la ciudad: no dejan desembarcar la carga.": "{0} occupies the city: they won't let the cargo be unloaded.",
   "{0} bloquea el puerto: los barcos no pueden entrar.": "{0} is blockading the port: the ships can't get in.",
   "Puerto cerrado en {0}": "Port closed at {0}",

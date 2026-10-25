@@ -409,7 +409,7 @@ export default {
   "botes exploradores": "scout boats",
   "a espiar una ciudad (no hace falta para atacarla, pero así sabes a qué te enfrentas). Cuantos más botes, más averiguan:": "to spy on a city (you don't need to in order to attack it, but that way you know what you're facing). The more boats, the more they find out:",
   "Pero también es más fácil que los vean. Cada bote corre un {1} de riesgo, más un {2} por nivel de la": "But it's also easier for them to be seen. Each boat runs a {1} risk, plus {2} per level of the",
-  "del espiado (como mucho, un {3}, en el nivel {4}); cada bote de más suma la mitad de ese riesgo. Si los descubren, los hunden todos y no averiguas nada.": "of the one being spied on (at most {3}, at level {4}); each extra boat adds half that risk. If they're discovered, they're all sunk and you find out nothing.",
+  "del espiado (como mucho, un {3}, en el nivel {4}); cada bote de más suma la mitad de ese riesgo. Si los descubren, los hunden todos y no averiguas nada; si no, el informe te llega cuando vuelven a casa.": "of the one being spied on (at most {3}, at level {4}); each extra boat adds half that risk. If they're discovered, they're all sunk and you find out nothing; if not, the report reaches you when they get back home.",
   "Los saboteadores también van en botes. Si no los pillan, o": "Saboteurs also go in boats. If they aren't caught, they either",
   "retrasan la obra": "delay the construction",
   "en marcha (un 30 % de lo que le queda, como mucho una hora) o": "under way (30 % of what's left, one hour at most) or",
