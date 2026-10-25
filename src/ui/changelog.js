@@ -5,6 +5,14 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-25d',
+    date: '2026-10-25',
+    title: 'Playas en orden',
+    items: [
+      '🏖️ Las cabañas de pescadores, los embarcaderos, las barcas, las redes y las palmeras ya no se meten en los montes de la cantera y la mina: buscan su sitio en la arena libre.',
+    ],
+  },
+  {
     id: '2026-10-25c',
     date: '2026-10-25',
     title: 'Más mar entre las islas',

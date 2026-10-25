@@ -662,8 +662,8 @@ export class World {
       { p: polar(STATUE_SPOT.r, STATUE_SPOT.angle), r: 1.9 },
       ...Object.entries(L)
         .filter(([id]) => id !== 'ayuntamiento' && id !== 'puerto' && id !== 'muralla')
-        .map(([, l]) => ({ p: polar(l.r, l.angle), r: l.block ?? 2.8 })),
-      ...this.mountains.map((m) => ({ p: polar(m.r, m.angle), r: m.radius + 0.6 })),
+        .map(([id, l]) => ({ p: polar(l.r, l.angle), r: l.block ?? 2.8, kind: id })),
+      ...this.mountains.map((m) => ({ p: polar(m.r, m.angle), r: m.radius + 0.6, kind: 'monte' })),
     ];
     const coastAt = (p) => this.coast(THREE.MathUtils.radToDeg(Math.atan2(p.x, p.z)));
     // Un punto al azar en tierra, entre `from` del centro y `margin` antes de la orilla (repartido por área)
@@ -1050,49 +1050,59 @@ export class World {
 
     // La playa: barcas varadas, redes, cabañas y embarcaderos; luego palmeras donde quede sitio
     const onBeach = [];
-    const onSand = (p, r) => onBeach.push({ p, r });
+    const onSand = (p, r, kind) => onBeach.push({ p, r, kind });
     const busy = [GATE_ANGLE, L.astillero.angle, L.faro.angle];
     const nearBusy = (a, w) => busy.some((b) => Math.abs(((a - b + 540) % 360) - 180) < w);
-    for (const a of [GATE_ANGLE + 52, GATE_ANGLE + 200, GATE_ANGLE + 255]) {
-      if (nearBusy(a, 14)) continue;
+    // Los montes bajan hasta el mar: nada de la playa se mete en ellos ni en un edificio
+    const hard = blockers.filter((b) => b.kind);
+    const ashore = (p, r, gap = 0) => hard.every((b) => Math.hypot(b.p.x - p.x, b.p.z - p.z) > b.r + r) && onBeach.every((b) => b.p.distanceTo(p) > b.r + gap);
+    // Si su sitio está ocupado, lo más cerca que se pueda (o nada)
+    const spotNear = (a0, w, fits) => [0, 8, -8, 16, -16, 24, -24, 32, -32, 40, -40].map((k) => a0 + k).find((a) => !nearBusy(a, w) && fits(a));
+    for (const a0 of [GATE_ANGLE + 52, GATE_ANGLE + 200, GATE_ANGLE + 255]) {
+      const a = spotNear(a0, 14, (a) => ashore(polar(this.coast(a) + 1.0, a, BEACH_Y), 1.7, 1.7));
+      if (a == null) continue;
       const hp = polar(this.coast(a) + 1.0, a, BEACH_Y);
       // La puerta y el porche miran al mar
       place(fishermansHut(), hp, THREE.MathUtils.degToRad(a));
-      onSand(hp, 1.7);
+      onSand(hp, 1.7, 'cabaña');
     }
     // Embarcaderos de pesca con su barca amarrada
-    for (const a of [GATE_ANGLE + 128, GATE_ANGLE + 300]) {
-      if (nearBusy(a, 16)) continue;
+    const pierAt = (a) => Array.from({ length: 5 }, (_, i) => polar(this.coast(a) + 1.8 + i * 1.2, a, BEACH_Y));
+    for (const a0 of [GATE_ANGLE + 128, GATE_ANGLE + 300]) {
+      const a = spotNear(a0, 16, (a) => pierAt(a).every((p) => ashore(p, 1.8, 1.8)));
+      if (a == null) continue;
       // El rellano de piedra en la orilla y el muelle ya sobre el agua
       place(fishingPier(), polar(this.coast(a) + 1.8, a, BEACH_Y + 0.12), THREE.MathUtils.degToRad(a));
-      for (let d = 0; d < 6; d += 1.2) onSand(polar(this.coast(a) + 1.8 + d, a, BEACH_Y), 1.8);
+      for (const p of pierAt(a)) onSand(p, 1.8, 'embarcadero');
     }
     // Barcas varadas con su red tendida a secar
     for (let i = 0; i < 5; i++) {
       const a = 40 + i * 62 + rand() * 20;
       const bp = polar(this.coast(a) + 2.4, a, BEACH_Y + 0.08);
       const np = polar(this.coast(a + 6) + 1.4, a + 6, BEACH_Y);
-      if (nearBusy(a, 16) || onBeach.some((b) => b.p.distanceTo(bp) < b.r + 2.0 || b.p.distanceTo(np) < b.r + 0.9)) continue;
+      if (nearBusy(a, 16) || !ashore(bp, 2.0, 2.0) || !ashore(np, 0.9, 0.9)) continue;
       const boat = createShip('bote');
       boat.rotation.set(0.05, THREE.MathUtils.degToRad(a) + Math.PI / 2, 0.25);
       boat.position.copy(bp);
       boat.scale.setScalar(1.7);
       decor.add(boat);
-      onSand(boat.position, 2.0);
+      onSand(boat.position, 2.0, 'barca');
       // Red de pesca tendida a secar entre dos palos, con sus corchos, y otra amontonada al pie
       place(dryingNet(), np, THREE.MathUtils.degToRad(a));
-      onSand(np, 0.9);
+      onSand(np, 0.9, 'red');
     }
     // Palmeras: ni encima de una barca o cabaña ni pegadas unas a otras
     for (let i = 0; i < 34; i++) {
       const a = rand() * 360;
       if (nearBusy(a, 12)) continue;
       const p = polar(this.coast(a) + 1.3 + rand() * 1.6, a, BEACH_Y);
-      if (onBeach.some((b) => b.p.distanceTo(p) < b.r + 1.1)) continue;
+      if (!ashore(p, 0.6, 1.1)) continue;
       place(palmTree(rand), p, rand() * Math.PI, 0.85 + rand() * 0.4);
-      onSand(p, 0.6);
+      onSand(p, 0.6, 'palmera');
     }
     scene.add(decor.build());
+    // Lo que ocupa cada cosa (para comprobar desde el navegador que nada se pisa)
+    this.footprints = { blockers, beach: onBeach };
 
     this.wallGroup = new THREE.Group();
     scene.add(this.wallGroup);
