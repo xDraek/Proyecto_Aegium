@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26n',
+    date: '2026-10-26',
+    title: 'Preguntas con el estilo de Aegium',
+    items: [
+      '🏛️ Las preguntas de «¿Seguro?» y las que te piden un dato (dar de baja tropas, vender una reliquia, abandonar una colonia, dejar la alianza, irte de vacaciones, declarar la guerra…) ya no son las ventanas grises del navegador: salen con el marco de Aegium, con su título y botones claros. Enter acepta y Escape cancela.',
+      '📢 Al compartir un informe eliges el chat con un botón (general, alianza o gesta) en lugar de ir respondiendo «Cancelar».',
+    ],
+    en: {
+      title: 'Questions in Aegium style',
+      items: [
+        '🏛️ “Are you sure?” questions and those asking for a value (dismissing troops, selling a relic, abandoning a colony, leaving the alliance, going on vacation, declaring war…) are no longer the grey browser windows: they appear with the Aegium frame, a title and clear buttons. Enter accepts and Escape cancels.',
+        '📢 When sharing a report you pick the chat with a button (general, alliance or feat) instead of answering “Cancel”.',
+      ],
+    },
+  },
+  {
     id: '2026-10-26m',
     date: '2026-10-26',
     title: 'El marco del menú de opciones, en su sitio',

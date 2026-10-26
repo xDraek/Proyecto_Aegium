@@ -8,6 +8,7 @@ import { armyHtml, armySummary, featWait } from './army.js';
 import { buildingPanel } from './buildingPanel.js';
 import { bag, costItems, escapeHtml, fmtNum, fmtShort, fmtTiny, fmtTime, linkCoords, resIcons, richText, unitList } from './format.js';
 import { installResPickers, syncResPickers } from './resPicker.js';
+import { askChoice, askConfirm, askPrompt } from './dialog.js';
 import { citySimPreset, featSimPreset, fleetFor, islandPanel, readFleet, readPayload, readOpts } from './islandPanel.js';
 import { questsHtml, rankingHtml } from './modals.js';
 import { openGuide } from './guide.js';
@@ -210,8 +211,11 @@ export class Hud {
           const id = dismiss.dataset.unit;
           const u = UNITS[id];
           const have = game.units[id] ?? 0;
-          const answer = prompt(`${u.emoji} ${u.name}: ¿cuántas unidades das de baja? Tienes ${have} en casa.
-Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bronce que costaron.`, String(have));
+          const answer = await askPrompt(
+            `¿Cuántas unidades das de baja? Tienes ${have} en casa.
+Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bronce que costaron.`,
+            { title: `Dar de baja: ${u.name}`, icon: u.emoji, value: String(have), type: 'number', min: 1, max: have, ok: 'Dar de baja' },
+          );
           const n = Math.floor(Number(answer));
           if (answer == null || !(n >= 1)) return;
           return this.#run(dismiss, () => game.dismissUnits(id, Math.min(n, have)), null, null);
@@ -236,12 +240,13 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       if (share) {
         // Los informes de una gesta, primero a su chat
         const rep = this.game.reports.find((r) => r.t === Number(share.dataset.t));
-        const channel =
-          rep?.kind === 'gesta' && this.#featChatOpen() && confirm('¿Compartirlo en el chat de la gesta? (Cancelar = en otro chat)')
-            ? 'gesta'
-            : this.game.alliance && confirm('¿Compartirlo solo con tu alianza? (Cancelar = en el chat general)')
-              ? 'alianza'
-              : 'global';
+        const options = [
+          rep?.kind === 'gesta' && this.#featChatOpen() && { label: '🌋 Chat de la gesta', value: 'gesta' },
+          this.game.alliance && { label: '🤝 Solo mi alianza', value: 'alianza' },
+          { label: '💬 Chat general', value: 'global' },
+        ].filter(Boolean);
+        const channel = options.length > 1 ? await askChoice('¿En qué chat lo compartes?', options, { title: 'Compartir el informe', icon: '📢' }) : 'global';
+        if (!channel) return;
         api('POST', '/api/chat/share', { t: Number(share.dataset.t), channel })
           .then(() => {
             this.toast('📢 Informe compartido en el chat', 'success');
@@ -983,7 +988,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
         await this.#run(btn, () => game.equipRelic(btn.dataset.id, btn.dataset.on === '1'), null, 'magic');
         break;
       case 'relic-sell':
-        if (!confirm('¿Vender esta reliquia? No la volverás a ver.')) break;
+        if (!(await askConfirm('¿Vender esta reliquia? No la volverás a ver.', { title: 'Vender reliquia', icon: '🏺', ok: 'Vender', danger: true }))) break;
         await this.#run(btn, () => game.sellRelic(btn.dataset.id), null, 'coins');
         break;
       case 'donate': {
@@ -1001,7 +1006,8 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
         break;
       case 'colony-abandon': {
         const col = game.colony(this.selected);
-        if (!col || !confirm(`¿Abandonar ${col.name}? Los colonos se marchan, dejas de recibir su producción y la isla queda libre para cualquiera. Lo invertido en ella se pierde.`)) break;
+        if (!col || !(await askConfirm(`¿Abandonar ${col.name}?
+Los colonos se marchan, dejas de recibir su producción y la isla queda libre para cualquiera. Lo invertido en ella se pierde.`, { title: 'Abandonar la colonia', icon: '🚩', ok: 'Abandonar', danger: true }))) break;
         await this.#run(btn, () => game.abandonColony(this.selected), null, null);
         break;
       }
@@ -1023,7 +1029,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
         break;
       }
       case 'cancel-train':
-        if (!confirm(`¿Cancelar este reclutamiento? Recuperas el ${Math.round(TRAIN_CANCEL_REFUND * 100)} % de lo que pagaste.`)) break;
+        if (!(await askConfirm(`¿Cancelar este reclutamiento? Recuperas el ${Math.round(TRAIN_CANCEL_REFUND * 100)} % de lo que pagaste.`, { title: 'Cancelar reclutamiento', icon: '⚔️', ok: 'Cancelar reclutamiento', cancel: 'Seguir', danger: true }))) break;
         await this.#run(btn, () => game.cancelTraining(btn.dataset.building, Number(btn.dataset.index)), `Reclutamiento cancelado. Recuperas el ${Math.round(TRAIN_CANCEL_REFUND * 100)} %.`, null);
         break;
       case 'trade-max': {
@@ -1075,9 +1081,9 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
           fleets.length ? `se darán la vuelta tus ${fleets.length === 1 ? 'flota que va' : `${fleets.length} flotas que van`} a por otros jugadores` : '',
         ].filter(Boolean);
         const leave = wars.length ? `
-
 Al jurar, ${wars.join(' y ')}.` : '';
-        if (!confirm(`¿Jurar combatir a ${f?.enemy ?? 'la bestia'}? Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y unos días sin poder jurar otra gesta.${leave}`)) break;
+        if (!(await askConfirm(`¿Jurar combatir a ${f?.enemy ?? 'la bestia'}?
+Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y unos días sin poder jurar otra gesta.${leave}`, { title: 'Jurar la gesta', icon: '🌋', ok: 'Jurar' }))) break;
         await this.#run(btn, () => game.pledgeFeat(site), null, 'magic');
         break;
       }
@@ -1092,7 +1098,7 @@ Al jurar, ${wars.join(' y ')}.` : '';
         break;
       }
       case 'break-port':
-        if (!confirm(game.state.occupied ? '¿Atacar a los invasores con todo lo que tienes en casa?' : '¿Atacar la flota que bloquea tu puerto con tus barcos de guerra?')) break;
+        if (!(await askConfirm(game.state.occupied ? '¿Atacar a los invasores con todo lo que tienes en casa?' : '¿Atacar la flota que bloquea tu puerto con tus barcos de guerra?', { title: 'Romper el asedio', icon: '⚔️', ok: 'Atacar', danger: true }))) break;
         await this.#run(btn, () => game.breakPort(), null, 'sail');
         break;
       case 'guide':

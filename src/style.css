@@ -6065,3 +6065,71 @@ kbd {
   padding: 4px 8px;
   font-size: 13px;
 }
+
+/* ── Preguntas y avisos (dialog.js): en lugar de las ventanas del navegador ── */
+
+.dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  padding: 44px 16px 28px;
+  overflow-y: auto;
+  background: radial-gradient(ellipse at center, rgba(10, 8, 6, 0.6), rgba(6, 5, 4, 0.85));
+  backdrop-filter: blur(2px);
+  animation: modal-fade 0.15s ease-out;
+}
+
+.dialog > .dialog-card {
+  width: min(420px, 100%);
+  margin: auto 0;
+  max-height: none;
+  overflow: visible;
+  animation: modal-pop 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.dialog-text {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 2px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.dialog-text p {
+  margin: 0;
+}
+
+.dialog-text p + p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.dialog-input {
+  width: 100%;
+  margin-top: 12px;
+  font-size: 16px;
+}
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.dialog-actions button {
+  flex: 1 1 auto;
+  min-width: 110px;
+  padding: 10px 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog,
+  .dialog > .dialog-card {
+    animation: none;
+  }
+}

@@ -3,6 +3,7 @@ import { ACHIEVEMENTS, BANNER_COLORS, BANNER_EMBLEMS, DAILY_REWARDS, FAVOR_ICON,
 import { recentErrors } from '../errors.js';
 import { api, setToken } from '../net/api.js';
 import { bag, escapeHtml, fmtAgo, fmtDec, fmtNum, fmtTime } from './format.js';
+import { askConfirm, askPrompt } from './dialog.js';
 import { resPicker } from './resPicker.js';
 import { runSimulation, simulatorHtml } from './simulator.js';
 
@@ -626,7 +627,7 @@ export class Social {
     switch (action) {
       case 'join': {
         const open = btn.dataset.open === '1';
-        const text = open ? '' : prompt('¿Quieres decirles algo? (opcional)') ?? null;
+        const text = open ? '' : await askPrompt('¿Quieres decirles algo? (opcional)', { title: 'Pedir entrar en la alianza', icon: '🤝', placeholder: 'Un saludo, de dónde eres…', ok: 'Enviar solicitud' });
         if (text === null) return true;
         const data = await this.#call('POST', '/api/alliance/join', { id: btn.dataset.id, text }, open ? '🤝 Te has unido a la alianza' : '📨 Solicitud enviada: el líder o un oficial te responderá');
         if (data?.alliance) {
@@ -643,7 +644,7 @@ export class Social {
       case 'answer':
       case 'officer':
       case 'transfer': {
-        if (action === 'transfer' && !confirm(`¿Ceder el liderazgo a ${btn.dataset.name}? Pasarás a ser oficial.`)) return true;
+        if (action === 'transfer' && !(await askConfirm(`¿Ceder el liderazgo a ${btn.dataset.name}? Pasarás a ser oficial.`, { title: 'Ceder el liderazgo', icon: '👑', ok: 'Ceder' }))) return true;
         const path = { answer: '/api/alliance/answer', officer: '/api/alliance/officer', transfer: '/api/alliance/transfer' }[action];
         const data = await this.#call('POST', path, { userId: Number(btn.dataset.user), accept: btn.dataset.accept === '1', on: btn.dataset.on === '1' });
         if (data) {
@@ -658,13 +659,13 @@ export class Social {
         return true;
       }
       case 'leave': {
-        if (!confirm('¿Seguro que quieres dejar la alianza?')) return true;
+        if (!(await askConfirm('¿Seguro que quieres dejar la alianza?', { title: 'Dejar la alianza', icon: '🤝', ok: 'Dejarla', danger: true }))) return true;
         const data = await this.#call('POST', '/api/alliance/leave', {}, 'Has dejado la alianza');
         if (data) await this.openAlliance();
         return true;
       }
       case 'kick': {
-        if (!confirm('¿Expulsar a este miembro?')) return true;
+        if (!(await askConfirm('¿Expulsar a este miembro de la alianza?', { title: 'Expulsar', icon: '✕', ok: 'Expulsar', danger: true }))) return true;
         const data = await this.#call('POST', '/api/alliance/kick', { userId: Number(btn.dataset.user) });
         if (data) {
           this.alliance = data.alliance;
@@ -693,7 +694,7 @@ export class Social {
       case 'forum-pin':
       case 'forum-delete': {
         const op = action === 'forum-pin' ? 'pin' : 'delete';
-        if (op === 'delete' && !confirm('¿Borrar este tema con todas sus respuestas?')) return true;
+        if (op === 'delete' && !(await askConfirm('¿Borrar este tema con todas sus respuestas?', { title: 'Borrar el tema', icon: '🗑️', ok: 'Borrar', danger: true }))) return true;
         const data = await this.#call('POST', `/api/forum/${op}`, { id: Number(btn.dataset.id) });
         if (!data) return true;
         if (op === 'delete') {
@@ -707,7 +708,7 @@ export class Social {
         return true;
       }
       case 'vacation-start': {
-        if (!confirm('¿Irte de vacaciones? Tu isla dejará de producir y no podrás volver hasta que pase el tiempo mínimo.')) return true;
+        if (!(await askConfirm('¿Irte de vacaciones?\nTu isla dejará de producir y no podrás volver hasta que pase el tiempo mínimo.', { title: 'Modo vacaciones', icon: '🏖️', ok: 'Irme de vacaciones' }))) return true;
         btn.disabled = true;
         const res = await this.game.startVacation();
         if (!res.ok) this.hud.toast(res.reason, 'error');
@@ -723,8 +724,8 @@ export class Social {
       }
       case 'diplo': {
         const { op, id } = btn.dataset;
-        if (op === 'guerra' && !confirm('¿Declarar la guerra? Se anunciará a todo el archipiélago.')) return true;
-        if (op === 'romper' && !confirm('¿Romper el pacto de no agresión?')) return true;
+        if (op === 'guerra' && !(await askConfirm('¿Declarar la guerra? Se anunciará a todo el archipiélago.', { title: 'Declarar la guerra', icon: '⚔️', ok: 'Declarar la guerra', danger: true }))) return true;
+        if (op === 'romper' && !(await askConfirm('¿Romper el pacto de no agresión?', { title: 'Romper el pacto', icon: '📜', ok: 'Romperlo', danger: true }))) return true;
         const data = await this.#call('POST', '/api/alliance/diplomacy', { id: Number(id), op });
         if (data) {
           this.alliance = data.alliance;
@@ -766,13 +767,13 @@ export class Social {
         const { op, name, minutes } = btn.dataset;
         let reason = '';
         if (op === 'ban') {
-          reason = prompt(`¿Por qué suspendes a ${name}?`) ?? '';
+          reason = (await askPrompt(`¿Por qué suspendes a ${name}?`, { title: 'Suspender la cuenta', icon: '🚫', ok: 'Suspender' })) ?? '';
           if (!reason) return true;
         }
         if (op === 'reset') {
-          if (!confirm(`¿Dar a ${name} una contraseña temporal? La suya dejará de valer.`)) return true;
+          if (!(await askConfirm(`¿Dar a ${name} una contraseña temporal? La suya dejará de valer.`, { title: 'Contraseña temporal', icon: '🔑', ok: 'Darla', danger: true }))) return true;
           const res = await this.#call('POST', '/api/admin/reset', { name });
-          if (res) prompt(`Contraseña temporal de ${name} (pásasela y que la cambie al entrar):`, res.password);
+          if (res) await askPrompt(`Contraseña temporal de ${name}: pásasela y que la cambie al entrar.`, { title: 'Contraseña temporal', icon: '🔑', value: res.password, readOnly: true, ok: 'Hecho', cancel: null });
           return true;
         }
         const body = op === 'mute' ? { name, minutes: Number(minutes) } : { name, reason };
@@ -815,7 +816,7 @@ export class Social {
         return true;
       }
       case 'friend-remove': {
-        if (!confirm(`¿Quitar a ${btn.dataset.name} de tus amigos?`)) return true;
+        if (!(await askConfirm(`¿Quitar a ${btn.dataset.name} de tus amigos?`, { title: 'Quitar amigo', icon: '👥', ok: 'Quitar', danger: true }))) return true;
         const res = await this.#call('POST', '/api/friends/remove', { name: btn.dataset.name });
         if (res) this.openFriends(res);
         return true;
@@ -894,7 +895,7 @@ export class Social {
         }
       } else if (form.dataset.form === 'diplo') {
         const op = e.submitter?.value;
-        if (op === 'guerra' && !confirm('¿Declarar la guerra? Se anunciará a todo el archipiélago.')) return;
+        if (op === 'guerra' && !(await askConfirm('¿Declarar la guerra? Se anunciará a todo el archipiélago.', { title: 'Declarar la guerra', icon: '⚔️', ok: 'Declarar la guerra', danger: true }))) return;
         const res = await this.#call('POST', '/api/alliance/diplomacy', { id: Number(data.id), op });
         if (res) {
           this.alliance = res.alliance;

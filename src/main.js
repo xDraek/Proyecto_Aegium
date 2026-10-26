@@ -15,6 +15,7 @@ import { warmPortraits } from './scene/portraits.js';
 import { Hud } from './ui/Hud.js';
 import { showLanding } from './ui/landing.js';
 import { startTranslation } from './i18n/index.js';
+import { showAlert } from './ui/dialog.js';
 
 const DAYNIGHT_KEY = 'aegium.daynight';
 const LABELS_KEY = 'aegium.labels';
@@ -342,9 +343,9 @@ function startGame(game) {
   connectLive(game, {
     onChat: (m) => hud.receiveChat(m),
     onChatDelete: (id) => hud.removeChat(id),
-    onBanned: () => {
+    onBanned: async () => {
       setToken(null);
-      alert('Tu cuenta ha sido suspendida.');
+      await showAlert('Tu cuenta ha sido suspendida.', { title: 'Cuenta suspendida', icon: '🚫' });
       location.reload();
     },
   });
