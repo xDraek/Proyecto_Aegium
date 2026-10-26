@@ -4997,10 +4997,20 @@ body.landing-mode #cam-controls {
 /* ── Menú de opciones ────────────────────────────────────────────────────── */
 
 .menu {
-  grid-template-columns: minmax(0, 1fr);
-  gap: 4px;
   width: 340px;
   max-width: calc(100vw - 40px);
+}
+
+/* Las opciones van dentro de .scroll: si no caben, se desplazan ellas y el marco se queda quieto */
+.menu > .scroll {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(242, 201, 76, 0.35) transparent;
 }
 
 .menu-group,
@@ -5475,13 +5485,12 @@ kbd {
   }
 }
 
-/* Pantallas bajas: si el menú de opciones no cabe entre las dos barras, se desplaza (sin taparlas) */
-@media (max-height: 760px) {
-  .menu {
-    max-height: calc(100dvh - var(--top, 90px) - var(--bottom) - 40px);
-    overflow-x: hidden;
-    overflow-y: auto;
-  }
+/* Si el menú de opciones no cabe entre las dos barras, se desplaza su contenido (sin taparlas) */
+.menu:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - var(--top, 90px) - var(--bottom) - 40px);
+  overflow: visible;
 }
 
 /* ── Etiquetas de las flotas en el mapa del mundo ────────────────────────── */

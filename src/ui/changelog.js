@@ -7,6 +7,18 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26m',
+    date: '2026-10-26',
+    title: 'El marco del menú de opciones, en su sitio',
+    items: [
+      '📱 En el móvil, al bajar por el menú de opciones (⚙) el marco se movía con las opciones y su borde de abajo acababa en medio. Ahora el marco se queda quieto y lo que se desplaza son solo las opciones.',
+    ],
+    en: {
+      title: 'The options menu frame stays put',
+      items: ['📱 On mobile, scrolling the options menu (⚙) moved its frame along with the options, leaving the bottom border in the middle. Now the frame stays still and only the options scroll.'],
+    },
+  },
+  {
     id: '2026-10-26l',
     date: '2026-10-26',
     title: 'Logro Expansionista',
