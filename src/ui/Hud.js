@@ -35,6 +35,8 @@ const ACTIVE_BUTTON = {
   news: 'news-btn',
 };
 const NARROW = matchMedia('(max-width: 800px)');
+/** Desde este ancho caben el panel de un edificio y el chat uno al lado del otro (style.css). */
+const SIDE_BY_SIDE = '(min-width: 1100px)';
 
 /** Una preferencia de sí o no guardada en el navegador (con su valor si no hay nada guardado). */
 function readFlag(key, fallback) {
@@ -452,6 +454,8 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
 
   select(id) {
     this.selected = id;
+    // Donde no caben el panel y el chat a la vez, abrir un edificio o una isla cierra el chat
+    if (id && !this.chatEl.hidden && !matchMedia(SIDE_BY_SIDE).matches) this.toggleChat(false);
     this.render();
   }
 
@@ -1388,6 +1392,8 @@ Al jurar, ${wars.join(' y ')}.` : '';
     if (open) {
       this.menu.hidden = true;
       if (!this.modal.hidden) this.closeModal();
+      // …y abrir el chat cierra el panel del edificio o la isla
+      if (this.selected && !matchMedia(SIDE_BY_SIDE).matches) this.onSelect(null);
     }
     this.#syncActive();
     if (!open) return;

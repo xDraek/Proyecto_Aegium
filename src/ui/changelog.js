@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26h',
+    date: '2026-10-26',
+    title: 'El chat ya no tapa los edificios',
+    items: [
+      '💬 En pantallas anchas, si tienes un edificio o una isla abiertos, el chat se abre a su izquierda en vez de quedarse encima.',
+      '💬 En el móvil, la tablet y las pantallas pequeñas no caben los dos: al abrir el chat se cierra el edificio, y al abrir un edificio se cierra el chat.',
+    ],
+    en: {
+      title: 'The chat no longer covers buildings',
+      items: [
+        '💬 On wide screens, if a building or island is open, the chat opens to its left instead of on top of it.',
+        '💬 On phones, tablets and small screens the two don’t fit: opening the chat closes the building, and opening a building closes the chat.',
+      ],
+    },
+  },
+  {
     id: '2026-10-26g',
     date: '2026-10-26',
     title: 'Más ligero en móviles y tablets',

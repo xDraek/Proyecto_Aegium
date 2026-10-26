@@ -4582,6 +4582,18 @@ body.landing-mode #cam-controls {
   right: 412px;
 }
 
+/* En pantallas anchas, con un edificio abierto el chat se pone a su izquierda en vez de encima.
+   En las estrechas no caben los dos: abrir uno cierra el otro (Hud, SIDE_BY_SIDE). */
+@media (min-width: 1100px) {
+  #panel:not([hidden]) ~ #chat {
+    right: 416px;
+  }
+
+  #panel:not([hidden]) ~ #chat:not([hidden]) ~ #cam-controls {
+    right: 808px;
+  }
+}
+
 #dock {
   bottom: 22px;
 }
