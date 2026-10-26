@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26r',
+    date: '2026-10-26',
+    title: 'Lluvia nueva, y menos a menudo',
+    items: [
+      '🌧️ La lluvia es nueva: cada gota cae a su ritmo, con su estela, inclinada por el viento (que en las tormentas sopla fuerte y a rachas), y sobre el mar se abren pequeñas salpicaduras. Con el cielo cubierto el sol ya no centellea en el agua.',
+      '⛅ Llueve menos: más o menos una media hora de cada diez, y las tormentas son raras.',
+    ],
+    en: {
+      title: 'New rain, and less often',
+      items: [
+        '🌧️ The rain is new: each drop falls at its own pace, with its trail, slanted by the wind (which blows hard and in gusts during storms), and small splashes open on the sea. Under an overcast sky the sun no longer glints on the water.',
+        '⛅ It rains less: roughly one half-hour in ten, and storms are rare.',
+      ],
+    },
+  },
+  {
     id: '2026-10-26q',
     date: '2026-10-26',
     title: 'Tu tropa, en la ventana de dar de baja',

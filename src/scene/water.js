@@ -61,6 +61,8 @@ export function createWater(shores, level) {
     uDeep: { value: new THREE.Color('#1f6fa8') },
     uShallow: { value: new THREE.Color('#3fc1c9') },
     uFoam: { value: new THREE.Color('#f4fbff') },
+    // Destellos del sol: 1 con el cielo despejado, 0 con nubes o lluvia (World, #updateWeather)
+    uSparkle: { value: 1 },
   };
 
   const material = new THREE.MeshStandardMaterial({
@@ -115,6 +117,7 @@ export function createWater(shores, level) {
       uniform vec3 uDeep;
       uniform vec3 uShallow;
       uniform vec3 uFoam;
+      uniform float uSparkle;
       ` +
       common +
       shader.fragmentShader.replace(
@@ -136,7 +139,7 @@ export function createWater(shores, level) {
         vec2 cell = floor(vWaterPos.xz * 2.2 + vec2(uTime * 0.35, -uTime * 0.2));
         float sparkle = step(0.986, fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453));
         sparkle *= 0.5 + 0.5 * sin(uTime * 6.0 + cell.x * 1.7 + cell.y);
-        water += vec3(1.0, 0.97, 0.88) * sparkle * 0.9 * (1.0 - foam) * smoothstep(4.0, 12.0, d);
+        water += vec3(1.0, 0.97, 0.88) * sparkle * 0.9 * uSparkle * (1.0 - foam) * smoothstep(4.0, 12.0, d);
         diffuseColor.rgb = mix(water, uFoam, foam);
         diffuseColor.a = mix(diffuseColor.a, 1.0, foam);`,
       );

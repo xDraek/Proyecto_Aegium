@@ -42,6 +42,7 @@ import { createIslandBase, createIslandFeature, featStatueModel, islandExtent, i
 import { escapeHtml, fmtTime, resIcons } from '../ui/format.js';
 import { Batch, bakeStatic, cloudGeometry, cloudMaterial, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng, surfaceDetail } from './util.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { createRain, createSplashes, rainUniforms } from './rain.js';
 import { createWater, setShores, swellAt, waterGeometry, SEGMENTS, SEGMENTS_LOW } from './water.js';
 import { coastFactor, coastMax, islandCoast, shapeGeometry } from './coast.js';
 import { clock } from '../config.js';
@@ -139,15 +140,18 @@ const SHADOW_EVERY_LOW = 3;
 const PIXELS_LOW = 600_000;
 const SHIP_PRIORITY = ['dromon', 'galeon', 'liburna', 'trirreme', 'brulote', 'mercante', 'bote'];
 
-// Clima: cada media hora real cambia (igual para todos, sale de la hora)
+// Clima: cada media hora real cambia (igual para todos, sale de la hora). Llueve de vez en cuando:
+// una media hora de cada diez, más o menos, y tormenta muy de tarde en tarde
 const WEATHER_MS = 30 * 60 * 1000;
 const WEATHERS = [
-  { id: 'despejado', p: 0.55, dark: 0, rain: 0 },
-  { id: 'nublado', p: 0.2, dark: 0.35, rain: 0 },
-  { id: 'lluvia', p: 0.17, dark: 0.55, rain: 0.7 },
-  { id: 'tormenta', p: 0.08, dark: 0.8, rain: 1, storm: true },
+  { id: 'despejado', p: 0.67, dark: 0, rain: 0 },
+  { id: 'nublado', p: 0.22, dark: 0.35, rain: 0 },
+  { id: 'lluvia', p: 0.08, dark: 0.55, rain: 0.7, wind: 0.18 },
+  { id: 'tormenta', p: 0.03, dark: 0.8, rain: 1, storm: true, wind: 0.42 },
 ];
-const RAIN_DROPS = 1600;
+/** Gotas y salpicaduras (en calidad baja se encienden menos: ver #updateWeather). */
+const RAIN_DROPS = 3200;
+const RAIN_SPLASHES = 160;
 
 /** El tiempo que hace en el instante `t`. */
 export function weatherAt(t) {
@@ -1431,20 +1435,12 @@ export class World {
       this.lifeGroup.add(c);
       this.carts.push(c);
     }
-    // Lluvia: gotas como trazos cortos que caen alrededor de lo que miras
-    const pos = new Float32Array(RAIN_DROPS * 6);
-    this.rainSeeds = new Float32Array(RAIN_DROPS * 3);
-    for (let i = 0; i < RAIN_DROPS; i++) {
-      this.rainSeeds[i * 3] = rand() * 2 - 1;
-      this.rainSeeds[i * 3 + 1] = rand() * 2 - 1;
-      this.rainSeeds[i * 3 + 2] = rand();
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    this.rain = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: '#d6e6f5', transparent: true, opacity: 0, depthWrite: false }));
-    this.rain.frustumCulled = false;
-    this.rain.visible = false;
-    this.scene.add(this.rain);
+    // Lluvia: gotas que caen alrededor de lo que miras y salpicaduras en el mar (las mueve la GPU: rain.js)
+    this.rainUniforms = rainUniforms();
+    this.rainUniforms.uBase.value = WATER_Y;
+    this.rain = createRain(RAIN_DROPS, this.rainUniforms);
+    this.splashes = createSplashes(RAIN_SPLASHES, this.rainUniforms);
+    this.scene.add(this.rain, this.splashes);
     this.flashLight = new THREE.AmbientLight('#dfe8ff', 0);
     this.scene.add(this.flashLight);
     // Una sola luz para los combates (crear luces nuevas obligaría a recompilar todos los materiales)
@@ -1564,35 +1560,30 @@ export class World {
       setRain(this.view === 'isla' ? w.rain : w.rain * 0.4);
     }
 
-    // Gotas alrededor del objetivo de la cámara (más grandes y dispersas en el mapa)
+    // Gotas alrededor del objetivo de la cámara (más grandes y dispersas en el mapa). El viento
+    // sopla más en las tormentas y cambia poco a poco de dirección
     this.rain.visible = w.rain > 0.02;
+    this.splashes.visible = this.rain.visible && dist < DETAIL_DIST;
     if (this.rain.visible) {
-      this.rain.material.opacity = 0.45 * w.rain;
+      const u = this.rainUniforms;
       const span = THREE.MathUtils.clamp(dist * 0.7, 30, 260);
-      const height = span * 0.8;
-      const len = span * 0.025;
-      const c = this.controls.target;
-      const pos = this.rain.geometry.attributes.position.array;
-      const fall = (now / 1000) * 0.9;
-      const drops = Math.round(RAIN_DROPS * Math.min(1, 0.3 + w.rain));
-      for (let i = 0; i < RAIN_DROPS; i++) {
-        const o = i * 6;
-        if (i >= drops) {
-          pos.fill(0, o, o + 6);
-          continue;
-        }
-        const x = c.x + this.rainSeeds[i * 3] * span;
-        const z = c.z + this.rainSeeds[i * 3 + 1] * span;
-        const y = WATER_Y + ((this.rainSeeds[i * 3 + 2] - fall) % 1 + 1) % 1 * height;
-        pos[o] = x;
-        pos[o + 1] = y;
-        pos[o + 2] = z;
-        pos[o + 3] = x + len * 0.25;
-        pos[o + 4] = y - len;
-        pos[o + 5] = z;
-      }
-      this.rain.geometry.attributes.position.needsUpdate = true;
+      w.wind = (w.wind ?? 0.2) + ((target.wind ?? 0.2) - (w.wind ?? 0.2)) * k;
+      const gust = 1 + Math.sin(this.waterTime.value * 0.37) * 0.25;
+      const dir = 0.35 + Math.sin(this.waterTime.value * 0.05) * 0.3;
+      u.uTime.value = this.waterTime.value;
+      u.uCenter.value.set(this.controls.target.x, this.controls.target.z);
+      u.uSpan.value = span;
+      u.uHeight.value = span * 0.8;
+      u.uLen.value = span * 0.03;
+      u.uWind.value.set(Math.cos(dir), Math.sin(dir)).multiplyScalar(w.wind * gust);
+      u.uOpacity.value = 0.5 * Math.min(1, w.rain * 1.3);
+      // Cuántas gotas caen: más cuanto más llueve (y menos en calidad baja, por el móvil)
+      u.uActive.value = Math.min(1, 0.25 + w.rain * 0.75) * (this.high === false ? 0.55 : 1);
+      u.uSplash.value = Math.min(1, w.rain) * (this.high === false ? 0.5 : 1);
     }
+
+    // Bajo las nubes el sol no centellea en el mar
+    this.water.userData.uniforms.uSparkle.value = 1 - Math.min(1, w.dark * 2);
 
     // Con lluvia se ve menos lejos
     this.scene.fog.near *= 1 - 0.5 * w.rain;
