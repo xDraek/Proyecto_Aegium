@@ -354,6 +354,7 @@ export default {
   "Explora 10 islas": "Explore 10 islands",
   "Lobo de mar": "Sea dog",
   "Completa 10 expediciones": "Complete 10 expeditions",
+  "Expansionista": "Expansionist",
   "Ten 3 colonias": "Have 3 colonies",
   "Encuentra 2 tesoros": "Find 2 treasures",
   "Mercader": "Merchant",

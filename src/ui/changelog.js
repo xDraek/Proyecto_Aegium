@@ -7,6 +7,18 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26l',
+    date: '2026-10-26',
+    title: 'Logro Expansionista',
+    items: [
+      '🚩 El logro de tener 3 colonias se llamaba también «Fundador» y se confundía con el de los primeros jugadores: ahora se llama <b>Expansionista</b>. Si lo llevabas de título, ya sale con el nombre nuevo.',
+    ],
+    en: {
+      title: 'Expansionist achievement',
+      items: ['🚩 The achievement for having 3 colonies was also called “Founder” and was confused with the one for early players: it’s now called <b>Expansionist</b>. If you wore it as a title, it already shows the new name.'],
+    },
+  },
+  {
     id: '2026-10-26k',
     date: '2026-10-26',
     title: 'Nuevo emblema de Fundador',

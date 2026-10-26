@@ -1171,7 +1171,7 @@ export const ACHIEVEMENTS = [
   { id: 'muralla', icon: '🏰', name: 'Inexpugnable', text: 'Rechaza 5 asaltos', check: (g) => g.stats.raidsRepelled >= 5 },
   { id: 'explorador', icon: '🔭', name: 'Explorador', text: 'Explora 10 islas', check: (g) => g.exploredCount() >= 10 },
   { id: 'navegante', icon: '🧭', name: 'Lobo de mar', text: 'Completa 10 expediciones', check: (g) => g.stats.expeditions >= 10 },
-  { id: 'colono', icon: '🚩', name: 'Fundador', text: 'Ten 3 colonias', check: (g) => g.colonies().length >= 3 },
+  { id: 'colono', icon: '🚩', name: 'Expansionista', text: 'Ten 3 colonias', check: (g) => g.colonies().length >= 3 },
   { id: 'tesoros', icon: '🏺', name: 'Cazatesoros', text: 'Encuentra 2 tesoros', check: (g) => g.stats.treasures >= 2 },
   { id: 'mercader', icon: '⚖️', name: 'Mercader', text: 'Cierra 10 tratos en el mercado', check: (g) => (g.stats.trades ?? 0) >= 10 },
   { id: 'generoso', icon: '📦', name: 'Buen vecino', text: 'Entrega 10 transportes', check: (g) => (g.stats.transports ?? 0) >= 10 },
