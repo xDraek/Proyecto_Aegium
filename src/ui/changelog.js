@@ -7,6 +7,18 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26i',
+    date: '2026-10-26',
+    title: 'Volver al continente',
+    items: [
+      '🗺️ En las tierras de un continente hay arriba un botón <b>← Volver a</b> el continente: vuelves a su lista de tierras para elegir otra sin cerrar la ventana.',
+    ],
+    en: {
+      title: 'Back to the continent',
+      items: ['🗺️ The lands of a continent now have a <b>← Back to</b> the continent button at the top: you return to its list of lands to pick another without closing the window.'],
+    },
+  },
+  {
     id: '2026-10-26h',
     date: '2026-10-26',
     title: 'El chat ya no tapa los edificios',

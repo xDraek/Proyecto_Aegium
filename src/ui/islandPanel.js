@@ -473,12 +473,14 @@ function wonderSection(game, view) {
 function infoSection(game, view) {
   const t = ISLAND_TYPES[view.type];
   if (view.type === 'continente') return continentSection(game, view);
-  if (view.land) {
-    const land = game.world.island(view.land);
-    const inner = infoSectionFor(game, view, t);
-    return `<p class="hint">🗺️ En el continente <b>${escapeHtml(land?.name ?? '')}</b></p>${inner}`;
-  }
   return infoSectionFor(game, view, t);
+}
+
+/** En una tierra de un continente, el botón para volver a su lista de tierras sin cerrar el panel. */
+function backToLand(game, view) {
+  const land = view.land && game.world.island(view.land);
+  if (!land) return '';
+  return `<button type="button" class="back-land" data-select="${escapeHtml(land.id)}" title="Volver a la lista de tierras del continente">← Volver a <b>${escapeHtml(land.name)}</b></button>`;
 }
 
 /** La colonia de otro jugador: si se puede saquear y lo que sabes de su guarnición. */
@@ -819,6 +821,7 @@ export function islandPanel(hud, id) {
       <button class="icon-btn help-btn" data-action="guide" data-topic="${islandGuide(view)}" title="Qué es esto (guía)">?</button>
       <button class="icon-btn" data-action="close" title="Cerrar">✕</button>
     </div>
+    ${backToLand(game, view)}
     ${islandArt(game, view)}
     ${infoSection(game, view)}
     ${inboundSection(game, view)}

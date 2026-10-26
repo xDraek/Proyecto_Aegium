@@ -156,6 +156,8 @@ export default {
   "La construyen entre todos los que tienen colonia en el continente, y todos ellos reciben su efecto en todo su imperio.": "Everyone with a colony on the continent builds it together, and all of them receive its effect across their whole empire.",
   "Efecto": "Effect",
   "🗺️ En el continente": "🗺️ On the continent",
+  "← Volver a": "← Back to",
+  "Volver a la lista de tierras del continente": "Back to the list of lands on the continent",
   "🔥 La han saqueado hace poco: no queda nada que llevarse hasta dentro de": "🔥 It was plundered recently: there's nothing left to take for",
   "Envía un bote explorador para saber quién la defiende.": "Send a scout boat to find out who defends it.",
   "⚔️ Si tus tropas desembarcan y vencen a su guarnición, te llevas {1} h de lo que produce y la dejas {2} h sin producir. La colonia sigue siendo suya.": "⚔️ If your troops land and defeat its garrison, you take {1} h of what it produces and leave it {2} h without producing. The colony remains theirs.",
