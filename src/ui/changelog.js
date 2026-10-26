@@ -7,6 +7,18 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26o',
+    date: '2026-10-26',
+    title: 'Cabecera de las ventanas sin huecos',
+    items: [
+      '🖥️ En el ordenador, al bajar por una ventana larga (clasificación, novedades…) la cabecera se quedaba un poco por debajo del borde y por encima asomaban las pestañas y filas que pasaban por detrás. Ahora se pega arriba del todo.',
+    ],
+    en: {
+      title: 'Window headers without gaps',
+      items: ['🖥️ On desktop, when scrolling a long window (rankings, news…) the header stuck slightly below the edge and the tabs and rows passing behind peeked out above it. Now it sticks right to the top.'],
+    },
+  },
+  {
     id: '2026-10-26n',
     date: '2026-10-26',
     title: 'Preguntas con el estilo de Aegium',

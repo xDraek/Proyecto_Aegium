@@ -5840,10 +5840,16 @@ kbd {
   z-index: 4;
 }
 
+/* Se pega justo en el borde de arriba (lo que mide el relleno de #modal): si quedaba más abajo,
+   por el hueco de encima asomaba lo que iba pasando por detrás */
 .modal-card > .panel-head:first-child {
   position: sticky;
-  top: -44px;
+  top: -64px;
   z-index: 4;
+}
+
+.dialog .modal-card > .panel-head:first-child {
+  top: -44px;
 }
 
 @media (max-width: 800px) {
