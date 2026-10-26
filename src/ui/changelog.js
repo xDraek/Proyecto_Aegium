@@ -7,6 +7,18 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26c',
+    date: '2026-10-26',
+    title: 'Nuevos iconos de los recursos',
+    items: [
+      '🪵 La <b>madera</b> estrena icono: un montón de troncos recién cortados, con sus anillos. La <b>piedra</b>, unos sillares de caliza recién sacados de la cantera. La <b>comida</b>, una gavilla de trigo atada con cuerda. El <b>cristal</b>, una drusa de cristales azules sobre la roca. Y el <b>oro</b>, una moneda con la cabeza de Atenea. Los verás en la barra de recursos, en los costes y en el mercado.',
+    ],
+    en: {
+      title: 'New resource icons',
+      items: ['🪵 <b>Wood</b> has a new icon: a pile of freshly cut logs, with their rings. <b>Stone</b>, some limestone blocks fresh from the quarry. <b>Food</b>, a sheaf of wheat tied with rope. <b>Crystal</b>, a cluster of blue crystals on the rock. And <b>gold</b>, a coin bearing the head of Athena. You’ll see them in the resource bar, in costs and at the market.'],
+    },
+  },
+  {
     id: '2026-10-26b',
     date: '2026-10-26',
     title: 'Los espías traen el informe a casa',

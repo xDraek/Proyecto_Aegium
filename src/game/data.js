@@ -4,14 +4,16 @@ import { fmtEs } from './num.js';
 // Los requisitos (`requires`) mezclan edificios e investigaciones: los ids no se repiten.
 
 export const RESOURCES = {
-  madera: { name: 'Madera', icon: '🪵', color: '#c8935f', value: 1 },
-  piedra: { name: 'Piedra', icon: '🪨', color: '#a9b1bb', value: 1.2 },
-  comida: { name: 'Comida', icon: '🥖', color: '#9ccc65', value: 0.9 },
+  madera: { name: 'Madera', icon: '<img class="res-img" src="/ui/madera.png" alt="🪵" draggable="false" />', emoji: '🪵', color: '#c8935f', value: 1 },
+  piedra: { name: 'Piedra', icon: '<img class="res-img" src="/ui/piedra.png" alt="🪨" draggable="false" />', emoji: '🪨', color: '#a9b1bb', value: 1.2 },
+  comida: { name: 'Comida', icon: '<img class="res-img" src="/ui/comida.png" alt="🥖" draggable="false" />', emoji: '🥖', color: '#9ccc65', value: 0.9 },
   // Por dentro sigue siendo «hierro» (partidas guardadas), pero en la Edad del Bronce es bronce.
-  // Su icono es una imagen (un lingote); en los textos sin formato se usa `emoji`.
+  // Su icono es una imagen (un lingote), como los de los demás recursos (troncos, sillares, una
+  // gavilla de trigo, una drusa de cristal y una moneda de Atenea); en los textos sin formato se usa
+  // `emoji`.
   hierro: { name: 'Bronce', icon: '<img class="res-img" src="/ui/bronce.png" alt="🥉" draggable="false" />', emoji: '🥉', color: '#c7843f', value: 1.6 },
-  cristal: { name: 'Cristal', icon: '💎', color: '#7fd4ff', value: 2 },
-  oro: { name: 'Oro', icon: '🪙', color: '#f2c94c', value: 2.5 },
+  cristal: { name: 'Cristal', icon: '<img class="res-img" src="/ui/cristal.png" alt="💎" draggable="false" />', emoji: '💎', color: '#7fd4ff', value: 2 },
+  oro: { name: 'Oro', icon: '<img class="res-img" src="/ui/oro.png" alt="🪙" draggable="false" />', emoji: '🪙', color: '#f2c94c', value: 2.5 },
 };
 
 // `icon` va en HTML; `emoji`, en los textos sin formato (avisos, informes, desplegables)
