@@ -9,6 +9,7 @@ import { buildingPanel } from './buildingPanel.js';
 import { bag, costItems, escapeHtml, fmtNum, fmtShort, fmtTiny, fmtTime, linkCoords, resIcons, richText, unitList } from './format.js';
 import { installResPickers, syncResPickers } from './resPicker.js';
 import { askChoice, askConfirm, askPrompt } from './dialog.js';
+import { unitIcon } from '../scene/portraits.js';
 import { citySimPreset, featSimPreset, fleetFor, islandPanel, readFleet, readPayload, readOpts } from './islandPanel.js';
 import { questsHtml, rankingHtml } from './modals.js';
 import { openGuide } from './guide.js';
@@ -214,7 +215,7 @@ export class Hud {
           const answer = await askPrompt(
             `¿Cuántas unidades das de baja? Tienes ${have} en casa.
 Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bronce que costaron.`,
-            { title: `Dar de baja: ${u.name}`, icon: u.emoji, value: String(have), type: 'number', min: 1, max: have, ok: 'Dar de baja' },
+            { title: `Dar de baja: ${u.name}`, icon: unitIcon(id, 'panel-unit'), value: String(have), type: 'number', min: 1, max: have, ok: 'Dar de baja' },
           );
           const n = Math.floor(Number(answer));
           if (answer == null || !(n >= 1)) return;

@@ -7,6 +7,18 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26q',
+    date: '2026-10-26',
+    title: 'Tu tropa, en la ventana de dar de baja',
+    items: [
+      '🪖 Al dar de baja tropas o barcos, la ventana muestra en su medallón el modelo de esa unidad en pequeño, en vez de un emoji.',
+    ],
+    en: {
+      title: 'Your unit, in the dismiss window',
+      items: ['🪖 When dismissing troops or ships, the window shows a small model of that unit in its medallion instead of an emoji.'],
+    },
+  },
+  {
     id: '2026-10-26p',
     date: '2026-10-26',
     title: 'Tarjetas del ejército más claras',
