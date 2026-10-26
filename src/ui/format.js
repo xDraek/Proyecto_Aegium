@@ -1,5 +1,5 @@
 import { clock } from '../config.js';
-import { FAVOR_ICON, RELICS, RESOURCES, SPY_TIERS, UNITS } from '../game/data.js';
+import { FAVOR_ICON, FOUNDER_ICON, RELICS, RESOURCES, SPY_TIERS, UNITS } from '../game/data.js';
 import { fmtEs } from '../game/num.js';
 
 const nf1 = { format: (n) => fmtEs(n, 1) };
@@ -130,7 +130,7 @@ export function escapeHtml(s) {
 }
 
 // Los emojis de los recursos y del favor, por sus imágenes (🔩 es el del bronce de cuando era hierro)
-const RES_ICONS = new Map([...Object.values(RESOURCES).map((r) => [r.emoji, r.icon]), ['🔩', RESOURCES.hierro.icon], ['🙏', FAVOR_ICON]]);
+const RES_ICONS = new Map([...Object.values(RESOURCES).map((r) => [r.emoji, r.icon]), ['🔩', RESOURCES.hierro.icon], ['🙏', FAVOR_ICON], ['🌅', FOUNDER_ICON]]);
 const RES_EMOJI = new RegExp([...RES_ICONS.keys()].join('|'), 'gu');
 
 /** En un HTML: los emojis de los recursos y del favor (🪵, 🥖, 🪙, 🙏…) por sus imágenes. */

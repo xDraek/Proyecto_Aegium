@@ -23,6 +23,8 @@ export const RESOURCE_KEYS = Object.keys(RESOURCES);
 
 /** El favor de los dioses (no es un recurso del almacén): su icono en HTML y el emoji para los textos. */
 export const FAVOR_ICON = '<img class="res-img" src="/ui/favor.png" alt="🙏" draggable="false" />';
+/** El emblema de los Fundadores (un yelmo con laureles); en los textos va como 🌅 y se cambia al pintarlos. */
+export const FOUNDER_ICON = '<img class="res-img" src="/ui/fundador.png" alt="🌅" draggable="false" />';
 
 // Lo que la isla produce por sí sola, sin edificios (por hora).
 export const BASE_PRODUCTION = { madera: 60, piedra: 40, comida: 40, hierro: 0, cristal: 0, oro: 0 };
@@ -1161,7 +1163,7 @@ export const CONTEST_PRIZES = [
 
 export const ACHIEVEMENTS = [
   // Para quien llega al archipiélago en su primer mes (la fecha la marca el servidor)
-  { id: 'fundador', icon: '🌅', name: 'Fundador', text: 'Llegó al archipiélago en su primer mes', check: (g) => !!g.state.founder },
+  { id: 'fundador', icon: FOUNDER_ICON, name: 'Fundador', text: 'Llegó al archipiélago en su primer mes', check: (g) => !!g.state.founder },
   { id: 'saqueador', icon: '⚔️', name: 'Saqueador', text: 'Gana 10 ataques', check: (g) => g.stats.victories >= 10 },
   { id: 'campeon', icon: '🏅', name: 'Campeón de la semana', text: 'Gana una categoría de la competición semanal', check: (g) => (g.stats.contestWins ?? 0) >= 1 },
   { id: 'conquistador', icon: '👑', name: 'Conquistador', text: 'Gana 50 ataques', check: (g) => g.stats.victories >= 50 },

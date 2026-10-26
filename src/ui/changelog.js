@@ -7,6 +7,18 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26k',
+    date: '2026-10-26',
+    title: 'Nuevo emblema de Fundador',
+    items: [
+      '🌅 El logro de <b>Fundador</b> estrena emblema: un yelmo de hoplita con penacho rojo entre laureles de oro. Lo verás en tu perfil, en la guía y en los avisos.',
+    ],
+    en: {
+      title: 'New Founder emblem',
+      items: ['🌅 The <b>Founder</b> achievement has a new emblem: a hoplite helmet with a red crest among golden laurels. You’ll see it in your profile, the guide and notifications.'],
+    },
+  },
+  {
     id: '2026-10-26j',
     date: '2026-10-26',
     title: 'Nombres largos bien alineados',

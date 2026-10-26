@@ -1,5 +1,5 @@
 import { api } from '../net/api.js';
-import { escapeHtml, fmtNum } from './format.js';
+import { escapeHtml, fmtNum, resIcons } from './format.js';
 
 // Estadísticas del juego, solo para moderadores: altas, jugadores activos, retención por semana de
 // alta, en qué misión se quedan los que se van y hasta cuándo se es Fundador.
@@ -66,7 +66,7 @@ function render(s) {
       ? `<p class="muted small">${fmtNum(s.gone)} jugadores no entran desde hace más de 3 días. La misión que tenían pendiente:</p>
         <table class="stats-table"><thead><tr><th>Misión</th><th>Jugadores</th><th>Parte</th></tr></thead><tbody>${drop}</tbody></table>`
       : '<p class="muted small">Nadie ha dejado de entrar todavía.</p>'}
-    <h4>🌅 Fundadores</h4>
+    <h4>${resIcons('🌅')} Fundadores</h4>
     <p class="small">${fmtNum(s.founders.count)} fundadores. Quien se registre hasta el día indicado (incluido) recibe el título de Fundador; los que ya lo tienen no lo pierden.</p>
     <form class="inline-form stats-founder"><label>Fundadores hasta <input type="date" name="until" value="${until}" required /></label><button class="primary small">Guardar</button></form>
   </div>`;
