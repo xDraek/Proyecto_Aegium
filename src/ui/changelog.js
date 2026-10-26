@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26p',
+    date: '2026-10-26',
+    title: 'Tarjetas del ejército más claras',
+    items: [
+      '🥖 En la ventana del ejército, cada tropa y barco muestra ahora también la comida que consume por hora, junto al ataque, la vida y la paga.',
+      '🪙 La moneda de oro de la paga salía metida en un recuadro dorado como si fuera un retrato: ahora se ve limpia. Y si los datos no caben en una línea, baja cada uno entero con su icono, en vez de quedarse el icono arriba y el número abajo.',
+    ],
+    en: {
+      title: 'Clearer army cards',
+      items: [
+        '🥖 In the army window, each troop and ship now also shows the food it eats per hour, next to attack, health and pay.',
+        '🪙 The gold coin for pay appeared inside a golden box as if it were a portrait: now it looks clean. And if the stats don’t fit on one line, each one moves down whole with its icon, instead of the icon staying above and the number below.',
+      ],
+    },
+  },
+  {
     id: '2026-10-26o',
     date: '2026-10-26',
     title: 'Cabecera de las ventanas sin huecos',

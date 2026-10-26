@@ -18,6 +18,17 @@ function strength(game, units) {
   return { atk, hp };
 }
 
+/**
+ * Ataque, vida, comida y paga de una unidad. Cada dato va con su icono en un bloque que no se
+ * parte: si no cabe en la línea, baja entero (y no el icono arriba y el número abajo).
+ */
+function unitStats(u) {
+  const bits = [`⚔️ ${u.atk}`, `❤️ ${u.hp}`];
+  if (u.upkeep) bits.push(`${RESOURCES.comida.icon} ${u.upkeep}/h`);
+  if (u.pay) bits.push(`${RESOURCES.oro.icon} ${u.pay}/h`);
+  return bits.map((b) => `<span class="muted nb">${b}</span>`).join('');
+}
+
 function unitGrid(game, ids, empty, recruitIn) {
   const cards = ids
     .filter((id) => game.units[id] > 0)
@@ -25,7 +36,7 @@ function unitGrid(game, ids, empty, recruitIn) {
       const u = UNITS[id];
       return `<div class="army-card" title="${u.name}">
         ${unitIcon(id, 'army-art')}
-        <div><b>${fmtNum(game.units[id])}</b><span>${u.elite ? '⭐ ' : ''}${u.name}</span><span class="muted small">⚔️ ${u.atk} · ❤️ ${u.hp}${u.pay ? ` · ${RESOURCES.oro.icon} ${u.pay}/h` : ''}</span></div>
+        <div><b>${fmtNum(game.units[id])}</b><span>${u.elite ? '⭐ ' : ''}${u.name}</span><span class="muted small army-line">${unitStats(u)}</span></div>
         <button class="icon-btn tiny dismiss-btn" data-action="dismiss" data-unit="${id}" title="Dar de baja" aria-label="Dar de baja ${u.name}">✖</button>
       </div>`;
     })

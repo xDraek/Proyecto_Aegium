@@ -4322,6 +4322,19 @@ body.landing-mode #cam-controls {
   white-space: normal;
 }
 
+/* Ataque, vida, comida y paga: cada dato con su icono, sin partirse (army.js, unitStats).
+   Separados por un hueco y no por «·», que se quedaba colgando al final de la línea al bajar */
+.army-card .army-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px 9px;
+}
+
+.army-card .army-line > .nb {
+  white-space: nowrap;
+  overflow: visible;
+}
+
 /* ── Amigos ──────────────────────────────────────────────────────────────── */
 
 .friend-add {
@@ -4856,8 +4869,9 @@ body.landing-mode #cam-controls {
   border-color: rgba(120, 82, 30, 0.55);
 }
 
+/* Solo el retrato: los iconos de recursos (el oro de la paga) son imágenes pero van sin marco */
 .card-art,
-.army-card img {
+.army-card img.army-art {
   border: 2px solid var(--parch-gold);
   border-radius: 3px;
   box-shadow:
