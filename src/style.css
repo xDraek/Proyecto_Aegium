@@ -2211,6 +2211,8 @@ body.landing-mode #chat {
   border: none;
   background: none;
   color: inherit;
+  /* Los botones centran su texto: un nombre largo que ocupa dos líneas quedaría descolocado */
+  text-align: inherit;
   font-weight: 600;
   text-decoration: underline dotted rgba(255, 255, 255, 0.35);
   text-underline-offset: 3px;

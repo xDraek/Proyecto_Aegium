@@ -7,6 +7,18 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26j',
+    date: '2026-10-26',
+    title: 'Nombres largos bien alineados',
+    items: [
+      '📱 En la clasificación y en el resto de listas, los nombres largos que ocupan dos líneas («Aleksander Tiriev») ya no salen centrados: quedan alineados con los demás.',
+    ],
+    en: {
+      title: 'Long names aligned properly',
+      items: ['📱 In the rankings and other lists, long names that take up two lines are no longer centred: they line up with the rest.'],
+    },
+  },
+  {
     id: '2026-10-26i',
     date: '2026-10-26',
     title: 'Volver al continente',
