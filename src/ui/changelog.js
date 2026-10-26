@@ -7,6 +7,18 @@ import { escapeHtml } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26d',
+    date: '2026-10-26',
+    title: 'Nuevo icono del favor',
+    items: [
+      '🙏 El <b>favor de los dioses</b> también estrena icono: unas manos en oración entre laureles de oro, ante un sol con la greca. Lo verás arriba, en el templo, en los poderes divinos y en las recompensas.',
+    ],
+    en: {
+      title: 'New favour icon',
+      items: ['🙏 The <b>favour of the gods</b> has a new icon too: hands in prayer among golden laurels, before a sun with the Greek key. You’ll see it at the top, in the temple, in the divine powers and in rewards.'],
+    },
+  },
+  {
     id: '2026-10-26c',
     date: '2026-10-26',
     title: 'Nuevos iconos de los recursos',

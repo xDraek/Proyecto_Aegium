@@ -1,5 +1,5 @@
 import { universe } from '../config.js';
-import { ACHIEVEMENTS, BANNER_COLORS, BANNER_EMBLEMS, DAILY_REWARDS, RESOURCES, VACATION } from '../game/data.js';
+import { ACHIEVEMENTS, BANNER_COLORS, BANNER_EMBLEMS, DAILY_REWARDS, FAVOR_ICON, RESOURCES, VACATION } from '../game/data.js';
 import { recentErrors } from '../errors.js';
 import { api, setToken } from '../net/api.js';
 import { bag, escapeHtml, fmtAgo, fmtDec, fmtNum, fmtTime } from './format.js';
@@ -392,7 +392,7 @@ export class Social {
     const days = DAILY_REWARDS.map((r, i) => {
       const n = i + 1;
       const cls = n < d.day || (!d.available && n === d.day) ? 'done' : n === d.day ? 'today' : '';
-      return `<li class="${cls}"><b>Día ${n}</b>${bag(Object.fromEntries(Object.entries(r).filter(([k]) => k !== 'favor')))}${r.favor ? `<span class="bag-item">🙏 ${r.favor}</span>` : ''}</li>`;
+      return `<li class="${cls}"><b>Día ${n}</b>${bag(Object.fromEntries(Object.entries(r).filter(([k]) => k !== 'favor')))}${r.favor ? `<span class="bag-item">${FAVOR_ICON} ${r.favor}</span>` : ''}</li>`;
     }).join('');
     this.hud.showModal(
       'daily',
@@ -400,7 +400,7 @@ export class Social {
         ${head('🎁', 'Regalo diario', d.available ? `Racha de ${d.streak} ${d.streak === 1 ? 'día' : 'días'}. ¡Vuelve mañana para seguirla!` : 'Ya lo has recogido hoy. Vuelve mañana.', 'objetivos')}
         <ol class="daily">${days}</ol>
         <p class="muted small">Las cantidades crecen con el nivel de tu ayuntamiento. Si te saltas un día, la racha vuelve a empezar.</p>
-        ${d.available ? `<button class="primary" data-action="claim-daily">Recoger ${bag(Object.fromEntries(Object.entries(d.reward).filter(([k]) => k !== 'favor')))}${d.reward.favor ? ` · 🙏 ${d.reward.favor}` : ''}</button>` : ''}
+        ${d.available ? `<button class="primary" data-action="claim-daily">Recoger ${bag(Object.fromEntries(Object.entries(d.reward).filter(([k]) => k !== 'favor')))}${d.reward.favor ? ` · ${FAVOR_ICON} ${d.reward.favor}` : ''}</button>` : ''}
       </div>`,
     );
   }

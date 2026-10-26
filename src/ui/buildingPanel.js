@@ -1,4 +1,4 @@
-import { BUILDINGS, HERO, HERO_SKILLS, OCCUPATION, PORT_SAIL_SPEED, RELIC_RARITY, RELIC_SLOTS, POWERS, POWER_KEYS, RESEARCH, RESEARCH_KEYS, RESOURCES, TRAIN_SPEED, UNITS, UNIT_KEYS, WORK } from '../game/data.js';
+import { BUILDINGS, FAVOR_ICON, HERO, HERO_SKILLS, OCCUPATION, PORT_SAIL_SPEED, POWER_KEYS, POWERS, RELIC_RARITY, RELIC_SLOTS, RESEARCH, RESEARCH_KEYS, RESOURCES, TRAIN_SPEED, UNIT_KEYS, UNITS, WORK } from '../game/data.js';
 import { favorMax, favorRate, hasWorkers, producerOutput, protectedAmount, requirementName, storageCapacity, townSpeedup, wallBonus, workShare, workTaxes } from '../game/rules.js';
 import { splitForces } from '../game/combat.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
@@ -35,7 +35,7 @@ function effectFor(game, id, level, next) {
       );
     case 'templo':
       return (
-        effectRow('🙏 Favor por hora', fmtDec(favorRate(withLevel(game, id, level))), fmtDec(favorRate(withLevel(game, id, next)))) +
+        effectRow(`${FAVOR_ICON} Favor por hora`, fmtDec(favorRate(withLevel(game, id, level))), fmtDec(favorRate(withLevel(game, id, next)))) +
         effectRow('⛲ Favor máximo', favorMax(withLevel(game, id, level)), favorMax(withLevel(game, id, next)))
       );
     case 'coloso':
@@ -330,7 +330,7 @@ function powerCard(game, id) {
     return `<div class="card locked">
       <div class="card-head"><span class="card-icon">${p.icon}</span><div class="card-title"><b>${p.name}</b>
         <div class="card-sub">${p.description}</div></div></div>
-      <div class="card-row"><span class="muted small">🔒 Se desbloquea con el templo a nivel ${p.templo}</span><span class="muted small">🙏 ${p.cost}</span></div>
+      <div class="card-row"><span class="muted small">🔒 Se desbloquea con el templo a nivel ${p.templo}</span><span class="muted small">${FAVOR_ICON} ${p.cost}</span></div>
     </div>`;
   }
   return `<div class="card${until ? ' active' : ''}">
@@ -340,7 +340,7 @@ function powerCard(game, id) {
     ${until ? `<div class="hint ok">Quedan <span data-until="${until}"></span></div>` : ''}
     ${ready ? `<div class="hint">⏳ Se podrá volver a invocar en <span data-until="${ready}"></span></div>` : `<div class="muted small">Tras invocarla hay que esperar ${p.cooldown} h para volver a hacerlo.</div>`}
     <div class="card-row"><span class="muted small">${blocked}</span>
-      <button class="primary small auto" data-action="power" data-id="${id}" data-favor="${p.cost}" data-blocked="${blocked ? 1 : 0}">🙏 ${p.cost}</button></div>
+      <button class="primary small auto" data-action="power" data-id="${id}" data-favor="${p.cost}" data-blocked="${blocked ? 1 : 0}">${FAVOR_ICON} ${p.cost}</button></div>
   </div>`;
 }
 

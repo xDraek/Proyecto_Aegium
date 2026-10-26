@@ -1,6 +1,6 @@
 import { play } from '../audio.js';
 import { clock, universe } from '../config.js';
-import { BUILDING_KEYS, BUILDINGS, CANCEL_REFUND, TRAIN_CANCEL_REFUND, FEAT_THEMES, FEATS, ISLAND_TYPES, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCE_KEYS, RESOURCES, UNITS, VISITORS, WORLD_EVENTS } from '../game/data.js';
+import { BUILDING_KEYS, BUILDINGS, CANCEL_REFUND, FAVOR_ICON, FEAT_THEMES, FEATS, ISLAND_TYPES, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCE_KEYS, RESOURCES, TRAIN_CANCEL_REFUND, UNITS, VISITORS, WORLD_EVENTS } from '../game/data.js';
 import { HOUR_MS, canAfford, colonyYield, multiplyCost, upcomingWorldEvents } from '../game/rules.js';
 import { featAt, featCycle } from '../game/feats.js';
 import { api } from '../net/api.js';
@@ -775,8 +775,11 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     const show = game.level('templo') > 0;
     this.favorEl.hidden = !show;
     if (!show) return;
-    const text = `🙏 ${fmtNum(game.favor)}`;
-    if (this.favorEl.textContent !== text) this.favorEl.textContent = text;
+    const html = `${FAVOR_ICON} ${fmtNum(game.favor)}`;
+    if (this.favorHtml !== html) {
+      this.favorHtml = html;
+      this.favorEl.innerHTML = html;
+    }
     this.favorEl.title = `Favor de los dioses: ${fmtNum(game.favor)} / ${fmtNum(game.favorMax())}\nClic para abrir el templo`;
   }
 

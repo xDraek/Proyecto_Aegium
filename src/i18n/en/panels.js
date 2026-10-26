@@ -5,6 +5,7 @@ export default {
   "📦 Capacidad": "📦 Capacity",
   "🔒 A salvo de saqueos": "🔒 Safe from plunder",
   "🙏 Favor por hora": "🙏 Favour per hour",
+  "Favor por hora": "Favour per hour",
   "⛲ Favor máximo": "⛲ Maximum favour",
   "✨ Producción de todo": "✨ All production",
   "⚒️ Velocidad de obra": "⚒️ Construction speed",

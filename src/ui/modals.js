@@ -1,4 +1,4 @@
-import { CONTEST_CATEGORIES, DAILY_TASK_BONUS, FEAT_THEMES, QUESTS } from '../game/data.js';
+import { CONTEST_CATEGORIES, DAILY_TASK_BONUS, FAVOR_ICON, FEAT_THEMES, QUESTS } from '../game/data.js';
 import { bag, escapeHtml, fmtNum } from './format.js';
 
 // Ventanas de misiones y de clasificación.
@@ -9,7 +9,7 @@ const head = (icon, title, sub, guide = '') => `
 
 function rewardHtml(reward) {
   const { favor, ...rest } = reward;
-  return `${Object.keys(rest).length ? bag(rest) : ''}${favor ? ` <span class="bag-item">🙏 ${favor}</span>` : ''}`;
+  return `${Object.keys(rest).length ? bag(rest) : ''}${favor ? ` <span class="bag-item">${FAVOR_ICON} ${favor}</span>` : ''}`;
 }
 
 export function questsHtml(game) {

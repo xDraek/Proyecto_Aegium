@@ -1,5 +1,6 @@
 import { NEWBIE_DAYS, NEWBIE_POINTS } from '../game/Game.js';
 import {
+  FAVOR_ICON,
   ACHIEVEMENTS,
   BLOCKADE,
   BUILDINGS,
@@ -186,7 +187,7 @@ function islandsTable() {
 function powersTable() {
   return table(
     ['Poder', 'Templo', 'Favor', 'Efecto'],
-    Object.values(POWERS).map((p) => [`${p.icon} <b>${p.name}</b>`, `Nv ${p.templo ?? 1}`, `🙏 ${p.cost}`, p.description]),
+    Object.values(POWERS).map((p) => [`${p.icon} <b>${p.name}</b>`, `Nv ${p.templo ?? 1}`, `${FAVOR_ICON} ${p.cost}`, p.description]),
   );
 }
 
