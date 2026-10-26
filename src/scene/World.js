@@ -42,7 +42,7 @@ import { createIslandBase, createIslandFeature, featStatueModel, islandExtent, i
 import { escapeHtml, fmtTime, resIcons } from '../ui/format.js';
 import { Batch, bakeStatic, cloudGeometry, cloudMaterial, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng, surfaceDetail } from './util.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { createWater, setShores, swellAt } from './water.js';
+import { createWater, setShores, swellAt, waterGeometry, SEGMENTS, SEGMENTS_LOW } from './water.js';
 import { coastFactor, coastMax, islandCoast, shapeGeometry } from './coast.js';
 import { clock } from '../config.js';
 import { setGulls, setRain, thunder } from '../audio.js';
@@ -130,6 +130,13 @@ const DETAIL_DIST = 200;
 const DETAIL_SIZE = 0.02;
 /** …y como mucho estas a la vez (las demás, con su silueta). */
 const DETAIL_MAX = 60;
+/** En calidad baja, solo las que se ven bastante más grandes, y menos a la vez. */
+const DETAIL_SIZE_LOW = 0.03;
+const DETAIL_MAX_LOW = 20;
+/** En calidad baja las sombras se rehacen una de cada tantas imágenes (casi todo lo que las da está quieto). */
+const SHADOW_EVERY_LOW = 3;
+/** Píxeles de la escena en calidad baja: en las tablets, de pantalla grande, se baja la resolución interna. */
+const PIXELS_LOW = 600_000;
 const SHIP_PRIORITY = ['dromon', 'galeon', 'liburna', 'trirreme', 'brulote', 'mercante', 'bote'];
 
 // Clima: cada media hora real cambia (igual para todos, sale de la hora)
@@ -364,6 +371,7 @@ export class World {
     const resize = () => {
       const { clientWidth: w, clientHeight: h } = this.container;
       if (!w || !h) return;
+      if (this.high !== undefined) r.setPixelRatio(this.#pixelRatio());
       r.setSize(w, h);
       this.labelRenderer.setSize(w, h);
       this.composer?.setSize(w, h);
@@ -417,20 +425,39 @@ export class World {
     scene.add(this.water);
   }
 
+  /** Densidad de píxeles: en calidad baja como mucho 1,25 y, en pantallas grandes, la justa para PIXELS_LOW (nunca menos de 1). */
+  #pixelRatio() {
+    const dpr = window.devicePixelRatio || 1;
+    if (this.high) return Math.min(dpr, 2);
+    const { clientWidth: w, clientHeight: h } = this.container;
+    const fit = w && h ? Math.sqrt(PIXELS_LOW / (w * h)) : 1.25;
+    return Math.min(dpr, 1.25, Math.max(1, fit));
+  }
+
   /**
    * Calidad gráfica. Alta: resplandor en fuegos, ventanas y faros, bordes suaves (MSAA),
-   * sombras de más resolución y más píxeles. Baja: lo justo, para móviles y equipos modestos.
+   * sombras de más resolución y más píxeles. Baja: lo justo, para móviles y equipos modestos:
+   * menos píxeles, sombras más pequeñas que se rehacen de vez en cuando, un mar con menos
+   * triángulos y menos islas vecinas enteras.
    */
   setQuality(high) {
     this.high = !!high;
     const r = this.renderer;
-    r.setPixelRatio(Math.min(window.devicePixelRatio, this.high ? 2 : 1.25));
-    const size = this.high ? 4096 : 2048;
+    r.setPixelRatio(this.#pixelRatio());
+    const size = this.high ? 4096 : 1024;
     if (this.sun.shadow.mapSize.x !== size) {
       this.sun.shadow.mapSize.set(size, size);
       this.sun.shadow.map?.dispose();
       this.sun.shadow.map = null;
     }
+    r.shadowMap.autoUpdate = this.high;
+    r.shadowMap.needsUpdate = true;
+    const segments = this.high ? SEGMENTS : SEGMENTS_LOW;
+    if (this.water.geometry.userData.segments !== segments) {
+      this.water.geometry.dispose();
+      this.water.geometry = waterGeometry(segments);
+    }
+    this.detailAt = null;
     if (this.high && !this.composer) {
       const { clientWidth: w, clientHeight: h } = this.container;
       const target = new THREE.WebGLRenderTarget(w || 1, h || 1, { type: THREE.HalfFloatType, samples: 4 });
@@ -2809,6 +2836,7 @@ export class World {
     if (!force && this.detailAt && this.detailAt.distanceTo(cam) < 4) return this.#buildPending();
     (this.detailAt ??= new THREE.Vector3()).copy(cam);
     const fogFar = this.scene.fog.far;
+    const detailSize = this.high === false ? DETAIL_SIZE_LOW : DETAIL_SIZE;
     this.pendingBases = [];
     // Enteras, las que se ven grandes en pantalla (y como mucho las DETAIL_MAX que más)
     const seen = [];
@@ -2822,9 +2850,9 @@ export class World {
     }
     const big = new Set(
       seen
-        .filter((e) => e.radius / e.lodD > DETAIL_SIZE)
+        .filter((e) => e.radius / e.lodD > detailSize)
         .sort((a, b) => b.radius / b.lodD - a.radius / a.lodD)
-        .slice(0, DETAIL_MAX),
+        .slice(0, this.high === false ? DETAIL_MAX_LOW : DETAIL_MAX),
     );
     for (const e of seen) {
       const d = e.lodD;
@@ -2837,7 +2865,7 @@ export class World {
       const full = near || !e.proxy;
       if (full && !e.base) this.pendingBases.push({ e, d });
       // La que ya queda muy lejos se suelta, para que la memoria no crezca al recorrer el mapa
-      if (e.base && !full && e.proxy && e.radius / d < DETAIL_SIZE * 0.4) {
+      if (e.base && !full && e.proxy && e.radius / d < detailSize * 0.4) {
         e.group.remove(e.base);
         disposeTree(e.base);
         e.base = null;
@@ -3124,6 +3152,7 @@ export class World {
     this.#placeFleetLabels();
     this.frame = (this.frame ?? 0) + 1;
     if (this.frame % 3 === 0) this.#declutter();
+    if (this.high === false && this.frame % SHADOW_EVERY_LOW === 0) this.renderer.shadowMap.needsUpdate = true;
     if (this.high && this.composer) this.composer.render(dt);
     else this.renderer.render(this.scene, this.camera);
     this.labelRenderer.render(this.labelScene, this.camera);

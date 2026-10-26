@@ -9,7 +9,9 @@ import * as THREE from 'three';
 
 export const MAX_SHORES = 24;
 const SIZE = 900; // mitad del lado
-const SEGMENTS = 256;
+export const SEGMENTS = 256;
+/** Divisiones del mar en calidad baja. */
+export const SEGMENTS_LOW = 160;
 
 /** Reparte los vértices: 0,8 de separación en el centro, varias unidades en los bordes. */
 function remap(u) {
@@ -34,15 +36,22 @@ export function swellAt(x, z, time) {
   return Math.sin(x * 0.21 + time * 1.1) * 0.12 + Math.cos(z * 0.17 - time * 0.9) * 0.1 + Math.sin((x + z) * 0.11 + time * 0.7) * 0.08;
 }
 
-/**
- * @param {{ x: number, z: number, r: number, h?: {a: number, p: number}[] }[]} shores  islas: centro, radio y forma de la orilla
- */
-export function createWater(shores, level) {
-  const geo = new THREE.PlaneGeometry(2, 2, SEGMENTS, SEGMENTS);
+/** La malla del mar con tantas divisiones por lado (en calidad baja, menos: el móvil lo nota). */
+export function waterGeometry(segments) {
+  const geo = new THREE.PlaneGeometry(2, 2, segments, segments);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
   for (let i = 0; i < pos.count; i++) pos.setXYZ(i, remap(pos.getX(i)), 0, remap(pos.getZ(i)));
   geo.computeBoundingSphere();
+  geo.userData.segments = segments;
+  return geo;
+}
+
+/**
+ * @param {{ x: number, z: number, r: number, h?: {a: number, p: number}[] }[]} shores  islas: centro, radio y forma de la orilla
+ */
+export function createWater(shores, level) {
+  const geo = waterGeometry(SEGMENTS);
 
   const uniforms = {
     uTime: { value: 0 },

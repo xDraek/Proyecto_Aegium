@@ -20,16 +20,34 @@ const DAYNIGHT_KEY = 'aegium.daynight';
 const LABELS_KEY = 'aegium.labels';
 const QUALITY_KEY = 'aegium.quality';
 
-/** Gráficos de alta calidad: por defecto sí en el ordenador y no en el móvil. */
+/**
+ * Gráficos de alta calidad: por defecto sí en el ordenador y no en el móvil. Al llegar la versión
+ * ligera (2026-10-26), los móviles y tablets vuelven una vez a la calidad baja aunque hubieran
+ * elegido la alta; si después la activan otra vez, se respeta.
+ */
+const QUALITY_RESET_KEY = 'aegium.quality.ligera';
 function readQuality() {
+  const touch = !!window.matchMedia?.('(pointer: coarse)').matches;
   try {
+    if (touch && !localStorage.getItem(QUALITY_RESET_KEY)) {
+      localStorage.setItem(QUALITY_RESET_KEY, '1');
+      localStorage.removeItem(QUALITY_KEY);
+    }
     const saved = localStorage.getItem(QUALITY_KEY);
     if (saved) return saved === 'alta';
   } catch {
     // sin almacenamiento
   }
-  return !window.matchMedia?.('(pointer: coarse)').matches;
+  return !touch;
 }
+/**
+ * En calidad baja se dibujan como mucho 30 imágenes por segundo: en el móvil y la tablet es la
+ * mitad de trabajo (o la cuarta parte en pantallas de 120 Hz) y apenas se nota. El margen es para
+ * que a 60 Hz salga una de cada dos y no se pierda alguna por unas décimas.
+ */
+const LOW_FRAME_MS = 1000 / 30 - 4;
+/** Con una ventana abierta el juego queda detrás, borroso: basta con 15 imágenes por segundo. */
+const COVERED_FRAME_MS = 1000 / 15 - 4;
 const NOTIFY_KEY = 'aegium.notify';
 const scene = document.getElementById('scene');
 
@@ -105,7 +123,14 @@ function startLanding(message, opts = {}) {
   const demo = new Game({ state, world, userId: 0, mode: 'mirror' });
   const view = new World(scene, demo, { showcase: true });
   view.setDayNight(false);
-  view.renderer.setAnimationLoop((t) => view.update(0.016, t / 1000));
+  view.setQuality(readQuality());
+  let last = 0;
+  view.renderer.setAnimationLoop((t) => {
+    if (!view.high && t - last < LOW_FRAME_MS) return;
+    const dt = Math.min(0.1, (t - last) / 1000);
+    last = t;
+    view.update(dt, t / 1000);
+  });
 
   showLanding({ message, ...opts, onLogin: () => location.reload() });
 }
@@ -325,7 +350,10 @@ function startGame(game) {
   });
   let last = performance.now();
   let hudTimer = 0;
+  const modal = document.getElementById('modal');
   world.renderer.setAnimationLoop((now) => {
+    const gap = !modal.hidden ? COVERED_FRAME_MS : world.high ? 0 : LOW_FRAME_MS;
+    if (now - last < gap) return;
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
     game.update();

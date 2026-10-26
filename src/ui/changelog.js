@@ -7,6 +7,24 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26g',
+    date: '2026-10-26',
+    title: 'Más ligero en móviles y tablets',
+    items: [
+      '🔋 Con los gráficos en calidad normal (lo que viene en móviles y tablets) el juego pide mucho menos al aparato: se dibuja a 30 imágenes por segundo, las sombras se rehacen menos veces, el mar lleva menos detalle y las tablets usan menos resolución interna. Debería ir más fluido, calentarse menos y gastar menos batería.',
+      '🪟 Con una ventana abierta, el juego de detrás (que queda borroso) se dibuja más despacio, en cualquier aparato.',
+      '✨ En móviles y tablets se ha vuelto a la calidad normal aunque tuvieras puesta la alta. Si tu aparato va sobrado, puedes volver a todo el detalle en ⚙ → «Gráficos de alta calidad».',
+    ],
+    en: {
+      title: 'Lighter on phones and tablets',
+      items: [
+        '🔋 With graphics at normal quality (the default on phones and tablets) the game asks much less of your device: it draws 30 frames per second, shadows are redrawn less often, the sea has less detail and tablets use a lower internal resolution. It should run smoother, stay cooler and use less battery.',
+        '🪟 While a window is open, the game behind it (which is blurred) is drawn more slowly, on any device.',
+        '✨ Phones and tablets have been switched back to normal quality even if you had chosen high. If your device has power to spare, you can go back to full detail in ⚙ → “High-quality graphics”.',
+      ],
+    },
+  },
+  {
     id: '2026-10-26f',
     date: '2026-10-26',
     title: 'Arreglos en el móvil',
