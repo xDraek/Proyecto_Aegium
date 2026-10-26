@@ -1,11 +1,23 @@
 import { LANG } from '../i18n/index.js';
-import { escapeHtml } from './format.js';
+import { escapeHtml, resIcons } from './format.js';
 
 // Notas de las actualizaciones, la más reciente primero. Para publicar una nueva, añádela arriba
 // con un `id` distinto: a quien no la haya leído se le marca el botón 📰 de la barra de abajo.
 // Con `en: { title, items }` sale también en inglés (las que no lo tienen se ven en español).
 
 export const CHANGELOG = [
+  {
+    id: '2026-10-26e',
+    date: '2026-10-26',
+    title: 'Los iconos nuevos, en todas partes',
+    items: [
+      '🖼️ Los iconos nuevos de los recursos y del favor salen ya en todo el juego: lo que comen y cobran las tropas, los trabajadores, los avisos, los informes, el chat, las tareas diarias, la guía, la temporada del archipiélago y la mina de cristal.',
+    ],
+    en: {
+      title: 'The new icons, everywhere',
+      items: ['🖼️ The new resource and favour icons now appear throughout the game: what troops eat and are paid, workers, notifications, reports, the chat, daily tasks, the guide, the archipelago season and the crystal mine.'],
+    },
+  },
   {
     id: '2026-10-26d',
     date: '2026-10-26',
@@ -730,7 +742,7 @@ export function newsHtml() {
     const t = (LANG !== 'es' && e[LANG]) || null;
     return `<article class="news-entry${i === 0 ? ' latest' : ''}"${t || LANG === 'es' ? '' : ' translate="no"'}>
       <header><h4>${escapeHtml(t?.title ?? e.title)}</h4><time datetime="${e.date}">${dateFmt.format(new Date(`${e.date}T12:00:00`))}</time></header>
-      <ul>${(t?.items ?? e.items).map((it) => `<li>${it}</li>`).join('')}</ul>
+      <ul>${(t?.items ?? e.items).map((it) => `<li>${resIcons(it)}</li>`).join('')}</ul>
     </article>`;
   }).join('');
   return `<div class="modal-card">

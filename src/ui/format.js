@@ -1,5 +1,5 @@
 import { clock } from '../config.js';
-import { RELICS, RESOURCES, SPY_TIERS, UNITS } from '../game/data.js';
+import { FAVOR_ICON, RELICS, RESOURCES, SPY_TIERS, UNITS } from '../game/data.js';
 import { fmtEs } from '../game/num.js';
 
 const nf1 = { format: (n) => fmtEs(n, 1) };
@@ -129,12 +129,21 @@ export function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
 
+// Los emojis de los recursos y del favor, por sus imágenes (🔩 es el del bronce de cuando era hierro)
+const RES_ICONS = new Map([...Object.values(RESOURCES).map((r) => [r.emoji, r.icon]), ['🔩', RESOURCES.hierro.icon], ['🙏', FAVOR_ICON]]);
+const RES_EMOJI = new RegExp([...RES_ICONS.keys()].join('|'), 'gu');
+
+/** En un HTML: los emojis de los recursos y del favor (🪵, 🥖, 🪙, 🙏…) por sus imágenes. */
+export function resIcons(html) {
+  return String(html).replace(RES_EMOJI, (e) => RES_ICONS.get(e));
+}
+
 /**
- * Texto del juego (informes, avisos, mensajes del sistema) escapado y con el lingote en lugar del
- * emoji del bronce: los textos guardan 🥉 (o 🔩, de cuando era hierro) porque viajan como texto.
+ * Texto del juego (informes, avisos, mensajes del sistema) escapado y con las imágenes de los
+ * recursos y del favor en lugar de sus emojis: los textos los guardan así porque viajan como texto.
  */
 export function richText(s) {
-  return linkCoords(glyphs(escapeHtml(s).replace(/🥉|🔩/g, RESOURCES.hierro.icon)));
+  return linkCoords(glyphs(resIcons(escapeHtml(s))));
 }
 
 /** Las coordenadas «[47:52]» de un texto ya escapado, como enlaces al mapa del mundo. */

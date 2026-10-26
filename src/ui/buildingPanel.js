@@ -2,7 +2,7 @@ import { BUILDINGS, FAVOR_ICON, HERO, HERO_SKILLS, OCCUPATION, PORT_SAIL_SPEED, 
 import { favorMax, favorRate, hasWorkers, producerOutput, protectedAmount, requirementName, storageCapacity, townSpeedup, wallBonus, workShare, workTaxes } from '../game/rules.js';
 import { splitForces } from '../game/combat.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
-import { bag, costList, escapeHtml, fmtDec, fmtNum, fmtTime, glyphs, unitList } from './format.js';
+import { bag, costList, escapeHtml, fmtDec, fmtNum, fmtTime, glyphs, resIcons, unitList } from './format.js';
 import { resPicker } from './resPicker.js';
 
 const unitArt = (id) => unitIcon(id, 'card-art');
@@ -165,8 +165,8 @@ function unitStats(u, game) {
   } else if (u.size > 1) {
     parts.push(`👥 ${u.size} plazas`);
   }
-  parts.push(`🥖 ${u.upkeep}/h`);
-  if (u.pay) parts.push(`<b class="pay" title="Paga en oro por hora: si no hay oro, desertan">🪙 ${fmtDec(u.pay)}/h</b>`);
+  parts.push(`${RESOURCES.comida.icon} ${u.upkeep}/h`);
+  if (u.pay) parts.push(`<b class="pay" title="Paga en oro por hora: si no hay oro, desertan">${RESOURCES.oro.icon} ${fmtDec(u.pay)}/h</b>`);
   return parts.map((p) => `<span>${p}</span>`).join('');
 }
 
@@ -409,7 +409,7 @@ function relicSection(game) {
         <div class="relic-body"><b>${r.name}</b> <span class="rarity">${RELIC_RARITY[r.rarity].name}</span><div class="small muted">${r.text}</div></div>
         <div class="row-actions">
           <button class="${r.equipped ? 'ghost' : 'primary'} small" data-action="relic-equip" data-id="${r.id}" data-on="${r.equipped ? 0 : 1}">${r.equipped ? 'Guardar' : 'Equipar'}</button>
-          <button class="ghost small" data-action="relic-sell" data-id="${r.id}" title="Vender por ${RELIC_RARITY[r.rarity].sell} de oro">🪙</button>
+          <button class="ghost small" data-action="relic-sell" data-id="${r.id}" title="Vender por ${RELIC_RARITY[r.rarity].sell} de oro">${RESOURCES.oro.icon}</button>
         </div>
       </div>`,
     )
@@ -458,7 +458,7 @@ function townSection(game) {
   return `<h4>Tu imperio</h4>
     <div class="info-row"><span>🏆 Puntos</span><b>${fmtNum(game.score())}${game.isProtected() ? ' · 🛡️ protección de novato' : ''}</b></div>
     <div class="info-row"><span>🚩 Colonias</span><b>${game.colonies().length} / ${game.maxColonies()}</b></div>
-    <div class="info-row"><span>🥖 Mantenimiento de tropas</span><b>${fmtNum(eco.upkeep)}/h</b></div>
+    <div class="info-row"><span>${RESOURCES.comida.icon} Mantenimiento de tropas</span><b>${fmtNum(eco.upkeep)}/h</b></div>
     <div class="info-row"><span>🏴‍☠️ Amenaza pirata</span><b>${game.level('ayuntamiento') >= 3 ? `Nv ${game.raidTier()}` : 'Ninguna aún'}</b></div>`;
 }
 
@@ -472,13 +472,13 @@ function workSection(game, id) {
   return `<h4>👷 Trabajadores</h4>
     <p class="desc small">Decide cuántos trabajan aquí. Los demás comercian y pagan impuestos: dan oro por la mitad de lo que valdría lo que dejan de producir. Útil cuando el almacén se llena o necesitas oro.</p>
     <div class="work-row">
-      <span class="muted small">🪙</span>
+      <span class="muted small">${RESOURCES.oro.icon}</span>
       <input type="range" name="work-${id}" min="0" max="100" step="${WORK.step}" value="${pct}" data-work="${id}" aria-label="Trabajadores que producen ${res.name.toLowerCase()}" />
       <span class="muted small">${res.icon}</span>
       <b class="work-pct" data-work-pct>${pct} %</b>
     </div>
     <div class="info-row"><span>${res.icon} ${res.name}</span><b data-work-prod>${fmtNum((full * pct) / 100)}/h de ${fmtNum(full)}/h</b></div>
-    <div class="info-row"><span>🪙 Impuestos de los que no trabajan aquí</span><b data-work-tax>+${fmtNum(workTaxes(id, level, pct / 100))}/h</b></div>
+    <div class="info-row"><span>${RESOURCES.oro.icon} Impuestos de los que no trabajan aquí</span><b data-work-tax>+${fmtNum(workTaxes(id, level, pct / 100))}/h</b></div>
     <p class="muted small">Sin contar las bonificaciones de investigaciones, eventos o reliquias.</p>`;
 }
 
@@ -540,7 +540,7 @@ export function buildingPanel(hud, id) {
 
   const html = `
     <div class="panel-head">
-      <span class="panel-icon">${b.icon}</span>
+      <span class="panel-icon">${resIcons(b.icon)}</span>
       <div>
         <h3>${b.name}</h3>
         <div class="panel-lvl">${level > 0 ? `Nivel ${level}` : 'Sin construir'}</div>

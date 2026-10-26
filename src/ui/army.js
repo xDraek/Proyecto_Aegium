@@ -1,4 +1,4 @@
-import { FEAT_THEMES, LAND_UNITS, MISSION_TYPES, SHIP_UNITS, UNITS } from '../game/data.js';
+import { FEAT_THEMES, LAND_UNITS, MISSION_TYPES, RESOURCES, SHIP_UNITS, UNITS } from '../game/data.js';
 import { playerCombat } from '../game/rules.js';
 import { unitIcon } from '../scene/portraits.js';
 import { bag, escapeHtml, fmtNum, unitList } from './format.js';
@@ -25,7 +25,7 @@ function unitGrid(game, ids, empty, recruitIn) {
       const u = UNITS[id];
       return `<div class="army-card" title="${u.name}">
         ${unitIcon(id, 'army-art')}
-        <div><b>${fmtNum(game.units[id])}</b><span>${u.elite ? '⭐ ' : ''}${u.name}</span><span class="muted small">⚔️ ${u.atk} · ❤️ ${u.hp}${u.pay ? ` · 🪙 ${u.pay}/h` : ''}</span></div>
+        <div><b>${fmtNum(game.units[id])}</b><span>${u.elite ? '⭐ ' : ''}${u.name}</span><span class="muted small">⚔️ ${u.atk} · ❤️ ${u.hp}${u.pay ? ` · ${RESOURCES.oro.icon} ${u.pay}/h` : ''}</span></div>
         <button class="icon-btn tiny dismiss-btn" data-action="dismiss" data-unit="${id}" title="Dar de baja" aria-label="Dar de baja ${u.name}">✖</button>
       </div>`;
     })
@@ -117,8 +117,8 @@ export function armyHtml(game) {
       <div><b>${fmtNum(home.atk)}</b><span>⚔️ Ataque en casa</span></div>
       <div><b>${fmtNum(home.hp)}</b><span>❤️ Vida en casa</span></div>
       <div><b>${fmtNum(sea.atk)}</b><span>⛵ Ataque en el mar</span></div>
-      <div><b>${fmtNum(eco.upkeep)}/h</b><span>🥖 Comen</span></div>
-      <div class="${eco.pay ? '' : 'muted'}"><b>${fmtNum(eco.pay)}/h</b><span>🪙 Paga de las tropas</span></div>
+      <div><b>${fmtNum(eco.upkeep)}/h</b><span>${RESOURCES.comida.icon} Comen</span></div>
+      <div class="${eco.pay ? '' : 'muted'}"><b>${fmtNum(eco.pay)}/h</b><span>${RESOURCES.oro.icon} Paga de las tropas</span></div>
     </div>
     ${eco.pay && eco.net.oro < 0 ? `<p class="hint warn">💸 El oro baja ${fmtNum(-eco.net.oro)}/h: cuando se acabe, desertarán las tropas y los barcos que no puedas pagar (primero los que más cobran).</p>` : ''}
     <h4>🛡️ Tropas en casa · ${fmtNum(land)}</h4>

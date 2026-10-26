@@ -1,5 +1,5 @@
 import { CONTEST_CATEGORIES, DAILY_TASK_BONUS, FAVOR_ICON, FEAT_THEMES, QUESTS } from '../game/data.js';
-import { bag, escapeHtml, fmtNum } from './format.js';
+import { bag, escapeHtml, fmtNum, resIcons } from './format.js';
 
 // Ventanas de misiones y de clasificación.
 
@@ -49,7 +49,7 @@ function tasksHtml(game) {
     .map((t) => {
       const pct = Math.round((t.progress / t.need) * 100);
       return `<div class="quest task ${t.claimed ? 'claimed' : t.done ? 'done' : ''}">
-        <div class="quest-head"><b>${t.icon} ${escapeHtml(t.text)}</b><span class="muted small">${fmtNum(t.progress)} / ${fmtNum(t.need)}</span></div>
+        <div class="quest-head"><b>${resIcons(t.icon)} ${escapeHtml(t.text)}</b><span class="muted small">${fmtNum(t.progress)} / ${fmtNum(t.need)}</span></div>
         <div class="progress"><i style="width:${pct}%"></i></div>
         <div class="quest-foot"><span class="small">${reward}</span>
           <button class="primary small" data-action="claim-task" data-id="${t.id}" ${t.done && !t.claimed ? '' : 'disabled'}>${t.claimed ? '✔ Cobrado' : t.done ? 'Cobrar' : 'En curso'}</button></div>

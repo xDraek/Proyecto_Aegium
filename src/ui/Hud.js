@@ -6,7 +6,7 @@ import { featAt, featCycle } from '../game/feats.js';
 import { api } from '../net/api.js';
 import { armyHtml, armySummary, featWait } from './army.js';
 import { buildingPanel } from './buildingPanel.js';
-import { bag, costItems, escapeHtml, fmtNum, fmtShort, fmtTiny, fmtTime, linkCoords, richText, unitList } from './format.js';
+import { bag, costItems, escapeHtml, fmtNum, fmtShort, fmtTiny, fmtTime, linkCoords, resIcons, richText, unitList } from './format.js';
 import { installResPickers, syncResPickers } from './resPicker.js';
 import { citySimPreset, featSimPreset, fleetFor, islandPanel, readFleet, readPayload, readOpts } from './islandPanel.js';
 import { questsHtml, rankingHtml } from './modals.js';
@@ -715,8 +715,12 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
   #updateEvent() {
     const ev = this.game.worldEvent();
     const left = fmtTime(Math.max(0, (ev.end - this.game.now()) / 1000));
-    const text = ev.event ? `${ev.event.icon} ${left}` : `🌤️ ${left}`;
-    if (this.eventEl.textContent !== text) this.eventEl.textContent = text;
+    // (el icono de la temporada puede ser el de un recurso: 💎, 🪙… van con su imagen)
+    const html = ev.event ? `${resIcons(ev.event.icon)} ${left}` : `🌤️ ${left}`;
+    if (this.eventHtml !== html) {
+      this.eventHtml = html;
+      this.eventEl.innerHTML = html;
+    }
     this.eventEl.classList.toggle('active', !!ev.event);
     const title = ev.event ? `${ev.event.name}: ${ev.event.text}\nTermina en ${left}. Clic para ver el calendario.` : `Mares tranquilos. La próxima temporada puede empezar en ${left}.\nClic para ver el calendario.`;
     if (this.eventEl.title !== title) this.eventEl.title = title;
@@ -731,7 +735,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     const cur = this.game.worldEvent(now);
     const when = (t) => new Date(t).toLocaleString('es-ES', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
     const row = (ev, current) => `<div class="event-row ${current ? 'current' : ''} ${ev.event ? '' : 'calm'}">
-        <span class="event-icon">${ev.event ? ev.event.icon : '🌤️'}</span>
+        <span class="event-icon">${ev.event ? resIcons(ev.event.icon) : '🌤️'}</span>
         <div><b>${ev.event ? ev.event.name : 'Mares tranquilos'}</b><div class="small muted">${ev.event ? ev.event.text : 'Sin temporada especial.'}</div></div>
         <span class="small">${current ? `quedan ${fmtTime((ev.end - now) / 1000)}` : when(ev.start)}</span>
       </div>`;
@@ -759,7 +763,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
         const t = FEAT_THEMES[c.theme];
         const live = now >= c.omen && now < c.end;
         const label = live ? (now < c.start ? 'presagios ahora' : 'en lucha ahora') : `presagios el ${when(c.omen)}`;
-        return `<div class="event-row ${live ? 'current' : ''}"><span class="event-icon">${t.icon}</span>
+        return `<div class="event-row ${live ? 'current' : ''}"><span class="event-icon">${resIcons(t.icon)}</span>
           <div><b>${t.name}</b><div class="small muted">${live ? 'Convocados los imperios cercanos a algunos continentes.' : `${FEATS.omenHours} h de presagios y ${FEATS.hours} h de lucha.`}</div></div>
           <span class="small">${label}</span></div>`;
       })
@@ -796,7 +800,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
         const locked = level === 0 && game.nextUpgrade(id).missing.length > 0;
         const cls = [id === this.selected && 'active', q?.id === id && 'building', level === 0 && 'empty', locked && 'locked'].filter(Boolean).join(' ');
         const tag = q?.id === id ? '🔨' : level > 0 ? level : locked ? '🔒' : '—';
-        return `<li data-id="${id}" class="${cls}" title="${b.name}"><span class="b-icon">${b.icon}</span><span class="b-name">${b.name}</span><span class="b-lvl">${tag}</span></li>`;
+        return `<li data-id="${id}" class="${cls}" title="${b.name}"><span class="b-icon">${resIcons(b.icon)}</span><span class="b-name">${b.name}</span><span class="b-lvl">${tag}</span></li>`;
       }).join('');
       const status = game.heroStatus();
       const heroLine = status

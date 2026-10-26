@@ -46,7 +46,7 @@ import {
   WORLD_EVENTS,
 } from '../game/data.js';
 import { producerOutput, protectedAmount, storageCapacity } from '../game/rules.js';
-import { bag, escapeHtml, fmtDec, fmtNum, glyphs } from './format.js';
+import { bag, escapeHtml, fmtDec, fmtNum, glyphs, resIcons } from './format.js';
 
 // Guía del juego: capítulos con sus temas, un índice a un lado y un buscador.
 // Las tablas salen de los datos del juego (data.js y rules.js), así que no se
@@ -84,7 +84,7 @@ const unitName = (id) => `${UNITS[id].icon} ${UNITS[id].name}${UNITS[id].elite ?
 function buildingsTable() {
   return table(
     ['Edificio', 'Para qué sirve', 'Requisitos'],
-    Object.values(BUILDINGS).map((b) => [`${b.icon} <b>${b.name}</b>`, b.description, needs(b.requires)]),
+    Object.values(BUILDINGS).map((b) => [`${resIcons(b.icon)} <b>${b.name}</b>`, b.description, needs(b.requires)]),
   );
 }
 
@@ -113,7 +113,7 @@ function landTable() {
     ['Tropa', '⚔️', '❤️', 'Come', 'Plazas', 'Requisitos'],
     LAND_UNITS.map((id) => {
       const u = UNITS[id];
-      const keep = u.pay ? `🥖 ${u.upkeep}/h<div class="small">🪙 ${fmtDec(u.pay)}/h</div>` : `🥖 ${u.upkeep}/h`;
+      const keep = u.pay ? `${RESOURCES.comida.icon} ${u.upkeep}/h<div class="small">${RESOURCES.oro.icon} ${fmtDec(u.pay)}/h</div>` : `${RESOURCES.comida.icon} ${u.upkeep}/h`;
       return [`<b>${unitName(id)}</b><div class="muted small">${u.description}</div>`, u.atk, u.hp, keep, u.size ?? 1, needs(u.requires)];
     }),
   );
@@ -142,7 +142,7 @@ function productionTable() {
   const levels = [1, 5, 10, 15, 20];
   return table(
     ['Edificio', ...levels.map((n) => `Nv ${n}`)],
-    ids.map((id) => [`${BUILDINGS[id].icon} ${BUILDINGS[id].name}`, ...levels.map((n) => `${fmtNum(producerOutput(id, n))}/h`)]),
+    ids.map((id) => [`${resIcons(BUILDINGS[id].icon)} ${BUILDINGS[id].name}`, ...levels.map((n) => `${fmtNum(producerOutput(id, n))}/h`)]),
   );
 }
 
@@ -197,7 +197,7 @@ function relicsTable() {
     Object.values(RELICS).map((r) => {
       const rar = RELIC_RARITY[r.rarity];
       const only = r.source ? ` <span class="muted small">(solo en ${FEAT_THEMES[r.source]?.name ?? 'una gesta'})</span>` : '';
-      return [`${r.icon} <b>${r.name}</b>`, `<span class="guide-rarity" style="--rar:${rar.color}">${rar.name}</span>`, `${r.text}${only}`, `🪙 ${fmtNum(rar.sell)}`];
+      return [`${r.icon} <b>${r.name}</b>`, `<span class="guide-rarity" style="--rar:${rar.color}">${rar.name}</span>`, `${r.text}${only}`, `${RESOURCES.oro.icon} ${fmtNum(rar.sell)}`];
     }),
   );
 }
@@ -226,7 +226,7 @@ function featPhasesTable(th) {
 function eventsTable() {
   return table(
     ['Temporada', 'Efecto'],
-    Object.values(WORLD_EVENTS).map((e) => [`${e.icon} <b>${e.name}</b>`, e.text]),
+    Object.values(WORLD_EVENTS).map((e) => [`${resIcons(e.icon)} <b>${e.name}</b>`, e.text]),
   );
 }
 
@@ -363,7 +363,7 @@ const TOPICS = {
       ${landTable()}
       <h5>Barcos</h5>
       ${shipTable()}
-      <p><b>🪙 Paga</b>: las tropas y los barcos, además de comer, cobran una <b>paga en oro</b> cada hora, estén en casa o en el mar. La <b>milicia</b> (Milicia con lanza y Hondero miliciano) no cobra, pero come el doble. Si el oro se acaba, desertan los que más cobran hasta que la paga cuadre.</p>
+      <p><b>${RESOURCES.oro.icon} Paga</b>: las tropas y los barcos, además de comer, cobran una <b>paga en oro</b> cada hora, estén en casa o en el mar. La <b>milicia</b> (Milicia con lanza y Hondero miliciano) no cobra, pero come el doble. Si el oro se acaba, desertan los que más cobran hasta que la paga cuadre.</p>
       <p><b>⭐ Tropas de élite</b>: mucho más fuertes, pero cobran bastante más. Se desbloquean con <b>Táctica militar</b>. La caballería pide <b>Equitación 2</b> y los elefantes, la <b>Doma de elefantes</b> (que se investiga con Equitación 4).</p>
       ${tip('Los mercantes no combaten, pero llevan muchas tropas y mucho botín. Los botes son rápidos y solo sirven para explorar, espiar y sabotear.')}`,
   },
@@ -800,7 +800,7 @@ function navHtml(current, matches) {
       .map((id) => {
         const t = TOPICS[id];
         const cls = [id === current && 'active', matches && !matches.has(id) && 'dim'].filter(Boolean).join(' ');
-        return `<button type="button" class="${cls}" data-guide="${id}">${t.icon} ${t.title}</button>`;
+        return `<button type="button" class="${cls}" data-guide="${id}">${resIcons(t.icon)} ${t.title}</button>`;
       })
       .join('')}</div>`,
   ).join('');
@@ -813,7 +813,7 @@ function articleHtml(id) {
   const prev = ORDER[i - 1];
   const next = ORDER[i + 1];
   return `<div class="guide-crumb">${chapter.title} · ${chapter.topics.indexOf(id) + 1} de ${chapter.topics.length}</div>
-    <h4 class="guide-title">${t.icon} ${t.title}</h4>
+    <h4 class="guide-title">${resIcons(t.icon)} ${t.title}</h4>
     <div class="guide-body">${t.body()}</div>
     <div class="guide-pager">
       ${prev ? `<button type="button" class="ghost small" data-guide="${prev}">← ${TOPICS[prev].title}</button>` : '<span></span>'}
@@ -826,7 +826,7 @@ function resultsHtml(ids, q) {
   return `<p class="muted small">${ids.length === 1 ? 'Un tema habla' : `${ids.length} temas hablan`} de «${escapeHtml(q)}»</p>${ids
     .map((id) => {
       const t = TOPICS[id];
-      return `<section class="guide-result"><h4 class="guide-title"><button type="button" class="link" data-guide="${id}">${t.icon} ${t.title}</button></h4><div class="guide-body">${highlight(t.body(), q)}</div></section>`;
+      return `<section class="guide-result"><h4 class="guide-title"><button type="button" class="link" data-guide="${id}">${resIcons(t.icon)} ${t.title}</button></h4><div class="guide-body">${highlight(t.body(), q)}</div></section>`;
     })
     .join('')}`;
 }

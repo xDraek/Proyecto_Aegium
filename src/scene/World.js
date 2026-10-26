@@ -39,7 +39,7 @@ import {
   windowMaterial,
 } from './models.js';
 import { createIslandBase, createIslandFeature, featStatueModel, islandExtent, islandLook, islandProxy, islandRadius, ownerColor, shoreRadius } from './islands.js';
-import { escapeHtml, fmtTime } from '../ui/format.js';
+import { escapeHtml, fmtTime, resIcons } from '../ui/format.js';
 import { Batch, bakeStatic, cloudGeometry, cloudMaterial, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng, surfaceDetail } from './util.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createWater, setShores, swellAt } from './water.js';
@@ -1134,7 +1134,7 @@ export class World {
 
       const el = document.createElement('div');
       el.className = 'label';
-      el.innerHTML = `<span class="label-name">${BUILDINGS[id].name}</span><span class="label-lvl"></span><span class="label-bar"><i></i></span><span class="label-mini">${BUILDINGS[id].icon} <b></b></span>`;
+      el.innerHTML = `<span class="label-name">${BUILDINGS[id].name}</span><span class="label-lvl"></span><span class="label-bar"><i></i></span><span class="label-mini">${resIcons(BUILDINGS[id].icon)} <b></b></span>`;
       const label = new CSS2DObject(el);
       this.labelScene.add(label);
 
