@@ -845,6 +845,7 @@ select:focus {
   background: rgba(255, 255, 255, 0.08);
   font-size: 11px;
   color: var(--gold);
+  white-space: nowrap;
 }
 
 .card-sub {
@@ -995,6 +996,14 @@ select:focus {
   white-space: nowrap;
 }
 
+/* En el móvil no hay sitio para el nombre entero en una línea: mejor en dos que cortado */
+@media (max-width: 800px) {
+  .fleet-unit {
+    white-space: normal;
+    line-height: 1.2;
+  }
+}
+
 .fleet-summary {
   margin: 10px 0 8px;
   padding: 7px 10px;
@@ -1069,6 +1078,14 @@ select:focus {
   white-space: nowrap;
 }
 
+/* En el móvil el destino («Atacar Escollo Negra») baja de línea en vez de quedarse cortado */
+@media (max-width: 800px) {
+  .q-title > span:first-child {
+    white-space: normal;
+    line-height: 1.25;
+  }
+}
+
 .q-time {
   color: var(--gold);
   font-variant-numeric: tabular-nums;
@@ -1101,6 +1118,8 @@ select:focus {
   position: fixed;
   inset: 0;
   display: grid;
+  /* Una sola columna que no crece con el contenido: así ninguna ventana se sale de la pantalla */
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   padding: 16px;
   background: rgba(10, 8, 6, 0.45);
@@ -1165,6 +1184,29 @@ select:focus {
   color: var(--muted);
   font-size: 12px;
   white-space: nowrap;
+}
+
+/* Los informes no pueden ensanchar la lista: en el móvil la fecha y el lugar bajan de línea */
+.reports > .report {
+  min-width: 0;
+}
+
+@media (max-width: 800px) {
+  .report summary {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  .report summary .r-title {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .report summary .r-meta {
+    flex-basis: 100%;
+    white-space: normal;
+    text-align: right;
+  }
 }
 
 .r-body {
@@ -1939,6 +1981,18 @@ body.landing-mode #chat {
 .small-tabs .badge {
   top: -4px;
   right: 4px;
+}
+
+/* En el móvil, si las pestañas no caben en una fila pasan a dos en vez de salirse de la ventana */
+@media (max-width: 800px) {
+  .small-tabs {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .small-tabs button {
+    flex: 1 1 auto;
+  }
 }
 
 .chat-tabs {
@@ -4231,6 +4285,7 @@ body.landing-mode #cam-controls {
   font-size: 11px;
   font-weight: 700;
   color: #2b2014;
+  white-space: nowrap;
   background: linear-gradient(180deg, #f6d36b, #d9a92e);
 }
 

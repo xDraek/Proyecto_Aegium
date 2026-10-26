@@ -7,6 +7,24 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26f',
+    date: '2026-10-26',
+    title: 'Arreglos en el móvil',
+    items: [
+      '📱 La <b>clasificación</b> y los <b>informes</b> ya no se salen de la pantalla en el móvil: las pestañas pasan a dos filas y el lugar y la hora de cada informe bajan de línea.',
+      '📱 En <b>En marcha</b> y al <b>enviar una flota</b> los nombres largos («Atacar Escollo Negra», «Milicia con lanza») se leen enteros en vez de quedarse cortados.',
+      '📱 La etiqueta de tropas «en casa» del cuartel ya no se parte en dos, y la temporada de la portada lleva el icono nuevo.',
+    ],
+    en: {
+      title: 'Mobile fixes',
+      items: [
+        '📱 The <b>rankings</b> and <b>reports</b> no longer spill off the screen on mobile: tabs wrap onto two rows and each report’s place and time move to their own line.',
+        '📱 In <b>Under way</b> and when <b>sending a fleet</b>, long names are shown in full instead of being cut off.',
+        '📱 The barracks’ “at home” troop tag no longer splits in two, and the season on the front page uses the new icon.',
+      ],
+    },
+  },
+  {
     id: '2026-10-26e',
     date: '2026-10-26',
     title: 'Los iconos nuevos, en todas partes',
