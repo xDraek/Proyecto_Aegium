@@ -5578,12 +5578,16 @@ kbd {
 
 /* ── Novedades: las notas de las actualizaciones ─────────────────────────── */
 
+/* Una sola columna que no crece con el contenido: una palabra larga (un correo, una dirección) en
+   alguna nota antigua ensanchaba todas y en el móvil el texto se salía por la derecha */
 .news {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
 }
 
 .news-entry {
+  overflow-wrap: anywhere;
   padding: 12px 14px;
   border-left: 3px solid rgba(242, 201, 76, 0.35);
   background: rgba(255, 255, 255, 0.03);
@@ -5597,9 +5601,10 @@ kbd {
 
 .news-entry header {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: 2px 12px;
   margin-bottom: 6px;
 }
 

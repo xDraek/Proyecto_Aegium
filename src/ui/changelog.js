@@ -7,6 +7,18 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-26s',
+    date: '2026-10-26',
+    title: 'Novedades enteras en el móvil',
+    items: [
+      '📱 En el móvil, el texto de las novedades se salía por la derecha y se cortaba (sobre todo con la letra del teléfono grande). Ahora cabe entero, y si no hay sitio la fecha baja debajo del título.',
+    ],
+    en: {
+      title: 'Full news on mobile',
+      items: ['📱 On mobile, the news text spilled off the right and got cut off (especially with a large phone font). Now it fits completely, and if there’s no room the date moves below the title.'],
+    },
+  },
+  {
     id: '2026-10-26r',
     date: '2026-10-26',
     title: 'Lluvia nueva, y menos a menudo',
