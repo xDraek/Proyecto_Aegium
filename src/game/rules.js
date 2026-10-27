@@ -413,7 +413,7 @@ export function economy(state, t = state.lastUpdate) {
 const NEUTRAL_REF = 1000;
 
 /**
- * Cuánto crecen para ti los bárbaros, los piratas y los corsarios de las islas neutrales (y su
+ * Cuánto crecen para ti los bárbaros, los piratas y los tritones de las islas neutrales (y su
  * botín): lo que producen tus edificios (en valor, sin bonos ni eventos) frente a una ciudad que
  * empieza. Así un campamento vale siempre más o menos las mismas horas de tu producción.
  */

@@ -540,6 +540,9 @@ export const UNITS = {
   barbaro: { name: 'Bárbaro', icon: '🪓', kind: 'tierra', npc: true, atk: 7, hp: 15 },
   pirata: { name: 'Pirata', icon: '🏴‍☠️', kind: 'tierra', npc: true, atk: 11, hp: 17 },
   corsario: { name: 'Barco corsario', icon: '⛵', kind: 'barco', npc: true, atk: 20, hp: 50, capacity: 12 },
+  // Los guardianes de las fosas del Kraken: tritones con tridente y sus hipocampos de guerra
+  triton: { name: 'Tritón', icon: '🔱', kind: 'tierra', npc: true, atk: 11, hp: 17 },
+  hipocampo: { name: 'Hipocampo', icon: '🌊', kind: 'barco', npc: true, atk: 20, hp: 50, capacity: 12 },
   kraken: { name: 'Kraken', icon: '🐙', kind: 'barco', npc: true, atk: 260, hp: 2600 },
   // Los hijos de Tifón (gestas): su número y sus multiplicadores dependen de quién les plante cara
   sierpe: { name: 'Sierpe marina', icon: '🐍', kind: 'barco', npc: true, atk: 14, hp: 300 },

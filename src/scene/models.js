@@ -2564,7 +2564,7 @@ function arm(g, s, pose, sleeve, skin) {
  * Una persona. Opciones: skin, hair, female, beard, long (vestido largo), color (ropa),
  * top (túnica del torso, si es de otro color), bareArms (sin mangas), skirt (falda de otro color), drape (toga o manto cruzado), veil, shawl, belt, cloak,
  * cuirass, pteruges, greaves, helmet ('corintio' | 'atico' | 'legionario' | 'gorro' | 'panuelo'),
- * crest, arms: [derecho, izquierdo] (poses).
+ * crest, arms: [derecho, izquierdo] (poses), tail (cola de pez en vez de piernas: la pone quien la pide).
  */
 export function figure(o) {
   const g = new THREE.Group();
@@ -2572,13 +2572,13 @@ export function figure(o) {
   const hair = o.hair ?? HAIR[0];
   const top = o.cuirass ? (o.cuirassColor ?? BRONZE_C) : (o.top ?? o.color);
   // Piernas y sandalias (o grebas)
-  for (const s of [-1, 1]) {
+  if (!o.tail) for (const s of [-1, 1]) {
     g.add(cyl(0.022, 0.026, 0.22, 5, o.greaves ? (o.cuirassColor ?? BRONZE_C) : skin, s * 0.04, 0.02, 0));
     g.add(box(0.05, 0.022, 0.085, '#5e3b1c', s * 0.04, 0, 0.012));
   }
   // Ropa: vestido hasta los pies o túnica hasta la rodilla
   if (o.long) g.add(cyl(0.08, 0.118, 0.32, 9, o.skirt ?? o.color, 0, 0.02, 0));
-  else g.add(cyl(0.074, 0.098, 0.16, 9, o.color, 0, 0.2, 0));
+  else if (!o.tail) g.add(cyl(0.074, 0.098, 0.16, 9, o.color, 0, 0.2, 0));
   if (o.pteruges) for (let k = 0; k < 8; k++) {
     const a = (k / 8) * Math.PI * 2;
     const strip = box(0.035, 0.09, 0.015, o.pteruges, Math.sin(a) * 0.088, 0.17, Math.cos(a) * 0.088);
@@ -4059,6 +4059,9 @@ function horse(g, color = '#7a5230', saddle = '#a8231a') {
   return 0.42;
 }
 
+/** Los colores de los tritones de las fosas. */
+const TRITON = { skin: '#7fb5a6', hair: '#24584c', scale: '#2f7f74', belly: '#b9d4b0', fin: '#3aa894' };
+
 const TROOPS = {
   // Miliciano: calzón gris, túnica sin mangas y chal de lino crudo, tahalí de cuero, casco de bronce
   // con penacho negro, lanza larga y escudo de madera con borde de bronce
@@ -4356,7 +4359,72 @@ const TROOPS = {
     g.add(blade);
     g.add(box(0.06, 0.02, 0.06, C.gold, 0.13, 0.28, 0.04));
   } },
+  // Tritón, guardián de las fosas: torso desnudo de piel verde marino, melena y barba de algas,
+  // corona de coral, cinturón de escamas doradas, cola de pez enroscada en vez de piernas, una
+  // caracola colgada a la cadera y el tridente de bronce en la mano
+  triton: { color: TRITON.skin, skin: TRITON.skin, bareArms: true, tail: true, beard: true, hair: TRITON.hair, belt: '#c9a24a', arms: ['abajo', 'abajo'], extra: (g) => {
+    fishTail(g);
+    // Melena de algas cayendo por la espalda y la corona de coral
+    g.add(box(0.11, 0.16, 0.03, TRITON.hair, 0, 0.42, -0.055), box(0.08, 0.06, 0.02, TRITON.hair, 0, 0.36, -0.06));
+    for (let k = 0; k < 7; k++) {
+      const a = (k / 7) * Math.PI * 2;
+      const spike = mesh(new THREE.ConeGeometry(0.009, 0.045 + (k % 2) * 0.02, 4), k % 2 ? '#e0607a' : '#f08a5d');
+      spike.position.set(Math.sin(a) * 0.055, 0.6, Math.cos(a) * 0.055);
+      g.add(spike);
+    }
+    // Escamas en los hombros, como hombreras, y la caracola a la cadera
+    for (const sx of [-1, 1]) g.add(box(0.06, 0.025, 0.09, TRITON.scale, sx * 0.075, 0.425, 0));
+    const conch = mesh(new THREE.ConeGeometry(0.022, 0.07, 6), '#efe0c8');
+    conch.position.set(-0.085, 0.29, 0.05);
+    conch.rotation.z = -1.2;
+    g.add(conch);
+    trident(g, 0.74);
+  } },
 };
+
+/** La cola de pez de un tritón: de la cintura al suelo, enroscada hacia atrás y con su aleta. */
+function fishTail(g) {
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  const spine = [[V(0, 0.29, 0), 0.074], [V(0, 0.18, 0.02), 0.07], [V(0, 0.08, -0.01), 0.058], [V(0, 0.03, -0.1), 0.045], [V(0, 0.04, -0.19), 0.033], [V(0, 0.09, -0.26), 0.02]];
+  for (let k = 0; k < spine.length; k++) {
+    const [p, r] = spine[k];
+    const joint = mesh(new THREE.SphereGeometry(r, 9, 7), k % 2 ? TRITON.scale : '#3a8f80');
+    joint.position.copy(p);
+    g.add(joint);
+    if (k) tileRod(g, spine[k - 1][0], p, spine[k - 1][1], k % 2 ? '#3a8f80' : TRITON.scale, r);
+  }
+  // El vientre más claro, por delante, y unas aletas a las caderas
+  g.add(box(0.07, 0.16, 0.02, TRITON.belly, 0, 0.12, 0.06));
+  for (const sx of [-1, 1]) {
+    const fin = mesh(new THREE.ConeGeometry(0.03, 0.09, 3), TRITON.fin);
+    fin.position.set(sx * 0.07, 0.17, -0.01);
+    fin.rotation.z = sx * 2.3;
+    fin.scale.z = 0.3;
+    g.add(fin);
+  }
+  // La aleta de la cola, abierta en dos lóbulos
+  for (const sx of [-1, 1]) {
+    const lobe = mesh(new THREE.ConeGeometry(0.035, 0.11, 3), TRITON.fin);
+    lobe.position.set(sx * 0.04, 0.13, -0.29);
+    lobe.rotation.set(-0.5, 0, sx * -0.75);
+    lobe.scale.z = 0.25;
+    g.add(lobe);
+  }
+}
+
+/** Tridente de bronce en la mano derecha, vertical: asta, travesaño y tres puntas con lengüeta. */
+function trident(g, h = 0.7) {
+  const x = 0.135, z = 0.03, metal = '#c9a24a';
+  g.add(cyl(0.01, 0.012, h, 5, '#5e4a2a', x, 0.02, z));
+  g.add(box(0.13, 0.016, 0.016, metal, x, h, z));
+  for (const dx of [-0.055, 0, 0.055]) {
+    g.add(cyl(0.007, 0.008, dx ? 0.1 : 0.12, 5, metal, x + dx, h + 0.012, z));
+    const tip = mesh(new THREE.ConeGeometry(0.016, 0.05, 4), metal, { metalness: 0.5, roughness: 0.35 });
+    tip.position.set(x + dx, h + (dx ? 0.13 : 0.15), z);
+    tip.scale.z = 0.4;
+    g.add(tip);
+  }
+}
 
 /** Figurita de una unidad de tierra (unos 0,5 de alto). */
 export function createSoldier(id) {
@@ -5033,6 +5101,88 @@ const SHIPS = {
     g.children.at(-1).rotation.x = Math.PI / 2;
     for (const s of [-1, 1]) g.add(box(0.05, 0.05, 0.02, '#26221f', s * 0.05, 1.28, 0.32));
     addFlag(g, 0, 1.92, 0.15, '#111111');
+  },
+  hipocampo(g) {
+    // Hipocampo de guerra: medio caballo, medio pez, nadando con la cabeza alta. Pecho y patas
+    // delanteras de caballo con aletas en vez de cascos, crin de aleta, cuerpo que se estrecha en
+    // una cola de pez enroscada, bocado de oro y un tritón a lomos con su tridente
+    const body = '#3f8288', dark = '#2f6a70', belly = '#d6dcc0', fin = TRITON.fin, mane = '#1d5a63', V = (x, y, z) => new THREE.Vector3(x, y, z);
+    const spine = [[V(0, 0.16, 0.5), 0.3], [V(0, 0.13, 0.1), 0.29], [V(0, 0.09, -0.32), 0.23], [V(0, 0.07, -0.7), 0.16], [V(0, 0.16, -1.0), 0.11], [V(0, 0.38, -1.18), 0.075], [V(0, 0.6, -1.12), 0.05]];
+    for (let k = 0; k < spine.length; k++) {
+      const [p, r] = spine[k];
+      const ball = mesh(new THREE.SphereGeometry(r, 12, 9), k % 2 ? dark : body);
+      ball.position.copy(p);
+      ball.scale.x = 0.85;
+      g.add(ball);
+      if (k) tileRod(g, spine[k - 1][0], p, spine[k - 1][1] * 0.85, k % 2 ? body : dark, r * 0.85);
+    }
+    // El vientre claro asomando sobre el agua y la aleta de la cola, abierta en dos lóbulos
+    const bellyM = mesh(new THREE.SphereGeometry(0.24, 10, 6), belly);
+    bellyM.position.set(0, 0.02, 0.35);
+    bellyM.scale.set(0.8, 0.5, 1.2);
+    g.add(bellyM);
+    for (const sx of [-1, 1]) {
+      const lobe = mesh(new THREE.ConeGeometry(0.11, 0.32, 3), fin);
+      lobe.position.set(sx * 0.1, 0.72, -1.08);
+      lobe.rotation.set(0.4, 0, sx * -0.7);
+      lobe.scale.z = 0.25;
+      g.add(lobe);
+    }
+    // Aletas dorsales a lo largo del lomo
+    for (let k = 0; k < 4; k++) {
+      const f = mesh(new THREE.ConeGeometry(0.07, 0.2 - k * 0.025, 3), fin);
+      f.position.set(0, 0.36 - k * 0.04, -0.3 - k * 0.2);
+      f.rotation.x = -0.5;
+      f.scale.x = 0.25;
+      g.add(f);
+    }
+    // El cuello y la cabeza de caballo, alta y mirando al frente
+    tileRod(g, V(0, 0.3, 0.6), V(0, 0.82, 0.92), 0.17, body, 0.11);
+    const head = mesh(new THREE.SphereGeometry(0.12, 10, 8), body);
+    head.position.set(0, 0.92, 1.0);
+    head.scale.set(0.85, 0.9, 1.1);
+    g.add(head);
+    tileRod(g, V(0, 0.9, 1.04), V(0, 0.8, 1.3), 0.085, body, 0.06);
+    const muzzle = mesh(new THREE.SphereGeometry(0.065, 8, 6), dark);
+    muzzle.position.set(0, 0.79, 1.31);
+    g.add(muzzle);
+    for (const sx of [-1, 1]) {
+      const ear = mesh(new THREE.ConeGeometry(0.025, 0.09, 4), dark);
+      ear.position.set(sx * 0.05, 1.04, 0.96);
+      ear.rotation.x = -0.3;
+      g.add(ear);
+      const eye = mesh(new THREE.SphereGeometry(0.018, 6, 4), '#101418');
+      eye.position.set(sx * 0.085, 0.95, 1.07);
+      g.add(eye);
+      // El bocado y las riendas de oro, hasta las manos del tritón
+      g.add(cyl(0.012, 0.012, 0.02, 6, C.gold, sx * 0.06, 0.8, 1.25));
+      tileRod(g, V(sx * 0.06, 0.81, 1.25), V(sx * 0.1, 0.62, 0.32), 0.006, C.gold);
+    }
+    // La crin: una aleta que baja por la nuca
+    for (let k = 0; k < 6; k++) {
+      const t = k / 5;
+      const f = mesh(new THREE.ConeGeometry(0.05, 0.16, 3), mane);
+      f.position.set(0, 1.0 - t * 0.55, 0.93 - t * 0.38);
+      f.rotation.x = -0.9;
+      f.scale.x = 0.25;
+      g.add(f);
+    }
+    // Las patas delanteras, braceando, con aletas en vez de cascos
+    for (const sx of [-1, 1]) {
+      const knee = V(sx * 0.17, 0.12, 0.85), foot = V(sx * 0.19, -0.04, 1.02);
+      tileRod(g, V(sx * 0.14, 0.2, 0.6), knee, 0.07, body, 0.055);
+      tileRod(g, knee, foot, 0.055, dark, 0.04);
+      const flipper = mesh(new THREE.ConeGeometry(0.09, 0.22, 3), fin);
+      flipper.position.copy(foot).add(V(0, -0.02, 0.08));
+      flipper.rotation.x = Math.PI / 2;
+      flipper.scale.y = 0.3;
+      g.add(flipper);
+    }
+    // El tritón a lomos
+    const rider = createSoldier('triton');
+    rider.scale.setScalar(1.7);
+    rider.position.set(0, 0.3, 0.15);
+    g.add(rider);
   },
   brulote(g) {
     // Brulote: barca vieja cargada de brea en llamas

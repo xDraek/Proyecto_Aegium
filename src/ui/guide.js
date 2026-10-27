@@ -172,7 +172,7 @@ function islandsTable() {
     ['piratas', 'Más gente, barcos corsarios y fortificación. Lleva catapultas para abrir brecha.'],
     ['ruinas', 'Un tesoro para el primero que llegue: basta con explorarlas. A veces esconden una reliquia.'],
     ['libre', 'Tierra deshabitada donde fundar una colonia que produce un recurso.'],
-    ['kraken', `Corsarios bien fortificados y el oro de mil naufragios. El único Kraken de los mares despierta a veces en una de ellas (ver ${see('archipielago', 'el Kraken')}).`],
+    ['kraken', `Una isla con un golfo de aguas negras y las ruinas de una ciudad hundida, donde viven los tritones y sus hipocampos. El único Kraken de los mares despierta a veces en una de ellas (ver ${see('archipielago', 'el Kraken')}).`],
     ['brumas', 'El Mar de las Brumas: solo se va de expedición.'],
     ['ciudadela', 'Ciudades bárbaras amuralladas de los continentes: mucho botín, y se pueden conquistar.'],
     ['continente', 'Tierras grandes entre sectores, con ciudades bárbaras, valles para colonizar y una maravilla.'],

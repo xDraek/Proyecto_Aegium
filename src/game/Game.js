@@ -2453,7 +2453,7 @@ export class Game extends EventTarget {
     } else if (isl.type === 'kraken') {
       text += intel.garrison.kraken
         ? ` 🐙 ¡El Kraken está aquí! Sus ojos brillan al fondo de la fosa. Es de nivel ${intel.kraken}: ${krakenText(intel.kraken)}.`
-        : ' El Kraken no está: solo sus corsarios guardan la fosa.';
+        : ' El Kraken no está: solo sus tritones guardan la fosa.';
     } else if (isl.type === 'libre') {
       text += rt.colonizedBy != null
         ? ` Ya es una colonia de ${this.world.playerInfo(rt.colonizedBy)?.name ?? 'otro imperio'}.`
@@ -3601,7 +3601,7 @@ export function rebuilding(isl, rt, t) {
 
 /** Quiénes viven en una isla neutral (para los textos). */
 export function neutralsOf(isl) {
-  return { piratas: 'Los piratas', kraken: 'Los corsarios de la fosa' }[isl.type] ?? 'Los bárbaros';
+  return { piratas: 'Los piratas', kraken: 'Los tritones de la fosa' }[isl.type] ?? 'Los bárbaros';
 }
 
 function rebuildText(isl, rt, t) {

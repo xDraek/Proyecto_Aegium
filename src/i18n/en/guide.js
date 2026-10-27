@@ -49,7 +49,7 @@ export default {
   "Un tesoro para el primero que llegue: basta con explorarlas. A veces esconden una reliquia.": "Treasure for whoever gets there first: exploring them is enough. Sometimes they hide a relic.",
   "Tierra deshabitada donde fundar una colonia que produce un recurso.": "Uninhabited land where you can found a colony that produces a resource.",
   "el Kraken": "the Kraken",
-  "Corsarios bien fortificados y el oro de mil naufragios. El único Kraken de los mares despierta a veces en una de ellas (ver {0}).": "Well-fortified corsairs and the gold of a thousand wrecks. The only Kraken in the seas sometimes awakens in one of them (see {0}).",
+  "Una isla con un golfo de aguas negras y las ruinas de una ciudad hundida, donde viven los tritones y sus hipocampos. El único Kraken de los mares despierta a veces en una de ellas (ver {0}).": "An island with a gulf of black waters and the ruins of a sunken city, where the tritons and their hippocampi live. The only Kraken in the seas sometimes awakens in one of them (see {0}).",
   "El Mar de las Brumas: solo se va de expedición.": "The Sea of Mists: you only go there on expeditions.",
   "Ciudades bárbaras amuralladas de los continentes: mucho botín, y se pueden conquistar.": "Walled barbarian cities on the continents: plenty of loot, and they can be conquered.",
   "Tierras grandes entre sectores, con ciudades bárbaras, valles para colonizar y una maravilla.": "Large lands between sectors, with barbarian cities, valleys to colonize and a wonder.",

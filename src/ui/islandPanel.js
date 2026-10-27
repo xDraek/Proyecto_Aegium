@@ -540,7 +540,7 @@ function infoSectionFor(game, view, t) {
     barbaros: 'Una tribu de bárbaros ha levantado aquí su campamento. Acumulan lo que roban y se rearman con el tiempo.',
     ciudadela: 'Una ciudad bárbara amurallada tierra adentro: muchos guerreros y mucho botín. Lleva catapultas para abrir brecha en su empalizada.',
     piratas: 'Guarida de piratas bien fortificada. Las catapultas ayudan a abrir brecha en sus muros.',
-    kraken: 'Una fosa de corsarios entre barcos hundidos y el oro de mil naufragios. Solo hay un Kraken en todos los mares: despierta de vez en cuando en una de estas fosas, y nadie sabe cuándo ni en cuál; si nadie lo derrota, al cabo de unas horas se sumerge y asoma en otra. Envía un bote explorador para saber si está aquí.',
+    kraken: 'Una isla en forma de media luna que abraza un golfo de aguas negras y hondas: la guarida del Kraken. En el fondo del golfo, medio sepultadas por el agua, las ruinas de una ciudad que se tragó el mar, donde viven los tritones con sus tridentes y sus hipocampos de guerra. Solo hay un Kraken en todos los mares: despierta de vez en cuando en una de estas fosas, y nadie sabe cuándo ni en cuál; si nadie lo derrota, al cabo de unas horas se sumerge y asoma en otra. Envía un bote explorador para saber si está aquí.',
   }[view.type];
   return `<p class="desc">${flavor}</p>${lines.join('')}
     <p class="desc small">Se rearman por completo en unas ${fmtNum(view.regenHours)} h de juego. Solo te llevas el botín si acabas con toda la guarnición.</p>

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { C, box, colonnade, column, createShip, createSoldier, cyl, cypress, dome, figure, gableRoof, greekKey, hipRoof, makeFire, mat, mediterraneanTree, mesh, palmTree, smokeColumn, stylobate, WINDOW_GLOW } from './models.js';
+import { C, amphora, box, colonnade, column, createShip, createSoldier, cyl, cypress, dome, figure, gableRoof, greekKey, hipRoof, makeFire, mat, mediterraneanTree, mesh, palmTree, smokeColumn, stylobate, WINDOW_GLOW } from './models.js';
 import { wonderLevel, wonderOf } from '../game/rules.js';
 import { FEAT_THEMES } from '../game/data.js';
 import { Batch, bakeStatic, cloudGeometry, cloudMaterial, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng } from './util.js';
@@ -33,7 +33,8 @@ export function islandRadius(isl) {
 
 /** Radio de la línea de costa (donde la arena corta el agua), para la espuma. */
 export function shoreRadius(isl) {
-  if (isl.type === 'brumas' || isl.land) return 0;
+  // (la fosa, con su golfo, se pone su propia espuma: la del agua solo sabe de costas redondeadas)
+  if (isl.type === 'brumas' || isl.type === 'kraken' || isl.land) return 0;
   const R = islandRadius(isl);
   if (isl.type === 'jugador') return R + 2.7;
   if (isl.type === 'continente') return R * 1.08;
@@ -57,6 +58,7 @@ export function createIslandBase(isl) {
   if (isl.type === 'brumas') return bakeStatic(seaStacks(R, rand));
   if (isl.land) return siteBase(isl, R, rand);
   if (isl.type === 'continente') return bakeStatic(continentBase(isl, R, rand, seed));
+  if (isl.type === 'kraken') return bakeStatic(gulfBase(isl, R, rand, seed));
   const pal = PALETTES[isl.type] ?? PALETTES.default;
   const g = new THREE.Group();
   // Costa irregular: salientes, bahías y cabos (la misma forma que la espuma del agua)
@@ -165,6 +167,7 @@ function siteBase(isl, R) {
 export function islandProxy(isl) {
   if (isl.land || isl.type === 'brumas') return null;
   const R = islandRadius(isl);
+  if (isl.type === 'kraken') return gulfBase(isl, R, rng(hashString(isl.id)), hashString(isl.id), true);
   const h = islandCoast(isl);
   const cont = isl.type === 'continente';
   const city = isl.type === 'jugador';
@@ -375,6 +378,8 @@ export function islandLook(view) {
   if (view.colonizedBy != null) return 'colonia-otro';
   if (!view.explored) return 'niebla';
   if (view.type === 'ruinas') return view.looted ? 'ruinas-saqueadas' : 'ruinas';
+  // La fosa, con el Kraken si tu último bote lo vio en ella
+  if (view.type === 'kraken') return view.intel?.garrison?.kraken && !view.intel.rebuildUntil ? 'kraken-vivo' : 'kraken';
   return view.type;
 }
 
@@ -414,7 +419,8 @@ export function createIslandFeature(isl, fullLook) {
     libre: () => specialty(g, isl, R, rand),
     colonia: () => colony(g, isl, R, rand, isl.bannerColor ?? C.cloth[0]),
     'colonia-otro': () => colony(g, isl, R, rand, ownerColor(isl)),
-    kraken: () => lair(g, R, rand),
+    kraken: () => lair(g, isl, R, rand, false),
+    'kraken-vivo': () => lair(g, isl, R, rand, true),
     brumas: () => fogBank(g, R, rand),
   };
   if (look.startsWith('ciudad-')) {
@@ -943,50 +949,436 @@ function hordeCamp(g, R, rand) {
   }
 }
 
-function lair(g, R, rand) {
-  // Agujas de roca negra
-  for (let i = 0; i < 9; i++) {
-    const spike = mesh(new THREE.ConeGeometry(0.5 + rand() * 0.5, 2.5 + rand() * 3, 5), i % 2 ? '#2f2c33' : '#3f3a40');
-    spike.position.copy(polar(R * (0.15 + rand() * 0.5), rand() * 360, 1.2));
-    spike.rotation.z = (rand() - 0.5) * 0.4;
-    g.add(spike);
+// ── La fosa del Kraken ──────────────────────────────────────────────────────
+// Una isla en forma de media luna que abraza un golfo de aguas negras y hondas: la guarida del
+// Kraken. En el fondo del golfo, las ruinas de una ciudad que se tragó el mar, medio sepultadas por
+// el agua, donde viven los tritones y sus hipocampos.
+
+const RUIN = ['#c9c4b6', '#b8b2a2', '#d6d0c0'];
+const ALGAE = '#5f7f5a';
+const PATINA = '#5f8f7a';
+const KRAKEN_SKIN = ['#7a3b5a', '#8a4868'];
+const SUCKER = '#e6c7cf';
+const GULF_LAND = { grass: '#7a8f55', cliff: '#8a7a66', rock: '#6e665c', sand: '#cbbd98' };
+const FOAM = { transparent: true, opacity: 0.45, depthWrite: false };
+
+/**
+ * El golfo de una fosa, en unidades de la isla: hacia dónde se abre (`deg`), su centro y su radio,
+ * y lo abierta que es la bocana en la costa (`mouth`) y por dentro (`neck`), en grados.
+ */
+function gulfOf(isl, R) {
+  const deg = rng(hashString(isl.id) ^ 0x2545f491)() * 360;
+  return { deg, center: polar(R * 0.16, deg), r: R * 0.5, mouth: 25, neck: 36 };
+}
+
+/** Grados entre dos direcciones (de 0 a 180). */
+const apart = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
+
+/** Contorno de la isla con su golfo: `k` agranda la costa de fuera y `kb`, la orilla del golfo. */
+function gulfOutline(isl, R, gulf, k = 1, kb = 1) {
+  const h = islandCoast(isl);
+  const flat = (v) => new THREE.Vector2(v.x, -v.z);
+  const pts = [];
+  for (let i = 0; i <= 64; i++) {
+    const deg = gulf.deg + gulf.mouth + (i / 64) * (360 - 2 * gulf.mouth);
+    pts.push(flat(polar(R * k * coastFactor(h, THREE.MathUtils.degToRad(deg)), deg)));
   }
-  // Remolino
-  const whirl = new THREE.Mesh(new THREE.TorusGeometry(R * 1.55, 0.35, 4, 40), mat('#1d4e6e', { transparent: true, opacity: 0.8 }));
-  whirl.rotation.x = Math.PI / 2;
-  whirl.position.y = SEA + 0.05;
-  whirl.userData.spin = { axis: 'z', speed: 0.6 };
-  g.add(whirl);
-  // Tentáculos que salen del agua
-  for (let i = 0; i < 6; i++) {
-    const t = tentacle(rand);
-    t.position.copy(polar(R * 1.25, i * 60 + rand() * 20, SEA - 0.3));
-    t.rotation.y = THREE.MathUtils.degToRad(i * 60) + Math.PI;
+  // La orilla del golfo, por dentro, de un lado de la bocana al otro
+  for (let i = 0; i <= 40; i++) {
+    const deg = gulf.deg - gulf.neck - (i / 40) * (360 - 2 * gulf.neck);
+    pts.push(flat(gulf.center.clone().add(polar(gulf.r * kb, deg))));
+  }
+  return new THREE.Shape(pts);
+}
+
+/** Una losa de tierra con la forma dada, con su cara de arriba en `top` (y un talud si lleva `bevel`). */
+function landSlab(shape, depth, top, color, bevel) {
+  let geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel * 0.4, bevelSize: bevel, bevelSegments: 1, curveSegments: 1 });
+  geo.rotateX(-Math.PI / 2);
+  geo.translate(0, top - depth - bevel * 0.4, 0);
+  geo = geo.index ? geo.toNonIndexed() : geo;
+  if (typeof color === 'function') paintByNormal(geo, color);
+  const m = new THREE.Mesh(geo, typeof color === 'function' ? new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1 }) : mat(color));
+  m.receiveShadow = true;
+  return m;
+}
+
+/** Espuma a ras de agua entre dos líneas de puntos (de dentro y de fuera). */
+function foamStrip(inner, outer) {
+  const pos = [];
+  for (let i = 1; i < inner.length; i++) {
+    const [a, b, c, d] = [inner[i - 1], outer[i - 1], outer[i], inner[i]];
+    pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z, a.x, a.y, a.z, c.x, c.y, c.z, d.x, d.y, d.z);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, mat('#ffffff', { ...FOAM, side: THREE.DoubleSide }));
+  m.userData.solo = true;
+  return m;
+}
+
+/**
+ * La isla de una fosa: la media luna de tierra (matorral, montes al fondo y algún árbol), su playa,
+ * la espuma de las dos orillas y las aguas hondas del golfo, más oscuras hacia el centro. `far`: solo
+ * la tierra y el golfo (la isla vista de lejos).
+ */
+function gulfBase(isl, R, rand, seed, far = false) {
+  const g = new THREE.Group();
+  const gulf = gulfOf(isl, R);
+  const h = islandCoast(isl);
+  const coastAt = (deg) => R * coastFactor(h, THREE.MathUtils.degToRad(deg));
+  g.add(landSlab(gulfOutline(isl, R, gulf), 2, ISLAND_TOP, (ny, cy) => (ny > 0.7 ? GULF_LAND.grass : cy > -0.6 ? GULF_LAND.cliff : GULF_LAND.rock), 0.8));
+  g.add(landSlab(gulfOutline(isl, R, gulf, 1.12, 0.84), 1.3, -0.45, GULF_LAND.sand, 0));
+  for (const [k, color, opacity] of [[0.84, '#123447', 0.5], [0.5, '#06141f', 0.55]]) {
+    const deep = new THREE.Mesh(new THREE.CircleGeometry(gulf.r * k, 40), mat(color, { transparent: true, opacity, depthWrite: false }));
+    deep.rotation.x = -Math.PI / 2;
+    deep.position.copy(gulf.center).setY(WATER_Y + 0.06 + (1 - k) * 0.02);
+    g.add(deep);
+  }
+  if (far) return g;
+
+  // La espuma: por fuera de la isla y por la orilla del golfo
+  const y = WATER_Y + 0.05;
+  const outer = [], outer2 = [], bay = [], bay2 = [];
+  for (let i = 0; i <= 64; i++) {
+    const deg = gulf.deg + gulf.mouth + (i / 64) * (360 - 2 * gulf.mouth);
+    outer.push(polar(coastAt(deg) * 1.12, deg, y));
+    outer2.push(polar(coastAt(deg) * 1.18, deg, y));
+  }
+  for (let i = 0; i <= 40; i++) {
+    const deg = gulf.deg - gulf.neck - (i / 40) * (360 - 2 * gulf.neck);
+    bay.push(gulf.center.clone().add(polar(gulf.r * 0.84, deg, y)));
+    bay2.push(gulf.center.clone().add(polar(gulf.r * 0.78, deg, y)));
+  }
+  g.add(foamStrip(outer, outer2), foamStrip(bay, bay2));
+
+  // Montes al fondo de la media luna, lejos del golfo
+  const back = gulf.deg + 180;
+  const hills = [];
+  for (const [da, k, s] of [[0, 0.7, 0.24], [-55, 0.72, 0.17], [58, 0.72, 0.15]]) {
+    const deg = back + da;
+    const p = polar(coastAt(deg) * k, deg, ISLAND_TOP - 0.05);
+    const hill = new THREE.Mesh(
+      mountainGeometry(R * s, R * s * 1.4, (seed + da + 97) % 97, { snow: '#9a948a', grass: GULF_LAND.grass, rock: GULF_LAND.rock }),
+      new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1 }),
+    );
+    hill.position.copy(p);
+    hill.castShadow = hill.receiveShadow = true;
+    g.add(hill);
+    hills.push({ p, r: R * s });
+  }
+  // Matorral, cipreses y rocas por la tierra firme (ni en el golfo, ni en la bocana, ni en los montes)
+  const onLand = (p) => {
+    const deg = THREE.MathUtils.radToDeg(Math.atan2(p.x, p.z));
+    return apart(deg, gulf.deg) > gulf.mouth + 14 && p.length() < coastAt(deg) * 0.84 && p.distanceTo(gulf.center) > gulf.r * 1.2 && hills.every((h) => p.distanceTo(h.p) > h.r * 0.9);
+  };
+  const decor = new Batch();
+  for (let i = 0, made = 0; i < 400 && made < R * 1.6; i++) {
+    const p = polar(R * (0.2 + rand() * 0.7), rand() * 360, ISLAND_TOP);
+    if (!onLand(p)) continue;
+    const t = rand() < 0.35 ? cypress('#3f5e3a') : mediterraneanTree(rand());
+    t.position.copy(p);
+    t.scale.setScalar(0.8 + rand() * 0.5);
+    t.rotation.y = rand() * Math.PI;
+    decor.add(t);
+    made++;
+  }
+  for (let i = 0, made = 0; i < 200 && made < R; i++) {
+    const p = polar(R * (0.2 + rand() * 0.7), rand() * 360, ISLAND_TOP);
+    if (!onLand(p)) continue;
+    const rock = mesh(new THREE.DodecahedronGeometry(0.3 + rand() * 0.45), i % 3 ? '#8a8378' : '#6f8450');
+    rock.position.copy(p).setY(ISLAND_TOP + 0.12);
+    rock.scale.y = 0.6;
+    decor.add(rock);
+    made++;
+  }
+  // Rocas en la costa de fuera, batidas por las olas
+  for (let i = 0; i < 9; i++) {
+    const deg = rand() * 360;
+    if (apart(deg, gulf.deg) < gulf.mouth + 6) continue;
+    const rock = mesh(new THREE.DodecahedronGeometry(0.6 + rand() * 0.8), GULF_LAND.rock);
+    rock.position.copy(polar(coastAt(deg) * (1.16 + rand() * 0.1), deg, WATER_Y - 0.1));
+    rock.scale.y = 0.6;
+    decor.add(rock);
+  }
+  g.add(decor.build());
+  return g;
+}
+
+/**
+ * Lo que hay en la fosa: al fondo del golfo, las ruinas medio hundidas donde viven los tritones; sus
+ * hipocampos nadando por el golfo; un pecio encallado en la bocana; y, con `alive` (tu último bote
+ * vio al Kraken aquí), el Kraken saliendo de las aguas hondas del centro, mirando al mar.
+ */
+function lair(g, isl, R, rand, alive) {
+  const gulf = gulfOf(isl, islandRadius(isl));
+  const c = gulf.center.clone().divideScalar(FEATURE_SCALE);
+  const rb = gulf.r / FEATURE_SCALE;
+  const back = gulf.deg + 180;
+  const toSea = THREE.MathUtils.degToRad(gulf.deg);
+  const at = (deg, k, y = 0) => c.clone().add(polar(rb * k, deg, y));
+  const BEACH = (-0.45 - ISLAND_TOP) / FEATURE_SCALE;
+
+  sunkenRuins(g, at, back, rand, BEACH);
+
+  // Los tritones: en la escalinata, entre las columnas de la playa y en el agua, mirando al golfo
+  const guards = [[back - 8, 0.98, 0.0], [back + 9, 0.86, -0.25], [back - 38, 0.82, BEACH], [back + 30, 0.84, BEACH], [back + 62, 0.86, BEACH], [back - 20, 0.6, SEA - 0.25], [back + 46, 0.58, SEA - 0.25]];
+  for (const [deg, k, y] of guards) {
+    const t = createSoldier('triton');
+    t.scale.setScalar(1.9);
+    t.position.copy(at(deg, k, y));
+    t.rotation.y = toSea + (rand() - 0.5) * 0.9;
     g.add(t);
   }
-  // Ojos que brillan en la cueva
-  for (const x of [-0.5, 0.5]) {
-    const eye = mesh(new THREE.SphereGeometry(0.18, 8, 6), '#ffe14a', { emissive: '#ffcc00', emissiveIntensity: 2 });
-    eye.position.set(x, 1.0, R * 0.55);
-    g.add(eye);
+  // Sus hipocampos, nadando por el golfo
+  for (let i = 0; i < 3; i++) {
+    const deg = back + (i - 1) * 75 + (rand() - 0.5) * 20;
+    const hc = createShip('hipocampo');
+    hc.scale.setScalar(1.6);
+    hc.position.copy(at(deg, 0.62, SEA));
+    hc.rotation.y = THREE.MathUtils.degToRad(deg) + (i % 2 ? Math.PI / 2 : -Math.PI / 2);
+    hc.userData.bob = { amp: 0.1, speed: 1.2 + i * 0.25, base: SEA };
+    g.add(hc);
+  }
+  // Un barco que no salió del golfo, encallado en la bocana
+  const side = gulf.deg + gulf.mouth * 0.45;
+  const w = wreck(rand, 0);
+  w.position.copy(polar((islandRadius(isl) / FEATURE_SCALE) * 0.92, side, SEA - 0.25));
+  w.rotation.set(0, THREE.MathUtils.degToRad(side) + 0.6, 0.35);
+  g.add(w);
+
+  if (alive) {
+    // (más pequeño que en mar abierto: cabe en el golfo, hundido hasta medio cuerpo)
+    kraken(g, c.clone().setY(SEA - 0.6), toSea, rand, 0.62);
+    return;
+  }
+  // Sin el Kraken, el centro del golfo apenas se riza
+  for (const [r, speed] of [[1.1, 0.25], [2.1, -0.18]]) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.06, 4, 36, Math.PI * 1.4), mat('#5f8fa8', { transparent: true, opacity: 0.35 }));
+    ring.rotation.x = Math.PI / 2;
+    ring.position.copy(c).setY(SEA + 0.05);
+    ring.userData.spin = { axis: 'z', speed };
+    g.add(ring);
   }
 }
 
-function tentacle(rand) {
+/**
+ * Las ruinas del fondo del golfo, medio sepultadas por el agua: una columnata en arco (la fila de
+ * delante, con el agua por la cintura y verde de algas), una escalinata que baja al mar, un arco en
+ * la playa, la estatua de Poseidón hundida hasta el pecho, el frontón caído, sillares y tambores de
+ * columna en el agua y muros derrumbados en la orilla. `at(deg, k, y)`: un punto del golfo.
+ */
+function sunkenRuins(g, at, back, rand, BEACH) {
+  const stone = () => RUIN[Math.floor(rand() * RUIN.length)];
+  const rad = THREE.MathUtils.degToRad;
+  // La columnata: una fila en la playa y otra dentro del agua
+  for (const [k, base, wet] of [[0.92, BEACH - 0.1, false], [0.68, SEA - 0.9, true]]) {
+    const tops = [];
+    for (let i = 0; i < 7; i++) {
+      const deg = back + (i - 3) * 17;
+      const p = at(deg, k, base);
+      const whole = rand() < 0.6;
+      const h = whole ? 3 : 1 + rand() * 1.2;
+      const col = column(p.x, p.y, p.z, h, 0.2, stone());
+      const lean = !whole || rand() < 0.75 ? 0 : (rand() < 0.5 ? -1 : 1) * (0.1 + rand() * 0.1);
+      col.rotation.set(lean * 0.6, 0, lean);
+      g.add(col);
+      if (wet) g.add(cyl(0.26, 0.28, 0.45, 10, ALGAE, p.x, SEA - 0.25, p.z));
+      tops.push(whole && !lean ? new THREE.Vector3(p.x, p.y + h, p.z) : null);
+    }
+    // Lo que queda del arquitrabe, entre las columnas que siguen en pie
+    for (let i = 1; i < tops.length; i++) {
+      const [a, b] = [tops[i - 1], tops[i]];
+      if (!a || !b) continue;
+      const beam = box(a.distanceTo(b) + 0.5, 0.35, 0.5, RUIN[0], 0, 0, 0);
+      beam.position.copy(a).lerp(b, 0.5);
+      beam.rotation.y = Math.atan2(b.z - a.z, b.x - a.x) * -1;
+      g.add(beam);
+    }
+  }
+  // La escalinata, de la orilla al agua
+  for (let i = 0; i < 7; i++) {
+    const top = -0.05 - i * ((-SEA + 0.4) / 6);
+    const step = box(3.4 - i * 0.05, 0.6, 0.62, i % 2 ? RUIN[1] : RUIN[0], 0, 0, 0);
+    step.position.copy(at(back, 1.1 - i * 0.075)).setY(top - 0.6);
+    step.rotation.y = rad(back);
+    g.add(step);
+  }
+  // Un arco en la playa, con un pilar partido
+  const arch = new THREE.Group();
+  arch.position.copy(at(back + 72, 0.98, BEACH - 0.1));
+  arch.rotation.y = rad(back + 72);
+  arch.add(box(0.6, 3, 0.6, RUIN[0], -1.1, 0, 0), box(0.6, 1.5, 0.6, RUIN[1], 1.1, 0, 0));
+  const lintel = box(3, 0.5, 0.65, RUIN[2], 0, 0, 0);
+  lintel.position.set(-0.3, 2.75, 0);
+  lintel.rotation.z = -0.35;
+  arch.add(lintel);
+  g.add(arch);
+  // Poseidón, de bronce verde, hundido hasta el pecho y algo torcido, con el tridente en alto
+  const god = new THREE.Group();
+  const s = 4.4;
+  const fig = figure({ color: PATINA, skin: PATINA, hair: '#4a7a66', beard: true, long: true, drape: '#557f6c', arms: ['arriba', 'abajo'] });
+  fig.traverse((o) => o.isMesh && (o.material = mat(o.material.color.getStyle(), { metalness: 0.45, roughness: 0.5 })));
+  fig.scale.setScalar(s);
+  god.add(fig);
+  const hand = new THREE.Vector3(0.21 * s, 0.61 * s, 0);
+  god.add(cyl(0.05, 0.05, 3.2, 6, '#4f7a66', hand.x, hand.y - 1.6, 0.05));
+  god.add(box(0.7, 0.08, 0.08, '#c9a24a', hand.x, hand.y + 1.5, 0.05));
+  for (const dx of [-0.3, 0, 0.3]) {
+    const prong = mesh(new THREE.ConeGeometry(0.07, dx ? 0.55 : 0.7, 4), '#c9a24a', { metalness: 0.5, roughness: 0.35 });
+    prong.position.set(hand.x + dx, hand.y + 1.85 + (dx ? 0 : 0.07), 0.05);
+    god.add(prong);
+  }
+  god.position.copy(at(back + 28, 0.4, SEA - 1.5));
+  god.rotation.set(0.08, rad(back + 180), 0.12);
+  g.add(god);
+  // El frontón caído, medio en el agua
+  const pediment = gableRoof(3, 0.8, 0.45, RUIN[1], 0, 0, 0);
+  pediment.position.copy(at(back - 42, 0.5, SEA - 0.35));
+  pediment.rotation.set(0.35, rad(back - 42), 0.25);
+  g.add(pediment);
+  // Sillares y tambores de columna asomando del agua
+  for (let i = 0; i < 16; i++) {
+    const deg = back + (rand() - 0.5) * 150;
+    const p = at(deg, 0.4 + rand() * 0.45, SEA - 0.3);
+    if (rand() < 0.4) {
+      const drum = cyl(0.2, 0.2, 0.7, 10, stone(), 0, 0, 0);
+      drum.rotation.set(Math.PI / 2, rand() * Math.PI, 0);
+      drum.position.copy(p).setY(SEA - 0.05);
+      g.add(drum);
+    } else {
+      const block = box(0.6 + rand() * 0.6, 0.5, 0.5 + rand() * 0.5, stone(), 0, 0, 0);
+      block.position.copy(p);
+      block.rotation.set((rand() - 0.5) * 0.4, rand() * Math.PI, (rand() - 0.5) * 0.4);
+      g.add(block);
+    }
+  }
+  // Muros derrumbados en la orilla, por detrás de la columnata
+  for (let i = 0; i < 7; i++) {
+    const deg = back + (i - 3) * 24 + (rand() - 0.5) * 8;
+    const len = 1.4 + rand() * 1.8;
+    const wall = box(len, 0.4 + rand() * 1, 0.45, stone(), 0, 0, 0);
+    wall.position.copy(at(deg, 1.22 + rand() * 0.12, -0.02));
+    wall.rotation.y = rad(deg);
+    g.add(wall);
+  }
+}
+
+/** Lo que queda de un barco: la quilla, las cuadernas al aire, unas tablas y el mástil tronchado. */
+function wreck(rand, k) {
+  const w = new THREE.Group();
+  const wood = ['#3b2a1e', '#4a3424', '#2f2218'][k % 3];
+  w.add(box(0.3, 0.3, 4.6, wood, 0, -0.45, 0));
+  for (let i = 0; i < 8; i++) {
+    const z = -1.9 + i * 0.55;
+    const arc = Math.PI * (rand() < 0.3 ? 0.55 : 1);
+    const rib = mesh(new THREE.TorusGeometry(1.05 - Math.abs(z) * 0.12, 0.07, 4, 10, arc), wood);
+    rib.rotation.z = Math.PI;
+    rib.position.set(0, 0.65, z);
+    w.add(rib);
+  }
+  // Las tablas que aún tapan un costado y la borda
+  for (let i = 0; i < 5; i++) w.add(box(0.08, 0.22, 3.6 - i * 0.45, wood, -0.95 + i * 0.03, -0.3 + i * 0.22, 0));
+  w.add(box(0.1, 0.1, 3.2, '#2a1e16', 0.98, 0.6, 0.1));
+  // El mástil partido, con un jirón de vela
+  const mast = cyl(0.09, 0.11, 2.4, 6, '#5a4430', 0, 0, 0);
+  mast.position.set(0.1, 0.9, 0.4);
+  mast.rotation.set(0.5, 0, 0.7);
+  w.add(mast);
+  const rag = box(0.9, 0.7, 0.03, ['#8a7a60', '#5a4a3a', '#3a3430'][k % 3], 0, 0, 0);
+  rag.position.set(0.9, 1.3, 0.75);
+  rag.rotation.set(0.5, 0.3, 0.7);
+  w.add(rag);
+  return w;
+}
+
+/** Un alga larga que se mece con la corriente. */
+
+function kraken(g, at, facing, rand, size = 1) {
+  const k = new THREE.Group();
+  k.position.copy(at);
+  k.rotation.y = facing;
+  k.scale.setScalar(size);
+  // La base, ancha, a ras de agua, y el manto encima
+  const base = mesh(new THREE.SphereGeometry(2.3, 16, 10), KRAKEN_SKIN[1]);
+  base.scale.set(1, 0.5, 1);
+  base.position.y = 0.3;
+  k.add(base);
+  const mantle = new THREE.Group();
+  mantle.position.set(0, 1.4, -0.4);
+  mantle.rotation.x = -0.3;
+  const dome = mesh(new THREE.SphereGeometry(2, 18, 12), KRAKEN_SKIN[0]);
+  dome.scale.set(1, 1.6, 1.05);
+  dome.position.y = 2;
+  mantle.add(dome);
+  // Las manchas oscuras del manto
+  for (let i = 0; i < 16; i++) {
+    const a = rand() * Math.PI * 2, h = 0.6 + rand() * 2.6;
+    const r = 2 * Math.sqrt(Math.max(0.05, 1 - ((h - 2) / 3.2) ** 2));
+    const spot = mesh(new THREE.SphereGeometry(0.18 + rand() * 0.16, 6, 4), '#5a2a42');
+    spot.position.set(Math.sin(a) * r, h, Math.cos(a) * r * 1.05);
+    spot.scale.set(1, 0.6, 1);
+    mantle.add(spot);
+  }
+  k.add(mantle);
+  // Las cejas, los ojos (con su pupila rasgada) y el pico, en la parte de delante
+  for (const sx of [-1, 1]) {
+    const brow = mesh(new THREE.SphereGeometry(0.6, 10, 7), KRAKEN_SKIN[1]);
+    brow.position.set(sx * 1.1, 2.4, 1.45);
+    brow.scale.set(1.1, 0.5, 0.8);
+    k.add(brow);
+    const eye = mesh(new THREE.SphereGeometry(0.55, 14, 10), '#ffd23a', { emissive: '#ffb000', emissiveIntensity: 2 });
+    eye.position.set(sx * 1.1, 1.9, 1.7);
+    eye.scale.z = 0.55;
+    k.add(eye, box(0.11, 0.75, 0.06, '#0a0608', sx * 1.1, 1.53, 2.01));
+  }
+  const beak = mesh(new THREE.ConeGeometry(0.28, 0.7, 6), '#2a1a20');
+  beak.position.set(0, 1.05, 2.15);
+  beak.rotation.x = 2.2;
+  k.add(beak);
+  g.add(k);
+  // Sus tentáculos, que salen de la base y se abren hacia fuera (por los lados y por detrás: la cara, despejada)
+  const front = THREE.MathUtils.radToDeg(facing);
+  for (let i = 0; i < 8; i++) {
+    const deg = front + 50 + i * (260 / 7) + (rand() - 0.5) * 12;
+    const t = tentacle(rand, (1.45 + rand() * 0.45) * size);
+    t.position.copy(at).add(polar((2 + rand() * 0.4) * size, deg)).setY(SEA - 0.5);
+    t.rotation.y = THREE.MathUtils.degToRad(deg) - Math.PI / 2;
+    g.add(t);
+  }
+}
+
+/** Un tentáculo del Kraken: se estrecha hacia la punta, con ventosas por dentro, y se retuerce. */
+function tentacle(rand, size = 1) {
   const root = new THREE.Group();
   let parent = root;
-  const segments = 6;
+  const segments = 9;
+  const curl = 0.16 + rand() * 0.14;
   for (let i = 0; i < segments; i++) {
-    const r = 0.55 * (1 - i / segments) + 0.08;
+    const r = (0.62 * (1 - i / segments) + 0.07) * size;
+    const len = 0.95 * size;
     const seg = new THREE.Group();
-    seg.add(cyl(r * 0.8, r, 1.1, 7, i % 2 ? '#6b3b7a' : '#7a4a8a'));
-    seg.position.y = i === 0 ? 0 : 1.0;
-    seg.userData.wiggle = { base: -0.22, amp: 0.18, speed: 0.9 + rand() * 0.4, phase: i * 0.6 + rand() * 3 };
+    seg.add(cyl(r * 0.82, r, len, 8, KRAKEN_SKIN[i % 2]));
+    const joint = mesh(new THREE.SphereGeometry(r * 0.9, 8, 6), KRAKEN_SKIN[i % 2]);
+    seg.add(joint);
+    // Las ventosas, en la cara de dentro
+    for (const y of [0.3, 0.65]) {
+      const s = mesh(new THREE.SphereGeometry(r * 0.32, 6, 4), SUCKER);
+      s.position.set(r * 0.85, y * len, 0);
+      s.scale.x = 0.5;
+      seg.add(s);
+    }
+    seg.position.y = i === 0 ? 0 : len * 0.92;
+    // (ya curvado desde el principio: en los retratos no se anima)
+    seg.userData.wiggle = { base: -curl, amp: 0.14, speed: 0.8 + rand() * 0.4, phase: i * 0.55 + rand() * 3 };
+    seg.rotation.z = -curl;
     parent.add(seg);
     parent = seg;
   }
   return root;
 }
+
 
 // ── Gestas: Tifón ────────────────────────────────────────────────────────────
 

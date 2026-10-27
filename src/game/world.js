@@ -77,10 +77,12 @@ const PIRATE_LORD = {
   loot: { max: 24000, rate: 1000, mix: { madera: 0.2, hierro: 0.3, cristal: 0.2, oro: 0.3 } },
 };
 /**
- * La fosa del Kraken: la guardan sus corsarios. El Kraken (solo hay uno en todos los mares) no
+ * La fosa del Kraken: la guardan los tritones y sus hipocampos. El Kraken (solo hay uno en todos los mares) no
  * forma parte de la guarnición: despierta de vez en cuando en una de las fosas (WorldServer).
  */
-export const KRAKEN_LAIR = { garrison: { pirata: 130, corsario: 26 }, wall: 0.4, regenHours: 36 };
+export const KRAKEN_LAIR = { garrison: { triton: 130, hipocampo: 26 }, wall: 0.4, regenHours: 36 };
+/** Quiénes guardaban antes las fosas y quiénes las guardan ahora (para los mundos de antes). */
+export const LAIR_GUARDS = { pirata: 'triton', corsario: 'hipocampo' };
 const KRAKEN = {
   type: 'kraken', tier: 7, dist: 190, size: 8, ...KRAKEN_LAIR,
   loot: { max: 60000, rate: 1200, mix: { hierro: 0.2, cristal: 0.3, oro: 0.5 } },

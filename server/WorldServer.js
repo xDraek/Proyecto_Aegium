@@ -6,7 +6,7 @@ import { Game, krakenText, newState, rebuilding } from '../src/game/Game.js';
 import { fmtEs } from '../src/game/num.js';
 import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
 import { playerCombat, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
-import { CAMP_LOOT, coordsOf, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
+import { CAMP_LOOT, LAIR_GUARDS, coordsOf, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { hashPassword, newRecoveryCode, newSecret, normalizeCode, verifyPassword } from './auth.js';
 
@@ -80,6 +80,16 @@ function portOf(state) {
   const info = state.occupied ?? state.blockade;
   return info ? { kind: state.occupied ? 'invadir' : 'bloquear', by: info.by, name: info.name, banner: info.banner ?? null, until: info.until } : null;
 }
+
+/** Cambia en una guarnición de fosa los corsarios de antes por tritones e hipocampos. */
+function renameGuards(garrison) {
+  if (!garrison) return;
+  for (const [old, now] of Object.entries(LAIR_GUARDS)) {
+    if (garrison[old] == null) continue;
+    garrison[now] = (garrison[now] ?? 0) + garrison[old];
+    delete garrison[old];
+  }
+}
 const TAG_RE = /^[\p{L}\p{N}]{2,5}$/u;
 
 export class WorldServer {
@@ -126,6 +136,8 @@ export class WorldServer {
     // Los campamentos pequeños dan ahora más botín
     for (const isl of this.islands.values()) if (isl.type === 'barbaros' && CAMP_LOOT[isl.tier]) isl.loot = structuredClone(CAMP_LOOT[isl.tier]);
     for (const [id, st] of Object.entries(data.islandStates)) this.islandStates.set(id, st);
+    // Las fosas las guardaban corsarios; ahora, tritones e hipocampos (los que quedaban, igual)
+    for (const isl of this.islands.values()) if (isl.type === 'kraken') renameGuards(this.islandStates.get(isl.id)?.garrison);
     for (const isl of this.islands.values()) {
       if (isl.type !== 'jugador' && !this.islandStates.has(isl.id)) this.islandStates.set(isl.id, freshIslandState(isl, clock.now()));
     }
@@ -140,6 +152,10 @@ export class WorldServer {
     for (const [uid, state] of Object.entries(data.players)) {
       const id = Number(uid);
       if (this.users.has(id)) this.games.set(id, this.#makeGame(id, state));
+    }
+    // (y lo que cada uno vio en ellas con sus botes)
+    for (const g of this.games.values()) {
+      for (const [id, k] of Object.entries(g.state.known ?? {})) if (this.islands.get(id)?.type === 'kraken') renameGuards(k.intel?.garrison);
     }
     this.meta.mod ??= {};
     this.meta.chatDeleted ??= [];
