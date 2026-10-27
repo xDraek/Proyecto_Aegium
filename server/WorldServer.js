@@ -2,7 +2,7 @@ import { clock, universe } from '../src/config.js';
 import { RESOURCES } from '../src/game/data.js';
 import { assault, battle, combineGroups, count, hasCombat, shareSurvivors, splitForces } from '../src/game/combat.js';
 import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, forgeBonus, forgeGoal, forgeHours, forgeRoom, pledgeEmpires, relicDuel, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
-import { Game, newState, rebuilding } from '../src/game/Game.js';
+import { Game, krakenText, newState, rebuilding } from '../src/game/Game.js';
 import { fmtEs } from '../src/game/num.js';
 import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
 import { playerCombat, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
@@ -1883,41 +1883,61 @@ export class WorldServer {
   /**
    * Solo hay un Kraken en todos los mares. Mientras duerme, nadie sabe cuándo despertará: cuando le
    * llega la hora (`wakeAt`, que nunca sale del servidor) aparece en una fosa cualquiera que no esté
-   * arrasada y se avisa en el chat con unas coordenadas aproximadas. Allí se queda hasta que caiga.
+   * arrasada y se avisa en el chat con unas coordenadas aproximadas. Si en `stayHours` nadie lo
+   * derrota, se sumerge y al rato asoma en otra fosa (en la misma solo si no hay otra). Cada vez
+   * que cae, despierta un nivel más fuerte (`level`).
    */
   #updateKraken(now) {
-    const k = (this.meta.kraken ??= { lair: null, wakeAt: now + Math.random() * featHours(KRAKEN_RULES.windowHours) });
+    const R = KRAKEN_RULES;
+    const k = (this.meta.kraken ??= { lair: null, wakeAt: now + Math.random() * featHours(R.windowHours) });
     if (k.lair != null) {
-      if (this.islandStates.get(k.lair)?.kraken) return;
+      const rt = this.islandStates.get(k.lair);
+      if (rt?.kraken) {
+        k.wokeAt ??= now;
+        if (now < k.wokeAt + featHours(R.stayHours)) return;
+        // Nadie ha podido con él: se sumerge y se va a otra fosa
+        rt.kraken = false;
+        this.touch(k.lair);
+        this.meta.kraken = { lair: null, level: k.level, left: k.lair, wakeAt: now + featHours(R.diveHours) + Math.random() * featHours(R.windowHours) };
+        this.announce('🐙 El Kraken se ha sumergido en las profundidades. Nadie sabe en qué fosa volverá a asomar…');
+        return;
+      }
       // (la fosa ya no lo tiene: que vuelva a despertar en otra)
       k.lair = null;
       k.wakeAt = now;
     }
     if (now < k.wakeAt) return;
-    const lairs = [...this.islands.values()].filter((isl) => isl.type === 'kraken' && this.islandStates.has(isl.id) && !rebuilding(isl, this.islandStates.get(isl.id), now));
-    if (!lairs.length) {
+    const free = [...this.islands.values()].filter((isl) => isl.type === 'kraken' && this.islandStates.has(isl.id) && !rebuilding(isl, this.islandStates.get(isl.id), now));
+    if (!free.length) {
       k.wakeAt = now + 10 * 60_000;
       return;
     }
+    const others = free.filter((isl) => isl.id !== k.left);
+    const lairs = others.length ? others : free;
     const isl = lairs[Math.floor(Math.random() * lairs.length)];
-    this.islandStates.get(isl.id).kraken = true;
+    k.level ??= 1;
+    this.islandStates.get(isl.id).kraken = k.level;
     this.touch(isl.id);
     k.lair = isl.id;
     k.wokeAt = now;
+    delete k.left;
     const [cx, cy] = coordsOf(isl.x, isl.z);
     const d = KRAKEN_RULES.hintCells;
     const off = () => Math.floor(Math.random() * (2 * d + 1)) - d;
-    this.announce(`🐙 ¡El Kraken ha despertado! Los marineros han visto sus tentáculos cerca de ${fmtCoords([cx + off(), cy + off()])}.`);
+    const where = fmtCoords([cx + off(), cy + off()]);
+    if (k.level > 1) this.announce(`🐙 ¡El Kraken ha despertado, más fuerte que nunca (nivel ${k.level}: ${krakenText(k.level)})! Los marineros han visto sus tentáculos cerca de ${where}.`);
+    else this.announce(`🐙 ¡El Kraken ha despertado! Los marineros han visto sus tentáculos cerca de ${where}.`);
   }
 
-  /** Alguien ha derrotado al Kraken: vuelve a dormir y despertará en un momento que nadie sabe. */
+  /** Alguien ha derrotado al Kraken: vuelve a dormir y despertará, más fuerte, en un momento que nadie sabe. */
   krakenSlain(id, name, t) {
     const R = KRAKEN_RULES;
     const isl = this.islands.get(id);
-    this.meta.kraken = { lair: null, slainAt: t, wakeAt: t + featHours(R.regenHours) + Math.random() * featHours(R.windowHours) };
+    const level = (this.meta.kraken?.level ?? 1) + 1;
+    this.meta.kraken = { lair: null, level, slainAt: t, wakeAt: t + featHours(R.regenHours) + Math.random() * featHours(R.windowHours) };
     this.touch(id);
     const where = isl ? `${isl.name} ${fmtCoords(coordsOf(isl.x, isl.z))}` : 'su fosa';
-    this.announce(`🐙 ${name} ha derrotado al Kraken en ${where}. Vuelve a dormir en las profundidades… hasta quién sabe cuándo.`);
+    this.announce(`🐙 ${name} ha derrotado al Kraken en ${where}. Vuelve a dormir en las profundidades… y despertará más fuerte.`);
   }
 
   // ── Eventos a mano (moderadores) ───────────────────────────────────────────

@@ -28,6 +28,7 @@ import {
   MERCENARY_HOURS,
   JOINT_MAX,
   KRAKEN_RULES,
+  krakenPower,
   LAND_UNITS,
   OCCUPATION,
   OUTPOST_MISSIONS,
@@ -2387,6 +2388,7 @@ export class Game extends EventTarget {
 
   #intel(isl, rt, t) {
     const intel = { t, garrison: garrisonAt(isl, rt, t), stock: stockAt(isl, rt, t) };
+    if (intel.garrison.kraken) intel.kraken = krakenLevel(rt);
     // La colonia de otro jugador: su guarnición
     if (rt?.colonizedBy != null && rt.colonizedBy !== this.userId) intel.garrison = this.world.colonyGarrison?.(isl.id) ?? {};
     if (rebuilding(isl, rt, t)) intel.rebuildUntil = rt.stockAt;
@@ -2414,7 +2416,9 @@ export class Game extends EventTarget {
     } else if (intel.rebuildUntil) {
       text += ' Alguien la ha arrasado hace poco: se están reconstruyendo y no hay nada que llevarse.';
     } else if (isl.type === 'kraken') {
-      text += intel.garrison.kraken ? ' 🐙 ¡El Kraken está aquí! Sus ojos brillan al fondo de la fosa.' : ' El Kraken no está: solo sus corsarios guardan la fosa.';
+      text += intel.garrison.kraken
+        ? ` 🐙 ¡El Kraken está aquí! Sus ojos brillan al fondo de la fosa. Es de nivel ${intel.kraken}: ${krakenText(intel.kraken)}.`
+        : ' El Kraken no está: solo sus corsarios guardan la fosa.';
     } else if (isl.type === 'libre') {
       text += rt.colonizedBy != null
         ? ` Ya es una colonia de ${this.world.playerInfo(rt.colonizedBy)?.name ?? 'otro imperio'}.`
@@ -3090,7 +3094,9 @@ export class Game extends EventTarget {
     const wall = Math.max(0, (isl.wall ?? 0) - siegeOf(m.units));
     const heroAtk = m.hero ? this.heroBonus('ataque') : 0;
     // Primero las flotas y, con el mar libre, el desembarco contra la guarnición y su fortificación
-    const result = assault({ units: m.units, atkMul: atkMul + heroAtk, hpMul }, { units: garrison, wallHp: wall });
+    // El Kraken, con la fuerza de su nivel
+    const boost = garrison.kraken ? { kraken: krakenPower(krakenLevel(rt)) } : undefined;
+    const result = assault({ units: m.units, atkMul: atkMul + heroAtk, hpMul }, { units: garrison, wallHp: wall, boost });
     if (m.hero) this.#heroXp(result.def.lost, t);
     this.state.stats.kills += count(result.def.lost);
 
@@ -3564,6 +3570,17 @@ function rebuildText(isl, rt, t) {
   const min = Math.max(1, Math.ceil((rt.stockAt - t) / 60_000));
   const left = min >= 60 ? `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}` : `${min} min`;
   return `${neutralsOf(isl)} se están reconstruyendo tras el último saqueo: no se les puede atacar hasta dentro de ${left}.`;
+}
+
+/** El nivel del Kraken que hay en una fosa (0 si no está; los de antes, sin nivel, eran el 1). */
+export function krakenLevel(rt) {
+  return rt?.kraken === true ? 1 : Number(rt?.kraken) || 0;
+}
+
+/** «el doble de ataque y de vida que al principio», para los textos. */
+export function krakenText(level) {
+  const k = krakenPower(level);
+  return k > 1 ? `×${fmtEs(k, 1)} de ataque y de vida que al principio` : 'aún con la fuerza de la primera vez';
 }
 
 export function garrisonAt(isl, rt, t) {

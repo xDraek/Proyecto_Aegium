@@ -1,4 +1,4 @@
-import { UNITS, UNIT_KEYS } from '../game/data.js';
+import { krakenPower, UNITS, UNIT_KEYS } from '../game/data.js';
 import { assault, seatsOf, seatsUsed, siegeOf, splitForces } from '../game/combat.js';
 import { unitIcon } from '../scene/portraits.js';
 import { fmtDec, fmtNum } from './format.js';
@@ -22,7 +22,8 @@ function inputs(prefix, ids, values) {
 
 /**
  * `landing`: si hace falta desembarcar para ganar (contra una ciudad); sin él, se deduce del defensor.
- * @param {{ attacker?: object, defender?: object, wall?: number, atkMul?: number, hpMul?: number, defAtkMul?: number, defHpMul?: number, towers?: number, naval?: number, landing?: boolean, title?: string, note?: string }} preset
+ * `kraken`: el nivel del Kraken del defensor (cada nivel le suma ataque y vida).
+ * @param {{ attacker?: object, defender?: object, wall?: number, atkMul?: number, hpMul?: number, defAtkMul?: number, defHpMul?: number, towers?: number, naval?: number, kraken?: number, landing?: boolean, title?: string, note?: string }} preset
  */
 export function simulatorHtml(preset = {}) {
   return `<div class="modal-card wide">
@@ -40,6 +41,7 @@ export function simulatorHtml(preset = {}) {
         <label><span>🏰 Muralla / fortificación % (en tierra; las catapultas la rebajan)</span><input type="number" name="d-wall" value="${Math.round((preset.wall ?? 0) * 100)}" /></label>
         <label><span>🏹 Daño de las torres (en tierra)</span><input type="number" name="d-towers" value="${preset.towers ?? 0}" /></label>
         <label><span>🪔 Faro: vida de sus barcos %</span><input type="number" name="d-naval" value="${Math.round((preset.naval ?? 0) * 100)}" /></label>
+        <label><span>🐙 Nivel del Kraken</span><input type="number" name="d-kraken" min="1" value="${preset.kraken ?? 1}" /></label>
       </fieldset>
       ${preset.note ? `<p class="hint small">${preset.note}</p>` : ''}
       <button class="primary">Simular ${RUNS} combates</button>
@@ -102,6 +104,7 @@ export function runSimulation(form) {
     wallHp: Math.max(0, (Number(data['d-wall']) || 0) / 100 - siegeOf(attacker)),
     extraAtk: Number(data['d-towers']) || 0,
     navalHpMul: (Number(data['d-naval']) || 0) / 100,
+    boost: { kraken: krakenPower(Number(data['d-kraken']) || 1) },
   };
   // Contra una ciudad hace falta desembarcar para ganar
   const city = form.dataset.landing !== undefined ? form.dataset.landing === '1' : !Object.keys(defender).some((id) => UNITS[id].npc);

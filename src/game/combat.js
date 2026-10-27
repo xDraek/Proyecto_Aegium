@@ -11,7 +11,8 @@ import { UNITS } from './data.js';
 const MAX_ROUNDS = 6;
 
 /**
- * @typedef {{ units: Record<string, number>, atkMul?: number, hpMul?: number, extraAtk?: number }} Side
+ * `boost`: lo que se multiplican el ataque y la vida de algún tipo de unidad en concreto (el Kraken).
+ * @typedef {{ units: Record<string, number>, atkMul?: number, hpMul?: number, extraAtk?: number, boost?: Record<string, number> }} Side
  * @returns {{ winner: 'att'|'def'|'draw', rounds: number,
  *   att: { start: object, left: object, lost: object }, def: { start: object, left: object, lost: object } }}
  */
@@ -38,7 +39,7 @@ export function battle(attacker, defender, rand = Math.random) {
 function prepare(side) {
   const start = {};
   for (const [id, n] of Object.entries(side.units)) if (n > 0) start[id] = Math.floor(n);
-  return { start, left: { ...start }, atkMul: side.atkMul ?? 1, hpMul: side.hpMul ?? 1, extraAtk: side.extraAtk ?? 0, extraOnlyAlive: !!side.extraOnlyAlive };
+  return { start, left: { ...start }, atkMul: side.atkMul ?? 1, hpMul: side.hpMul ?? 1, extraAtk: side.extraAtk ?? 0, extraOnlyAlive: !!side.extraOnlyAlive, boost: side.boost ?? {} };
 }
 
 function summary(side) {
@@ -59,21 +60,21 @@ export function hasCombat(units) {
 }
 
 /** Poder de ataque por asalto (sin azar), útil para estimaciones. */
-export function power(units, atkMul = 1) {
+export function power(units, atkMul = 1, boost = {}) {
   let p = 0;
-  for (const [id, n] of Object.entries(units)) p += n * UNITS[id].atk * atkMul;
+  for (const [id, n] of Object.entries(units)) p += n * UNITS[id].atk * atkMul * (boost[id] ?? 1);
   return p;
 }
 
 function damage(side, rand) {
-  return (power(side.left, side.atkMul) + side.extraAtk) * (0.9 + rand() * 0.2);
+  return (power(side.left, side.atkMul, side.boost) + side.extraAtk) * (0.9 + rand() * 0.2);
 }
 
 function hit(side, dmg, rand) {
   const alive = Object.entries(side.left).filter(([, n]) => n > 0);
   let targets = alive.filter(([id]) => UNITS[id].atk > 0);
   if (!targets.length) targets = alive;
-  const hp = (id) => UNITS[id].hp * side.hpMul;
+  const hp = (id) => UNITS[id].hp * side.hpMul * (side.boost[id] ?? 1);
   const total = targets.reduce((s, [id, n]) => s + n * hp(id), 0);
   if (total <= 0) return;
   for (const [id, n] of targets) {
@@ -150,8 +151,8 @@ function lossOf(start, left) {
  *    muralla y sus torres; los barcos de guerra que quedan apoyan bombardeando la costa.
  *
  * `attacker`: { units, atkMul, hpMul }. `defender`: { units, atkMul, hpMul, navalHpMul, wallHp,
- * extraAtk } (`hpMul` vale para las dos fases; la muralla `wallHp` y las torres `extraAtk`, solo
- * en tierra; `navalHpMul`, solo en el mar).
+ * extraAtk, boost } (`hpMul` y `boost` valen para las dos fases; la muralla `wallHp` y las torres
+ * `extraAtk`, solo en tierra; `navalHpMul`, solo en el mar).
  *
  * Con `needLanding`, el atacante solo gana si desembarca (para saquear una ciudad hacen falta
  * tropas en tierra); sin él, ganar el mar basta si el defensor no tiene a nadie en tierra.
@@ -174,7 +175,7 @@ export function assault(attacker, defender, { rand = Math.random, needLanding = 
   if (hasCombat(D.sea)) {
     naval = battle(
       { units: A.sea, atkMul, hpMul },
-      { units: D.sea, atkMul: dAtk, hpMul: dHp + (defender.navalHpMul ?? 0) },
+      { units: D.sea, atkMul: dAtk, hpMul: dHp + (defender.navalHpMul ?? 0), boost: defender.boost },
       rand,
     );
     seaLeft = naval.att.left;
@@ -192,7 +193,7 @@ export function assault(attacker, defender, { rand = Math.random, needLanding = 
     const support = power(seaLeft, atkMul) * NAVAL_SUPPORT;
     land = battle(
       { units: aboard, atkMul, hpMul, extraAtk: support },
-      { units: D.land, atkMul: dAtk, hpMul: dHp + (defender.wallHp ?? 0), extraAtk: defender.extraAtk ?? 0, extraOnlyAlive: defender.extraOnlyAlive },
+      { units: D.land, atkMul: dAtk, hpMul: dHp + (defender.wallHp ?? 0), extraAtk: defender.extraAtk ?? 0, extraOnlyAlive: defender.extraOnlyAlive, boost: defender.boost },
       rand,
     );
     landLeft = land.att.left;

@@ -7,6 +7,24 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-27d',
+    date: '2026-10-27',
+    title: 'El Kraken, más esquivo y más fuerte',
+    items: [
+      '🐙 El Kraken ya no se queda para siempre en la misma fosa: si en <b>6 horas</b> nadie lo derrota, se sumerge (se avisa en el chat) y al cabo de un rato asoma en <b>otra fosa</b> distinta.',
+      '🧭 Las coordenadas del aviso son más <b>aproximadas</b>: puede estar hasta a 4 casillas de lo que dicen los marineros, así que toca explorar más para dar con él.',
+      '💪 Cada vez que alguien lo derrota, despierta <b>más fuerte</b>: sube un nivel y gana un 50 % más de ataque y de vida que al principio. Tus botes exploradores te dicen su nivel, y el simulador lo tiene en cuenta.',
+    ],
+    en: {
+      title: 'The Kraken, more elusive and stronger',
+      items: [
+        '🐙 The Kraken no longer stays forever in the same trench: if nobody defeats it within <b>6 hours</b>, it dives (announced in the chat) and after a while surfaces in <b>another trench</b>.',
+        '🧭 The warning coordinates are more <b>approximate</b>: it can be up to 4 squares from where sailors say, so you’ll have to explore more to find it.',
+        '💪 Every time someone defeats it, it wakes up <b>stronger</b>: it goes up a level and gains 50 % more attack and health than at first. Your scout boats tell you its level, and the simulator takes it into account.',
+      ],
+    },
+  },
+  {
     id: '2026-10-27c',
     date: '2026-10-27',
     title: 'El mapa ya no cierra la página en el iPhone',

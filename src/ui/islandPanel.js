@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { BLOCKADE, COLONY, COLONY_RAID, FEATS, FEAT_THEMES, ISLAND_TYPES, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, RESOURCES, RESOURCE_KEYS, SPY_TIERS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
 import { colonyUpgrade, colonyYield, navalDefense, playerCombat, spyRisk, wallBonus } from '../game/rules.js';
 import { featCoop, forceOf, forgeBonus } from '../game/feats.js';
-import { NEWBIE_POINTS, neutralsOf } from '../game/Game.js';
+import { krakenText, NEWBIE_POINTS, neutralsOf } from '../game/Game.js';
 import { coordsOf, fmtCoords } from '../game/world.js';
 import { createIslandBase, createIslandFeature, islandLook } from '../scene/islands.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
@@ -322,7 +322,7 @@ export function citySimPreset(game, view, attacker, withHero = false) {
     landing: view?.type === 'jugador',
   };
   if (view?.type === 'continente') return { ...preset, defender: { ...(view.horde?.garrison ?? {}) } };
-  if (view?.type !== 'jugador') return { ...preset, defender: { ...(view?.intel?.garrison ?? {}) }, wall: view?.wall ?? 0 };
+  if (view?.type !== 'jugador') return { ...preset, defender: { ...(view?.intel?.garrison ?? {}) }, wall: view?.wall ?? 0, kraken: view?.intel?.kraken };
   const intel = view.intel;
   const level = intel?.level ?? 0;
   const defender = { ...(intel?.garrison ?? {}) };
@@ -528,6 +528,7 @@ function infoSectionFor(game, view, t) {
     lines.push(
       `<h4>Lo último que sabes <span class="muted small">(${fmtAgo(intel.t)})</span></h4>`,
       `<div class="info-row"><span>Guarnición</span><span>${intel.rebuildUntil ? 'reconstruyéndose' : unitList(intel.garrison)}</span></div>`,
+      intel.kraken && !intel.rebuildUntil ? `<div class="info-row"><span>🐙 Kraken de nivel ${intel.kraken}</span><span class="muted small">${krakenText(intel.kraken)}</span></div>` : '',
       `<div class="info-row"><span>Botín acumulado</span><span>${intel.rebuildUntil ? '—' : bag(intel.stock)}</span></div>`,
     );
     if (view.foughtAt > intel.t) lines.push('<p class="hint">⚔️ Desde tu último informe ha habido combates aquí: envía un bote explorador para saber cómo están.</p>');
@@ -538,7 +539,7 @@ function infoSectionFor(game, view, t) {
     barbaros: 'Una tribu de bárbaros ha levantado aquí su campamento. Acumulan lo que roban y se rearman con el tiempo.',
     ciudadela: 'Una ciudad bárbara amurallada tierra adentro: muchos guerreros y mucho botín. Lleva catapultas para abrir brecha en su empalizada.',
     piratas: 'Guarida de piratas bien fortificada. Las catapultas ayudan a abrir brecha en sus muros.',
-    kraken: 'Una fosa de corsarios entre barcos hundidos y el oro de mil naufragios. Solo hay un Kraken en todos los mares: despierta de vez en cuando en una de estas fosas, y nadie sabe cuándo ni en cuál. Envía un bote explorador para saber si está aquí.',
+    kraken: 'Una fosa de corsarios entre barcos hundidos y el oro de mil naufragios. Solo hay un Kraken en todos los mares: despierta de vez en cuando en una de estas fosas, y nadie sabe cuándo ni en cuál; si nadie lo derrota, al cabo de unas horas se sumerge y asoma en otra. Envía un bote explorador para saber si está aquí.',
   }[view.type];
   return `<p class="desc">${flavor}</p>${lines.join('')}
     <p class="desc small">Se rearman por completo en unas ${fmtNum(view.regenHours)} h de juego. Solo te llevas el botín si acabas con toda la guarnición.</p>`;

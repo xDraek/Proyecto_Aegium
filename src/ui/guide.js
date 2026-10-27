@@ -450,8 +450,8 @@ const TOPICS = {
       <h5>🐙 El Kraken</h5>
       ${list([
         'Solo hay <b>un Kraken</b> en todos los mares. Despierta en una de las fosas que no estén arrasadas, y nadie sabe cuándo ni en cuál: en el chat se avisa con unas <b>coordenadas aproximadas</b> (pulsa en ellas para verlas en el mapa).',
-        'Para saber si está en una fosa, envía un bote explorador. Allí se queda hasta que alguien lo derrote.',
-        `Quien lo derrota tiene un <b>${Math.round(KRAKEN_RULES.relicChance * 100)} %</b> de encontrar una ${see('reliquias', 'reliquia épica')} entre sus restos. Después vuelve a dormir en las profundidades… hasta quién sabe cuándo.`,
+        'Para saber si está en una fosa, envía un bote explorador. Si en unas horas nadie lo derrota, <b>se sumerge</b> y al rato asoma en otra fosa.',
+        `Quien lo derrota tiene un <b>${Math.round(KRAKEN_RULES.relicChance * 100)} %</b> de encontrar una ${see('reliquias', 'reliquia épica')} entre sus restos. Después vuelve a dormir en las profundidades… y <b>despierta más fuerte</b>: cada vez que cae sube un nivel, con un ${Math.round(KRAKEN_RULES.growth * 100)} % más de ataque y de vida que al principio.`,
       ])}
       <h5>📍 Coordenadas</h5>
       <p>El mapa del mundo está dividido en casillas, como en Ikariam: cada una tiene sus coordenadas <b>[x:y]</b>, con [50:50] en el centro del archipiélago. Las ves en la ficha de cada isla y al pasar por el mapa, y puedes ir a unas concretas con la casilla «Ir». Si escribes unas coordenadas en el chat, los demás pueden pulsarlas para verlas en el mapa.</p>`,
