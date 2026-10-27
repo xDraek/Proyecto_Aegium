@@ -12,6 +12,7 @@ export const CHANGELOG = [
     title: 'Las fosas del Kraken, rehechas',
     items: [
       '🐙 Las <b>fosas del Kraken</b> tienen un aspecto nuevo: una isla en forma de media luna que abraza un <b>golfo</b> de aguas negras y hondas, la guarida del Kraken. En el fondo del golfo, medio sepultadas por el agua, están las <b>ruinas de una ciudad hundida</b>: columnas que salen del mar, una escalinata que baja al agua y la estatua de Poseidón hundida hasta el pecho. En la bocana, un barco que no logró salir.',
+      '🌿 La isla parece de verdad: costa irregular con entrantes y salientes, cabos redondeados a la entrada del golfo, laderas suaves, lomas, hierba, bosquecillos de olivos, pinos y cipreses, y rocas en tierra, en la playa y entre las olas.',
       '🔱 Ya no las guardan corsarios: entre las ruinas viven los <b>tritones</b>, con tridente y cola de pez, y sus <b>hipocampos</b> de guerra, medio caballo y medio pez. Son igual de fuertes que los de antes, y los que quedaban en cada fosa siguen ahí.',
       '👁️ Si tu último bote vio al Kraken en una fosa, lo verás allí: emerge en el centro del golfo, mirando al mar, con los tentáculos sobre las ruinas.',
     ],
@@ -19,6 +20,7 @@ export const CHANGELOG = [
       title: 'The Kraken’s trenches, remade',
       items: [
         '🐙 The <b>Kraken’s trenches</b> have a new look: a crescent-shaped island embracing a <b>gulf</b> of black, deep waters, the Kraken’s lair. At the back of the gulf, half buried by the water, lie the <b>ruins of a sunken city</b>: columns rising from the sea, a stairway down into the water and the statue of Poseidon sunk up to its chest. At the mouth, a ship that never made it out.',
+        '🌿 The island looks real: an irregular coastline with inlets and headlands, rounded capes at the entrance of the gulf, gentle slopes, knolls, grass, groves of olive trees, pines and cypresses, and rocks inland, on the beach and among the waves.',
         '🔱 They are no longer guarded by corsairs: the <b>tritons</b> live among the ruins, with tridents and fish tails, and their war <b>hippocampi</b>, half horse and half fish. They are just as strong as before, and those left in each trench are still there.',
         '👁️ If your last boat saw the Kraken in a trench, you will see it there: it rises in the middle of the gulf, facing the sea, with its tentacles over the ruins.',
       ],

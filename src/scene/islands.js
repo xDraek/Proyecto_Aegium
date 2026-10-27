@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { C, amphora, box, colonnade, column, createShip, createSoldier, cyl, cypress, dome, figure, gableRoof, greekKey, hipRoof, makeFire, mat, mediterraneanTree, mesh, palmTree, smokeColumn, stylobate, WINDOW_GLOW } from './models.js';
+import { C, box, colonnade, column, createShip, createSoldier, cyl, cypress, dome, figure, gableRoof, greekKey, hipRoof, makeFire, mat, mediterraneanTree, mesh, olive, palmTree, smokeColumn, stonePine, stylobate, WINDOW_GLOW } from './models.js';
 import { wonderLevel, wonderOf } from '../game/rules.js';
 import { FEAT_THEMES } from '../game/data.js';
 import { Batch, bakeStatic, cloudGeometry, cloudMaterial, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng } from './util.js';
@@ -964,36 +964,70 @@ const FOAM = { transparent: true, opacity: 0.45, depthWrite: false };
 
 /**
  * El golfo de una fosa, en unidades de la isla: hacia dónde se abre (`deg`), su centro y su radio,
- * y lo abierta que es la bocana en la costa (`mouth`) y por dentro (`neck`), en grados.
+ * lo abierta que es la bocana en la costa (`mouth`) y por dentro (`neck`), en grados, y las fases
+ * de las ondulaciones que hacen irregulares sus dos costas (`waves`).
  */
 function gulfOf(isl, R) {
-  const deg = rng(hashString(isl.id) ^ 0x2545f491)() * 360;
-  return { deg, center: polar(R * 0.16, deg), r: R * 0.5, mouth: 25, neck: 36 };
+  const rand = rng(hashString(isl.id) ^ 0x2545f491);
+  const deg = rand() * 360;
+  return { deg, center: polar(R * 0.16, deg), r: R * 0.5, mouth: 25, neck: 36, waves: [rand(), rand(), rand(), rand(), rand()].map((x) => x * Math.PI * 2) };
 }
 
 /** Grados entre dos direcciones (de 0 a 180). */
 const apart = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
 
-/** Contorno de la isla con su golfo: `k` agranda la costa de fuera y `kb`, la orilla del golfo. */
-function gulfOutline(isl, R, gulf, k = 1, kb = 1) {
+/**
+ * Las dos costas de la isla de una fosa: `coastAt(deg)`, el radio de la costa de fuera en esa
+ * dirección (con sus entrantes y salientes), y `rimAt(deg)`, el de la orilla del golfo vista desde
+ * su centro (algo ondulada, para que no sea un círculo perfecto).
+ */
+function gulfShores(isl, R, gulf) {
   const h = islandCoast(isl);
+  const w = gulf.waves;
+  const coastAt = (deg) => {
+    const a = THREE.MathUtils.degToRad(deg);
+    return R * coastFactor(h, a) * (1 + 0.04 * Math.sin(5 * a + w[0]) + 0.025 * Math.sin(9 * a + w[1]) + 0.015 * Math.sin(15 * a + w[2]));
+  };
+  const rimAt = (deg) => {
+    const a = THREE.MathUtils.degToRad(deg);
+    return gulf.r * (1 + 0.035 * Math.sin(4 * a + w[3]) + 0.02 * Math.sin(9 * a + w[4]));
+  };
+  return { coastAt, rimAt };
+}
+
+/**
+ * Contorno de la isla con su golfo: la costa de fuera, un cabo redondeado a cada lado de la bocana y
+ * la orilla del golfo por dentro. `k` agranda la costa de fuera y `kb`, la orilla del golfo.
+ */
+function gulfOutline(isl, R, gulf, k = 1, kb = 1) {
+  const { coastAt, rimAt } = gulfShores(isl, R, gulf);
   const flat = (v) => new THREE.Vector2(v.x, -v.z);
+  const rim = (deg) => gulf.center.clone().add(polar(rimAt(deg) * kb, deg));
+  const tip = (deg) => polar(coastAt(deg) * k, deg);
+  // El cabo: una curva de la punta de fuera a la entrada del golfo, que se va metiendo hacia dentro
+  const cape = (from, to) => {
+    const bend = polar(to.length(), THREE.MathUtils.radToDeg(Math.atan2(from.x, from.z)));
+    const out = [];
+    for (let i = 1; i < 6; i++) {
+      const t = i / 6;
+      out.push(from.clone().multiplyScalar((1 - t) ** 2).addScaledVector(bend, 2 * t * (1 - t)).addScaledVector(to, t * t));
+    }
+    return out;
+  };
   const pts = [];
-  for (let i = 0; i <= 64; i++) {
-    const deg = gulf.deg + gulf.mouth + (i / 64) * (360 - 2 * gulf.mouth);
-    pts.push(flat(polar(R * k * coastFactor(h, THREE.MathUtils.degToRad(deg)), deg)));
+  for (let i = 0; i <= 72; i++) {
+    const deg = gulf.deg + gulf.mouth + (i / 72) * (360 - 2 * gulf.mouth);
+    pts.push(tip(deg));
   }
-  // La orilla del golfo, por dentro, de un lado de la bocana al otro
-  for (let i = 0; i <= 40; i++) {
-    const deg = gulf.deg - gulf.neck - (i / 40) * (360 - 2 * gulf.neck);
-    pts.push(flat(gulf.center.clone().add(polar(gulf.r * kb, deg))));
-  }
-  return new THREE.Shape(pts);
+  pts.push(...cape(tip(gulf.deg - gulf.mouth), rim(gulf.deg - gulf.neck)));
+  for (let i = 0; i <= 48; i++) pts.push(rim(gulf.deg - gulf.neck - (i / 48) * (360 - 2 * gulf.neck)));
+  pts.push(...cape(tip(gulf.deg + gulf.mouth), rim(gulf.deg + gulf.neck)).reverse());
+  return new THREE.Shape(pts.map(flat));
 }
 
 /** Una losa de tierra con la forma dada, con su cara de arriba en `top` (y un talud si lleva `bevel`). */
 function landSlab(shape, depth, top, color, bevel) {
-  let geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel * 0.4, bevelSize: bevel, bevelSegments: 1, curveSegments: 1 });
+  let geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel * 0.4, bevelSize: bevel, bevelSegments: 2, curveSegments: 1 });
   geo.rotateX(-Math.PI / 2);
   geo.translate(0, top - depth - bevel * 0.4, 0);
   geo = geo.index ? geo.toNonIndexed() : geo;
@@ -1018,19 +1052,33 @@ function foamStrip(inner, outer) {
   return m;
 }
 
+/** Una mancha irregular en el suelo (hierba de otro tono o tierra), plana. */
+function groundPatch(r, color, rand) {
+  const geo = new THREE.CircleGeometry(r, 9);
+  const pos = geo.attributes.position;
+  for (let i = 1; i < pos.count; i++) {
+    const k = 0.65 + rand() * 0.5;
+    pos.setXY(i, pos.getX(i) * k, pos.getY(i) * k);
+  }
+  geo.rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(geo, mat(color));
+  m.receiveShadow = true;
+  return m;
+}
+
 /**
- * La isla de una fosa: la media luna de tierra (matorral, montes al fondo y algún árbol), su playa,
- * la espuma de las dos orillas y las aguas hondas del golfo, más oscuras hacia el centro. `far`: solo
- * la tierra y el golfo (la isla vista de lejos).
+ * La isla de una fosa: la media luna de tierra (con lomas, manchas de hierba y de tierra, matas,
+ * bosquecillos y rocas, y sus montes al fondo), su playa, la espuma de las dos orillas y las aguas
+ * hondas del golfo, más oscuras hacia el centro. Lo que se pone en tierra deja sitio a las ruinas de
+ * la orilla del golfo. `far`: solo la tierra y el golfo (la isla vista de lejos).
  */
 function gulfBase(isl, R, rand, seed, far = false) {
   const g = new THREE.Group();
   const gulf = gulfOf(isl, R);
-  const h = islandCoast(isl);
-  const coastAt = (deg) => R * coastFactor(h, THREE.MathUtils.degToRad(deg));
-  g.add(landSlab(gulfOutline(isl, R, gulf), 2, ISLAND_TOP, (ny, cy) => (ny > 0.7 ? GULF_LAND.grass : cy > -0.6 ? GULF_LAND.cliff : GULF_LAND.rock), 0.8));
-  g.add(landSlab(gulfOutline(isl, R, gulf, 1.12, 0.84), 1.3, -0.45, GULF_LAND.sand, 0));
-  for (const [k, color, opacity] of [[0.84, '#123447', 0.5], [0.5, '#06141f', 0.55]]) {
+  const { coastAt, rimAt } = gulfShores(isl, R, gulf);
+  g.add(landSlab(gulfOutline(isl, R, gulf), 2, ISLAND_TOP, (ny, cy) => (ny > 0.7 ? GULF_LAND.grass : cy > -0.6 ? GULF_LAND.cliff : GULF_LAND.rock), 1.1));
+  g.add(landSlab(gulfOutline(isl, R, gulf, 1.12, 0.8), 1.3, -0.45, GULF_LAND.sand, 0));
+  for (const [k, color, opacity] of [[0.8, '#123447', 0.5], [0.5, '#06141f', 0.55]]) {
     const deep = new THREE.Mesh(new THREE.CircleGeometry(gulf.r * k, 40), mat(color, { transparent: true, opacity, depthWrite: false }));
     deep.rotation.x = -Math.PI / 2;
     deep.position.copy(gulf.center).setY(WATER_Y + 0.06 + (1 - k) * 0.02);
@@ -1041,15 +1089,15 @@ function gulfBase(isl, R, rand, seed, far = false) {
   // La espuma: por fuera de la isla y por la orilla del golfo
   const y = WATER_Y + 0.05;
   const outer = [], outer2 = [], bay = [], bay2 = [];
-  for (let i = 0; i <= 64; i++) {
-    const deg = gulf.deg + gulf.mouth + (i / 64) * (360 - 2 * gulf.mouth);
+  for (let i = 0; i <= 72; i++) {
+    const deg = gulf.deg + gulf.mouth + (i / 72) * (360 - 2 * gulf.mouth);
     outer.push(polar(coastAt(deg) * 1.12, deg, y));
     outer2.push(polar(coastAt(deg) * 1.18, deg, y));
   }
-  for (let i = 0; i <= 40; i++) {
-    const deg = gulf.deg - gulf.neck - (i / 40) * (360 - 2 * gulf.neck);
-    bay.push(gulf.center.clone().add(polar(gulf.r * 0.84, deg, y)));
-    bay2.push(gulf.center.clone().add(polar(gulf.r * 0.78, deg, y)));
+  for (let i = 0; i <= 48; i++) {
+    const deg = gulf.deg - gulf.neck - (i / 48) * (360 - 2 * gulf.neck);
+    bay.push(gulf.center.clone().add(polar(rimAt(deg) * 0.8, deg, y)));
+    bay2.push(gulf.center.clone().add(polar(rimAt(deg) * 0.74, deg, y)));
   }
   g.add(foamStrip(outer, outer2), foamStrip(bay, bay2));
 
@@ -1068,38 +1116,125 @@ function gulfBase(isl, R, rand, seed, far = false) {
     g.add(hill);
     hills.push({ p, r: R * s });
   }
-  // Matorral, cipreses y rocas por la tierra firme (ni en el golfo, ni en la bocana, ni en los montes)
-  const onLand = (p) => {
+  // Dónde se puede poner algo en tierra: ni en la bocana, ni al borde, ni en los montes, ni junto
+  // al golfo (y menos aún al fondo, donde están las ruinas y sus muros)
+  const free = (p, margin = 0) => {
     const deg = THREE.MathUtils.radToDeg(Math.atan2(p.x, p.z));
-    return apart(deg, gulf.deg) > gulf.mouth + 14 && p.length() < coastAt(deg) * 0.84 && p.distanceTo(gulf.center) > gulf.r * 1.2 && hills.every((h) => p.distanceTo(h.p) > h.r * 0.9);
+    const fromGulf = p.clone().sub(gulf.center);
+    const gdeg = THREE.MathUtils.radToDeg(Math.atan2(fromGulf.x, fromGulf.z));
+    const keep = gulf.r * (apart(gdeg, back) < 85 ? 1.4 : 1.12) + margin;
+    return apart(deg, gulf.deg) > gulf.mouth + 8 && p.length() < coastAt(deg) * 0.86 - margin && fromGulf.length() > keep && hills.every((h) => p.distanceTo(h.p) > h.r * 0.9 + margin);
   };
+  const spot = (k0 = 0.2, k1 = 0.9) => polar(R * (k0 + rand() * (k1 - k0)), rand() * 360, ISLAND_TOP);
+
+  // Lomas suaves y manchas de otro verde o de tierra, para que el suelo no sea liso
+  for (let i = 0, made = 0; i < 80 && made < 7; i++) {
+    const r = R * (0.07 + rand() * 0.06);
+    const p = spot();
+    if (!free(p, r)) continue;
+    const mound = mesh(new THREE.SphereGeometry(r, 10, 6), ['#76894f', '#7f9358', '#738a4a'][made % 3]);
+    mound.scale.y = 0.16 + rand() * 0.08;
+    mound.position.copy(p).setY(ISLAND_TOP - 0.05);
+    g.add(mound);
+    made++;
+  }
+  const patchColors = ['#6c8448', '#87955a', '#9a8f68', '#71884d', '#8a9a55'];
+  for (let i = 0, made = 0; i < 120 && made < 14; i++) {
+    const r = 1.2 + rand() * 2.2;
+    const p = spot();
+    if (!free(p, r * 0.6)) continue;
+    const patch = groundPatch(r, patchColors[made % patchColors.length], rand);
+    patch.position.copy(p).setY(ISLAND_TOP + 0.015 + made * 0.001);
+    g.add(patch);
+    made++;
+  }
+
   const decor = new Batch();
-  for (let i = 0, made = 0; i < 400 && made < R * 1.6; i++) {
-    const p = polar(R * (0.2 + rand() * 0.7), rand() * 360, ISLAND_TOP);
-    if (!onLand(p)) continue;
-    const t = rand() < 0.35 ? cypress('#3f5e3a') : mediterraneanTree(rand());
+  // Bosquecillos de olivos, pinos, cipreses y algún árbol de copa redonda, con matorral alrededor
+  const greens = ['#4f7a3c', '#5e8a44', '#46703a'];
+  for (let i = 0, groves = 0; i < 120 && groves < 6; i++) {
+    const c = spot(0.35, 0.85);
+    if (!free(c, 0.5)) continue;
+    groves++;
+    const kind = groves % 3;
+    for (let j = 0; j < 10; j++) {
+      const p = c.clone().add(polar(rand() * 3.6, rand() * 360));
+      if (!free(p)) continue;
+      const t = kind === 0 ? olive('#7d9a5a') : kind === 1 ? (rand() < 0.5 ? stonePine('#4f6f3c') : cypress('#3f5e3a')) : mediterraneanTree(rand());
+      t.position.copy(p);
+      t.scale.setScalar(0.85 + rand() * 0.5);
+      t.rotation.y = rand() * Math.PI * 2;
+      decor.add(t);
+    }
+    for (let j = 0; j < 6; j++) {
+      const p = c.clone().add(polar(2.5 + rand() * 2.5, rand() * 360));
+      if (!free(p)) continue;
+      const bush = mesh(new THREE.DodecahedronGeometry(0.35 + rand() * 0.3), greens[j % 3]);
+      bush.position.copy(p).setY(ISLAND_TOP + 0.2);
+      bush.scale.y = 0.7;
+      decor.add(bush);
+    }
+  }
+  // Algún árbol suelto
+  for (let i = 0, made = 0; i < 150 && made < 12; i++) {
+    const p = spot();
+    if (!free(p)) continue;
+    const t = rand() < 0.5 ? olive('#7d9a5a') : cypress('#3f5e3a');
     t.position.copy(p);
-    t.scale.setScalar(0.8 + rand() * 0.5);
-    t.rotation.y = rand() * Math.PI;
+    t.scale.setScalar(0.8 + rand() * 0.4);
     decor.add(t);
     made++;
   }
-  for (let i = 0, made = 0; i < 200 && made < R; i++) {
-    const p = polar(R * (0.2 + rand() * 0.7), rand() * 360, ISLAND_TOP);
-    if (!onLand(p)) continue;
-    const rock = mesh(new THREE.DodecahedronGeometry(0.3 + rand() * 0.45), i % 3 ? '#8a8378' : '#6f8450');
-    rock.position.copy(p).setY(ISLAND_TOP + 0.12);
-    rock.scale.y = 0.6;
-    decor.add(rock);
+  // Matas de hierba por toda la tierra firme
+  const tufts = ['#6f8f45', '#86a050', '#9aa65a', '#5f7f3e'];
+  for (let i = 0, made = 0; i < 2000 && made < R * 12; i++) {
+    const p = spot(0.15, 0.95);
+    if (!free(p)) continue;
+    for (let j = 0; j < 4; j++) {
+      const h = 0.45 + rand() * 0.4;
+      const blade = mesh(new THREE.ConeGeometry(0.1, h, 3), tufts[(made + j) % tufts.length]);
+      blade.position.copy(p).add(new THREE.Vector3((rand() - 0.5) * 0.35, h / 2, (rand() - 0.5) * 0.35));
+      blade.rotation.set((rand() - 0.5) * 0.5, 0, (rand() - 0.5) * 0.5);
+      decor.add(blade);
+    }
     made++;
   }
-  // Rocas en la costa de fuera, batidas por las olas
-  for (let i = 0; i < 9; i++) {
+  // Peñascos en tierra, cerca de los bordes, algunos con musgo
+  for (let i = 0, made = 0; i < 120 && made < 9; i++) {
+    const p = spot(0.6, 0.85);
+    if (!free(p)) continue;
+    const s = 0.5 + rand() * 0.6;
+    const rock = mesh(new THREE.DodecahedronGeometry(s), made % 2 ? '#8a8378' : '#7d766c');
+    rock.position.copy(p).setY(ISLAND_TOP + s * 0.35);
+    rock.scale.set(1 + rand() * 0.4, 0.65, 1 + rand() * 0.3);
+    rock.rotation.y = rand() * Math.PI;
+    decor.add(rock);
+    if (made % 2 === 0) {
+      const moss = mesh(new THREE.SphereGeometry(s * 0.7, 7, 4), '#6f8a4c');
+      moss.position.copy(p).setY(ISLAND_TOP + s * 0.72);
+      moss.scale.set(1.1, 0.25, 1);
+      decor.add(moss);
+    }
+    made++;
+  }
+  // Rocas en la playa de fuera, al pie de los acantilados y batidas por las olas
+  for (let i = 0; i < 26; i++) {
     const deg = rand() * 360;
     if (apart(deg, gulf.deg) < gulf.mouth + 6) continue;
-    const rock = mesh(new THREE.DodecahedronGeometry(0.6 + rand() * 0.8), GULF_LAND.rock);
-    rock.position.copy(polar(coastAt(deg) * (1.16 + rand() * 0.1), deg, WATER_Y - 0.1));
+    const wet = i % 2;
+    const s = wet ? 0.6 + rand() * 0.8 : 0.35 + rand() * 0.45;
+    const rock = mesh(new THREE.DodecahedronGeometry(s), wet ? GULF_LAND.rock : '#9a9184');
+    rock.position.copy(polar(coastAt(deg) * (wet ? 1.15 + rand() * 0.1 : 1.05 + rand() * 0.04), deg, wet ? WATER_Y - 0.1 : -0.45 + s * 0.25));
     rock.scale.y = 0.6;
+    rock.rotation.y = rand() * Math.PI;
+    decor.add(rock);
+  }
+  // Unos escollos en la punta del cabo, del lado contrario al pecio
+  for (let i = 0; i < 4; i++) {
+    const deg = gulf.deg - gulf.mouth + 2 + rand() * 6;
+    const rock = mesh(new THREE.DodecahedronGeometry(0.5 + rand() * 0.6), GULF_LAND.rock);
+    rock.position.copy(polar(coastAt(deg) * (1.02 + rand() * 0.12), deg, WATER_Y - 0.15));
+    rock.scale.y = 0.65;
     decor.add(rock);
   }
   g.add(decor.build());
