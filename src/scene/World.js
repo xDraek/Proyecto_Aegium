@@ -133,7 +133,18 @@ const DETAIL_SIZE = 0.02;
 const DETAIL_MAX = 60;
 /** En calidad baja, solo las que se ven bastante más grandes, y menos a la vez. */
 const DETAIL_SIZE_LOW = 0.03;
-const DETAIL_MAX_LOW = 20;
+const DETAIL_MAX_LOW = 12;
+/**
+ * Los adornos de cada isla (la ciudad, el campamento, las ruinas…) se construyen solo para las que
+ * se ven a partir de este tamaño (una fracción del de las enteras) y como mucho estas a la vez; las
+ * enteras que se alejan se guardan ocultas unas pocas, por si se vuelve. Así la memoria no crece
+ * con el tamaño del archipiélago ni al recorrer el mapa (en el iPhone, Safari cerraba la página).
+ */
+const FEATURE_FRACTION = 0.45;
+const FEATURES_MAX = 120;
+const FEATURES_MAX_LOW = 24;
+const HIDDEN_BASES = 16;
+const HIDDEN_BASES_LOW = 4;
 /** En calidad baja las sombras se rehacen una de cada tantas imágenes (casi todo lo que las da está quieto). */
 const SHADOW_EVERY_LOW = 3;
 /** Píxeles de la escena en calidad baja: en las tablets, de pantalla grande, se baja la resolución interna. */
@@ -297,6 +308,7 @@ export class World {
 
   select(id) {
     this.selected = id;
+    this.detailAt = null; // lo seleccionado se ve siempre (#islandDetail)
     this.selectRing.visible = !!id;
     if (!id) return;
     const { center, radius } = this.#ringFor(id);
@@ -2395,14 +2407,14 @@ export class World {
       const look = `${islandLook(view)}|${bannerColor ?? ''}`;
       if (entry.look !== look) {
         entry.look = look;
-        if (entry.feature) {
-          entry.group.remove(entry.feature);
-          disposeTree(entry.feature);
-        }
         // En un continente, la gesta busca sitio entre sus asentamientos
         const siteAngles = entry.isl.type === 'continente' ? this.#siteAngles(entry.isl) : undefined;
-        entry.feature = createIslandFeature({ ...entry.isl, colonizedBy: view.colonizedBy, bannerColor, siteAngles }, look);
-        entry.group.add(entry.feature);
+        entry.featureArgs = [{ ...entry.isl, colonizedBy: view.colonizedBy, bannerColor, siteAngles }, look];
+        // El adorno solo existe si la isla está cerca (#islandDetail): si ya estaba, se rehace
+        if (entry.feature) {
+          this.#dropFeature(entry);
+          this.#buildFeature(entry);
+        } else this.detailAt = null;
       }
       this.#syncIslandSiege(entry, port);
       if (entry.isl.type === 'continente') this.#syncFeatFleet(entry, view.feat);
@@ -2827,69 +2839,121 @@ export class World {
     if (!force && this.detailAt && this.detailAt.distanceTo(cam) < 4) return this.#buildPending();
     (this.detailAt ??= new THREE.Vector3()).copy(cam);
     const fogFar = this.scene.fog.far;
-    const detailSize = this.high === false ? DETAIL_SIZE_LOW : DETAIL_SIZE;
+    const low = this.high === false;
+    const detailSize = low ? DETAIL_SIZE_LOW : DETAIL_SIZE;
+    const featureSize = detailSize * FEATURE_FRACTION;
+    const ratio = (e) => e.radius / e.lodD;
+    const byRatio = (a, b) => ratio(b) - ratio(a);
     this.pendingBases = [];
-    // Enteras, las que se ven grandes en pantalla (y como mucho las DETAIL_MAX que más)
+    // A la vista, lo que no se pierde en la niebla; los asentamientos de un continente, solo de
+    // cerca (de lejos basta la silueta del continente)
     const seen = [];
     for (const e of Object.values(this.islands)) {
-      const d = Math.hypot(e.pos.x - cam.x, cam.y, e.pos.z - cam.z);
-      e.lodD = d;
-      e.group.visible = d - e.radius * 1.5 <= fogFar;
-      // El letrero, solo en el mapa y si la isla no se pierde en la niebla
+      e.lodD = Math.hypot(e.pos.x - cam.x, cam.y, e.pos.z - cam.z);
+      e.group.visible = e.lodD - e.radius * 1.5 <= fogFar && (!e.isl.land || ratio(e) > featureSize || e.isl.id === this.selected);
+      // El letrero, solo en el mapa y si la isla se ve
       e.label.visible = this.view === 'mapa' && e.group.visible;
       if (e.group.visible) seen.push(e);
     }
-    const big = new Set(
-      seen
-        .filter((e) => e.radius / e.lodD > detailSize)
-        .sort((a, b) => b.radius / b.lodD - a.radius / a.lodD)
-        .slice(0, this.high === false ? DETAIL_MAX_LOW : DETAIL_MAX),
-    );
-    for (const e of seen) {
-      const d = e.lodD;
-      const near = big.has(e);
-      if (e.proxy === undefined) {
+    // Enteras, las que se ven grandes en pantalla (y como mucho las DETAIL_MAX que más); con su
+    // adorno, esas y algunas más pequeñas
+    const big = new Set(seen.filter((e) => ratio(e) > detailSize).sort(byRatio).slice(0, low ? DETAIL_MAX_LOW : DETAIL_MAX));
+    const decorated = new Set(seen.filter((e) => ratio(e) > featureSize).sort(byRatio).slice(0, low ? FEATURES_MAX_LOW : FEATURES_MAX));
+    for (const e of big) decorated.add(e);
+    const picked = this.islands[this.selected];
+    if (picked?.group.visible) decorated.add(picked);
+    const hidden = [];
+    for (const e of Object.values(this.islands)) {
+      const shown = e.group.visible;
+      if (shown && e.proxy === undefined) {
         e.proxy = islandProxy(e.isl);
         if (e.proxy) e.group.add(e.proxy);
       }
-      // Sin silueta (asentamientos, brumas), la de verdad siempre
-      const full = near || !e.proxy;
-      if (full && !e.base) this.pendingBases.push({ e, d });
-      // La que ya queda muy lejos se suelta, para que la memoria no crezca al recorrer el mapa
-      if (e.base && !full && e.proxy && e.radius / d < detailSize * 0.4) {
+      e.near = big.has(e);
+      // Sin silueta (asentamientos, brumas), la de verdad siempre que se ve
+      const full = shown && (e.near || !e.proxy);
+      if (full && !e.base) this.pendingBases.push({ e, d: e.lodD });
+      if (e.base) {
+        e.base.visible = full;
+        if (!full) hidden.push(e);
+      }
+      if (e.proxy) e.proxy.visible = shown && (!full || !e.base);
+      // El adorno: se construye al acercarse y se suelta al alejarse
+      const deco = decorated.has(e);
+      if (deco && !e.feature && e.featureArgs) this.pendingBases.push({ e, d: e.lodD, feature: true });
+      else if (!deco && e.feature) {
+        if (!shown || ratio(e) < featureSize * 0.6) this.#dropFeature(e);
+        else e.feature.visible = false;
+      }
+      if (deco && e.feature) {
+        e.feature.visible = true;
+        this.#lightFires(e);
+      }
+    }
+    // Las enteras que ya no se ven: se guardan unas pocas (las más cercanas) por si se vuelve
+    hidden.sort(byRatio);
+    hidden.forEach((e, i) => {
+      if (i >= (low ? HIDDEN_BASES_LOW : HIDDEN_BASES) || !e.group.visible || ratio(e) < detailSize * 0.6) {
         e.group.remove(e.base);
         disposeTree(e.base);
         e.base = null;
+        if (e.proxy) e.proxy.visible = e.group.visible;
       }
-      if (e.base) e.base.visible = full;
-      if (e.proxy) e.proxy.visible = !full || !e.base;
-      // Las hogueras y antorchas de la isla, solo cuando se ve de cerca (de lejos ni se distinguen)
-      if (e.feature) {
-        if (e.firesOf !== e.feature) {
-          e.firesOf = e.feature;
-          e.fires = [];
-          e.feature.traverse((o) => o.userData.fire && e.fires.push(o));
-        }
-        for (const f of e.fires) {
-          f.userData.far = !near;
-          this.#lightFire(f);
-        }
-      }
-    }
+    });
     // Primero las más cercanas
     this.pendingBases.sort((a, b) => a.d - b.d);
     this.#buildPending(force ? 40 : 6);
+  }
+
+  /** El adorno de una isla (ciudad, campamento, ruinas…) con lo que dijo #syncIslands. */
+  #buildFeature(e) {
+    e.feature = createIslandFeature(...e.featureArgs);
+    e.group.add(e.feature);
+    this.#lightFires(e);
+    this.animDirty = true;
+  }
+
+  #dropFeature(e) {
+    e.group.remove(e.feature);
+    disposeTree(e.feature);
+    e.feature = null;
+    e.fires = null;
+    e.firesOf = null;
+    this.animDirty = true;
+  }
+
+  /** Las hogueras y antorchas de una isla, encendidas solo cuando se ve de cerca (de lejos ni se distinguen). */
+  #lightFires(e) {
+    if (e.firesOf !== e.feature) {
+      e.firesOf = e.feature;
+      e.fires = [];
+      e.feature.traverse((o) => o.userData.fire && e.fires.push(o));
+    }
+    for (const f of e.fires) {
+      f.userData.far = !e.near;
+      this.#lightFire(f);
+    }
   }
 
   /** Construye las islas pendientes, las más cercanas primero, sin pasar de `ms` por fotograma. */
   #buildPending(ms = 6) {
     const t0 = performance.now();
     while (this.pendingBases?.length && performance.now() - t0 < ms) {
-      const { e } = this.pendingBases.shift();
-      if (e.base || !this.islands[e.isl.id]) continue;
+      const { e, feature } = this.pendingBases.shift();
+      if (!this.islands[e.isl.id]) continue;
+      if (feature) {
+        if (!e.feature && e.featureArgs) this.#buildFeature(e);
+        continue;
+      }
+      if (e.base) continue;
       e.base = createIslandBase(e.isl);
       e.group.add(e.base);
       if (e.proxy) e.proxy.visible = false;
+    }
+    // Lo que se anima (molinos, banderas, fuegos…) se vuelve a juntar cuando acaban de llegar o irse adornos
+    if (this.animDirty && !this.pendingBases?.length) {
+      this.animDirty = false;
+      this.#collectAnimated();
     }
   }
 

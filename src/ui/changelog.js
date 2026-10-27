@@ -7,6 +7,18 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-27c',
+    date: '2026-10-27',
+    title: 'El mapa ya no cierra la página en el iPhone',
+    items: [
+      '📱 Al explorar el mapa desde el móvil (sobre todo en iPhone), la página podía cerrarse sola con «ha generado problemas repetidamente». El juego guardaba en memoria las ciudades, campamentos y ruinas de todas las islas del archipiélago, aunque estuvieran lejísimos, y las que ibas visitando. Ahora solo construye las que tienes cerca y suelta las que dejas atrás, así que la memoria no crece por mucho que recorras el mapa.',
+    ],
+    en: {
+      title: 'The map no longer crashes the page on iPhone',
+      items: ['📱 When exploring the map on mobile (especially iPhone), the page could close by itself with “a problem repeatedly occurred”. The game kept in memory the cities, camps and ruins of every island in the archipelago, however far away, plus the ones you visited. Now it only builds the ones near you and releases the ones you leave behind, so memory no longer grows however much you roam the map.'],
+    },
+  },
+  {
     id: '2026-10-27b',
     date: '2026-10-27',
     title: 'Las ofertas del mercado, en el chat',
