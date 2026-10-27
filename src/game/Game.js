@@ -709,6 +709,24 @@ export class Game extends EventTarget {
     };
   }
 
+  /**
+   * Por qué no se puede mejorar el edificio `id` mientras trabaja (la academia investigando, el
+   * cuartel entrenando, el puerto botando barcos), o null. Una cosa a la vez: tampoco se investiga
+   * ni se recluta en un edificio en obras (ver `closedForWorks`).
+   */
+  busyReason(id) {
+    if (id === 'academia' && this.state.researchQueue) return 'La academia está investigando: podrás mejorarla cuando termine la investigación.';
+    if (!this.state.training[id]?.length) return null;
+    return id === 'puerto' ? 'El puerto está botando barcos: podrás mejorarlo cuando terminen.' : 'El cuartel está entrenando tropas: podrás mejorarlo cuando terminen.';
+  }
+
+  /** Por qué el edificio `id` no puede investigar ni reclutar ahora: está en obras. O null. */
+  closedForWorks(id) {
+    if (this.state.queue?.id !== id) return null;
+    if (id === 'academia') return 'La academia está en obras: podrás investigar cuando termine la mejora.';
+    return id === 'puerto' ? 'El puerto está en obras: podrás botar barcos cuando termine la mejora.' : 'El cuartel está en obras: podrás reclutar cuando termine la mejora.';
+  }
+
   nextResearch(id) {
     const level = this.researchLevel(id) + 1;
     const maxed = level > researchMax(id);
@@ -1127,6 +1145,8 @@ export class Game extends EventTarget {
   upgrade(id, now = this.now()) {
     this.#advance(now);
     if (this.state.queue) return this.#fail('Ya hay una obra en marcha.');
+    const busy = this.busyReason(id);
+    if (busy) return this.#fail(busy);
     const next = this.nextUpgrade(id);
     if (next.maxed) return this.#fail('Ya está terminado.');
     if (next.missing.length) return this.#fail('No cumples los requisitos.');
@@ -1150,6 +1170,8 @@ export class Game extends EventTarget {
     this.#advance(now);
     if (this.level('academia') < 1) return this.#fail('Necesitas una academia.');
     if (this.state.researchQueue) return this.#fail('Ya hay una investigación en marcha.');
+    const works = this.closedForWorks('academia');
+    if (works) return this.#fail(works);
     const next = this.nextResearch(id);
     if (next.maxed) return this.#fail('Ya está al máximo.');
     if (next.missing.length) return this.#fail('No cumples los requisitos.');
@@ -1177,6 +1199,8 @@ export class Game extends EventTarget {
     if (!(n >= 1 && n <= 100000)) return this.#fail('Indica cuántas unidades quieres.');
     if (this.level(u.building) < 1) return this.#fail(`Necesitas ${BUILDINGS[u.building].name.toLowerCase()}.`);
     if (missingRequirements(this.state, u.requires).length) return this.#fail('No cumples los requisitos.');
+    const works = this.closedForWorks(u.building);
+    if (works) return this.#fail(works);
     const total = multiplyCost(u.cost, n);
     if (!canAfford(this.state.resources, total)) return this.#fail('No tienes recursos suficientes.');
 

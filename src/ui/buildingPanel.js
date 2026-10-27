@@ -76,6 +76,7 @@ function upgradeSection(game, id) {
   const level = game.level(id);
   const next = game.nextUpgrade(id);
   const q = game.queue;
+  const busy = game.busyReason(id);
   if (next.maxed) {
     return `${effectFor(game, id, level, level)}<div class="hint ok big">✨ Terminado: no se puede mejorar más</div>`;
   }
@@ -91,6 +92,11 @@ function upgradeSection(game, id) {
     label = 'Constructores ocupados';
     blocked = true;
     hint = `<div class="hint">Están trabajando en: ${BUILDINGS[q.id].name}</div>`;
+  } else if (busy) {
+    // Una cosa a la vez: no se mejora mientras investiga o entrena
+    label = id === 'academia' ? 'Investigando…' : id === 'puerto' ? 'Botando barcos…' : 'Entrenando tropas…';
+    blocked = true;
+    hint = `<div class="hint warn">${busy}</div>`;
   } else if (next.missing.length) {
     blocked = true;
     hint = '';
@@ -133,12 +139,13 @@ function researchCard(game, id) {
     body = `<div class="progress"><i data-bar data-start="${rq.start}" data-end="${rq.end}"></i></div>
       <div class="hint">Nivel ${rq.level} en <span data-until="${rq.end}"></span></div>`;
   } else {
-    const blocked = !!rq || nx.missing.length > 0 || nx.exceedsStorage || game.level('academia') < 1;
+    const works = !!game.closedForWorks('academia');
+    const blocked = !!rq || works || nx.missing.length > 0 || nx.exceedsStorage || game.level('academia') < 1;
     body = `
       ${nx.missing.length ? `<div class="reqs">🔒 Requiere ${reqText(nx.missing)}</div>` : ''}
       <div class="card-row">${costList(nx.cost, game.resources)}<span class="time">⏱ ${fmtTime(nx.seconds)}</span></div>
       <button class="primary small" data-action="research" data-id="${id}" data-need='${JSON.stringify(nx.cost)}' data-blocked="${blocked ? 1 : 0}">
-        ${rq ? 'Academia ocupada' : nx.exceedsStorage ? 'No cabe en el almacén' : `Investigar nivel ${nx.level}`}
+        ${rq ? 'Academia ocupada' : works ? 'Academia en obras' : nx.exceedsStorage ? 'No cabe en el almacén' : `Investigar nivel ${nx.level}`}
       </button>`;
   }
   return `<div class="card${active ? ' active' : ''}">
@@ -148,7 +155,8 @@ function researchCard(game, id) {
 
 function academiaSection(game) {
   if (game.level('academia') < 1) return '<h4>Investigaciones</h4><p class="desc">Construye la academia para empezar a investigar.</p>';
-  return `<h4>Investigaciones</h4><div class="cards">${RESEARCH_KEYS.map((id) => researchCard(game, id)).join('')}</div>`;
+  const works = game.closedForWorks('academia');
+  return `<h4>Investigaciones</h4>${works ? `<div class="hint warn">🏗️ ${works}</div>` : ''}<div class="cards">${RESEARCH_KEYS.map((id) => researchCard(game, id)).join('')}</div>`;
 }
 
 // ── Cuartel y puerto ─────────────────────────────────────────────────────────
@@ -181,6 +189,7 @@ function unitCard(game, id) {
       <div class="card-sub">🔒 Requiere ${reqText(info.missing)}</div></div></div></div>`;
   }
   const input = `n-${id}`;
+  const works = !!game.closedForWorks(u.building);
   return `<div class="card">
     <div class="card-head">${unitArt(id)}<div class="card-title"><b>${u.name}</b>${u.elite ? ' <span class="elite-tag">⭐ Élite</span>' : ''} ${homeTag}
       <div class="card-sub">${u.description}</div></div></div>
@@ -189,7 +198,7 @@ function unitCard(game, id) {
     <div class="train-row">
       <input type="number" name="${input}" min="1" value="1" inputmode="numeric" aria-label="Cantidad de ${u.name}" />
       <button class="ghost small" data-action="max" data-unit="${id}">Máx</button>
-      <button class="primary small" data-action="train" data-unit="${id}" data-need='${JSON.stringify(u.cost)}' data-count="${input}" data-blocked="0">Reclutar</button>
+      <button class="primary small" data-action="train" data-unit="${id}" data-need='${JSON.stringify(u.cost)}' data-count="${input}" data-blocked="${works ? 1 : 0}">${works ? 'En obras' : 'Reclutar'}</button>
     </div>
   </div>`;
 }
@@ -223,7 +232,8 @@ function recruitSection(game, building) {
     extra = `${port}<div class="effect"><span>⛵ Flotas en el mar</span><b>${game.fleetsAtSea()} / ${game.fleetSlots()}</b></div>
       <button class="ghost wide" data-action="open-map">🗺️ Abrir el mapa del archipiélago</button>`;
   }
-  return `${extra}${trainingQueue(game, building)}<h4>${title}</h4><div class="cards">${ids.map((id) => unitCard(game, id)).join('')}</div>`;
+  const works = game.closedForWorks(building);
+  return `${extra}${trainingQueue(game, building)}<h4>${title}</h4>${works ? `<div class="hint warn">🏗️ ${works}</div>` : ''}<div class="cards">${ids.map((id) => unitCard(game, id)).join('')}</div>`;
 }
 
 /** Bloqueo de tu puerto u ocupación de tu ciudad: qué pasa y cómo librarte. */

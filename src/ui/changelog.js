@@ -7,6 +7,24 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-27g',
+    date: '2026-10-27',
+    title: 'Una cosa a la vez',
+    items: [
+      '🏛️ Un edificio que trabaja no puede estar en obras a la vez: mientras la <b>academia</b> investiga no se puede mejorar, y mientras se mejora no se puede investigar.',
+      '⚔️ Lo mismo con el <b>cuartel</b> (si está entrenando tropas) y el <b>puerto</b> (si está botando barcos): primero termina lo que tienen entre manos, o cancélalo, y luego se mejoran. Si están en obras, no reclutan hasta que acaben.',
+      '🔨 El resto de edificios se pueden seguir mejorando mientras tanto, como siempre.',
+    ],
+    en: {
+      title: 'One thing at a time',
+      items: [
+        '🏛️ A building that is working can’t be under construction at the same time: while the <b>academy</b> is researching it can’t be upgraded, and while it’s being upgraded it can’t research.',
+        '⚔️ The same goes for the <b>barracks</b> (if they’re training troops) and the <b>port</b> (if it’s launching ships): first finish what they’re doing, or cancel it, and then upgrade them. While under construction, they don’t recruit until it’s done.',
+        '🔨 Every other building can still be upgraded in the meantime, as always.',
+      ],
+    },
+  },
+  {
     id: '2026-10-27f',
     date: '2026-10-27',
     title: 'Un mapa del mundo más vivo',
