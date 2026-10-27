@@ -78,6 +78,7 @@ import {
   missingRequirements,
   upgradeRequires,
   multiplyCost,
+  neutralScale,
   playerCombat,
   portClosed,
   protectedAmount,
@@ -118,6 +119,8 @@ const RAID_WARNING_MIN = 20;
 const RAID_THEFT = 0.2;
 // Se saquea todo lo que haya a la vista (menos lo protegido) mientras quepa en los barcos
 const LOOT_SHARE = 1;
+/** Con qué parte de su botín vuelven a poblarse las islas arrasadas. */
+const RAZED_STOCK = 0.5;
 const VISIT_MIN_H = 3;
 const VISIT_MAX_H = 6;
 const ACTIVE_QUESTS = 3;
@@ -621,6 +624,11 @@ export class Game extends EventTarget {
     if (h.mission != null && this.state.missions.some((m) => m.id === h.mission)) return 'mision';
     if ((h.woundedUntil ?? 0) > now) return 'herido';
     return 'casa';
+  }
+
+  /** Cuánto más grandes ves las islas neutrales (sus bárbaros y su botín) por cómo es tu ciudad. */
+  neutralScale() {
+    return neutralScale(this.state);
   }
 
   /** Bono de una habilidad (0 si el almirante no está o no la tiene). */
@@ -1127,8 +1135,8 @@ export class Game extends EventTarget {
       colonistName: colonizedBy != null ? (this.world.playerInfo(colonizedBy)?.name ?? '¿?') : null,
       looted: !!rt?.looted,
       // (el navegador no recibe la guarnición ni el botín de las islas neutrales: solo lo que hayas visto)
-      garrison: rt?.garrison ? garrisonAt(isl, rt, t) : {},
-      stock: rt?.stock ? stockAt(isl, rt, t) : {},
+      garrison: rt?.garrison ? garrisonAt(isl, rt, t, this.neutralScale()) : {},
+      stock: rt?.stock ? stockAt(isl, rt, t, this.neutralScale()) : {},
       rebuildUntil: rebuilding(isl, rt, t) ? rt.stockAt : null,
       foughtAt: isl.loot && rt ? (rt.garrisonAt ?? 0) : 0,
     });
@@ -1516,6 +1524,8 @@ export class Game extends EventTarget {
       back: null,
       phase: 'ida',
       hero: !!opts.hero,
+      // Contra una isla neutral, sus bárbaros (o piratas) a la medida de tu ciudad
+      ...(this.world.island(target).loot ? { scaled: true } : {}),
       ...(plan.joint ? { joint: opts.join, leader: plan.joint.leader, trip: plan.travel * 1000 } : {}),
       // Si zarpa de una ciudad ocupada, vuelve a ella
       ...(plan.base ? { from: plan.base.target, fromName: plan.base.targetName, base: plan.base.id } : {}),
@@ -2411,7 +2421,8 @@ export class Game extends EventTarget {
   }
 
   #intel(isl, rt, t) {
-    const intel = { t, garrison: garrisonAt(isl, rt, t), stock: stockAt(isl, rt, t) };
+    const scale = this.neutralScale();
+    const intel = { t, garrison: garrisonAt(isl, rt, t, scale), stock: stockAt(isl, rt, t, scale) };
     if (intel.garrison.kraken) intel.kraken = krakenLevel(rt);
     // La colonia de otro jugador: su guarnición
     if (rt?.colonizedBy != null && rt.colonizedBy !== this.userId) intel.garrison = this.world.colonyGarrison?.(isl.id) ?? {};
@@ -3112,8 +3123,10 @@ export class Game extends EventTarget {
       for (const [res, n] of Object.entries(isl.treasure)) m.cargo[res] = (m.cargo[res] ?? 0) + n;
       if (Math.random() < BASIC_RELIC_CHANCE) this.#findRelic(t, `entre las ruinas de ${isl.name}`, 'basica');
     }
-    const garrison = garrisonAt(isl, rt, t);
-    const stock = stockAt(isl, rt, t);
+    // (las flotas que zarparon antes de que las islas crecieran con la ciudad luchan contra las de antes)
+    const scale = m.scaled ? this.neutralScale() : 1;
+    const garrison = garrisonAt(isl, rt, t, scale);
+    const stock = stockAt(isl, rt, t, scale);
     const { atkMul, hpMul } = playerCombat(this.state);
     const wall = Math.max(0, (isl.wall ?? 0) - siegeOf(m.units));
     const heroAtk = m.hero ? this.heroBonus('ataque') : 0;
@@ -3124,7 +3137,7 @@ export class Game extends EventTarget {
     if (m.hero) this.#heroXp(result.def.lost, t);
     this.state.stats.kills += count(result.def.lost);
 
-    rt.garrison = result.def.left;
+    rt.garrison = unscaled(result.def.left, scale);
     rt.garrisonAt = t;
     m.units = result.att.left;
     this.#mercsLost(result.att.lost);
@@ -3141,14 +3154,15 @@ export class Game extends EventTarget {
         stock[res] -= n;
         m.cargo[res] = (m.cargo[res] ?? 0) + n;
       }
-      rt.stock = stock;
+      rt.stock = unscaled(stock, scale);
       rt.stockAt = t;
     }
     // Sin nadie que la defienda, la isla queda arrasada: lo que no cabía en las bodegas se pierde y
-    // no vuelve a juntar nada hasta que la guarnición se haya recuperado del todo
+    // no vuelve a juntar nada hasta que la guarnición se haya recuperado del todo (y entonces vuelven
+    // con la mitad de su botín, para que nadie llegue a una isla vacía)
     const razed = result.winner === 'att' && !count(result.def.left) && !!isl.loot;
     if (razed) {
-      rt.stock = {};
+      rt.stock = Object.fromEntries(Object.entries(isl.loot.mix).map(([res, k]) => [res, isl.loot.max * k * RAZED_STOCK]));
       rt.stockAt = t + hours(isl.regenHours ?? 1);
     }
     this.world.touch?.(isl.id);
@@ -3205,7 +3219,7 @@ export class Game extends EventTarget {
     m.cargo = {};
     this.#arriveAttack(m, isl, t);
     const rt = this.world.islandState(isl.id);
-    const won = count(garrisonAt(isl, rt, t)) === 0 && hasCombat(m.units);
+    const won = count(garrisonAt(isl, rt, t, m.scaled ? this.neutralScale() : 1)) === 0 && hasCombat(m.units);
     const room = this.state.colonies.length < maxColonies(this.state);
     if (!won || !room || !m.units.mercante || !this.world.colonize?.(isl.id, this.userId)) {
       // Los colonos vuelven con lo que llevaban
@@ -3607,26 +3621,38 @@ export function krakenText(level) {
   return k > 1 ? `×${fmtEs(k, 1)} de ataque y de vida que al principio` : 'aún con la fuerza de la primera vez';
 }
 
-export function garrisonAt(isl, rt, t) {
+// La isla guarda su guarnición y su botín a la medida de una ciudad que empieza; cada jugador los
+// ve multiplicados por su `scale` (neutralScale). Lo que se comparte es la proporción que queda:
+// si alguien la arrasa, está arrasada para todos.
+const EPS = 1e-6;
+
+export function garrisonAt(isl, rt, t, scale = 1) {
   const out = {};
   if (rt.colonizedBy != null) return out; // conquistada: ya no hay bárbaros
   const regen = hours(isl.regenHours ?? 1);
   for (const [id, full] of Object.entries(isl.garrison ?? {})) {
-    const n = Math.min(full, (rt.garrison?.[id] ?? 0) + (full * Math.max(0, t - rt.garrisonAt)) / regen);
+    const n = Math.min(full, (rt.garrison?.[id] ?? 0) + (full * Math.max(0, t - rt.garrisonAt)) / regen) * scale + EPS;
     if (n >= 1) out[id] = Math.floor(n);
   }
-  // El Kraken no se rearma con la fosa: está (si ha despertado en ella) o no está
+  // El Kraken no se rearma con la fosa (ni crece con tu ciudad): está (si ha despertado en ella) o no está
   if (rt.kraken) out.kraken = 1;
   return out;
 }
 
-export function stockAt(isl, rt, t) {
+export function stockAt(isl, rt, t, scale = 1) {
   const out = {};
   if (!isl.loot) return out;
   const h = Math.max(0, t - rt.stockAt) / HOUR_MS;
   for (const [res, k] of Object.entries(isl.loot.mix)) {
-    out[res] = Math.floor(Math.min(isl.loot.max * k, (rt.stock?.[res] ?? 0) + isl.loot.rate * k * universe.speed * h));
+    out[res] = Math.floor(Math.min(isl.loot.max * k, (rt.stock?.[res] ?? 0) + isl.loot.rate * k * universe.speed * h) * scale + EPS);
   }
+  return out;
+}
+
+/** Lo que queda en la isla, a la medida de una ciudad que empieza (para guardarlo en su estado). */
+function unscaled(bag, scale) {
+  const out = {};
+  for (const [id, n] of Object.entries(bag)) out[id] = n / scale;
   return out;
 }
 

@@ -7,6 +7,26 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-27i',
+    date: '2026-10-27',
+    title: 'Los bárbaros crecen contigo',
+    items: [
+      '📈 Los <b>campamentos bárbaros</b>, las <b>ciudades bárbaras</b>, los <b>piratas</b> y los corsarios de las <b>fosas</b> ya no se quedan pequeños: sus guerreros y su botín <b>crecen con tu ciudad</b> (con lo que producen tus edificios). Así saquearlos merece la pena toda la partida, no solo los primeros días. Cada jugador los ve a su medida; el Kraken sigue con sus propios niveles.',
+      '🪓 Los dos campamentos más pequeños dan más botín: hasta <b>2500</b> y <b>4500</b> (antes 1500 y 3200), con los mismos bárbaros.',
+      '🔨 Cuando una isla arrasada se rearma, vuelve con <b>la mitad de su botín</b> en vez de vacía: ya no llegas a un campamento sin nada porque un vecino lo saqueó antes.',
+      '🔭 Lo que viste con tus botes antes de este cambio está desfasado: <b>vuelve a explorar</b> antes de atacar. Las flotas que ya estaban en el mar luchan contra los bárbaros de antes.',
+    ],
+    en: {
+      title: 'Barbarians grow with you',
+      items: [
+        '📈 <b>Barbarian camps</b>, <b>barbarian cities</b>, <b>pirates</b> and the corsairs of the <b>trenches</b> no longer fall behind: their warriors and their loot <b>grow with your city</b> (with what your buildings produce). That way raiding them is worth it all game long, not just in the first days. Each player sees them at their own scale; the Kraken keeps its own levels.',
+        '🪓 The two smallest camps give more loot: up to <b>2500</b> and <b>4500</b> (before 1500 and 3200), with the same barbarians.',
+        '🔨 When a razed island rearms, it comes back with <b>half its loot</b> instead of empty: you no longer reach a camp with nothing because a neighbour raided it first.',
+        '🔭 What your boats saw before this change is out of date: <b>explore again</b> before attacking. Fleets that were already at sea fight the old barbarians.',
+      ],
+    },
+  },
+  {
     id: '2026-10-27h',
     date: '2026-10-27',
     title: 'El simulador ya no se inventa un Kraken',

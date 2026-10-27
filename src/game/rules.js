@@ -409,6 +409,22 @@ export function economy(state, t = state.lastUpdate) {
   return { base, buildings, research, colonies, taxes, bonus, eventBonus, gross, tribute, upkeep, pay, net, hungry, closed };
 }
 
+/** Lo que producen los edificios de una ciudad que empieza (con los productores a nivel 4, más o menos). */
+const NEUTRAL_REF = 1000;
+
+/**
+ * Cuánto crecen para ti los bárbaros, los piratas y los corsarios de las islas neutrales (y su
+ * botín): lo que producen tus edificios (en valor, sin bonos ni eventos) frente a una ciudad que
+ * empieza. Así un campamento vale siempre más o menos las mismas horas de tu producción.
+ */
+export function neutralScale(state) {
+  let value = 0;
+  for (const [id, b] of Object.entries(BUILDINGS)) {
+    if (b.produces) value += (producerOutput(id, state.buildings[id] ?? 0) / universe.speed) * RESOURCES[b.produces].value;
+  }
+  return Math.max(1, Math.round((value / NEUTRAL_REF) * 100) / 100);
+}
+
 /** Si el puerto de la ciudad está cerrado por un bloqueo o una ocupación enemiga. */
 export function portClosed(state) {
   return !!(state.blockade || state.occupied);

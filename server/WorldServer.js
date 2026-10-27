@@ -6,7 +6,7 @@ import { Game, krakenText, newState, rebuilding } from '../src/game/Game.js';
 import { fmtEs } from '../src/game/num.js';
 import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
 import { playerCombat, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
-import { coordsOf, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
+import { CAMP_LOOT, coordsOf, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { hashPassword, newRecoveryCode, newSecret, normalizeCode, verifyPassword } from './auth.js';
 
@@ -123,6 +123,8 @@ export class WorldServer {
     for (const isl of data.islands) this.islands.set(isl.id, withoutGold(isl));
     // Las fosas de antes guardaban cada una su Kraken: ahora solo hay uno para todos (ver #updateKraken)
     for (const isl of this.islands.values()) if (isl.type === 'kraken') Object.assign(isl, KRAKEN_LAIR, { garrison: { ...KRAKEN_LAIR.garrison } });
+    // Los campamentos pequeños dan ahora más botín
+    for (const isl of this.islands.values()) if (isl.type === 'barbaros' && CAMP_LOOT[isl.tier]) isl.loot = structuredClone(CAMP_LOOT[isl.tier]);
     for (const [id, st] of Object.entries(data.islandStates)) this.islandStates.set(id, st);
     for (const isl of this.islands.values()) {
       if (isl.type !== 'jugador' && !this.islandStates.has(isl.id)) this.islandStates.set(isl.id, freshIslandState(isl, clock.now()));

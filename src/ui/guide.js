@@ -447,6 +447,7 @@ const TOPICS = {
     body: () => `<p>Cada jugador nuevo abre un <b>sector</b> con su isla y una docena de islas neutrales alrededor. Entre los sectores hay ${see('continentes', 'continentes')}.</p>
       ${islandsTable()}
       <p>Los campamentos, las fortalezas y las ciudades bárbaras <b>se rearman con el tiempo</b> y van acumulando botín. Solo te lo llevas si acabas con toda su guarnición; si no queda nadie, la isla queda arrasada: <b>se están reconstruyendo</b> y nadie puede atacarla hasta que se rearman del todo. Lo que tienen solo lo sabes por tu último bote explorador (o tu último ataque): envía otro para ver cómo están ahora.</p>
+      <p>📈 Todas ellas (salvo el propio Kraken) <b>crecen con tu ciudad</b>: cuanto más producen tus edificios, más guerreros y más botín ves en ellas, así que siempre merece la pena saquearlas. Cada jugador las ve a su medida; si alguien las arrasa, quedan arrasadas para todos. Al rearmarse vuelven con la mitad de su botín.</p>
       <h5>🐙 El Kraken</h5>
       ${list([
         'Solo hay <b>un Kraken</b> en todos los mares. Despierta en una de las fosas que no estén arrasadas, y nadie sabe cuándo ni en cuál: en el chat se avisa con unas <b>coordenadas aproximadas</b> (pulsa en ellas para verlas en el mapa).',

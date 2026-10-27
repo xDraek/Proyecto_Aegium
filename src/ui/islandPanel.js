@@ -6,7 +6,7 @@ import { krakenText, NEWBIE_POINTS, neutralsOf } from '../game/Game.js';
 import { coordsOf, fmtCoords } from '../game/world.js';
 import { createIslandBase, createIslandFeature, islandLook } from '../scene/islands.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
-import { bag, costList, escapeHtml, fmtAgo, fmtNum, fmtTime, intelRows, unitList } from './format.js';
+import { bag, costList, escapeHtml, fmtAgo, fmtDec, fmtNum, fmtTime, intelRows, unitList } from './format.js';
 
 // Panel de una isla del archipiélago: lo que se sabe de ella y el formulario
 // para mandar una flota (explorar, atacar o colonizar).
@@ -521,6 +521,7 @@ function infoSectionFor(game, view, t) {
   }
   // Lo que sabes de ellos es lo que vio tu último bote (o tu último ataque), no lo que tienen ahora
   const intel = view.intel;
+  const scale = game.neutralScale();
   const lines = [];
   if (view.rebuildUntil) {
     lines.push(`<div class="hint">🔨 ${neutralsOf(view)} se están reconstruyendo tras el último saqueo: no se sabe cuántos son ni qué tienen, y no se les puede atacar hasta dentro de <span class="q-time" data-until="${view.rebuildUntil}"></span>.</div>`);
@@ -542,7 +543,8 @@ function infoSectionFor(game, view, t) {
     kraken: 'Una fosa de corsarios entre barcos hundidos y el oro de mil naufragios. Solo hay un Kraken en todos los mares: despierta de vez en cuando en una de estas fosas, y nadie sabe cuándo ni en cuál; si nadie lo derrota, al cabo de unas horas se sumerge y asoma en otra. Envía un bote explorador para saber si está aquí.',
   }[view.type];
   return `<p class="desc">${flavor}</p>${lines.join('')}
-    <p class="desc small">Se rearman por completo en unas ${fmtNum(view.regenHours)} h de juego. Solo te llevas el botín si acabas con toda la guarnición.</p>`;
+    <p class="desc small">Se rearman por completo en unas ${fmtNum(view.regenHours)} h de juego. Solo te llevas el botín si acabas con toda la guarnición.</p>
+    <p class="desc small">📈 Crecen con tu ciudad: cuanto más producen tus edificios, más guerreros y más botín tienen. ${scale > 1 ? `Para ti, ahora mismo: <b>×${fmtDec(scale)}</b>.` : 'Por ahora, a la medida de una ciudad que empieza.'}</p>`;
 }
 
 function inboundSection(game, view) {

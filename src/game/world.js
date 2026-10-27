@@ -42,13 +42,21 @@ export function withoutGold(x) {
   return { ...x, specialty: NO_GOLD, yield: Math.round((x.yield * SPECIALTY_YIELD[NO_GOLD]) / SPECIALTY_YIELD.oro) };
 }
 
+/**
+ * El botín de los campamentos bárbaros pequeños (también para ponérselo a los que ya había: se
+ * guardan con el mundo). Antes daban 1500 y 3200, y las bajas se comían casi la mitad.
+ */
+export const CAMP_LOOT = {
+  1: { max: 2500, rate: 250, mix: { madera: 0.5, comida: 0.5 } },
+  2: { max: 4500, rate: 360, mix: { madera: 0.3, piedra: 0.3, comida: 0.4 } },
+};
+
 const TEMPLATE = [
-  { type: 'barbaros', tier: 1, dist: 96, size: 6, garrison: { barbaro: 8 }, regenHours: 6, loot: { max: 1500, rate: 150, mix: { madera: 0.5, comida: 0.5 } } },
+  { type: 'barbaros', tier: 1, dist: 96, size: 6, garrison: { barbaro: 8 }, regenHours: 6, loot: CAMP_LOOT[1] },
   { type: 'ruinas', dist: 102, size: 4.5, treasure: { piedra: 600, cristal: 300, oro: 150 } },
   { type: 'libre', dist: 106, size: 7, specialties: ['madera', 'comida', 'piedra'] },
   {
-    type: 'barbaros', tier: 2, dist: 112, size: 5.5, garrison: { barbaro: 18, arquero: 6 }, regenHours: 6,
-    loot: { max: 3200, rate: 260, mix: { madera: 0.3, piedra: 0.3, comida: 0.4 } },
+    type: 'barbaros', tier: 2, dist: 112, size: 5.5, garrison: { barbaro: 18, arquero: 6 }, regenHours: 6, loot: CAMP_LOOT[2],
   },
   { type: 'libre', dist: 124, size: 8, specialties: ['hierro', 'cristal', 'piedra'] },
   {
