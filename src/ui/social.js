@@ -5,7 +5,7 @@ import { api, setToken } from '../net/api.js';
 import { bag, escapeHtml, fmtAgo, fmtDec, fmtNum, fmtTime } from './format.js';
 import { askConfirm, askPrompt } from './dialog.js';
 import { resPicker } from './resPicker.js';
-import { runSimulation, simulatorHtml } from './simulator.js';
+import { runSimulation, simulatorHtml, syncKrakenLevel } from './simulator.js';
 
 /** Ventanas que gestiona este módulo. */
 export const SOCIAL_MODALS = ['alliance', 'mail', 'profile', 'daily', 'welcome', 'password', 'sim', 'friends', 'bug'];
@@ -576,6 +576,10 @@ export class Social {
 
   openSimulator(preset) {
     this.hud.showModal('sim', simulatorHtml(preset));
+    const form = this.hud.modal.querySelector('[data-form="sim"]');
+    form?.addEventListener('input', (e) => {
+      if (e.target.name === 'd-kraken') syncKrakenLevel(form);
+    });
   }
 
   // ── Mercado del archipiélago ───────────────────────────────────────────────

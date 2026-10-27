@@ -41,7 +41,7 @@ export function simulatorHtml(preset = {}) {
         <label><span>🏰 Muralla / fortificación % (en tierra; las catapultas la rebajan)</span><input type="number" name="d-wall" value="${Math.round((preset.wall ?? 0) * 100)}" /></label>
         <label><span>🏹 Daño de las torres (en tierra)</span><input type="number" name="d-towers" value="${preset.towers ?? 0}" /></label>
         <label><span>🪔 Faro: vida de sus barcos %</span><input type="number" name="d-naval" value="${Math.round((preset.naval ?? 0) * 100)}" /></label>
-        <label><span>🐙 Nivel del Kraken</span><input type="number" name="d-kraken" min="1" value="${preset.kraken ?? 1}" /></label>
+        <label data-kraken-level${preset.defender?.kraken > 0 ? '' : ' hidden'}><span>🐙 Nivel del Kraken</span><input type="number" name="d-kraken-level" min="1" value="${preset.kraken || 1}" /></label>
       </fieldset>
       ${preset.note ? `<p class="hint small">${preset.note}</p>` : ''}
       <button class="primary">Simular ${RUNS} combates</button>
@@ -69,6 +69,12 @@ export function shares(counts) {
     if (p === 100 && counts[i] < total) return '&gt;99 %';
     return `${p} %`;
   });
+}
+
+/** El nivel del Kraken solo se pide si hay algún Kraken en el defensor. */
+export function syncKrakenLevel(form) {
+  const field = form.querySelector('[data-kraken-level]');
+  if (field) field.hidden = !(Number(form.elements['d-kraken']?.value) > 0);
 }
 
 /** Lee el formulario, simula y pinta el resultado. */
@@ -104,7 +110,7 @@ export function runSimulation(form) {
     wallHp: Math.max(0, (Number(data['d-wall']) || 0) / 100 - siegeOf(attacker)),
     extraAtk: Number(data['d-towers']) || 0,
     navalHpMul: (Number(data['d-naval']) || 0) / 100,
-    boost: { kraken: krakenPower(Number(data['d-kraken']) || 1) },
+    boost: { kraken: krakenPower(Number(data['d-kraken-level']) || 1) },
   };
   // Contra una ciudad hace falta desembarcar para ganar
   const city = form.dataset.landing !== undefined ? form.dataset.landing === '1' : !Object.keys(defender).some((id) => UNITS[id].npc);

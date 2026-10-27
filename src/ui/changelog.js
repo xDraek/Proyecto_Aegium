@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-27h',
+    date: '2026-10-27',
+    title: 'El simulador ya no se inventa un Kraken',
+    items: [
+      '🎲 En el <b>simulador de combate</b> el defensor llevaba siempre un Kraken de más (el nivel del Kraken se contaba también como tropa), así que las batallas salían mucho más duras de lo que eran. Arreglado.',
+      '🐙 El campo «Nivel del Kraken» solo aparece cuando pones algún Kraken en el defensor.',
+    ],
+    en: {
+      title: 'The simulator no longer invents a Kraken',
+      items: [
+        '🎲 In the <b>combat simulator</b> the defender always had an extra Kraken (the Kraken’s level was also counted as a unit), so battles came out much harder than they really were. Fixed.',
+        '🐙 The “Kraken level” field only shows up when you add a Kraken to the defender.',
+      ],
+    },
+  },
+  {
     id: '2026-10-27g',
     date: '2026-10-27',
     title: 'Una cosa a la vez',
