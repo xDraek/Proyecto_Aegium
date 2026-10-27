@@ -2671,13 +2671,76 @@ input[type='text'] {
   white-space: nowrap;
 }
 
+/* Las capas del mapa: se pulsan para mostrar u ocultar */
+.wm-layers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 8px 0 4px;
+}
+
+.wm-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.wm-chip i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 5px;
+  border-radius: 50%;
+}
+
+.wm-chip.me {
+  cursor: default;
+}
+
+.wm-chip[aria-pressed='false'] {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
 .wm-legend {
+  margin: 4px 0 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.wm-legend summary {
+  cursor: pointer;
+  width: fit-content;
+}
+
+.wm-legend > div {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 14px;
-  margin: 8px 0;
-  font-size: 12px;
-  color: var(--muted);
+  margin-top: 6px;
+}
+
+.wm-legend i.line {
+  width: 16px;
+  height: 0;
+  border-radius: 0;
+  border-top: 2px dashed #fff;
+  vertical-align: 3px;
+}
+
+.wm-legend i.line.enemy {
+  border-top-color: #ff5a4a;
+}
+
+.wm-legend i.ring.novice {
+  border: 1.5px dotted rgba(255, 255, 255, 0.8);
 }
 
 .wm-legend i {
@@ -2718,6 +2781,31 @@ input[type='text'] {
 @media (max-width: 800px) {
   .wm-wrap {
     height: 52vh;
+  }
+
+  /* Con dos dedos ya se acerca y se aleja: sin los botones, las herramientas caben en dos filas */
+  .worldmap [data-wm='in'],
+  .worldmap [data-wm='out'] {
+    display: none;
+  }
+
+  .worldmap .wm-coords input {
+    flex-basis: 2.7em;
+  }
+
+  /* Las capas, en una sola fila que se desliza de lado */
+  .wm-layers {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .wm-layers::-webkit-scrollbar {
+    display: none;
+  }
+
+  .wm-chip {
+    flex: none;
   }
 }
 

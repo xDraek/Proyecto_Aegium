@@ -7,6 +7,26 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-27f',
+    date: '2026-10-27',
+    title: 'Un mapa del mundo más vivo',
+    items: [
+      '⛵ Tus <b>flotas en el mar</b> salen en el mapa del mundo con su ruta, y avanzan mientras lo miras. Las flotas enemigas que vienen hacia ti se ven en rojo. Pasa por encima de un barco (o púlsalo) para ver adónde va y cuánto le falta.',
+      '🏝️ Las islas tienen ahora su costa y sus bajíos, y de cerca se ve qué hay en cada una (🪓 bárbaros, ☠️ piratas, 🏺 ruinas, 🌴 deshabitada…). Las ciudades llevan el emblema de su estandarte.',
+      '👁️ Debajo del mapa puedes <b>ocultar capas</b>: islas, flotas, nombres o las ciudades de cada bando. Se recuerda para la próxima vez. La leyenda completa está plegada en «Leyenda».',
+      '🧭 Al buscar a alguien o ir a unas coordenadas, el mapa viaja hasta allí poco a poco, y una rosa de los vientos marca el norte.',
+    ],
+    en: {
+      title: 'A livelier world map',
+      items: [
+        '⛵ Your <b>fleets at sea</b> now show on the world map with their route, and they move while you watch. Enemy fleets heading for you are shown in red. Hover over a ship (or tap it) to see where it’s going and how long it has left.',
+        '🏝️ Islands now have their coastline and shallows, and up close you can see what’s on each one (🪓 barbarians, ☠️ pirates, 🏺 ruins, 🌴 uninhabited…). Cities carry the emblem from their banner.',
+        '👁️ Below the map you can <b>hide layers</b>: islands, fleets, names or the cities of each side. It’s remembered for next time. The full legend is folded under “Legend”.',
+        '🧭 When you search for someone or go to some coordinates, the map glides there, and a compass rose marks north.',
+      ],
+    },
+  },
+  {
     id: '2026-10-27e',
     date: '2026-10-27',
     title: 'El móvil, más limpio',
