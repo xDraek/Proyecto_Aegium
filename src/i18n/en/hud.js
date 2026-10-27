@@ -160,6 +160,7 @@ export default {
   "Solo para {0}": "Only for {0}",
   "Los convocados contra {0} en {1}": "Those summoned against {0} at {1}",
   "Ver informe ▶": "View report ▶",
+  "Ver ofertas ▶": "See offers ▶",
   "Borrar mensaje": "Delete message",
   "Comandos de moderador": "Moderator commands",
   "Se escriben en el chat": "Typed in the chat",

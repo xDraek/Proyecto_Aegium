@@ -24,6 +24,8 @@ const MAX_MAIL = 60;
 const MAX_MEMBERS = 20;
 const MAX_OFFERS = 5;
 const OFFER_DAYS = 3;
+/** Cada jugador anuncia en el chat como mucho una oferta del mercado cada tanto (para no llenarlo). */
+const OFFER_NOTICE_MS = 10 * 60 * 1000;
 const RANK_SIZE = 50; // filas de las clasificaciones por categoría
 const MAP_CACHE_MS = 30_000;
 const ISLAND_LAYOUT = 2; // versión del reparto de islas (ver #respaceSectors)
@@ -101,6 +103,7 @@ export class WorldServer {
     this.dirtyIslands = new Set();
     this.newIslands = [];
     this.pendingChat = [];
+    this.offerNoticeAt = new Map(); // jugador → cuándo anunció su última oferta en el chat
     this.rankingCache = null;
     this.sockets = new Map(); // id → Set de conexiones en vivo
     this.pendingPush = new Set(); // jugadores cuyo estado ha cambiado y hay que avisar
@@ -3705,6 +3708,18 @@ export class WorldServer {
     if (!game.takeResources(give)) throw new UserError('No tienes esos recursos.');
     const id = (this.meta.offerSeq = (this.meta.offerSeq ?? 0) + 1);
     this.meta.offers.push({ id, seller: userId, give, want, t: Date.now() });
+    this.#announceOffer(userId, id, give, want);
+  }
+
+  /** Aviso en el chat general de una oferta nueva, con un botón para ir al mercado (como mucho uno por jugador cada OFFER_NOTICE_MS). */
+  #announceOffer(userId, id, give, want) {
+    const now = Date.now();
+    if (now - (this.offerNoticeAt.get(userId) ?? 0) < OFFER_NOTICE_MS) return;
+    this.offerNoticeAt.set(userId, now);
+    // Solo los iconos de los recursos (sin el nombre): así el texto se traduce entero
+    const side = (bag) => Object.entries(bag).map(([r, n]) => `${fmtEs(n)} ${RESOURCES[r].emoji}`)[0];
+    const name = this.users.get(userId)?.username ?? '¿?';
+    this.#pushChat({ name: null, system: true, channel: 'global', offer: id, text: `⚖️ ${name} ofrece ${side(give)} por ${side(want)}` });
   }
 
   cancelOffer(userId, id) {

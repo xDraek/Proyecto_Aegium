@@ -307,6 +307,12 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
         }
         return;
       }
+      // Una oferta anunciada: al mercado, con la lista recién pedida
+      if (e.target.closest('[data-offer]')) {
+        this.onSelect('mercado');
+        this.social.refreshOffers(true).then(() => this.panel.querySelector('.offers, .offer-form')?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+        return;
+      }
       const name = e.target.closest('[data-profile]')?.dataset.profile;
       if (name) this.social.openProfile(name);
     });
@@ -1476,7 +1482,7 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
       .map((m) => {
         const time = new Date(m.t).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
         return m.system
-          ? `<div class="msg system"><span>${richText(m.text)}</span><time>${time}</time></div>`
+          ? `<div class="msg system"><span>${richText(m.text)}</span>${m.offer ? ` <button class="link small" data-offer="${m.offer}">Ver ofertas ▶</button>` : ''}<time>${time}</time></div>`
           : `<div class="msg${m.name === this.game.username ? ' mine' : ''}"><b data-profile="${escapeHtml(m.name)}" translate="no">${escapeHtml(m.name)}</b>${m.title ? `<em class="msg-title">${escapeHtml(m.title)}</em>` : ''} <span translate="no">${linkCoords(escapeHtml(m.text))}</span>${
               m.report ? `<button class="link small" data-shared="${m.id}">Ver informe ▶</button>` : ''
             }<time>${time}</time>${

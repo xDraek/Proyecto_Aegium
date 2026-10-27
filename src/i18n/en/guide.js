@@ -216,7 +216,7 @@ export default {
   "+10 % de vida y 10 de daño de sus torres por nivel": "+10 % health and 10 damage from its towers per level",
   "👁️ Torre de vigía (al defender)": "👁️ Watchtower (when defending)",
   "8 de daño de sus arqueros por nivel": "8 damage from its archers per level",
-  "🗼 Faro (al defender)": "🗼 Lighthouse (when defending)",
+  "🪔 Faro (al defender)": "🪔 Lighthouse (when defending)",
   "+4 % de vida de tus barcos por nivel": "+4 % health for your ships per level",
   "☄️ Catapultas (al atacar)": "☄️ Catapults (when attacking)",
   "Cada una resta un 6 % de vida a la muralla o fortificación enemiga (en ciudades e islas; las torres siguen disparando)": "Each one takes 6 % health off the enemy wall or fortification (in cities and islands; the towers keep firing)",

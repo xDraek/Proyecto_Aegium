@@ -8,6 +8,8 @@ export default {
   "Ese correo no parece válido.": "That email doesn't look valid.",
   "Ya hay una cuenta con ese correo. Si es tuya, entra o recupera la contraseña.": "There's already an account with that email. If it's yours, log in or recover the password.",
   "⚓ {0} funda la ciudad de {1}": "⚓ {0} founds the city of {1}",
+  "⚖️ {0} ofrece {1}": "⚖️ {0} offers {1}",
+  "por {0}": "for {0}",
   "Ya tienes una ciudad.": "You already have a city.",
   "Nombre o contraseña incorrectos.": "Wrong name or password.",
   "Esta cuenta está suspendida{0}": "This account is suspended{0}",

@@ -7,6 +7,34 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-27b',
+    date: '2026-10-27',
+    title: 'Las ofertas del mercado, en el chat',
+    items: [
+      '⚖️ Cuando alguien publica una oferta en el mercado del archipiélago, sale un aviso en el chat general con lo que da y lo que pide, y un botón <b>Ver ofertas</b> que te lleva directo al mercado.',
+      '💬 Para no llenar el chat, cada jugador anuncia como mucho una oferta cada 10 minutos (las demás se ven igual en el mercado).',
+    ],
+    en: {
+      title: 'Market offers, in the chat',
+      items: [
+        '⚖️ When someone posts an offer on the archipelago market, a notice appears in the general chat with what they give and what they ask for, and a <b>See offers</b> button that takes you straight to the market.',
+        '💬 To keep the chat tidy, each player announces at most one offer every 10 minutes (the rest still show up in the market).',
+      ],
+    },
+  },
+  {
+    id: '2026-10-27a',
+    date: '2026-10-27',
+    title: 'Nuevo icono del faro',
+    items: [
+      '🪔 El faro tenía de icono una torre moderna; ahora es una lámpara de aceite con su llama, como el fuego que ardía en lo alto del faro de Alejandría.',
+    ],
+    en: {
+      title: 'New lighthouse icon',
+      items: ['🪔 The lighthouse had a modern tower as its icon; now it’s an oil lamp with its flame, like the fire that burned atop the Lighthouse of Alexandria.'],
+    },
+  },
+  {
     id: '2026-10-26s',
     date: '2026-10-26',
     title: 'Novedades enteras en el móvil',

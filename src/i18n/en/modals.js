@@ -97,7 +97,7 @@ export default {
   "❤️ Bono de vida % (y coraza)": "❤️ Health bonus % (and armour)",
   "🏰 Muralla / fortificación % (en tierra; las catapultas la rebajan)": "🏰 Wall / fortification % (on land; catapults reduce it)",
   "🏹 Daño de las torres (en tierra)": "🏹 Tower damage (on land)",
-  "🗼 Faro: vida de sus barcos %": "🗼 Lighthouse: its ships' health %",
+  "🪔 Faro: vida de sus barcos %": "🪔 Lighthouse: its ships' health %",
   "Simular {12} combates": "Simulate {12} battles",
   "Simular {0} combates": "Simulate {0} battles",
   "Pon alguna tropa en el atacante.": "Put some troops in the attacker.",

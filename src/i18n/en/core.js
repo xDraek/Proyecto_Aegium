@@ -157,7 +157,7 @@ export default {
   "Nv {0}": "Lv {0}",
   "{0} Barcos en el puerto": "{0} Ships in port",
   "⚔️ Tropas de tierra": "⚔️ Land troops",
-  "👁️ Torre de vigía · 🗼 Faro": "👁️ Watchtower · 🗼 Lighthouse",
+  "👁️ Torre de vigía · 🪔 Faro": "👁️ Watchtower · 🪔 Lighthouse",
   "🔒 A salvo en el almacén": "🔒 Safe in the warehouse",
   "{0} de cada recurso": "{0} of each resource",
   "Defensas": "Defences",

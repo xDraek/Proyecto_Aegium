@@ -386,7 +386,7 @@ const TOPICS = {
           [`${RESEARCH.tactica.icon} ${RESEARCH.tactica.name} (investigación)`, '+3 % de ataque y de vida por nivel'],
           ['🏰 Muralla (al defender)', '+10 % de vida y 10 de daño de sus torres por nivel'],
           ['👁️ Torre de vigía (al defender)', '8 de daño de sus arqueros por nivel'],
-          ['🗼 Faro (al defender)', '+4 % de vida de tus barcos por nivel'],
+          ['🪔 Faro (al defender)', '+4 % de vida de tus barcos por nivel'],
           ['☄️ Catapultas (al atacar)', 'Cada una resta un 6 % de vida a la muralla o fortificación enemiga (en ciudades e islas; las torres siguen disparando)'],
           [`🎖️ ${see('almirante', 'Almirante')}, 🏺 ${see('reliquias', 'reliquias')} y ${see('continentes', 'maravillas')}`, 'Más ataque, vida, carga o velocidad'],
         ],

@@ -39,7 +39,7 @@ export function simulatorHtml(preset = {}) {
         <label><span>❤️ Bono de vida % (y coraza)</span><input type="number" name="d-hp" value="${Math.round(((preset.defHpMul ?? 1) - 1) * 100)}" /></label>
         <label><span>🏰 Muralla / fortificación % (en tierra; las catapultas la rebajan)</span><input type="number" name="d-wall" value="${Math.round((preset.wall ?? 0) * 100)}" /></label>
         <label><span>🏹 Daño de las torres (en tierra)</span><input type="number" name="d-towers" value="${preset.towers ?? 0}" /></label>
-        <label><span>🗼 Faro: vida de sus barcos %</span><input type="number" name="d-naval" value="${Math.round((preset.naval ?? 0) * 100)}" /></label>
+        <label><span>🪔 Faro: vida de sus barcos %</span><input type="number" name="d-naval" value="${Math.round((preset.naval ?? 0) * 100)}" /></label>
       </fieldset>
       ${preset.note ? `<p class="hint small">${preset.note}</p>` : ''}
       <button class="primary">Simular ${RUNS} combates</button>
