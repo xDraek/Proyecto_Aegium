@@ -61,14 +61,16 @@ test('el tributo se aparta y el saqueo lo manda a casa', async () => {
   const convoy = A.state.missions.find((x) => x.type === 'tributo');
   assert.ok(convoy, 'sale un convoy hacia la capital');
   assert.equal(A.fleetsAtSea(), A.state.missions.length - 1, 'el convoy no ocupa hueco de flota');
-  const oro = A.state.resources.oro;
   const sent = convoy.cargo.oro;
   assert.ok(sent > 0, 'el convoy lleva oro');
-  // Mientras viaja el convoy, el ejército sigue cobrando su paga (y la ciudad produciendo)
-  const perHour = economy(A.state, clock.now()).net.oro;
-  const hours = (convoy.back - clock.now()) / 3_600_000;
+  // Mientras viaja el convoy, el oro de casa sigue su curso (la paga del ejército, lo que produce la
+  // ciudad…, que cambian por el camino): se mira justo antes de que llegue y justo después
+  env.until(convoy.back - 60_000);
+  assert.ok(A.state.missions.includes(convoy), 'aún no ha llegado');
+  const oro = A.state.resources.oro;
+  const perMinute = Math.abs(economy(A.state, clock.now()).net.oro) / 60;
   env.until(convoy.back);
-  assert.ok(A.state.resources.oro >= oro + sent + perHour * hours - 1, 'el botín llega a casa');
+  assert.ok(A.state.resources.oro >= oro + sent - 2 * perMinute - 1, 'el botín llega a casa');
 });
 
 test('desde la ciudad ocupada se lanzan ataques que vuelven a ella', async () => {
