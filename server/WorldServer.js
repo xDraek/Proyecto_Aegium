@@ -507,6 +507,39 @@ export class WorldServer {
   }
 
   /** Moderación: una contraseña temporal para quien la ha perdido todo. */
+  /**
+   * Cambia el nombre de un jugador: el de su cuenta (con el que entra) y el de su imperio. Le llega
+   * una carta del moderador avisándole. Nunca se le puede dar el nombre de un moderador (los
+   * moderadores se reconocen por su nombre).
+   */
+  async renamePlayer(adminId, name, next) {
+    const id = this.#target(adminId, name);
+    const user = this.users.get(id);
+    next = String(next ?? '').trim();
+    if (!NAME_RE.test(next)) throw new UserError('El nombre debe tener entre 3 y 20 letras o números.');
+    if (next === user.username) throw new UserError('Ya se llama así.');
+    const other = this.byName.get(next.toLowerCase());
+    if ((other != null && other !== id) || (nameKey(next) !== nameKey(user.username) && this.#userTaken(next)) || this.admins.has(next.toLowerCase())) {
+      throw new UserError('Ese nombre ya está cogido.');
+    }
+    const old = user.username;
+    await this.store.updateUsername(id, next);
+    this.byName.delete(old.toLowerCase());
+    this.byName.set(next.toLowerCase(), id);
+    user.username = next;
+    const game = this.games.get(id);
+    if (game) {
+      game.state.name = next;
+      game.dirty = true;
+      this.#deliverMail(adminId, [id], next, '✏️ Tu nombre ha cambiado', `Un moderador ha cambiado tu nombre de ${old} a ${next}. A partir de ahora entras con ${next} (o con tu correo) y tu misma contraseña.`);
+    }
+    this.mapCache = null;
+    this.rankingCache = null;
+    this.ownerList = null;
+    this.pendingPush.add(id);
+    return { name: next };
+  }
+
   async adminResetPassword(adminId, name) {
     if (!this.isAdmin(adminId)) throw new UserError('Solo para moderadores.');
     const id = this.byName.get(String(name ?? '').trim().toLowerCase());

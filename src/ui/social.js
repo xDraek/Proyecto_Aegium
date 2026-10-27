@@ -357,6 +357,7 @@ export class Social {
                 <button class="ghost small" data-action="mod" data-op="mute" data-minutes="0" data-name="${escapeHtml(p.name)}">🔈 Quitar silencio</button>
                 <button class="ghost small" data-action="mod" data-op="${p.banned ? 'unban' : 'ban'}" data-name="${escapeHtml(p.name)}">${p.banned ? '✅ Readmitir' : '⛔ Suspender'}</button>
                 <button class="ghost small" data-action="mod" data-op="reset" data-name="${escapeHtml(p.name)}">🔑 Contraseña temporal</button>
+                <button class="ghost small" data-action="mod" data-op="rename" data-name="${escapeHtml(p.name)}">✏️ Cambiar nombre</button>
               </div></div>`
           : ''}
       </div>`,
@@ -773,6 +774,13 @@ export class Social {
         if (op === 'ban') {
           reason = (await askPrompt(`¿Por qué suspendes a ${name}?`, { title: 'Suspender la cuenta', icon: '🚫', ok: 'Suspender' })) ?? '';
           if (!reason) return true;
+        }
+        if (op === 'rename') {
+          const next = (await askPrompt(`Nuevo nombre para ${name} (entrará con él, o con su correo, y su misma contraseña):`, { title: 'Cambiar nombre', icon: '✏️', value: name, ok: 'Cambiar' }))?.trim();
+          if (!next || next === name) return true;
+          const res = await this.#call('POST', '/api/admin/rename', { name, next }, `✏️ ${name} ahora se llama ${next}`);
+          if (res) this.openProfile(res.name);
+          return true;
         }
         if (op === 'reset') {
           if (!(await askConfirm(`¿Dar a ${name} una contraseña temporal? La suya dejará de valer.`, { title: 'Contraseña temporal', icon: '🔑', ok: 'Darla', danger: true }))) return true;

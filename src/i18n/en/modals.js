@@ -174,6 +174,7 @@ export default {
   "Suspender la cuenta": "Suspend the account",
   "Suspender": "Suspend",
   "Contraseña temporal": "Temporary password",
+  "Cambiar nombre": "Change name",
   "Darla": "Give it",
   "Contraseña temporal de {0}: pásasela y que la cambie al entrar.": "{0}'s temporary password: give it to them and have them change it when they log in.",
   "Quitar amigo": "Remove friend",

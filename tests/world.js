@@ -18,6 +18,7 @@ class MemoryStore {
   async save() {}
   async updatePassword() {}
   async updateEmail() {}
+  async updateUsername() {}
 }
 
 const RICH = { madera: 50000, piedra: 50000, comida: 50000, hierro: 50000, cristal: 50000, oro: 50000 };

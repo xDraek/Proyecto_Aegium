@@ -65,6 +65,12 @@ export class FileStore {
     await this.#write();
   }
 
+  async updateUsername(id, username) {
+    const user = this.data.users.find((u) => u.id === id);
+    if (user) user.username = username;
+    await this.#write();
+  }
+
   async save({ meta, players, islands, islandStates, chat }) {
     if (meta) Object.assign(this.data.meta, meta);
     for (const { userId, state } of players ?? []) this.data.players[userId] = state;
@@ -167,6 +173,10 @@ export class PgStore {
 
   async updatePassword(id, pass) {
     await this.pool.query('update users set pass = $2 where id = $1', [id, pass]);
+  }
+
+  async updateUsername(id, username) {
+    await this.pool.query('update users set username = $2, username_lc = $3 where id = $1', [id, username, username.toLowerCase()]);
   }
 
   async save({ meta, players, islands, islandStates, chat }) {

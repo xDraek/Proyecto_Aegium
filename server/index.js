@@ -363,6 +363,7 @@ async function api(req, res, url) {
       else if (sub === 'delete-chat') world.deleteChat(uid, body.id);
       else if (sub === 'broadcast') world.broadcast(uid, body.text);
       else if (sub === 'reset') return send(res, 200, { password: await world.adminResetPassword(uid, body.name) });
+      else if (sub === 'rename') return send(res, 200, await world.renamePlayer(uid, body.name, body.next));
       else if (sub === 'founder') return send(res, 200, world.setFounderUntil(uid, Number(body.until)));
       else if (sub === 'maintenance') return send(res, 200, world.setMaintenance(uid, body.on === true, body.text));
       else if (sub === 'event') return send(res, 200, { text: world.adminEvent(uid, String(body.kind ?? ''), String(body.arg ?? '').slice(0, 100)) });
