@@ -74,19 +74,22 @@
         </div>
       </header>
       <!-- Abajo, el resto de opciones: así arriba solo quedan los recursos -->
+      <!-- En el móvil solo se ven los cinco primeros, con su nombre: los demás (.extra) salen al
+           pulsar «Más», en una cuadrícula encima de la barra -->
       <nav id="actionbar" aria-label="Menú del juego">
         <button id="view-btn" class="tab-btn" title="Cambiar entre tu isla y el archipiélago (M)">🗺️ <span>Mapa</span></button>
-        <button id="army-btn" class="icon-btn" title="Ejército">⚔️<span class="badge" hidden></span></button>
-        <button id="quests-btn" class="icon-btn" title="Misiones">📋<span class="badge" hidden></span></button>
-        <button id="chat-btn" class="icon-btn" title="Chat del archipiélago">💬<span class="badge" hidden></span></button>
-        <button id="mail-btn" class="icon-btn" title="Correo">✉️<span class="badge" hidden></span></button>
-        <button id="alliance-btn" class="icon-btn" title="Alianza">🤝<span class="badge" hidden></span></button>
-        <button id="friends-btn" class="icon-btn" title="Amigos">👥<span class="badge" hidden></span></button>
-        <button id="rank-btn" class="icon-btn" title="Clasificación">🏆</button>
-        <button id="map-btn" class="icon-btn" title="Mapa del mundo">🌍</button>
-        <button id="reports-btn" class="icon-btn" title="Informes">📜<span class="badge" hidden></span></button>
-        <button id="news-btn" class="icon-btn" title="Novedades">📰<span class="badge" hidden>!</span></button>
-        <button id="menu-btn" class="icon-btn" title="Opciones">⚙</button>
+        <button id="army-btn" class="icon-btn" title="Ejército">⚔️<span class="badge" hidden></span><span class="lbl">Ejército</span></button>
+        <button id="quests-btn" class="icon-btn" title="Misiones">📋<span class="badge" hidden></span><span class="lbl">Misiones</span></button>
+        <button id="chat-btn" class="icon-btn" title="Chat del archipiélago">💬<span class="badge" hidden></span><span class="lbl">Chat</span></button>
+        <button id="mail-btn" class="icon-btn extra" title="Correo">✉️<span class="badge" hidden></span><span class="lbl">Correo</span></button>
+        <button id="alliance-btn" class="icon-btn extra" title="Alianza">🤝<span class="badge" hidden></span><span class="lbl">Alianza</span></button>
+        <button id="friends-btn" class="icon-btn extra" title="Amigos">👥<span class="badge" hidden></span><span class="lbl">Amigos</span></button>
+        <button id="rank-btn" class="icon-btn extra" title="Clasificación">🏆<span class="lbl">Clasificación</span></button>
+        <button id="map-btn" class="icon-btn extra" title="Mapa del mundo">🌍<span class="lbl">Mundo</span></button>
+        <button id="reports-btn" class="icon-btn extra" title="Informes">📜<span class="badge" hidden></span><span class="lbl">Informes</span></button>
+        <button id="news-btn" class="icon-btn extra" title="Novedades">📰<span class="badge" hidden>!</span><span class="lbl">Novedades</span></button>
+        <button id="menu-btn" class="icon-btn extra" title="Opciones">⚙<span class="lbl">Opciones</span></button>
+        <button id="more-btn" class="icon-btn" title="Más" aria-expanded="false">☰<span class="lbl">Más</span></button>
       </nav>
       <div id="menu" class="menu" hidden><div class="scroll">
         <div class="menu-user"></div>

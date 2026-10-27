@@ -7,6 +7,24 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-27e',
+    date: '2026-10-27',
+    title: 'El móvil, más limpio',
+    items: [
+      '📱 La barra de abajo tiene ahora cinco botones grandes y con su nombre: <b>Mapa</b> (o Mi isla), <b>Ejército</b>, <b>Misiones</b>, <b>Chat</b> y <b>Más</b>. En «Más» están el correo, la alianza, los amigos, la clasificación, el mapa del mundo, los informes, las novedades y las opciones; si hay algo nuevo dentro, sale un punto rojo.',
+      '🏛️ Al abrir un edificio, una isla, el chat o las opciones, la lista de abajo se aparta y lo abierto ocupa todo el alto de la pantalla.',
+      '🧭 La cámara se mueve con los dedos (uno arrastra, dos acercan y giran), así que de sus botones solo queda el de centrar la vista.',
+    ],
+    en: {
+      title: 'A cleaner mobile view',
+      items: [
+        '📱 The bottom bar now has five big, labelled buttons: <b>Map</b> (or My island), <b>Army</b>, <b>Quests</b>, <b>Chat</b> and <b>More</b>. “More” holds mail, alliance, friends, rankings, the world map, reports, news and options; if there’s something new inside, a red dot shows up.',
+        '🏛️ When you open a building, an island, the chat or the options, the list at the bottom steps aside and what you opened takes the full height of the screen.',
+        '🧭 The camera moves with your fingers (one drags, two zoom and rotate), so only the recenter button is left.',
+      ],
+    },
+  },
+  {
     id: '2026-10-27d',
     date: '2026-10-27',
     title: 'El Kraken, más esquivo y más fuerte',

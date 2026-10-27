@@ -66,6 +66,7 @@ export default {
   "Mapa del mundo": "World map",
   "Informes": "Reports",
   "Novedades": "News",
+  "Mundo": "World",
   "Opciones": "Options",
   "Volumen de la música": "Music volume",
   "El mar, las gaviotas y la lluvia": "The sea, the gulls and the rain",

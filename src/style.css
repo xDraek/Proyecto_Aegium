@@ -6171,3 +6171,136 @@ kbd {
     animation: none;
   }
 }
+
+/* ── Móvil, más limpio: la barra de abajo con nombres y «Más» ────────────── */
+
+#actionbar .lbl,
+#more-btn {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  /* Cinco botones grandes con su nombre (isla o mapa, ejército, misiones, chat y «Más»); el resto
+     sale al pulsar «Más», en una cuadrícula de cuatro por fila encima de ellos */
+  #actionbar {
+    display: grid;
+    grid-template-columns: repeat(20, minmax(0, 1fr));
+    gap: 4px;
+    padding: 5px 6px;
+  }
+
+  #actionbar > button,
+  #actionbar .icon-btn,
+  #actionbar .tab-btn {
+    grid-column: span 4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    width: auto;
+    max-width: none;
+    height: 48px;
+    padding: 0 2px;
+    font-size: 19px;
+    line-height: 1;
+    background: transparent;
+    border-color: transparent;
+  }
+
+  #actionbar .lbl,
+  #actionbar .tab-btn span {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: #cbb88f;
+  }
+
+  #actionbar > button.active .lbl,
+  #actionbar > button.active span,
+  #more-btn[aria-expanded='true'] .lbl {
+    color: var(--gold);
+  }
+
+  #actionbar .badge {
+    top: 2px;
+    right: calc(50% - 22px);
+  }
+
+  #more-btn {
+    display: flex;
+  }
+
+  #actionbar > .extra {
+    display: none;
+    grid-column: span 5;
+    height: 56px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  #actionbar.more-open > .extra {
+    display: flex;
+  }
+
+  /* Desplegado, los cinco de siempre se quedan abajo, separados por una raya */
+  #actionbar.more-open > :not(.extra) {
+    grid-row: 3;
+  }
+
+  #actionbar.more-open {
+    row-gap: 6px;
+    background:
+      linear-gradient(to top, transparent 58px, rgba(201, 163, 94, 0.35) 58px, rgba(201, 163, 94, 0.35) 59px, transparent 59px),
+      radial-gradient(ellipse at 50% 0%, var(--navy-hi), var(--navy) 70%);
+  }
+
+  #more-btn[aria-expanded='true'],
+  #actionbar:not(.more-open):has(> .extra.active) > #more-btn {
+    border-color: var(--gold);
+    background: radial-gradient(circle at 50% 35%, rgba(242, 201, 76, 0.35), rgba(242, 201, 76, 0.12) 70%);
+  }
+
+  /* Algo nuevo en lo de dentro (correo, informes, novedades…): un punto rojo en «Más» */
+  #actionbar:not(.more-open):has(> .extra > .badge:not([hidden])) > #more-btn::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    right: calc(50% - 16px);
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--bad);
+    box-shadow: 0 0 0 2px var(--navy);
+  }
+
+  /* La cámara se mueve con los dedos (uno arrastra, dos acercan y giran): de sus botones solo
+     queda el de centrar la vista */
+  #cam-controls [data-cam]:not([data-cam='home']) {
+    display: none;
+  }
+
+  #cam-controls {
+    padding: 4px;
+    border-radius: 50%;
+  }
+
+  /* Con un edificio, una isla o el chat abiertos, la lista de abajo se quita y lo abierto llega
+     hasta la barra */
+  body:has(#panel:not([hidden])) #sidebar,
+  body:has(#chat:not([hidden])) #sidebar,
+  body:has(#menu:not([hidden])) #sidebar {
+    display: none;
+  }
+
+  #chat {
+    bottom: calc(var(--bottom) + 16px);
+    height: calc(100vh - var(--top) - var(--bottom) - 16px);
+    height: calc(100dvh - var(--top) - var(--bottom) - 16px);
+  }
+}

@@ -169,6 +169,17 @@ export class Hud {
       },
       true,
     );
+    // En el móvil, «Más» despliega encima de la barra los botones que no caben (.extra); se recoge
+    // al pulsar cualquiera de ellos o fuera de la barra
+    const moreBtn = $('#more-btn');
+    const setMore = (open) => {
+      this.actionbar.classList.toggle('more-open', open);
+      moreBtn.setAttribute('aria-expanded', String(open));
+    };
+    moreBtn.addEventListener('click', () => setMore(!this.actionbar.classList.contains('more-open')));
+    this.actionbar.addEventListener('click', (e) => e.target.closest('button:not(#more-btn)') && setMore(false), true);
+    document.addEventListener('pointerdown', (e) => !e.target.closest('#actionbar') && setMore(false));
+    addEventListener('keydown', (e) => e.key === 'Escape' && setMore(false));
     // Lo que se cierra por su cuenta (el menú al pulsar fuera, una ventana con su ✕…) apaga su botón
     new MutationObserver(() => this.#syncActive()).observe(this.menu, { attributes: true, attributeFilter: ['hidden'] });
     this.reportsBtn.addEventListener('click', () => this.openReports());
@@ -434,7 +445,10 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     }).observe(topbar);
     // …y lo de abajo (el cuadro de lo que está en marcha, la cámara, el menú) queda encima de la barra
     const actionbar = $('#actionbar');
-    const fitBottom = () => document.documentElement.style.setProperty('--bottom', `${Math.max(0, innerHeight - actionbar.getBoundingClientRect().top) + 10}px`);
+    // (con «Más» desplegado no: lo de encima se quedaría bailando)
+    const fitBottom = () =>
+      !actionbar.classList.contains('more-open') &&
+      document.documentElement.style.setProperty('--bottom', `${Math.max(0, innerHeight - actionbar.getBoundingClientRect().top) + 10}px`);
     new ResizeObserver(fitBottom).observe(actionbar);
     addEventListener('resize', fitBottom);
     // En el móvil la lista de la izquierda va abajo: lo demás se apila encima según lo que mida
