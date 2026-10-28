@@ -6,7 +6,7 @@ export default {
   "Ya has cobrado ese encargo.": "You've already collected that task.",
   "Todavía no lo has terminado.": "You haven't finished it yet.",
   "📜 Encargo cumplido: {0}": "📜 Task done: {0}",
-  "· ¡y los tres de hoy! {0}{1}": "· and all three today! {0}{1}",
+  "· ¡y todos los de hoy! {0}{1}": "· and all of today's! {0}{1}",
   "Tienes flotas en el mar o tropas de apoyo fuera: espera a que vuelvan.": "You have fleets at sea or support troops away: wait for them to come back.",
   "{0} ocupa tu ciudad: libérala antes.": "{0} occupies your city: free it first.",
   "{0} bloquea tu puerto: rompe antes el bloqueo.": "{0} is blockading your port: break the blockade first.",

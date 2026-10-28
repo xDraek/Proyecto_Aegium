@@ -6,7 +6,7 @@ import { Game, krakenText, newState, rebuilding } from '../src/game/Game.js';
 import { fmtEs } from '../src/game/num.js';
 import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
 import { playerCombat, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
-import { CAMP_LOOT, LAIR_GUARDS, coordsOf, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
+import { CAMP_LOOT, LAIR_GUARDS, coordsOf, fixPlaceName, freshPlaceName, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { hashPassword, newRecoveryCode, newSecret, normalizeCode, verifyPassword } from './auth.js';
 
@@ -157,6 +157,7 @@ export class WorldServer {
     for (const g of this.games.values()) {
       for (const [id, k] of Object.entries(g.state.known ?? {})) if (this.islands.get(id)?.type === 'kraken') renameGuards(k.intel?.garrison);
     }
+    this.#fixIslandNames();
     this.meta.mod ??= {};
     this.meta.chatDeleted ??= [];
     const deleted = new Set(this.meta.chatDeleted);
@@ -255,7 +256,7 @@ export class WorldServer {
     const now = clock.now();
     const home = homeIsland(sector, id, city);
     const c = sectorCenter(sector);
-    const neutrals = generateSector(sector, this.meta.seed, this.#landsNear(c.x, c.z, 520));
+    const neutrals = generateSector(sector, this.meta.seed, this.#landsNear(c.x, c.z, 520), this.#takenNames());
     for (const isl of [home, ...neutrals]) this.#addIsland(isl, now);
     this.#addContinents(sector, now);
     const game = this.#makeGame(id, newState({ now, home: home.id, name: username }));
@@ -353,13 +354,54 @@ export class WorldServer {
     this.#islandsChanged();
   }
 
+  /** Los nombres que ya llevan las islas (para no repetirlos; el Mar de las Brumas es uno solo). */
+  #takenNames() {
+    const taken = new Set();
+    for (const isl of this.islands.values()) if (isl.type !== 'brumas') taken.add(isl.name);
+    return taken;
+  }
+
+  /**
+   * Los nombres de antes: con el adjetivo sin concordar («Islote Negra») o repetidos en otro sector
+   * (todas las fosas eran «Fosa del Kraken»). Se corrigen, se queda con el suyo la isla más antigua y
+   * a las demás se les busca otro; las colonias de los jugadores se llaman como su isla.
+   */
+  #fixIslandNames() {
+    const taken = new Set();
+    const renamed = new Map();
+    const order = [...this.islands.values()].filter((i) => i.type !== 'brumas');
+    const age = (i) => (i.type === 'jugador' ? -1 : (i.sector ?? Infinity));
+    order.sort((a, b) => age(a) - age(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    for (const isl of order) {
+      if (isl.type === 'jugador') {
+        taken.add(isl.name);
+        continue;
+      }
+      let name = fixPlaceName(isl.name);
+      if (taken.has(name)) name = freshPlaceName(isl, taken);
+      else taken.add(name);
+      if (name === isl.name) continue;
+      isl.name = name;
+      renamed.set(isl.id, name);
+      this.newIslands.push(isl);
+    }
+    if (!renamed.size) return;
+    for (const g of this.games.values()) {
+      for (const c of g.state.colonies ?? []) {
+        if (!renamed.has(c.id)) continue;
+        c.name = renamed.get(c.id);
+        g.dirty = true;
+      }
+    }
+  }
+
   /** Continentes en los vértices de un sector (cada vértice se decide una sola vez). */
   #addContinents(sector, now) {
     this.meta.vertices ??= {};
     for (const v of sectorVertices(sector)) {
       if (this.meta.vertices[v.key]) continue;
       this.meta.vertices[v.key] = 1;
-      const made = generateContinent(v, this.meta.seed, this.#landsNear(v.x, v.z, 160));
+      const made = generateContinent(v, this.meta.seed, this.#landsNear(v.x, v.z, 160), this.#takenNames());
       if (made) for (const isl of made) this.#addIsland(isl, now);
     }
   }

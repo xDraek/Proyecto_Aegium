@@ -1,4 +1,4 @@
-import { CONTEST_CATEGORIES, DAILY_TASK_BONUS, FAVOR_ICON, FEAT_THEMES, QUESTS } from '../game/data.js';
+import { CONTEST_CATEGORIES, FAVOR_ICON, FEAT_THEMES, QUESTS } from '../game/data.js';
 import { bag, escapeHtml, fmtNum, resIcons } from './format.js';
 
 // Ventanas de misiones y de clasificación.
@@ -37,7 +37,7 @@ export function questsHtml(game) {
   </div>`;
 }
 
-/** Los encargos de hoy: tres tareas que cambian cada día. */
+/** Los encargos de hoy: hasta tres tareas que cambian cada día (una ciudad que empieza tiene menos). */
 function tasksHtml(game) {
   const tasks = game.dailyTasks();
   if (!tasks.length) return '';
@@ -58,7 +58,7 @@ function tasksHtml(game) {
     .join('');
   return `<h4>📜 Encargos de hoy <span class="muted small">· cambian en ${left} h</span></h4>
     <div class="quests">${rows}</div>
-    <p class="muted small">${all ? '¡Has cumplido los tres de hoy! Mañana habrá más.' : `Cumple los tres y te llevas además ${rewardHtml(DAILY_TASK_BONUS)}.`}</p>`;
+    <p class="muted small">${all ? '¡Has cumplido todos los de hoy! Mañana habrá más.' : `Cúmplelos todos y te llevas además ${rewardHtml(game.taskBonus())}.`}</p>`;
 }
 
 const medal = (n) => (n === 1 ? '🥇' : n === 2 ? '🥈' : n === 3 ? '🥉' : n);
@@ -150,7 +150,7 @@ export function rankingHtml({ top, military = [], raiders = [], me, total, allia
     table = featsHtml(feats);
   } else if (tab === 'alliances') {
     const rows = alliances
-      .map((a) => `<tr><td>${medal(a.rank)}</td><td>${escapeHtml(a.name)} <span class="tag">[${escapeHtml(a.tag)}]</span><div class="muted small">${a.members} miembros</div></td><td>${fmtNum(a.points)}</td></tr>`)
+      .map((a) => `<tr><td>${medal(a.rank)}</td><td>${escapeHtml(a.name)} <span class="tag">[${escapeHtml(a.tag)}]</span><div class="muted small">${a.members} ${a.members === 1 ? 'miembro' : 'miembros'}</div></td><td>${fmtNum(a.points)}</td></tr>`)
       .join('');
     table = rows
       ? `<table class="ranking"><thead><tr><th>#</th><th>Alianza</th><th>Puntos</th></tr></thead><tbody>${rows}</tbody></table>`

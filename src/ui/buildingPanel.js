@@ -198,7 +198,7 @@ function unitCard(game, id) {
     <div class="train-row">
       <input type="number" name="${input}" min="1" value="1" inputmode="numeric" aria-label="Cantidad de ${u.name}" />
       <button class="ghost small" data-action="max" data-unit="${id}">Máx</button>
-      <button class="primary small" data-action="train" data-unit="${id}" data-need='${JSON.stringify(u.cost)}' data-count="${input}" data-blocked="${works ? 1 : 0}">${works ? 'En obras' : 'Reclutar'}</button>
+      <button class="primary small" data-action="train" data-unit="${id}" data-need='${JSON.stringify(u.cost)}' data-count="${input}" data-blocked="${works ? 1 : 0}">${works ? 'En obras' : u.kind === 'barco' ? 'Botar' : 'Reclutar'}</button>
     </div>
   </div>`;
 }
@@ -211,14 +211,14 @@ function trainingQueue(game, building) {
       const u = UNITS[b.unit];
       const head = i === 0;
       return `<li>
-        <span>${u.icon} ${head ? `${b.done}/${b.count}` : b.count} ${u.name}</span>
+        <span>${u.icon} ${u.name} × ${head ? `${b.done}/${b.count}` : b.count}</span>
         <span class="progress"><i data-bar data-start="${b.start}" data-end="${b.end}"></i></span>
         <span class="q-time" data-until="${b.end}"></span>
         <button class="icon-btn tiny" data-action="cancel-train" data-building="${building}" data-index="${i}" title="Cancelar y recuperar recursos">✕</button>
       </li>`;
     })
     .join('');
-  return `<h4>En entrenamiento</h4><ul class="train-queue">${rows}</ul>`;
+  return `<h4>${building === 'puerto' ? 'Botándose' : 'En entrenamiento'}</h4><ul class="train-queue">${rows}</ul>`;
 }
 
 function recruitSection(game, building) {

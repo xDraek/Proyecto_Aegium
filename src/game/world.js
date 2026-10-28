@@ -88,13 +88,20 @@ const KRAKEN = {
   loot: { max: 60000, rate: 1200, mix: { hierro: 0.2, cristal: 0.3, oro: 0.5 } },
 };
 
-const NAME_HEADS = ['Isla', 'Cayo', 'Roca', 'Islote', 'Peñón', 'Atolón', 'Arrecife', 'Bahía', 'Monte', 'Punta', 'Cabo', 'Escollo'];
+const NAME_HEADS = ['Isla', 'Cayo', 'Roca', 'Islote', 'Peñón', 'Atolón', 'Arrecife', 'Bahía', 'Monte', 'Punta', 'Cabo', 'Escollo', 'Isleta', 'Farallón', 'Morro', 'Cala'];
 const NAME_TAILS = [
   'de las Gaviotas', 'del Cuervo', 'Esmeralda', 'Brumosa', 'del Ancla', 'Salitre', 'Ceniza', 'Rojo', 'Dorada', 'Tormenta',
   'del Tritón', 'Calavera', 'Herrumbre', 'del Faro', 'de Coral', 'Serena', 'del Viento', 'de Ámbar', 'Negra', 'de los Delfines',
   'del Lobo Marino', 'de la Sirena', 'Perdida', 'del Ocaso', 'de Sal', 'del Albatros', 'Callada', 'de Plata', 'del Náufrago', 'Verde',
+  'de la Medusa', 'del Pulpo', 'de las Ostras', 'del Cangrejo', 'de Poniente', 'de Levante', 'Escondida', 'Blanca', 'Alta', 'Solitaria',
+  'de la Luna', 'del Sol', 'de las Ánforas', 'del Tridente', 'de los Corales',
 ];
-const SPECIAL_NAMES = { brumas: 'Mar de las Brumas', kraken: 'Fosa del Kraken' };
+// Las fosas del Kraken, cada una con su nombre (la primera, como las de antes)
+const LAIR_NAMES = [
+  'Fosa del Kraken', 'Fosa de Caribdis', 'Fosa de Escila', 'Fosa de Ceto', 'Fosa de Forcis', 'Fosa de Proteo', 'Fosa de Nereo', 'Fosa de Glauco',
+  'Fosa de Tetis', 'Fosa de Ponto', 'Fosa del Leviatán', 'Fosa de Anfitrite', 'Fosa de Océano', 'Fosa de Tritón', 'Fosa de Euribia', 'Fosa de Taumante',
+];
+const MIST_NAME = 'Mar de las Brumas';
 
 export function rng(seed) {
   return () => {
@@ -146,7 +153,7 @@ export function footprint(isl) {
  * Islas neutrales de un sector (descriptores estáticos con posición absoluta).
  * `obstacles`: tierras que ya existen cerca ({x, z, r}), como los continentes.
  */
-export function generateSector(index, worldSeed = 1, obstacles = []) {
+export function generateSector(index, worldSeed = 1, obstacles = [], taken = new Set()) {
   const rand = rng(worldSeed * 7919 + index * 104729);
   const center = sectorCenter(index);
   const entries = TEMPLATE.map((t) => ({ ...t }));
@@ -171,18 +178,8 @@ export function generateSector(index, worldSeed = 1, obstacles = []) {
     return best;
   });
 
-  const used = new Set();
-  const name = (type) => {
-    if (SPECIAL_NAMES[type]) return SPECIAL_NAMES[type];
-    for (let tries = 0; tries < 50; tries++) {
-      const candidate = `${NAME_HEADS[Math.floor(rand() * NAME_HEADS.length)]} ${NAME_TAILS[Math.floor(rand() * NAME_TAILS.length)]}`;
-      if (!used.has(candidate)) {
-        used.add(candidate);
-        return candidate;
-      }
-    }
-    return `Isla ${index}-${used.size}`;
-  };
+  // (el Mar de las Brumas es el mismo en todos los sectores; lo demás, sin repetir en todo el archipiélago)
+  const name = (type) => (type === 'brumas' ? MIST_NAME : freshPlaceName({ type }, taken, rand));
 
   return entries.map((t, i) => {
     const { specialties, ...rest } = t;
@@ -212,6 +209,85 @@ const CITY_HEADS = ['Bastión', 'Fortaleza', 'Burgo', 'Empalizada', 'Ciudadela',
 const CITY_TAILS = ['del Jabalí', 'de Hueso', 'Roja', 'del Lobo', 'Negra', 'de los Cuervos', 'del Oso', 'de las Lanzas'];
 const SITE_HEADS = ['Vega', 'Valle', 'Ribera', 'Llano', 'Prado', 'Cañada'];
 
+// ── Nombres ──────────────────────────────────────────────────────────────────
+// Un sustantivo y una coletilla: si la coletilla es un adjetivo, concuerda con el sustantivo
+// («Cayo Rojo», «Isla Roja», «Tierras Doradas»). Ningún nombre se repite en el archipiélago.
+
+/** Género y número de cada sustantivo de los nombres. */
+const NOUNS = {
+  Isla: 'fs', Cayo: 'ms', Roca: 'fs', Islote: 'ms', Peñón: 'ms', Atolón: 'ms', Arrecife: 'ms', Bahía: 'fs', Monte: 'ms', Punta: 'fs', Cabo: 'ms',
+  Escollo: 'ms', Isleta: 'fs', Farallón: 'ms', Morro: 'ms', Cala: 'fs',
+  Tierras: 'fp', Costa: 'fs', Reino: 'ms', Llanuras: 'fp', Marca: 'fs', Montes: 'mp',
+  Bastión: 'ms', Fortaleza: 'fs', Burgo: 'ms', Empalizada: 'fs', Ciudadela: 'fs', Torreón: 'ms',
+  Vega: 'fs', Valle: 'ms', Ribera: 'fs', Llano: 'ms', Prado: 'ms', Cañada: 'fs',
+};
+/** Los adjetivos de los nombres, en sus cuatro formas: masculino, femenino y sus plurales. */
+const ADJECTIVES = [
+  ['Brumoso', 'Brumosa', 'Brumosos', 'Brumosas'],
+  ['Rojo', 'Roja', 'Rojos', 'Rojas'],
+  ['Dorado', 'Dorada', 'Dorados', 'Doradas'],
+  ['Sereno', 'Serena', 'Serenos', 'Serenas'],
+  ['Negro', 'Negra', 'Negros', 'Negras'],
+  ['Perdido', 'Perdida', 'Perdidos', 'Perdidas'],
+  ['Callado', 'Callada', 'Callados', 'Calladas'],
+  ['Olvidado', 'Olvidada', 'Olvidados', 'Olvidadas'],
+  ['Escondido', 'Escondida', 'Escondidos', 'Escondidas'],
+  ['Blanco', 'Blanca', 'Blancos', 'Blancas'],
+  ['Alto', 'Alta', 'Altos', 'Altas'],
+  ['Solitario', 'Solitaria', 'Solitarios', 'Solitarias'],
+  ['Verde', 'Verde', 'Verdes', 'Verdes'],
+  ['Salvaje', 'Salvaje', 'Salvajes', 'Salvajes'],
+];
+const FORM = { ms: 0, fs: 1, mp: 2, fp: 3 };
+const NUMERALS = ['II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+
+/** «Isla» y «Rojo» → «Isla Roja»: la coletilla, si es un adjetivo, concuerda con el sustantivo. */
+export function placeName(head, tail) {
+  const adj = ADJECTIVES.find((forms) => forms.includes(tail));
+  return `${head} ${adj && NOUNS[head] ? adj[FORM[NOUNS[head]]] : tail}`;
+}
+
+/** Corrige la concordancia de un nombre ya puesto («Islote Negra» → «Islote Negro»). */
+export function fixPlaceName(name) {
+  const parts = String(name).split(' ');
+  if (parts.length !== 2 || !NOUNS[parts[0]]) return name;
+  return placeName(parts[0], parts[1]);
+}
+
+/**
+ * Un nombre que no esté en `taken` (y lo apunta en él): `make()` propone uno al azar; si tras muchos
+ * intentos todos están cogidos, se le pone un numeral («Isla Roja II»).
+ */
+function uniqueName(make, taken) {
+  let name = make();
+  for (let tries = 0; tries < 60 && taken.has(name); tries++) name = make();
+  const base = name;
+  for (let k = 0; taken.has(name); k++) name = `${base} ${NUMERALS[k] ?? k + 2}`;
+  taken.add(name);
+  return name;
+}
+
+/** Las listas de las que sale el nombre de cada clase de isla. */
+function namesFor(isl) {
+  if (isl.type === 'continente') return [LAND_HEADS, LAND_TAILS];
+  if (isl.land) return isl.type === 'ciudadela' ? [CITY_HEADS, CITY_TAILS] : [SITE_HEADS, LAND_TAILS];
+  return [NAME_HEADS, NAME_TAILS];
+}
+
+/** Un nombre para una isla, de los de su clase y que no esté en `taken` (y lo apunta en él). */
+export function freshPlaceName(isl, taken, rand = Math.random) {
+  if (isl.type === 'kraken') {
+    const free = LAIR_NAMES.find((n) => !taken.has(n));
+    if (free) {
+      taken.add(free);
+      return free;
+    }
+  }
+  const [heads, tails] = isl.type === 'kraken' ? [['Fosa'], ['del Kraken']] : namesFor(isl);
+  const pick = (list) => list[Math.floor(rand() * list.length)];
+  return uniqueName(() => placeName(pick(heads), pick(tails)), taken);
+}
+
 const CITADELS = [
   { type: 'ciudadela', tier: 4, garrison: { barbaro: 60, arquero: 25 }, wall: 0.25, regenHours: 8, loot: { max: 11000, rate: 600, mix: { madera: 0.25, piedra: 0.2, hierro: 0.3, oro: 0.25 } } },
   { type: 'ciudadela', tier: 5, garrison: { barbaro: 110, arquero: 45 }, wall: 0.35, regenHours: 10, loot: { max: 18000, rate: 900, mix: { piedra: 0.2, hierro: 0.3, cristal: 0.2, oro: 0.3 } } },
@@ -233,7 +309,7 @@ export function sectorVertices(index) {
  * Un pequeño continente en el vértice `v` (o null si no toca o no cabe), con
  * sus asentamientos: ciudades bárbaras y tierras libres. `obstacles`: tierras de alrededor.
  */
-export function generateContinent(v, worldSeed = 1, obstacles = []) {
+export function generateContinent(v, worldSeed = 1, obstacles = [], taken = new Set()) {
   let h = 2166136261;
   for (const ch of v.key) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
   const rand = rng(worldSeed * 31 + (h >>> 0));
@@ -257,15 +333,15 @@ export function generateContinent(v, worldSeed = 1, obstacles = []) {
     const base = { id: `${id}-${i}`, land: id, x, z, size: 4.2 };
     if (type === 'libre') {
       const specialty = pick(['madera', 'piedra', 'hierro', 'cristal', 'comida']);
-      return { ...base, type, name: `${pick(SITE_HEADS)} ${pick(LAND_TAILS)}`, specialty, yield: Math.round(SPECIALTY_YIELD[specialty] * 1.3) };
+      return { ...base, type, name: freshPlaceName({ type, land: id }, taken, rand), specialty, yield: Math.round(SPECIALTY_YIELD[specialty] * 1.3) };
     }
     const t = CITADELS[i === 0 || rand() < 0.6 ? 0 : 1];
-    return { ...base, ...t, garrison: { ...t.garrison }, loot: { ...t.loot, mix: { ...t.loot.mix } }, name: `${pick(CITY_HEADS)} ${pick(CITY_TAILS)}` };
+    return { ...base, ...t, garrison: { ...t.garrison }, loot: { ...t.loot, mix: { ...t.loot.mix } }, name: freshPlaceName({ type: 'ciudadela', land: id }, taken, rand) };
   });
   const land = {
     id,
     type: 'continente',
-    name: `${pick(LAND_HEADS)} ${pick(LAND_TAILS)}`,
+    name: freshPlaceName({ type: 'continente' }, taken, rand),
     x: v.x,
     z: v.z,
     size: Math.round((R / 2.4) * 10) / 10,

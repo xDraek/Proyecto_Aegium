@@ -523,7 +523,13 @@ export class Game extends EventTarget {
     });
   }
 
-  /** Recompensa de un encargo (y la de los tres, si es el último). */
+  /** Lo que se gana además al cumplir todos los encargos del día (el favor, solo con templo). */
+  taskBonus() {
+    const { favor, ...rest } = DAILY_TASK_BONUS;
+    return favorMax(this.state) > 0 ? { ...rest, favor } : rest;
+  }
+
+  /** Recompensa de un encargo. */
   taskReward() {
     const k = 1 + 0.3 * (Math.max(1, this.state.tasks?.town ?? 1) - 1);
     const out = {};
@@ -542,10 +548,10 @@ export class Game extends EventTarget {
     this.state.tasks.claimed.push(id);
     let text = `📜 Encargo cumplido: ${fmtBag(reward)}`;
     if (this.state.tasks.claimed.length === this.state.tasks.picks.length) {
-      const { favor, ...rest } = DAILY_TASK_BONUS;
+      const { favor = 0, ...rest } = this.taskBonus();
       this.#gain(rest);
-      const got = this.#addFavor(favor);
-      text += ` · ¡y los tres de hoy! ${fmtBag(rest)}${got ? ` · 🙏 ${got}` : ''}`;
+      const got = favor ? this.#addFavor(favor) : 0;
+      text += ` · ¡y todos los de hoy! ${fmtBag(rest)}${got ? ` · 🙏 ${got}` : ''}`;
     }
     this.#note(text, 'success');
     return this.#done();

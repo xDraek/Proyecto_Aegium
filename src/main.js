@@ -140,7 +140,7 @@ function startLanding(message, opts = {}) {
 
 function startGame(game) {
   document.body.classList.remove('landing-mode');
-  document.getElementById('landing').hidden = true;
+  document.getElementById('landing').remove();
 
   const isIsland = (id) => !!game.world.island(id);
 
@@ -276,7 +276,9 @@ function startGame(game) {
   window.addEventListener('keydown', (e) => {
     // Escape también cierra la ventana aunque estés escribiendo en ella (el buscador de la guía…)
     if (e.key === 'Escape' && e.target.closest?.('#modal')) return hud.closeModal();
-    if (e.target.matches?.('input, select, textarea')) return;
+    // …y el panel de la izquierda también (las cantidades de la flota…): sale del campo y lo cierra
+    if (e.key === 'Escape' && e.target.matches?.('input, select, textarea')) e.target.blur();
+    else if (e.target.matches?.('input, select, textarea')) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const shortcut = SHORTCUTS[Number(e.key) - 1];
     if (shortcut) document.getElementById(shortcut)?.click();

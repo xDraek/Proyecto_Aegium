@@ -6,7 +6,7 @@ import { featAt, featCycle } from '../game/feats.js';
 import { api } from '../net/api.js';
 import { armyHtml, armySummary, featWait } from './army.js';
 import { buildingPanel } from './buildingPanel.js';
-import { bag, costItems, escapeHtml, fmtNum, fmtShort, fmtTiny, fmtTime, linkCoords, resIcons, richText, unitList } from './format.js';
+import { bag, costItems, escapeHtml, fmtNum, fmtRate, fmtShort, fmtTiny, fmtTime, linkCoords, resIcons, richText, unitList } from './format.js';
 import { installResPickers, syncResPickers } from './resPicker.js';
 import { askChoice, askConfirm, askPrompt } from './dialog.js';
 import { unitIcon } from '../scene/portraits.js';
@@ -715,7 +715,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       // En el móvil, cifras cortas para que quepan los seis recursos
       const narrow = NARROW.matches;
       els.amount.textContent = narrow ? fmtShort(amount) : fmtNum(amount);
-      let rateText = narrow ? `${rate < 0 ? '−' : '+'}${fmtTiny(Math.abs(rate))}` : `${rate < 0 ? '−' : '+'}${fmtNum(Math.abs(rate))}/h`;
+      let rateText = narrow ? `${rate < 0 ? '−' : '+'}${Math.abs(rate) < 10 ? fmtRate(rate) : fmtTiny(Math.abs(rate))}` : `${rate < 0 ? '−' : '+'}${fmtRate(rate)}/h`;
       if (paused) rateText = '⏸️ vacaciones';
       else if (key === 'comida' && starving) rateText = '¡Hambruna!';
       else if (full && rate > 0) rateText = 'Lleno';
@@ -733,7 +733,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       else if (eco.closed && game.colonies().some((c) => c.specialty === key)) lines.push('Colonias: nada (tu puerto está en manos enemigas)');
       if (eco.tribute?.[key]) lines.push(`Tributo para los invasores: −${fmtNum(eco.tribute[key])}/h`);
       if (key === 'oro' && eco.taxes) lines.push(`Impuestos de los trabajadores libres: +${fmtNum(eco.taxes)}/h`);
-      if (key === 'oro' && eco.pay) lines.push(`Paga de las tropas y los barcos: −${fmtNum(eco.pay)}/h`);
+      if (key === 'oro' && eco.pay) lines.push(`Paga de las tropas y los barcos: −${fmtRate(eco.pay)}/h`);
       if (eco.eventBonus?.[key]) lines.push(`Evento del archipiélago: +${Math.round(eco.eventBonus[key] * 100)} %`);
       if (key === 'comida' && eco.upkeep) lines.push(`Tropas: −${fmtNum(eco.upkeep)}/h`);
       if (starving) lines.push('Hambruna: la producción cae a la mitad');
@@ -1045,7 +1045,8 @@ Los colonos se marchan, dejas de recibir su producción y la isla queda libre pa
       }
       case 'train': {
         const id = btn.dataset.unit;
-        const n = this.#countOf(root, `n-${id}`);
+        // (lo escrito tal cual: con 0, o sin nada, no se recluta; el coste sí se enseña de 1)
+        const n = Math.floor(Number(root.querySelector(`[name="n-${id}"]`)?.value) || 0);
         await this.#run(btn, () => game.train(id, n), `${UNITS[id].emoji} ${n} × ${UNITS[id].name} en camino`);
         break;
       }

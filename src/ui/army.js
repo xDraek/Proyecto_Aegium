@@ -118,7 +118,7 @@ export function armyHtml(game) {
     const tq = game.training(building);
     if (!tq.length) continue;
     const left = tq.reduce((a, b) => a + b.count - (b.done ?? 0), 0);
-    extras.push(`<div class="info-row" data-select="${building}"><span>🔨 Entrenando en el ${building}: ${fmtNum(left)} ${UNITS[tq[0].unit].name.toLowerCase()}${tq.length > 1 ? ' y más' : ''}</span><b><span data-until="${tq.at(-1).end}"></span></b></div>`);
+    extras.push(`<div class="info-row" data-select="${building}"><span>🔨 ${building === 'puerto' ? 'Botando en el puerto' : 'Entrenando en el cuartel'}: ${UNITS[tq[0].unit].name} × ${fmtNum(left)}${tq.length > 1 ? ' y más' : ''}</span><b><span data-until="${tq.at(-1).end}"></span></b></div>`);
   }
 
   return `<div class="modal-card wide army-modal">

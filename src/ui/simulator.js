@@ -90,7 +90,14 @@ export function runSimulation(form) {
   };
   const attacker = pick('a', ATTACKERS);
   const defender = pick('d', DEFENDERS);
-  const out = form.closest('.modal-card').querySelector('[data-sim-result]');
+  const box = form.closest('.modal-card').querySelector('[data-sim-result]');
+  // (debajo del botón: se lleva a la vista, que en pantallas bajas quedaba tapado)
+  const out = {
+    set innerHTML(html) {
+      box.innerHTML = html;
+      box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    },
+  };
   if (!Object.keys(attacker).length) {
     out.innerHTML = '<p class="hint warn">Pon alguna tropa en el atacante.</p>';
     return;

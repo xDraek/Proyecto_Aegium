@@ -29,6 +29,13 @@ export function fmtDec(n) {
   return nf1.format(n);
 }
 
+/** Lo que se gana o gasta por hora: con un decimal si es poco, y nunca «0» si algo hay (0,04 → 0,1). */
+export function fmtRate(n) {
+  const a = Math.abs(n);
+  if (!a || a >= 10) return fmtNum(a);
+  return nf1.format(Math.max(0.1, Math.ceil(a * 10) / 10));
+}
+
 export function fmtTime(seconds) {
   if (!Number.isFinite(seconds)) return '∞';
   const s = Math.max(0, Math.ceil(seconds));

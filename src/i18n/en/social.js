@@ -13,6 +13,8 @@ export default {
   "Guardar descripción": "Save description",
   "Mensaje para los miembros…": "Message for the members…",
   "{0} miembros · {1} puntos": "{0} members · {1} points",
+  "{0} miembro · {1} puntos": "{0} member · {1} points",
+  "Escribe el nombre de la alianza y su etiqueta.": "Write the alliance's name and its tag.",
   "📜 Circular": "📜 Circular",
   "Alianza abierta: entra quien quiera, sin solicitud": "Open alliance: anyone can join, no application",
   "Miembro": "Member",

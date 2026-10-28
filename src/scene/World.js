@@ -1364,7 +1364,7 @@ export class World {
     petal.translate(0, 0.24, 0);
     const stem = new THREE.CylinderGeometry(0.008, 0.008, 0.24, 3);
     stem.translate(0, 0.12, 0);
-    const flowerGeo = mergeGeometries([petal.toNonIndexed(), stem.toNonIndexed()]);
+    const flowerGeo = mergeGeometries([petal, stem.toNonIndexed()]);
     const blooms = spots.filter(() => rand() < 0.12);
     const field = new THREE.InstancedMesh(flowerGeo, sway(new THREE.MeshStandardMaterial({ roughness: 0.8, flatShading: true }), 'aegium-flowers', '0.3'), blooms.length);
     blooms.forEach((p, i) => {

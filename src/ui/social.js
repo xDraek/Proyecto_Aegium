@@ -85,7 +85,7 @@ export class Social {
         ? `<p class="desc" translate="no">${escapeHtml(a.description)}</p>`
         : '';
     return `<div class="modal-card">
-      ${head('🤝', `${escapeHtml(a.name)} <span class="tag">[${escapeHtml(a.tag)}]</span>`, `${a.members.length} miembros · ${fmtNum(a.points)} puntos`, 'alianzas')}
+      ${head('🤝', `${escapeHtml(a.name)} <span class="tag">[${escapeHtml(a.tag)}]</span>`, `${a.members.length} ${a.members.length === 1 ? 'miembro' : 'miembros'} · ${fmtNum(a.points)} puntos`, 'alianzas')}
       <div class="tabs small-tabs">
         <button data-action="ally-tab" data-tab="members" class="${this.allianceTab === 'members' ? 'active' : ''}">👥 Miembros</button>
         <button data-action="ally-tab" data-tab="forum" class="${this.allianceTab === 'forum' ? 'active' : ''}">🗂️ Foro${this.game.forumUnread ? ` (${this.game.forumUnread})` : ''}</button>
@@ -231,8 +231,8 @@ export class Social {
       <p class="muted small">En las alianzas con solicitud, el líder o un oficial tiene que aceptarte. Puedes pedir entrar en varias a la vez.</p>
       <h4>Fundar una alianza</h4>
       <form class="inline-form" data-form="create">
-        <input name="name" maxlength="30" placeholder="Nombre de la alianza" required />
-        <input name="tag" maxlength="5" placeholder="Etiqueta" required class="short" />
+        <input name="name" maxlength="30" placeholder="Nombre de la alianza" />
+        <input name="tag" maxlength="5" placeholder="Etiqueta" class="short" />
         <button class="primary small auto">Fundar</button>
       </form>
       <h4>Unirse a una</h4>
@@ -892,10 +892,13 @@ export class Social {
     if (submit) submit.disabled = true;
     try {
       if (form.dataset.form === 'create') {
-        const res = await this.#call('POST', '/api/alliance', { name: data.name, tag: data.tag }, '🤝 ¡Alianza fundada!');
-        if (res) {
-          this.alliance = res.alliance;
-          this.renderAlliance();
+        if (!String(data.name ?? '').trim() || !String(data.tag ?? '').trim()) this.hud.toast('Escribe el nombre de la alianza y su etiqueta.', 'error');
+        else {
+          const res = await this.#call('POST', '/api/alliance', { name: data.name, tag: data.tag }, '🤝 ¡Alianza fundada!');
+          if (res) {
+            this.alliance = res.alliance;
+            this.renderAlliance();
+          }
         }
       } else if (form.dataset.form === 'forum-new' || form.dataset.form === 'forum-reply') {
         const reply = form.dataset.form === 'forum-reply';

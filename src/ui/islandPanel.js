@@ -752,9 +752,13 @@ function refreshFleet(game, id, root) {
   const units = readFleet(root);
   const any = Object.keys(units).length > 0;
   const base = game.planMission('atacar', id, units, null, readOpts(root));
+  // Sin elegir nada, «Explorar» manda un bote (fleetFor): que se sepa
+  const scout = !any && !!root.querySelector('[data-action="mission"][data-type="explorar"]') && poolFor(game, readOpts(root).from).bote > 0;
   const text = any
     ? `👥 ${base.used}/${base.capacity} plazas · 📦 ${fmtNum(base.cargo)} de carga${base.seconds ? ` · ⏱ ${fmtTime(base.seconds)} de ida` : ''}`
-    : 'Elige cuántas unidades mandas.';
+    : scout
+      ? 'Elige cuántas unidades mandas. Para explorar no hace falta: sale un bote.'
+      : 'Elige cuántas unidades mandas.';
   if (summary.textContent !== text) summary.textContent = text;
 
   // Si ninguna misión es posible, explicar por qué la última (la más "seria") no lo es

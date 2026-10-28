@@ -7,6 +7,26 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-28a',
+    date: '2026-10-28',
+    title: 'Pequeños arreglos',
+    items: [
+      '🏝️ Los nombres de las islas concuerdan («Islote Negro», «Isla Roja», «Prado Salvaje») y ya no se repiten en el archipiélago: cada fosa del Kraken tiene el suyo (Fosa de Caribdis, de Escila…). Las colonias se llaman como su isla.',
+      '📜 Los <b>encargos de hoy</b> ya no dicen «los tres» cuando solo tienes dos, y el favor del premio solo se promete si tienes templo (sin templo no se podía guardar).',
+      '⚔️ Reclutar con la cantidad a 0 ya no recluta una tropa. En el puerto, el botón dice «Botar», y en el Ejército se lee «Hondero miliciano × 2».',
+      '⌨️ Escape cierra también el panel de una isla aunque estés escribiendo en él. El simulador te lleva al resultado al simular. La paga de oro pequeña sale como «−0,1» y no «−0». Fundar una alianza sin nombre avisa.',
+    ],
+    en: {
+      title: 'Small fixes',
+      items: [
+        '🏝️ Island names now agree in gender and number and are no longer repeated across the archipelago: each Kraken trench has its own (Trench of Charybdis, of Scylla…). Colonies are named after their island.',
+        '📜 <b>Today’s tasks</b> no longer say “all three” when you only have two, and the favor in the prize is only promised if you have a temple (without one it couldn’t be stored).',
+        '⚔️ Recruiting with the amount at 0 no longer recruits a unit. In the port, the button says “Launch”, and the Army shows “Slinger × 2”.',
+        '⌨️ Escape also closes an island’s panel even while you’re typing in it. The simulator takes you to the result when you simulate. Small gold upkeep shows as “−0.1” instead of “−0”. Founding an alliance without a name now warns you.',
+      ],
+    },
+  },
+  {
     id: '2026-10-27j',
     date: '2026-10-27',
     title: 'Las fosas del Kraken, rehechas',

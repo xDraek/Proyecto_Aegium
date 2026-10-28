@@ -124,7 +124,7 @@ export default {
   "Misiones, encargos y regalos": "Missions, tasks and gifts",
   "📋: objetivos en orden, unos pocos a la vez. Al cumplirlos, reclama la recompensa.": "📋: goals in order, a few at a time. When you complete them, claim the reward.",
   "Encargos diarios": "Daily tasks",
-  ": cada día tocan tres tareas adaptadas a tu ciudad (construir, entrenar, saquear, comerciar…). Si cumples los tres hay un premio extra.": ": every day you get three tasks suited to your city (build, train, plunder, trade…). If you complete all three there's an extra prize.",
+  ": cada día tocan hasta tres tareas adaptadas a tu ciudad (construir, entrenar, saquear, comerciar…). Si las cumples todas hay un premio extra.": ": every day you get up to three tasks suited to your city (build, train, plunder, trade…). If you complete them all there's an extra prize.",
   "🎁: entra cada día para recogerlo. Cuantos más días seguidos, mejor (el séptimo es el bueno), y crece con el nivel del ayuntamiento. Si te saltas un día, la racha vuelve a empezar.": "🎁: log in every day to collect it. The more days in a row, the better (the seventh is the good one), and it grows with the town hall's level. If you skip a day, the streak starts over.",
   "Logros": "Achievements",
   ": se ganan solos y salen en tu {0}.": ": they're earned on their own and show up on your {0}.",

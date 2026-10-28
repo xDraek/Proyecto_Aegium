@@ -232,6 +232,7 @@ export default {
   "· ⏱ {0} de ida": "· ⏱ {0} one way",
   "👥 {0}/{1} plazas · 📦 {2} de carga{3}": "👥 {0}/{1} places · 📦 {2} cargo{3}",
   "Elige cuántas unidades mandas.": "Choose how many units to send.",
+  "Elige cuántas unidades mandas. Para explorar no hace falta: sale un bote.": "Choose how many units to send. To explore there's no need: a boat goes out.",
   "Llegada en {0}": "Arrival in {0}",
   "Tu colonia · nivel {0}": "Your colony · level {0}",
   "Colonia de {0}": "{0}'s colony",

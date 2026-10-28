@@ -300,7 +300,7 @@ const TOPICS = {
     title: 'Misiones, encargos y regalos',
     body: () => `${list([
       '<b>Misiones</b> 📋: objetivos en orden, unos pocos a la vez. Al cumplirlos, reclama la recompensa.',
-      '<b>Encargos diarios</b>: cada día tocan tres tareas adaptadas a tu ciudad (construir, entrenar, saquear, comerciar…). Si cumples los tres hay un premio extra.',
+      '<b>Encargos diarios</b>: cada día tocan hasta tres tareas adaptadas a tu ciudad (construir, entrenar, saquear, comerciar…). Si las cumples todas hay un premio extra.',
       '<b>Regalo diario</b> 🎁: entra cada día para recogerlo. Cuantos más días seguidos, mejor (el séptimo es el bueno), y crece con el nivel del ayuntamiento. Si te saltas un día, la racha vuelve a empezar.',
       `<b>Logros</b>: se ganan solos y salen en tu ${see('perfil', 'perfil')}.`,
     ])}`,
