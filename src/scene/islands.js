@@ -1517,70 +1517,299 @@ function colony(g, isl, R, rand, flagColor) {
 }
 
 /** Ciudad bárbara del continente: empalizada doble, torres de madera, chozas y un gran salón. */
-function citadel(g, R, rand, owner = null) {
-  const batch = new Batch();
-  for (const [r, h] of [[R * 0.62, 1.5], [R * 0.4, 1.1]]) {
-    for (let a = 0; a < 360; a += 7) {
-      if (a > 165 && a < 195) continue;
-      const stake = cyl(0.14, 0.14, h + rand() * 0.3, 5, C.woodDark, 0, 0, 0);
-      stake.position.copy(polar(r, a));
-      batch.add(stake);
-    }
+// ── La ciudadela bárbara ─────────────────────────────────────────────────────
+// Una plaza de arena dentro de un gran anillo de estacas gruesas con flejes de hierro y puntas de
+// hueso; la puerta de troncos con el estandarte de la calavera de toro y sus antorchas; en medio el
+// gran salón (tejado de tablas con franjas rojas, los cuernos y la calavera en la cumbrera, el toldo
+// rojo de la entrada y el fuego dentro); tres atalayas con tejado rojo, cuernos y banderola; tiendas
+// rojas, puestos de mercado, la hoguera, armeros y sus guerreros. Si es de un jugador, sus colores y
+// sus tropas. Se diseña para un solar de radio 7.2; la puerta mira a CITADEL_FRONT.
+
+const CITADEL_FRONT = 40;
+const CITADEL_R = 7.2;
+const CIT = {
+  stake: '#5a3a22', stakeDark: '#43291a', iron: '#4a4c52', tip: '#e6d6b4', plank: '#6b4428', plankDark: '#4e301c',
+  sand: '#c9a46e', cloth: '#b02a1e', clothDark: '#7e1d15', canvas: '#e3d2ae', bone: '#efe4cc', glow: '#ff9a3a',
+};
+
+/** Estandarte con la calavera de toro (blanca) sobre el color dado, colgado de una vara; la cara a +Z. */
+function skullBanner(w, h, color) {
+  const g = new THREE.Group();
+  const rod = cyl(0.035, 0.035, w + 0.2, 5, CIT.stakeDark, 0, 0, 0);
+  rod.rotation.z = Math.PI / 2;
+  rod.position.y = 0;
+  g.add(rod, box(w, h * 0.82, 0.04, color, 0, -h * 0.82, 0));
+  const tip = mesh(new THREE.ConeGeometry(w * 0.5, h * 0.2, 4), color);
+  tip.rotation.set(0, Math.PI / 4, Math.PI);
+  tip.scale.z = 0.06;
+  tip.position.set(0, -h * 0.91, 0);
+  g.add(tip);
+  // La calavera: el cráneo, el morro y los cuernos abiertos
+  const y = -h * 0.42;
+  g.add(box(w * 0.3, w * 0.26, 0.02, CIT.bone, 0, y - w * 0.08, 0.03), box(w * 0.18, w * 0.2, 0.02, CIT.bone, 0, y - w * 0.3, 0.03));
+  for (const sx of [-1, 1]) {
+    const horn = box(w * 0.26, w * 0.06, 0.02, CIT.bone, 0, 0, 0);
+    horn.position.set(sx * w * 0.26, y + w * 0.08, 0.03);
+    horn.rotation.z = sx * 0.6;
+    g.add(horn);
+    g.add(box(w * 0.06, w * 0.05, 0.022, '#2a1d14', sx * w * 0.07, y - w * 0.02, 0.035));
   }
-  for (const a of [140, 220, 60, 300]) {
-    const tower = new THREE.Group();
-    for (const [x, z] of [[-0.4, -0.4], [0.4, -0.4], [-0.4, 0.4], [0.4, 0.4]]) tower.add(box(0.12, 2.4, 0.12, C.woodDark, x, 0, z));
-    tower.add(box(1.2, 0.12, 1.2, C.wood, 0, 2.4, 0));
-    const roof = mesh(new THREE.ConeGeometry(0.95, 0.8, 4), '#8b6a44');
-    roof.position.y = 2.95;
-    roof.rotation.y = Math.PI / 4;
-    tower.add(roof);
-    tower.position.copy(polar(R * 0.62, a));
-    batch.add(tower);
-  }
-  // Gran salón con cuernos en el tejado
-  const hall = new THREE.Group();
-  hall.add(box(3.2, 1.4, 1.8, C.wood));
-  const roof = gableRoof(2.2, 1.1, 3.6, '#6e5a3a', 0, 1.4, 0);
-  roof.rotation.y = Math.PI / 2;
-  hall.add(roof);
-  for (const x of [-1.7, 1.7]) {
-    const horn = mesh(new THREE.ConeGeometry(0.12, 0.7, 5), '#efe8d8');
-    horn.position.set(x, 2.6, 0);
-    horn.rotation.z = x > 0 ? -0.6 : 0.6;
-    hall.add(horn);
-  }
-  batch.add(hall);
-  const hides = ['#a0784e', '#8b6a44', '#b89466'];
-  for (let i = 0; i < 9; i++) {
-    const hut = new THREE.Group();
-    hut.add(cyl(0.7, 0.8, 0.7, 7, hides[i % 3]));
-    const top = mesh(new THREE.ConeGeometry(0.9, 0.9, 7), '#6e5a3a');
-    top.position.y = 1.15;
-    hut.add(top);
-    hut.position.copy(polar(R * (0.48 + (i % 2) * 0.06), i * 40 + rand() * 10));
-    batch.add(hut);
-  }
-  g.add(batch.build());
-  // Hogueras y guerreros
-  for (const a of [0, 120, 240]) {
-    const p = polar(R * 0.25, a);
-    g.add(makeFire(p.x, 0, p.z, 0.69));
-  }
-  for (let i = 0; i < 5; i++) {
-    const b = createSoldier(owner ? (i % 2 ? 'lancero' : 'hoplita') : ['barbaro', 'arquero_barbaro', 'berserker'][i % 3]);
-    b.scale.setScalar(1.8);
-    b.position.copy(polar(R * 0.3, 160 + i * 18));
-    b.rotation.y = rand() * Math.PI * 2;
-    g.add(b);
-  }
-  // Estandarte
-  g.add(cyl(0.05, 0.05, 3.4, 6, C.dark, 1.9, 0, 0));
-  const flag = box(1.0, 0.7, 0.03, owner ?? '#7a2f22', 0, 0, 0);
-  flag.geometry.translate(0.5, 0, 0);
-  flag.position.set(1.9, 3.0, 0);
+  return g;
+}
+
+/** Banderola roja ondeando en lo alto de un mástil (la base en x, y, z). */
+function pennant(g, x, y, z, h, color) {
+  g.add(cyl(0.04, 0.045, h, 5, CIT.stakeDark, x, y, z));
+  const tip = mesh(new THREE.ConeGeometry(0.06, 0.18, 4), '#9aa0a6');
+  tip.position.set(x, y + h + 0.09, z);
+  g.add(tip);
+  const flag = new THREE.Group();
+  const shape = new THREE.Shape();
+  [[0, 0.22], [0.8, 0.12], [0.62, 0.02], [0.85, -0.12], [0, -0.22]].forEach(([a, b], i) => (i ? shape.lineTo(a, b) : shape.moveTo(a, b)));
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.025, bevelEnabled: false });
+  geo.translate(0, 0, -0.012);
+  flag.add(mesh(geo, color));
+  flag.position.set(x + 0.04, y + h - 0.25, z);
   flag.userData.wave = true;
   g.add(flag);
+}
+
+/** Atalaya: cuatro postes con aspas, la garita de tablas con su estandarte, el tejado rojo con cuernos, el brasero y la banderola. */
+function citadelTower(g, x, z, rotY, color, rand) {
+  const t = new THREE.Group();
+  const s = 0.55;
+  const H = 2.6;
+  for (const [px, pz] of [[-s, -s], [s, -s], [-s, s], [s, s]]) t.add(cyl(0.1, 0.12, H + 0.9, 6, CIT.stake, px, 0, pz));
+  for (let face = 0; face < 4; face++) {
+    const f = new THREE.Group();
+    for (const sgn of [-1, 1]) {
+      const brace = box(0.07, Math.hypot(2 * s, H * 0.7), 0.07, CIT.stakeDark, 0, 0, 0);
+      brace.rotation.z = sgn * Math.atan2(2 * s, H * 0.7);
+      brace.position.set(0, H * 0.38, s);
+      f.add(brace);
+    }
+    f.rotation.y = (face * Math.PI) / 2;
+    t.add(f);
+  }
+  // La garita de tablas, con un fleje de hierro y su estandarte
+  t.add(box(2 * s + 0.35, 0.85, 2 * s + 0.35, CIT.plank, 0, H, 0), box(2 * s + 0.4, 0.08, 2 * s + 0.4, CIT.iron, 0, H + 0.1, 0), box(2 * s + 0.45, 0.1, 2 * s + 0.45, CIT.plankDark, 0, H + 0.85, 0));
+  for (const sx of [-1, 1]) t.add(box(0.22, 0.32, 0.02, '#2a1a10', sx * 0.25, H + 0.35, s + 0.18));
+  const banner = skullBanner(0.6, 1.0, color);
+  banner.position.set(0, H - 0.05, s + 0.2);
+  t.add(banner);
+  // El tejado rojo a cuatro aguas, con un cuerno en cada esquina y la punta de hueso
+  const roof = mesh(new THREE.ConeGeometry(1.15, 1.0, 4), color);
+  roof.rotation.y = Math.PI / 4;
+  roof.position.y = H + 1.45;
+  t.add(roof);
+  for (let i = 0; i < 4; i++) {
+    const a = Math.PI / 4 + (i * Math.PI) / 2;
+    const horn = mesh(new THREE.ConeGeometry(0.07, 0.42, 5), CIT.bone);
+    horn.position.set(Math.sin(a) * 0.82, H + 1.12, Math.cos(a) * 0.82);
+    horn.rotation.set(Math.cos(a) * 0.9, 0, -Math.sin(a) * 0.9);
+    t.add(horn);
+  }
+  const top = mesh(new THREE.ConeGeometry(0.08, 0.35, 5), CIT.bone);
+  top.position.y = H + 2.1;
+  t.add(top);
+  // El brasero de la garita (arde de noche) y la banderola
+  t.add(cyl(0.16, 0.08, 0.14, 7, CIT.iron, -s, H + 0.95, s));
+  t.add(makeFire(-s, H + 1.05, s, 0.3));
+  pennant(t, s, H + 0.95, -s, 1.5 + rand() * 0.3, color);
+  t.position.set(x, 0, z);
+  t.rotation.y = rotY;
+  g.add(t);
+}
+
+/** Tienda de lona roja (cono de seis lados) con la punta de hueso y la entrada en sombra; la entrada a +Z. */
+function redTent(g, x, z, r, h, rotY, color) {
+  const t = new THREE.Group();
+  const cone = mesh(new THREE.ConeGeometry(r, h, 6), color);
+  cone.position.y = h / 2;
+  t.add(cone);
+  const band = mesh(new THREE.CylinderGeometry(r * 0.88, r * 1.01, h * 0.12, 6, 1, true), CIT.clothDark);
+  band.position.y = h * 0.06;
+  t.add(band);
+  const top = mesh(new THREE.ConeGeometry(0.05, 0.3, 5), CIT.bone);
+  top.position.y = h + 0.1;
+  t.add(top);
+  const door = mesh(new THREE.ConeGeometry(r * 0.3, h * 0.45, 3), '#2a1a10');
+  door.position.set(0, h * 0.22, r * 0.72);
+  door.rotation.x = -0.4;
+  door.scale.z = 0.2;
+  t.add(door);
+  t.position.set(x, 0, z);
+  t.rotation.y = rotY;
+  g.add(t);
+}
+
+/** Puesto de mercado: cuatro postes, el toldo inclinado y el mostrador con su género; de frente a +Z. */
+function stall(g, x, z, rotY, awning, rand) {
+  const t = new THREE.Group();
+  for (const [px, pz, h] of [[-0.6, -0.4, 1.3], [0.6, -0.4, 1.3], [-0.6, 0.4, 1.05], [0.6, 0.4, 1.05]]) t.add(box(0.07, h, 0.07, CIT.stake, px, 0, pz));
+  const cloth = box(1.45, 0.04, 1.05, awning, 0, 0, 0);
+  cloth.rotation.x = 0.22;
+  cloth.position.set(0, 1.2, 0);
+  t.add(cloth);
+  t.add(box(1.25, 0.45, 0.4, CIT.plankDark, 0, 0, 0.2));
+  const goods = ['#c9862a', '#7a9a3a', '#b84a2a', '#d8c08a', '#8a5a30'];
+  for (let i = 0; i < 6; i++) t.add(box(0.14, 0.1 + rand() * 0.06, 0.14, goods[i % goods.length], -0.45 + i * 0.18, 0.45, 0.2 + (rand() - 0.5) * 0.15));
+  t.position.set(x, 0, z);
+  t.rotation.y = rotY;
+  g.add(t);
+}
+
+/** El gran salón: paredes de tablas, tejado con franjas rojas, cuernos y calavera de toro, toldo rojo y el fuego que se ve dentro. */
+function greatHall(g, x, z, color) {
+  const t = new THREE.Group();
+  const W = 2.8;
+  const D = 3.4;
+  const wallH = 1.15;
+  const roofH = 1.5;
+  t.add(box(W, wallH, D, CIT.plankDark, 0, 0, 0));
+  for (const y of [0.3, 0.8]) t.add(box(W + 0.04, 0.07, D + 0.04, CIT.iron, 0, y, 0));
+  // El tejado de tablas, con franjas rojas, y las vigas que asoman
+  t.add(gableRoof(W + 0.7, roofH, D + 0.5, CIT.plank, 0, wallH, 0));
+  const slope = Math.atan2(roofH, (W + 0.7) / 2);
+  const run = Math.hypot(roofH, (W + 0.7) / 2);
+  for (const sx of [-1, 1]) {
+    for (const lz of [-1.1, 0.0, 1.1]) {
+      const strip = box(run, 0.05, 0.32, color, 0, 0, 0);
+      strip.rotation.z = -sx * slope;
+      strip.position.set(sx * ((W + 0.7) / 4 + 0.02), wallH + roofH / 2 + 0.03, lz);
+      t.add(strip);
+    }
+  }
+  const ridge = box(0.3, 0.25, D + 0.7, CIT.plankDark, 0, wallH + roofH - 0.05, 0);
+  t.add(ridge);
+  // Los cuernos enormes y la calavera de toro en lo alto de la fachada
+  const zf = (D + 0.5) / 2 + 0.05;
+  for (const sx of [-1, 1]) {
+    const horn = mesh(new THREE.TorusGeometry(0.55, 0.11, 6, 12, Math.PI * 0.6), CIT.bone);
+    horn.position.set(sx * 0.45, wallH + roofH + 0.1, zf - 0.2);
+    horn.rotation.set(0, 0, sx > 0 ? 0 : Math.PI * 0.4);
+    horn.scale.x = sx;
+    t.add(horn);
+    const hornTip = mesh(new THREE.ConeGeometry(0.1, 0.35, 6), CIT.bone);
+    hornTip.position.set(sx * 1.0, wallH + roofH + 0.62, zf - 0.2);
+    hornTip.rotation.z = -sx * 0.2;
+    t.add(hornTip);
+  }
+  t.add(box(0.5, 0.42, 0.3, CIT.bone, 0, wallH + roofH - 0.2, zf), box(0.28, 0.3, 0.26, CIT.bone, 0, wallH + roofH - 0.45, zf + 0.04));
+  for (const sx of [-1, 1]) t.add(box(0.1, 0.09, 0.05, '#2a1d14', sx * 0.12, wallH + roofH - 0.02, zf + 0.15));
+  // La fachada: la puerta con el fuego dentro, el toldo rojo y dos estandartes
+  t.add(box(1.0, 1.0, 0.06, CIT.glow, 0, 0, D / 2 + 0.01, { emissive: '#ff7a1a', emissiveIntensity: 0.9 }));
+  for (const sx of [-1, 1]) t.add(box(0.36, 0.3, 0.05, CIT.glow, sx * 0.95, 0.5, D / 2 + 0.01, { emissive: '#ff7a1a', emissiveIntensity: 0.7 }));
+  const awning = box(1.9, 0.05, 1.1, color, 0, 0, 0);
+  awning.rotation.x = 0.3;
+  awning.position.set(0, 1.15, D / 2 + 0.5);
+  t.add(awning);
+  for (const sx of [-1, 1]) t.add(box(0.08, 1.05, 0.08, CIT.stake, sx * 0.85, 0, D / 2 + 1.0));
+  for (const sx of [-1, 1]) {
+    const b = skullBanner(0.55, 1.0, color);
+    b.position.set(sx * (W / 2 + 0.03), wallH - 0.05, 0.6);
+    b.rotation.y = (sx * Math.PI) / 2;
+    t.add(b);
+  }
+  // Los escalones de la entrada y dos braseros
+  t.add(box(1.4, 0.12, 0.5, CIT.plank, 0, 0, D / 2 + 0.3));
+  for (const sx of [-1, 1]) {
+    t.add(cyl(0.05, 0.08, 0.7, 6, CIT.iron, sx * 1.25, 0, D / 2 + 1.2), cyl(0.2, 0.1, 0.16, 7, CIT.iron, sx * 1.25, 0.7, D / 2 + 1.2));
+    t.add(makeFire(sx * 1.25, 0.82, D / 2 + 1.2, 0.35, { night: false }));
+  }
+  t.position.set(x, 0, z);
+  g.add(t);
+}
+
+function citadel(g, R, rand, owner = null) {
+  const k = R / CITADEL_R;
+  const f = new THREE.Group();
+  f.scale.setScalar(k);
+  f.rotation.y = THREE.MathUtils.degToRad(CITADEL_FRONT);
+  g.add(f);
+  const color = owner ?? CIT.cloth;
+
+  // La plaza de arena
+  const ground = new THREE.Mesh(new THREE.CircleGeometry(4.75, 28), mat(CIT.sand));
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = 0.02;
+  ground.receiveShadow = true;
+  f.add(ground);
+
+  // El gran anillo de estacas, con su fleje de hierro y la punta de hueso; abierto delante para la puerta
+  const RX = 4.85;
+  const RZ = 4.5;
+  for (let a = 0; a < 360; a += 4.4) {
+    if (Math.abs(((a + 180) % 360) - 180) < 13) continue;
+    const r = THREE.MathUtils.degToRad(a);
+    const h = 1.35 + rand() * 0.35;
+    const x = Math.sin(r) * RX;
+    const z = Math.cos(r) * RZ;
+    f.add(cyl(0.2, 0.22, h, 7, a % 3 < 1.5 ? CIT.stake : CIT.stakeDark, x, 0, z));
+    f.add(cyl(0.215, 0.215, 0.08, 7, CIT.iron, x, h * 0.55, z));
+    const tip = mesh(new THREE.ConeGeometry(0.2, 0.45, 7), CIT.tip);
+    tip.position.set(x, h + 0.22, z);
+    f.add(tip);
+  }
+
+  // La puerta: dos postes gruesos con flejes, el dintel, el estandarte y las antorchas
+  const gz = RZ + 0.1;
+  for (const sx of [-1, 1]) {
+    f.add(box(0.55, 2.4, 0.55, CIT.stakeDark, sx * 1.15, 0, gz));
+    for (const y of [0.3, 1.2, 2.1]) f.add(box(0.6, 0.1, 0.6, CIT.iron, sx * 1.15, y, gz));
+    f.add(box(0.6, 0.12, 0.6, CIT.plank, sx * 1.15, 2.4, gz));
+    f.add(cyl(0.08, 0.06, 0.18, 6, CIT.iron, sx * 1.15, 2.52, gz));
+    f.add(makeFire(sx * 1.15, 2.66, gz, 0.32));
+    const tusk = mesh(new THREE.ConeGeometry(0.06, 0.4, 5), CIT.bone);
+    tusk.position.set(sx * 0.82, 1.9, gz + 0.3);
+    tusk.rotation.set(0.6, 0, -sx * 0.6);
+    f.add(tusk);
+  }
+  f.add(box(2.9, 0.38, 0.45, CIT.plank, 0, 1.95, gz), box(2.95, 0.08, 0.5, CIT.iron, 0, 2.05, gz));
+  const gateBanner = skullBanner(0.95, 1.4, color);
+  gateBanner.position.set(0, 1.9, gz + 0.26);
+  f.add(gateBanner);
+
+  greatHall(f, 0.2, -0.6, color);
+  citadelTower(f, 0, -3.6, 0, color, rand);
+  citadelTower(f, -3.5, -0.6, 0.6, color, rand);
+  citadelTower(f, 3.6, -0.3, -0.6, color, rand);
+
+  // Tiendas rojas y claras, y los puestos del mercado
+  redTent(f, -2.4, 1.8, 0.75, 1.3, 0.5, color);
+  redTent(f, 2.6, 1.9, 0.8, 1.35, -0.5, color);
+  redTent(f, 1.9, -2.9, 0.65, 1.2, -0.3, CIT.canvas);
+  redTent(f, -2.0, -2.7, 0.6, 1.1, 0.4, color);
+  stall(f, -3.2, 1.0, 1.2, CIT.canvas, rand);
+  stall(f, 3.2, 1.2, -1.2, color, rand);
+  stall(f, -1.0, 3.2, 0.2, color, rand);
+  stall(f, 1.6, 3.1, -0.3, CIT.canvas, rand);
+
+  // La hoguera en la plaza, con su anillo de piedras
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * Math.PI * 2;
+    const st = mesh(new THREE.DodecahedronGeometry(0.15, 0), i % 2 ? '#8c867c' : '#6d685f');
+    st.position.set(-0.3 + Math.sin(a) * 0.5, 0.07, 2.0 + Math.cos(a) * 0.5);
+    st.scale.y = 0.7;
+    f.add(st);
+  }
+  f.add(makeFire(-0.3, 0.06, 2.0, 0.6, { night: false }));
+
+  // Armeros, barriles y cajas
+  spearRack(f, -1.6, 0.4, 0.4, rand);
+  spearRack(f, 2.2, 0.4, -0.4, rand);
+  for (const [x, z, s, r] of [[-1.7, -1.4, 0.4, 0.3], [-1.9, -1.0, 0.32, 0.8], [2.0, -1.5, 0.42, 0.2], [0.9, -3.2, 0.38, 0.5], [-3.0, -1.9, 0.4, 0.1]]) crate(f, x, 0.02, z, s, r);
+  for (const [x, z] of [[1.8, -0.9], [2.1, -0.6], [-1.4, 1.1], [3.3, 2.4]]) barrel(f, x, 0.02, z);
+
+  // Sus guerreros por la plaza: los bárbaros (o, si es de un jugador, sus tropas)
+  const kinds = owner ? ['hoplita', 'lancero', 'arquero'] : ['barbaro', 'arquero_barbaro', 'berserker'];
+  for (const [i, [x, z, r]] of [[-1.3, 2.5, 1.0], [0.8, 2.4, -1.2], [-0.45, 4.0, 0.1], [0.45, 4.1, -0.2]].entries()) {
+    const b = createSoldier(kinds[i % kinds.length]);
+    b.scale.setScalar(1.5);
+    b.position.set(x, 0.02, z);
+    b.rotation.y = r;
+    f.add(b);
+  }
 }
 
 /** La maravilla de un continente: crece con cada nivel. */

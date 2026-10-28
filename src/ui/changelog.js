@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-29a',
+    date: '2026-10-29',
+    title: 'Las ciudades bárbaras, renovadas',
+    items: [
+      '🏰 Las ciudades bárbaras de los continentes tienen un aspecto nuevo: un gran anillo de estacas con flejes de hierro y puntas de hueso, la puerta de troncos con el estandarte de la calavera de toro, el gran salón con los cuernos y la calavera en el tejado, tres atalayas con tejado rojo y cuernos, tiendas, puestos de mercado, la hoguera y sus guerreros. Las conquistadas lucen los colores de su dueño.',
+    ],
+    en: {
+      title: 'Barbarian cities, renewed',
+      items: [
+        '🏰 Barbarian cities on the continents have a new look: a great ring of stakes with iron bands and bone tips, the log gate with the bull-skull banner, the great hall with horns and a skull on the roof, three watchtowers with red roofs and horns, tents, market stalls, the campfire and their warriors. Conquered ones wear their owner’s colours.',
+      ],
+    },
+  },
+  {
     id: '2026-10-28i',
     date: '2026-10-28',
     title: 'Los bárbaros, renovados',
