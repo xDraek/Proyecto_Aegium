@@ -7,6 +7,26 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-28i',
+    date: '2026-10-28',
+    title: 'Los bárbaros, renovados',
+    items: [
+      '🪓 Los campamentos bárbaros tienen un aspecto nuevo: el gran salón de troncos con las vigas cruzadas, cuernos y una piel echada sobre el tejado, dos atalayas con antorcha, estandartes rojos, tiendas de piel, la hoguera con su anillo de piedras, empalizadas de estacas afiladas y armeros con lanzas.',
+      '🛡️ Y sus guerreros también: a pecho descubierto y con pintura de guerra, melena con moño y barba larga, capa de pieles con collar de colmillos, la maza de pinchos empuñada y el escudo redondo de tablas con su emblema rojo.',
+      '🏹 Los bárbaros tienen ahora sus propios arqueros (antes llevaban los griegos): con las mismas fuerzas, el arco con vendas rojas y púas de hueso y el carcaj a la espalda. Hacen guardia en lo alto de las atalayas de los campamentos.',
+      '🐻 Nueva élite bárbara, el berserker: en plena furia, con un hacha de bronce en cada mano, mucho ataque y poca armadura. Es de espadas, así que castiga a las lanzas. Los campamentos de nivel 3, las ciudadelas y las hordas cambian unos cuantos bárbaros por berserkers del mismo valor.',
+    ],
+    en: {
+      title: 'Barbarians, renewed',
+      items: [
+        '🪓 Barbarian camps have a new look: the great log hall with crossed beams, horns and a hide thrown over the roof, two watchtowers with torches, red banners, hide tents, the campfire with its ring of stones, palisades of sharpened stakes and spear racks.',
+        '🛡️ And so are their warriors: bare-chested with war paint, a topknot and a long beard, a fur cloak with a fang necklace, the spiked club in hand and the round plank shield with its red emblem.',
+        '🏹 Barbarians now have their own archers (they used the Greek ones before): same strength, a bow with red wraps and bone spikes and a quiver on the back. They stand guard on top of the camps’ watchtowers.',
+        '🐻 A new barbarian elite, the berserker: in full fury, with a bronze axe in each hand, lots of attack and little armour. It counts as swords, so it punishes spears. Level-3 camps, citadels and hordes swap some barbarians for berserkers of the same worth.',
+      ],
+    },
+  },
+  {
     id: '2026-10-28h',
     date: '2026-10-28',
     title: 'Un combate con más táctica',

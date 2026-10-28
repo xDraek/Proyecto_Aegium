@@ -698,5 +698,5 @@ export default {
   "Ventajas entre clases": "Class advantages",
   "Clase": "Class",
   "Fuerte contra": "Strong against",
-  "Los bárbaros, los piratas, los tritones y los inmortales son infantería; los monstruos (el Kraken, las cabezas de Tifón y de la Hidra) no tienen clase. En los informes verás la ventaja que más pesó de cada bando.": "Barbarians, pirates, tritons and immortals are infantry; monsters (the Kraken, the heads of Typhon and the Hydra) have no class. In the reports you’ll see the advantage that weighed most on each side.",
+  "Los bárbaros, los piratas, los tritones y los inmortales son infantería; los berserkers, la élite de los bárbaros, son espadas (cuidado con tus lanzas); los arqueros bárbaros, distancia; y los monstruos (el Kraken, las cabezas de Tifón y de la Hidra) no tienen clase. En los informes verás la ventaja que más pesó de cada bando.": "Barbarians, pirates, tritons and immortals are infantry; berserkers, the barbarian elite, are swords (watch your spears); barbarian archers, ranged; and monsters (the Kraken, the heads of Typhon and the Hydra) have no class. In the reports you’ll see the advantage that weighed most on each side.",
 }

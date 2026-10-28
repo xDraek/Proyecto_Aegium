@@ -459,4 +459,6 @@ export default {
   "Barcos pesados": "Heavy ships",
   "Brulotes": "Fireships",
   "Barcos rápidos": "Fast ships",
+  "Arquero bárbaro": "Barbarian archer",
+  "Berserker": "Berserker",
 }

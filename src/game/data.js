@@ -537,7 +537,11 @@ export const UNITS = {
   },
 
   // Unidades que solo usan los enemigos
-  barbaro: { name: 'Bárbaro', icon: '🪓', kind: 'tierra', npc: true, atk: 7, hp: 15 },
+  barbaro: { name: 'Bárbaro', icon: '🪓', img: '/ui/barbaro.png', kind: 'tierra', npc: true, atk: 7, hp: 15 },
+  // (los arqueros de los campamentos, las ciudadelas y las hordas: como el arquero, con su aspecto)
+  arquero_barbaro: { name: 'Arquero bárbaro', icon: '🪃', img: '/ui/arquero-barbaro.png', kind: 'tierra', npc: true, atk: 11, hp: 9 },
+  // La élite de los bárbaros: furia con dos hachas, mucho ataque y poca armadura (de espadas: rompe las falanges)
+  berserker: { name: 'Berserker', icon: '🐻', img: '/ui/berserker.png', kind: 'tierra', npc: true, atk: 32, hp: 34 },
   pirata: { name: 'Pirata', icon: '🏴‍☠️', kind: 'tierra', npc: true, atk: 11, hp: 17 },
   corsario: { name: 'Barco corsario', icon: '⛵', kind: 'barco', npc: true, atk: 20, hp: 50, capacity: 12 },
   // Los guardianes de las fosas del Kraken: tritones con tridente y sus hipocampos de guerra
@@ -556,7 +560,7 @@ export const UNITS = {
 };
 // Las tropas con `img` tienen de icono una imagen: `icon` pasa a ser el HTML y `emoji` se queda con
 // el carácter (único, que no use nada más), que es lo que va en los textos sin formato y que
-// glyphs()/richText() cambian por la imagen al pintarlos. 🪖 milicia con lanza, 👝 hondero, 🤺 espadachín, 🪶 arquero, 🥏 hoplita, 🐴 jinete, 🏇 catafracto, 🔺 espartano, 🎯 arquero cretense, 🦣 elefante, 🛳 dromón, ⛴️ liburna, 🚤 quinquerreme, 🧨 brulote, 🚣‍♂️ trirreme, 🛥 mercante, 🛶 bote, 🐙 Kraken.
+// glyphs()/richText() cambian por la imagen al pintarlos. 🪖 milicia con lanza, 👝 hondero, 🤺 espadachín, 🪶 arquero, 🥏 hoplita, 🐴 jinete, 🏇 catafracto, 🔺 espartano, 🎯 arquero cretense, 🦣 elefante, 🛳 dromón, ⛴️ liburna, 🚤 quinquerreme, 🧨 brulote, 🚣‍♂️ trirreme, 🛥 mercante, 🛶 bote, 🐙 Kraken, 🪓 bárbaro, 🐻 berserker, 🪃 arquero bárbaro.
 for (const u of Object.values(UNITS)) {
   u.emoji ??= u.icon;
   if (u.img) u.icon = `<img class="res-img unit-img" src="${u.img}" alt="" draggable="false" />`;
@@ -595,9 +599,9 @@ export const COMBAT = { rearCover: 0.5, charge: 0.25, volley: 0.5 };
 
 for (const [id, cls] of Object.entries({
   lancero: 'lanza', hoplita: 'lanza', espartano: 'lanza',
-  espadachin: 'espada',
+  espadachin: 'espada', berserker: 'espada',
   caballero: 'caballeria', catafracto: 'caballeria', elefante: 'caballeria',
-  hondero: 'distancia', arquero: 'distancia', sagitario: 'distancia', arquero_persa: 'distancia',
+  hondero: 'distancia', arquero: 'distancia', sagitario: 'distancia', arquero_persa: 'distancia', arquero_barbaro: 'distancia',
   catapulta: 'asedio',
   barbaro: 'infanteria', pirata: 'infanteria', triton: 'infanteria', inmortal: 'infanteria',
   trirreme: 'ligero', corsario: 'ligero', hipocampo: 'ligero', fenicia: 'ligero',
@@ -1092,7 +1096,7 @@ export const HORDE = {
   firstHours: [12, 36],
   gapHours: [48, 96],
   ravageHours: 24,
-  garrison: { barbaro: 140, arquero: 60 },
+  garrison: { barbaro: 100, berserker: 11, arquero_barbaro: 60 },
   perColonist: 0.6,
   reward: { oro: 2500, cristal: 1500, hierro: 1500 },
 };

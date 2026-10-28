@@ -6,7 +6,7 @@ import { Game, krakenText, newState, rebuilding } from '../src/game/Game.js';
 import { fmtEs } from '../src/game/num.js';
 import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
 import { playerCombat, tradeShips, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
-import { CAMP_LOOT, LAIR_GUARDS, coordsOf, fixPlaceName, freshPlaceName, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
+import { BARBARIAN_ARCHERS, BARBARIAN_GARRISONS, CAMP_LOOT, LAIR_GUARDS, coordsOf, fixPlaceName, freshPlaceName, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { hashPassword, newRecoveryCode, newSecret, normalizeCode, verifyPassword } from './auth.js';
 
@@ -82,9 +82,9 @@ function portOf(state) {
 }
 
 /** Cambia en una guarnición de fosa los corsarios de antes por tritones e hipocampos. */
-function renameGuards(garrison) {
+function renameGuards(garrison, names = LAIR_GUARDS) {
   if (!garrison) return;
-  for (const [old, now] of Object.entries(LAIR_GUARDS)) {
+  for (const [old, now] of Object.entries(names)) {
     if (garrison[old] == null) continue;
     garrison[now] = (garrison[now] ?? 0) + garrison[old];
     delete garrison[old];
@@ -138,6 +138,18 @@ export class WorldServer {
     for (const [id, st] of Object.entries(data.islandStates)) this.islandStates.set(id, st);
     // Las fosas las guardaban corsarios; ahora, tritones e hipocampos (los que quedaban, igual)
     for (const isl of this.islands.values()) if (isl.type === 'kraken') renameGuards(this.islandStates.get(isl.id)?.garrison);
+    // Los arqueros de los campamentos, las ciudadelas y las hordas bárbaras son ahora arqueros bárbaros
+    for (const isl of this.islands.values()) {
+      const rt = this.islandStates.get(isl.id);
+      if (isl.type === 'barbaros' || isl.type === 'ciudadela') {
+        renameGuards(isl.garrison, BARBARIAN_ARCHERS);
+        renameGuards(rt?.garrison, BARBARIAN_ARCHERS);
+        // (y la guarnición de su nivel, con los berserkers: los que faltan se rearman con el tiempo)
+        const full = BARBARIAN_GARRISONS[isl.type]?.[isl.tier];
+        if (full) isl.garrison = { ...full };
+      }
+      if (rt?.horde) for (const bag of [rt.horde.garrison, rt.horde.start]) renameGuards(bag, BARBARIAN_ARCHERS);
+    }
     for (const isl of this.islands.values()) {
       if (isl.type !== 'jugador' && !this.islandStates.has(isl.id)) this.islandStates.set(isl.id, freshIslandState(isl, clock.now()));
     }

@@ -1059,6 +1059,11 @@ select:focus {
   font-variant-numeric: tabular-nums;
 }
 
+/* Un poco de aire entre un icono con su cifra y el siguiente */
+.bag-item + .bag-item {
+  margin-left: 0.4em;
+}
+
 /* ── Actividad en curso ─────────────────────────────────────────────────── */
 
 #dock {

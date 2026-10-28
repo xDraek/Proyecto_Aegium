@@ -51,16 +51,26 @@ export const CAMP_LOOT = {
   2: { max: 4500, rate: 360, mix: { madera: 0.3, piedra: 0.3, comida: 0.4 } },
 };
 
+/**
+ * Las guarniciones de los campamentos bárbaros y de las ciudadelas, por nivel (también para ponérselas
+ * a las que ya había: se guardan con el mundo). Los grandes llevan berserkers, en lugar de bárbaros
+ * del mismo valor.
+ */
+export const BARBARIAN_GARRISONS = {
+  barbaros: { 1: { barbaro: 8 }, 2: { barbaro: 18, arquero_barbaro: 6 }, 3: { barbaro: 30, berserker: 3, arquero_barbaro: 22 } },
+  ciudadela: { 4: { barbaro: 45, berserker: 4, arquero_barbaro: 25 }, 5: { barbaro: 80, berserker: 8, arquero_barbaro: 45 } },
+};
+
 const TEMPLATE = [
-  { type: 'barbaros', tier: 1, dist: 96, size: 6, garrison: { barbaro: 8 }, regenHours: 6, loot: CAMP_LOOT[1] },
+  { type: 'barbaros', tier: 1, dist: 96, size: 6, garrison: BARBARIAN_GARRISONS.barbaros[1], regenHours: 6, loot: CAMP_LOOT[1] },
   { type: 'ruinas', dist: 102, size: 4.5, treasure: { piedra: 600, cristal: 300, oro: 150 } },
   { type: 'libre', dist: 106, size: 7, specialties: ['madera', 'comida', 'piedra'] },
   {
-    type: 'barbaros', tier: 2, dist: 112, size: 5.5, garrison: { barbaro: 18, arquero: 6 }, regenHours: 6, loot: CAMP_LOOT[2],
+    type: 'barbaros', tier: 2, dist: 112, size: 5.5, garrison: BARBARIAN_GARRISONS.barbaros[2], regenHours: 6, loot: CAMP_LOOT[2],
   },
   { type: 'libre', dist: 124, size: 8, specialties: ['hierro', 'cristal', 'piedra'] },
   {
-    type: 'barbaros', tier: 3, dist: 146, size: 7, garrison: { barbaro: 40, arquero: 22 }, regenHours: 8,
+    type: 'barbaros', tier: 3, dist: 146, size: 7, garrison: BARBARIAN_GARRISONS.barbaros[3], regenHours: 8,
     loot: { max: 7000, rate: 450, mix: { madera: 0.25, piedra: 0.25, hierro: 0.25, cristal: 0.25 } },
   },
   { type: 'ruinas', dist: 140, size: 5, treasure: { hierro: 1200, cristal: 800, oro: 500 } },
@@ -83,6 +93,8 @@ const PIRATE_LORD = {
 export const KRAKEN_LAIR = { garrison: { triton: 130, hipocampo: 26 }, wall: 0.4, regenHours: 36 };
 /** Quiénes guardaban antes las fosas y quiénes las guardan ahora (para los mundos de antes). */
 export const LAIR_GUARDS = { pirata: 'triton', corsario: 'hipocampo' };
+/** Los arqueros de los bárbaros eran los del jugador: ahora tienen los suyos. */
+export const BARBARIAN_ARCHERS = { arquero: 'arquero_barbaro' };
 const KRAKEN = {
   type: 'kraken', tier: 7, dist: 190, size: 8, ...KRAKEN_LAIR,
   loot: { max: 60000, rate: 1200, mix: { hierro: 0.2, cristal: 0.3, oro: 0.5 } },
@@ -185,6 +197,8 @@ export function generateSector(index, worldSeed = 1, obstacles = [], taken = new
     const { specialties, ...rest } = t;
     const isl = {
       ...rest,
+      // (cada isla con su propia guarnición, no la de la plantilla)
+      ...(rest.garrison ? { garrison: { ...rest.garrison } } : {}),
       id: `s${index}-${i}`,
       sector: index,
       name: name(t.type),
@@ -289,8 +303,8 @@ export function freshPlaceName(isl, taken, rand = Math.random) {
 }
 
 const CITADELS = [
-  { type: 'ciudadela', tier: 4, garrison: { barbaro: 60, arquero: 25 }, wall: 0.25, regenHours: 8, loot: { max: 11000, rate: 600, mix: { madera: 0.25, piedra: 0.2, hierro: 0.3, oro: 0.25 } } },
-  { type: 'ciudadela', tier: 5, garrison: { barbaro: 110, arquero: 45 }, wall: 0.35, regenHours: 10, loot: { max: 18000, rate: 900, mix: { piedra: 0.2, hierro: 0.3, cristal: 0.2, oro: 0.3 } } },
+  { type: 'ciudadela', tier: 4, garrison: BARBARIAN_GARRISONS.ciudadela[4], wall: 0.25, regenHours: 8, loot: { max: 11000, rate: 600, mix: { madera: 0.25, piedra: 0.2, hierro: 0.3, oro: 0.25 } } },
+  { type: 'ciudadela', tier: 5, garrison: BARBARIAN_GARRISONS.ciudadela[5], wall: 0.35, regenHours: 10, loot: { max: 18000, rate: 900, mix: { piedra: 0.2, hierro: 0.3, cristal: 0.2, oro: 0.3 } } },
 ];
 
 /** Los seis vértices (entre tres sectores) alrededor del sector `index`. */

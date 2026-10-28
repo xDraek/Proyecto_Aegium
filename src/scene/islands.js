@@ -77,10 +77,12 @@ export function createIslandBase(isl) {
   sand.position.y = -0.45 - 0.65;
   g.add(sand);
 
-  // Uno o dos montes en un lado de la isla (en la de los piratas no: la fortaleza la ocupa entera)
+  // Uno o dos montes en un lado de la isla (en la de los piratas y la de los bárbaros no: la
+  // fortaleza o el campamento la ocupan)
   const hills = [];
   const pirates = isl.type === 'piratas';
-  if (isl.type !== 'ruinas' && !pirates) {
+  const barbarians = isl.type === 'barbaros';
+  if (isl.type !== 'ruinas' && !pirates && !barbarians) {
     const a = rand() * 360;
     hills.push({ p: polar(R * 0.62 * at(a), a, ISLAND_TOP - 0.05), r: R * 0.42 });
     g.userData.hillAngle = a;
@@ -103,7 +105,7 @@ export function createIslandBase(isl) {
 
   // Árboles, arbustos y rocas por el borde (el centro queda libre para lo que haya encima)
   const decor = new Batch();
-  const onHill = (p) => hills.some((h) => p.distanceTo(h.p) < h.r) || (pirates && pirateBusy(isl, p));
+  const onHill = (p) => hills.some((h) => p.distanceTo(h.p) < h.r) || (pirates && pirateBusy(isl, p)) || (barbarians && campBusy(isl, p));
   const trees = isl.type === 'kraken' ? 0 : Math.round(R * 2.4);
   const leafColors = isl.type === 'libre' && isl.specialty === 'madera' ? ['#2f7a43', '#3f8a3a'] : ['#3f8a3a', '#4f9a3a', '#2f7a43', '#5a9e3c'];
   // Un punto al azar dentro de la isla, entre dos fracciones del radio en esa dirección
@@ -197,7 +199,7 @@ export function islandProxy(isl) {
       const s = 0.9 + rand() * 0.8;
       const tree = mesh(new THREE.ConeGeometry(0.8 * s, 2.4 * s, 5), greens[i % 3]);
       tree.position.copy(inside(cont ? 0.1 : 0.5, 0.92)).setY(ISLAND_TOP + 1.2 * s);
-      if (isl.type === 'piratas' && pirateBusy(isl, tree.position)) continue;
+      if ((isl.type === 'piratas' && pirateBusy(isl, tree.position)) || (isl.type === 'barbaros' && campBusy(isl, tree.position))) continue;
       b.add(tree);
     }
   }
@@ -210,7 +212,7 @@ export function islandProxy(isl) {
     }
   }
   // El monte grande, donde lo pone la isla de verdad (el primer número de su semilla)
-  if (!cont && isl.type !== 'ruinas' && isl.type !== 'piratas') {
+  if (!cont && isl.type !== 'ruinas' && isl.type !== 'piratas' && isl.type !== 'barbaros') {
     const a = rng(hashString(isl.id))() * 360;
     const at = coastFactor(h, THREE.MathUtils.degToRad(a));
     const hill = mesh(new THREE.ConeGeometry(R * 0.36, R * (isl.type === 'kraken' ? 0.75 : 0.5), 7), pal.rock);
@@ -413,7 +415,7 @@ export function createIslandFeature(isl, fullLook) {
   g.scale.setScalar(FEATURE_SCALE);
   const builders = {
     niebla: () => mist(g, R, rand),
-    barbaros: () => camp(g, R, rand),
+    barbaros: () => camp(g, R, rand, isl.tier ?? 1),
     ciudadela: () => citadel(g, R, rand),
     'ciudadela-propia': () => citadel(g, R, rand, isl.bannerColor ?? C.cloth[0]),
     'ciudadela-otro': () => citadel(g, R, rand, ownerColor(isl)),
@@ -480,36 +482,313 @@ function fogBank(g, R, rand) {
   }
 }
 
-function camp(g, R, rand) {
-  // Empalizada con una abertura
-  const r = R * 0.42;
-  for (let a = 0; a < 360; a += 12) {
-    if (a > 160 && a < 200) continue;
-    const stake = cyl(0.12, 0.12, 1.1 + rand() * 0.3, 5, C.woodDark);
-    stake.position.add(polar(r, a));
-    g.add(stake);
+// ── El campamento bárbaro ────────────────────────────────────────────────────
+// El gran salón de troncos (tejado a dos aguas con las vigas cruzadas, cuernos y una piel echada
+// encima, su estandarte rojo), dos atalayas de madera con antorcha, tiendas de piel, la hoguera en
+// medio con su anillo de piedras, empalizadas de estacas afiladas, armeros con lanzas y cajas.
+// Se diseña para una isla de radio 9 y se escala a la de verdad; la entrada mira a CAMP_FRONT.
+
+const CAMP_FRONT = 40;
+const CAMP_R = 9;
+const CAMP = {
+  log: '#6b4526', logDark: '#4a2e18', logLight: '#86592f', stake: '#5a3a20', tip: '#c9a36a',
+  hide: '#cdbb99', hideDark: '#8f6a45', hide2: '#a88660', banner: '#a8231a', emblem: '#1a1412',
+  horn: '#efe6d2', stone: '#8c867c', stoneDark: '#6d685f',
+};
+
+/** Lo que ocupa el campamento: ahí la isla no pone árboles ni peñas. */
+function campBusy(isl, p) {
+  return Math.hypot(p.x, p.z) < islandRadius(isl) * 0.66;
+}
+
+/** Estandarte rojo de los bárbaros con su emblema (un anillo negro con su punto), colgado de una vara; la cara a +Z. */
+function campBanner(w, h) {
+  const g = new THREE.Group();
+  const rod = cyl(0.04, 0.04, w + 0.24, 5, CAMP.logDark, 0, 0, 0);
+  rod.rotation.z = Math.PI / 2;
+  rod.position.y = 0;
+  g.add(rod);
+  g.add(box(w, h * 0.82, 0.04, CAMP.banner, 0, -h * 0.82, 0));
+  const tip = mesh(new THREE.ConeGeometry(w * 0.5, h * 0.2, 4), CAMP.banner);
+  tip.rotation.z = Math.PI;
+  tip.rotation.y = Math.PI / 4;
+  tip.scale.z = 0.06;
+  tip.position.set(0, -h * 0.91, 0);
+  g.add(tip);
+  const ring = mesh(new THREE.TorusGeometry(w * 0.24, w * 0.06, 6, 16), CAMP.emblem);
+  ring.position.set(0, -h * 0.45, 0.03);
+  g.add(ring, cyl(w * 0.08, w * 0.08, 0.02, 8, CAMP.emblem, 0, 0, 0));
+  g.children.at(-1).rotation.x = Math.PI / 2;
+  g.children.at(-1).position.set(0, -h * 0.45, 0.035);
+  return g;
+}
+
+/** Un tramo de empalizada de (x0, z0) a (x1, z1): estacas de alturas dispares con la punta afilada. */
+function palisade(g, x0, z0, x1, z1, rand) {
+  const len = Math.hypot(x1 - x0, z1 - z0);
+  const n = Math.max(2, Math.round(len / 0.27));
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const h = 1.0 + rand() * 0.45;
+    const x = x0 + (x1 - x0) * t + (rand() - 0.5) * 0.06;
+    const z = z0 + (z1 - z0) * t + (rand() - 0.5) * 0.06;
+    g.add(cyl(0.12, 0.13, h, 6, i % 3 ? CAMP.stake : CAMP.logDark, x, 0, z));
+    const tip = mesh(new THREE.ConeGeometry(0.12, 0.32, 6), CAMP.tip);
+    tip.position.set(x, h + 0.16, z);
+    g.add(tip);
   }
-  const hides = ['#a0784e', '#8b6a44', '#b89466'];
-  for (let i = 0; i < 4; i++) {
-    const tent = mesh(new THREE.ConeGeometry(0.9, 1.4, 5), hides[i % 3]);
-    tent.position.copy(polar(r * 0.55, i * 90 + 30, 0.7));
-    g.add(tent);
+  // Las dos traviesas que las atan
+  for (const y of [0.3, 0.8]) {
+    const rail = box(len, 0.08, 0.06, CAMP.logDark, 0, 0, 0);
+    rail.position.set((x0 + x1) / 2, y, (z0 + z1) / 2);
+    rail.rotation.y = -Math.atan2(z1 - z0, x1 - x0);
+    g.add(rail);
   }
-  // Hoguera
-  g.add(cyl(0.35, 0.4, 0.12, 8, C.stoneDark));
-  const fire = makeFire(0, 0.1, 0, 0.69);
-  g.add(fire);
-  // Tótem con calavera
-  g.add(cyl(0.12, 0.14, 2.0, 6, C.wood, r * 0.3, 0, -r * 0.5));
-  const skull = mesh(new THREE.SphereGeometry(0.22, 8, 6), '#efe8d8');
-  skull.position.set(r * 0.3, 2.15, -r * 0.5);
-  g.add(skull);
+}
+
+/** Atalaya de madera: cuatro postes con aspas, la plataforma con barandilla y su arquero, su estandarte y una antorcha. */
+function campTower(g, x, z, rotY) {
+  const t = new THREE.Group();
+  const s = 0.6;
+  const H = 3.0;
+  for (const [px, pz] of [[-s, -s], [s, -s], [-s, s], [s, s]]) t.add(cyl(0.09, 0.11, H + 0.75, 6, CAMP.log, px, 0, pz));
+  // Las aspas de los costados y las traviesas
+  for (let face = 0; face < 4; face++) {
+    const f = new THREE.Group();
+    for (const sgn of [-1, 1]) {
+      const brace = box(0.07, Math.hypot(2 * s, H * 0.55), 0.07, CAMP.logDark, 0, 0, 0);
+      brace.rotation.z = sgn * Math.atan2(2 * s, H * 0.55);
+      brace.position.set(0, H * 0.32, s);
+      f.add(brace);
+    }
+    f.add(box(2 * s + 0.1, 0.08, 0.08, CAMP.logDark, 0, H * 0.6, s));
+    f.rotation.y = (face * Math.PI) / 2;
+    t.add(f);
+  }
+  // La plataforma y la barandilla
+  t.add(box(2 * s + 0.4, 0.14, 2 * s + 0.4, CAMP.logLight, 0, H, 0));
+  for (const y of [H + 0.35, H + 0.65]) {
+    for (const [w, d, px, pz] of [[2 * s + 0.3, 0.07, 0, -s - 0.12], [2 * s + 0.3, 0.07, 0, s + 0.12], [0.07, 2 * s + 0.3, -s - 0.12, 0], [0.07, 2 * s + 0.3, s + 0.12, 0]]) t.add(box(w, 0.07, d, CAMP.log, px, y, pz));
+  }
+  // Los remates de los postes, afilados
+  for (const [px, pz] of [[-s, -s], [s, -s], [-s, s], [s, s]]) {
+    const tip = mesh(new THREE.ConeGeometry(0.11, 0.28, 6), CAMP.tip);
+    tip.position.set(px, H + 0.89, pz);
+    t.add(tip);
+  }
+  const banner = campBanner(0.8, 1.5);
+  banner.position.set(0, H - 0.1, s + 0.22);
+  t.add(banner);
+  // Un arquero de guardia en lo alto
+  const archer = createSoldier('arquero_barbaro');
+  archer.scale.setScalar(1.6);
+  archer.position.set(-0.15, H + 0.14, 0);
+  t.add(archer);
+  // La antorcha de la esquina
+  t.add(cyl(0.05, 0.05, 0.5, 5, CAMP.logDark, s, H + 0.9, s));
+  t.add(cyl(0.1, 0.06, 0.12, 6, '#3a2a1e', s, H + 1.38, s));
+  t.add(makeFire(s, H + 1.48, s, 0.35));
+  t.position.set(x, 0, z);
+  t.rotation.y = rotY;
+  g.add(t);
+}
+
+/** Tienda de pieles: cono con su remate de palos cruzados y la puerta en sombra; la puerta a +Z. */
+function teepee(g, x, z, r, h, rotY, color) {
+  const t = new THREE.Group();
+  const cone = mesh(new THREE.ConeGeometry(r, h, 9), color);
+  cone.position.y = h / 2;
+  t.add(cone);
+  // Una franja más oscura abajo y las costuras
+  const band = mesh(new THREE.CylinderGeometry(r * 0.86, r * 1.01, h * 0.14, 9, 1, true), CAMP.hideDark);
+  band.position.y = h * 0.07;
+  t.add(band);
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2 + 0.3;
+    const pole = cyl(0.035, 0.035, h * 0.55, 4, CAMP.logDark, 0, 0, 0);
+    pole.position.set(Math.sin(a) * r * 0.12, h * 0.82, Math.cos(a) * r * 0.12);
+    pole.rotation.set(Math.cos(a) * 0.35, 0, -Math.sin(a) * 0.35);
+    t.add(pole);
+  }
+  const door = mesh(new THREE.ConeGeometry(r * 0.32, h * 0.46, 3), '#2a1d14');
+  door.position.set(0, h * 0.23, r * 0.72);
+  door.rotation.x = -0.45;
+  door.scale.z = 0.2;
+  t.add(door);
+  t.position.set(x, 0, z);
+  t.rotation.y = rotY;
+  g.add(t);
+}
+
+/** Armero: dos caballetes con un travesaño y las lanzas apoyadas. */
+function spearRack(g, x, z, rotY, rand) {
+  const t = new THREE.Group();
+  for (const sx of [-0.55, 0.55]) {
+    for (const sgn of [-1, 1]) {
+      const leg = cyl(0.04, 0.04, 1.2, 4, CAMP.log, 0, 0, 0);
+      leg.position.set(sx, 0.55, sgn * 0.14);
+      leg.rotation.x = sgn * 0.3;
+      t.add(leg);
+    }
+  }
+  t.add(box(1.3, 0.07, 0.07, CAMP.logDark, 0, 0.95, 0));
+  for (let i = 0; i < 6; i++) {
+    const px = -0.5 + i * 0.2 + (rand() - 0.5) * 0.05;
+    const spear = cyl(0.025, 0.025, 1.7, 4, CAMP.logLight, 0, 0, 0);
+    spear.position.set(px, 0.83, -0.18);
+    spear.rotation.x = -0.22;
+    t.add(spear);
+    const tip = mesh(new THREE.ConeGeometry(0.05, 0.2, 4), '#9aa0a6');
+    tip.position.set(px, 1.75, -0.38);
+    tip.rotation.x = -0.22;
+    t.add(tip);
+  }
+  t.position.set(x, 0, z);
+  t.rotation.y = rotY;
+  g.add(t);
+}
+
+/** El gran salón: paredes bajas de troncos, tejado a dos aguas con las vigas cruzadas y cuernos, una piel encima y el estandarte. */
+function longhouse(g, x, z) {
+  const t = new THREE.Group();
+  const W = 3.4;
+  const D = 4.4;
+  const wallH = 0.75;
+  const roofH = 2.6;
+  // Las paredes de troncos (troncos tumbados, uno sobre otro)
   for (let i = 0; i < 3; i++) {
-    const b = createSoldier('barbaro');
-    b.scale.setScalar(1.8);
-    b.position.copy(polar(r * 0.35, 200 + i * 50));
-    b.rotation.y = rand() * Math.PI * 2;
-    g.add(b);
+    for (const sx of [-1, 1]) {
+      const l = cyl(0.13, 0.13, D, 6, i % 2 ? CAMP.log : CAMP.logDark, 0, 0, 0);
+      l.rotation.x = Math.PI / 2;
+      l.position.set(sx * (W / 2 - 0.15), 0.13 + i * 0.24, 0);
+      t.add(l);
+    }
+  }
+  t.add(box(W - 0.3, wallH, D - 0.2, CAMP.logDark, 0, 0, 0));
+  // El tejado y sus vigas
+  t.add(gableRoof(W + 0.5, roofH, D + 0.3, CAMP.log, 0, wallH, 0));
+  const slope = Math.atan2(roofH, (W + 0.5) / 2);
+  const run = Math.hypot(roofH, (W + 0.5) / 2);
+  for (const sx of [-1, 1]) {
+    for (let i = 0; i < 9; i++) {
+      const lz = -(D + 0.3) / 2 + 0.15 + i * ((D + 0.0) / 8);
+      const beam = cyl(0.08, 0.08, run + 0.1, 5, i % 2 ? CAMP.logLight : CAMP.log, 0, 0, 0);
+      beam.rotation.z = Math.PI / 2 - sx * slope;
+      beam.position.set(sx * ((W + 0.5) / 4 + 0.04), wallH + roofH / 2 + 0.04, lz);
+      t.add(beam);
+    }
+  }
+  // La piel echada sobre el tejado (por el lado derecho, colgando)
+  for (const [lz, w, c] of [[0.3, 2.6, CAMP.hide], [-1.3, 1.2, CAMP.hide2]]) {
+    const hide = box(run * 0.9, 0.05, w, c, 0, 0, 0);
+    hide.rotation.z = -slope;
+    hide.position.set((W + 0.5) / 4 + 0.12, wallH + roofH / 2 + 0.12, lz);
+    t.add(hide);
+  }
+  const spot = box(0.6, 0.06, 0.8, CAMP.hideDark, 0, 0, 0);
+  spot.rotation.z = -slope;
+  spot.position.set((W + 0.5) / 4 + 0.2, wallH + roofH / 2 + 0.15, 0.6);
+  t.add(spot);
+  // El frontón: los troncos cruzados en aspa por encima de la cumbrera, con cuernos
+  for (const end of [-1, 1]) {
+    const zf = end * ((D + 0.3) / 2 + 0.05);
+    // (cada una baja por su lado del tejado y asoma por encima de la cumbrera, donde se cruzan)
+    const L = 2.2;
+    const over = 0.75;
+    for (const sx of [-1, 1]) {
+      const raf = cyl(0.1, 0.1, L, 6, CAMP.logLight, 0, 0, 0);
+      raf.rotation.z = Math.PI / 2 - sx * slope;
+      const back = L / 2 - over;
+      raf.position.set(sx * Math.cos(slope) * back, wallH + roofH + 0.1 - Math.sin(slope) * back, zf);
+      t.add(raf);
+      const horn = mesh(new THREE.ConeGeometry(0.08, 0.5, 6), CAMP.horn);
+      horn.position.set(-sx * Math.cos(slope) * over, wallH + roofH + 0.1 + Math.sin(slope) * over + 0.15, zf);
+      horn.rotation.z = sx * 0.7;
+      t.add(horn);
+    }
+  }
+  // La entrada en sombra y su dintel
+  t.add(gableRoof(1.6, 1.8, 0.06, '#24170e', 0, 0, (D + 0.3) / 2 + 0.02));
+  t.add(box(1.0, 1.3, 0.08, '#24170e', 0, 0, (D + 0.3) / 2 + 0.02));
+  // El estandarte del frontón y las antorchas de la puerta
+  const banner = campBanner(0.9, 1.7);
+  banner.position.set(0, wallH + roofH * 0.62, (D + 0.3) / 2 + 0.12);
+  t.add(banner);
+  for (const sx of [-1, 1]) {
+    t.add(cyl(0.05, 0.06, 1.3, 5, CAMP.logDark, sx * 1.15, 0, (D + 0.3) / 2 + 0.35));
+    t.add(makeFire(sx * 1.15, 1.32, (D + 0.3) / 2 + 0.35, 0.3));
+  }
+  t.position.set(x, 0, z);
+  g.add(t);
+}
+
+function camp(g, R, rand, tier = 1) {
+  const k = R / CAMP_R;
+  const f = new THREE.Group();
+  f.scale.setScalar(k);
+  f.rotation.y = THREE.MathUtils.degToRad(CAMP_FRONT);
+  g.add(f);
+
+  longhouse(f, 0, -1.4);
+  campTower(f, -4.2, -2.4, 0.5);
+  campTower(f, 4.5, -0.9, -0.5);
+  teepee(f, -2.9, 1.3, 1.0, 2.0, 0.5, CAMP.hide2);
+  teepee(f, 3.0, 1.6, 1.05, 2.1, -0.6, CAMP.hide2);
+  teepee(f, 2.2, -2.9, 0.7, 1.4, -0.3, CAMP.hide);
+
+  // La hoguera con su anillo de piedras y unos troncos
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * Math.PI * 2;
+    const st = mesh(new THREE.DodecahedronGeometry(0.17, 0), i % 2 ? CAMP.stone : CAMP.stoneDark);
+    st.position.set(Math.sin(a) * 0.62, 0.08, 1.7 + Math.cos(a) * 0.62);
+    st.scale.y = 0.7;
+    f.add(st);
+  }
+  for (const r of [0.4, -0.5, 1.6]) {
+    const l = cyl(0.07, 0.07, 0.75, 5, CAMP.logDark, 0, 0, 0);
+    l.rotation.set(Math.PI / 2, r, 0, 'YXZ');
+    l.position.set(0, 0.09, 1.7);
+    f.add(l);
+  }
+  f.add(makeFire(0, 0.08, 1.7, 0.75, { night: false }));
+
+  // Las empalizadas: delante a los dos lados de la entrada, a los costados y por detrás
+  palisade(f, -1.3, 3.9, -4.3, 2.4, rand);
+  palisade(f, -4.6, 1.8, -5.0, -0.8, rand);
+  palisade(f, 1.4, 3.9, 4.3, 2.7, rand);
+  palisade(f, 4.9, 2.0, 5.3, 0.4, rand);
+  palisade(f, -2.4, -4.4, 0.6, -4.7, rand);
+  palisade(f, 3.0, -3.9, 5.1, -2.4, rand);
+  palisade(f, -1.6, 2.6, -1.6, 1.4, rand);
+
+  spearRack(f, -1.5, 3.0, 0.15, rand);
+  spearRack(f, 2.3, 0.2, -1.3, rand);
+  for (const [x, z, s, r] of [[-3.3, -0.4, 0.45, 0.3], [-2.85, -0.75, 0.38, 0.9], [1.9, -0.9, 0.42, 0.2], [3.6, 3.0, 0.5, 0.5], [-0.9, -4.0, 0.4, 0.1]]) crate(f, x, 0, z, s, r);
+  barrel(f, 2.25, 0, -0.3);
+
+  // Peñas, un par de cipreses y matas entre las tiendas
+  for (const [x, z, s] of [[-4.0, 0.4, 0.55], [5.2, -2.2, 0.5], [-5.4, -3.0, 0.65]]) {
+    const rock = mesh(new THREE.DodecahedronGeometry(s, 0), CAMP.stone);
+    rock.position.set(x, s * 0.4, z);
+    rock.scale.y = 0.8;
+    rock.rotation.set(rand(), rand() * 3, 0);
+    f.add(rock);
+  }
+  for (const [x, z, s] of [[-3.3, -3.6, 1.0], [1.4, -4.1, 0.9], [5.6, 1.3, 0.85], [-5.6, 0.9, 0.9], [3.6, -3.4, 0.75]]) {
+    const c = cypress('#2c4f2a');
+    c.position.set(x, 0, z);
+    c.scale.setScalar(s * 1.15);
+    f.add(c);
+  }
+
+  // Los bárbaros, alrededor de la hoguera y de guardia en la entrada (en los grandes, con un berserker)
+  for (const [x, z, r, id] of [[-1.0, 2.2, 2.4, 'barbaro'], [1.0, 2.3, -2.4, 'barbaro'], [0.2, 0.7, 0.1, 'barbaro'], [-0.6, 4.1, 0.3, 'barbaro'], [0.7, 4.2, -0.2, tier >= 3 ? 'berserker' : null]]) {
+    if (!id) continue;
+    const b = createSoldier(id);
+    b.scale.setScalar(1.7);
+    b.position.set(x, 0, z);
+    b.rotation.y = r;
+    f.add(b);
   }
 }
 
@@ -1289,7 +1568,7 @@ function citadel(g, R, rand, owner = null) {
     g.add(makeFire(p.x, 0, p.z, 0.69));
   }
   for (let i = 0; i < 5; i++) {
-    const b = createSoldier(owner ? (i % 2 ? 'lancero' : 'hoplita') : i % 2 ? 'barbaro' : 'arquero');
+    const b = createSoldier(owner ? (i % 2 ? 'lancero' : 'hoplita') : ['barbaro', 'arquero_barbaro', 'berserker'][i % 3]);
     b.scale.setScalar(1.8);
     b.position.copy(polar(R * 0.3, 160 + i * 18));
     b.rotation.y = rand() * Math.PI * 2;

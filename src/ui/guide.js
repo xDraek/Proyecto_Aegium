@@ -394,7 +394,7 @@ const TOPICS = {
             Object.entries(COUNTERS[k] ?? {}).map(([t, b]) => `${UNIT_CLASSES[t].icon} ${UNIT_CLASSES[t].name} (+${Math.round(b * 100)} %)`).join(', ') || '—',
           ]),
       )}
-      <p>Los bárbaros, los piratas, los tritones y los inmortales son infantería; los monstruos (el Kraken, las cabezas de Tifón y de la Hidra) no tienen clase. En los informes verás la ventaja que más pesó de cada bando.</p>
+      <p>Los bárbaros, los piratas, los tritones y los inmortales son infantería; los berserkers, la élite de los bárbaros, son espadas (cuidado con tus lanzas); los arqueros bárbaros, distancia; y los monstruos (el Kraken, las cabezas de Tifón y de la Hidra) no tienen clase. En los informes verás la ventaja que más pesó de cada bando.</p>
       <h5>Qué te hace más fuerte</h5>
       ${table(
         ['Mejora', 'Efecto'],
