@@ -543,7 +543,7 @@ export const UNITS = {
   // Los guardianes de las fosas del Kraken: tritones con tridente y sus hipocampos de guerra
   triton: { name: 'Tritón', icon: '🔱', kind: 'tierra', npc: true, atk: 11, hp: 17 },
   hipocampo: { name: 'Hipocampo', icon: '🌊', kind: 'barco', npc: true, atk: 20, hp: 50, capacity: 12 },
-  kraken: { name: 'Kraken', icon: '🐙', kind: 'barco', npc: true, atk: 260, hp: 2600 },
+  kraken: { name: 'Kraken', icon: '🐙', img: '/ui/kraken.png', kind: 'barco', npc: true, atk: 260, hp: 2600 },
   // Los hijos de Tifón (gestas): su número y sus multiplicadores dependen de quién les plante cara
   sierpe: { name: 'Sierpe marina', icon: '🐍', kind: 'barco', npc: true, atk: 14, hp: 300 },
   gigante: { name: 'Gigante', icon: '🗿', kind: 'tierra', npc: true, atk: 12, hp: 400 },
@@ -556,7 +556,7 @@ export const UNITS = {
 };
 // Las tropas con `img` tienen de icono una imagen: `icon` pasa a ser el HTML y `emoji` se queda con
 // el carácter (único, que no use nada más), que es lo que va en los textos sin formato y que
-// glyphs()/richText() cambian por la imagen al pintarlos. 🪖 milicia con lanza, 👝 hondero, 🤺 espadachín, 🪶 arquero, 🥏 hoplita, 🐴 jinete, 🏇 catafracto, 🔺 espartano, 🎯 arquero cretense, 🦣 elefante, 🛳 dromón, ⛴️ liburna, 🚤 quinquerreme, 🧨 brulote, 🚣‍♂️ trirreme, 🛥 mercante, 🛶 bote.
+// glyphs()/richText() cambian por la imagen al pintarlos. 🪖 milicia con lanza, 👝 hondero, 🤺 espadachín, 🪶 arquero, 🥏 hoplita, 🐴 jinete, 🏇 catafracto, 🔺 espartano, 🎯 arquero cretense, 🦣 elefante, 🛳 dromón, ⛴️ liburna, 🚤 quinquerreme, 🧨 brulote, 🚣‍♂️ trirreme, 🛥 mercante, 🛶 bote, 🐙 Kraken.
 for (const u of Object.values(UNITS)) {
   u.emoji ??= u.icon;
   if (u.img) u.icon = `<img class="res-img unit-img" src="${u.img}" alt="" draggable="false" />`;

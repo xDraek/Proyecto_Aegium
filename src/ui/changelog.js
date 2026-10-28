@@ -7,6 +7,26 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-28g',
+    date: '2026-10-28',
+    title: 'Avisos importantes, a la vista',
+    items: [
+      '🐙 Cuando el Kraken despierta, el aviso sale resaltado en el chat, con un botón «📍 Ver la zona» que abre el mapa donde lo han visto los marineros.',
+      '🐙 Mientras siga despierto y se le pueda derrotar, sale su icono arriba a la derecha, junto a la temporada y el favor. Al pulsarlo se abre el chat en el aviso que dice dónde lo han visto.',
+      '📣 Los demás avisos importantes también salen resaltados en el chat, cada uno con su color: las gestas de la Liga (Tifón, Hidra, Armada) en oro, las hordas bárbaras en rojo y las temporadas del archipiélago en turquesa. Los de las gestas llevan también un botón «📍 Ver en el mapa» que abre su continente.',
+      '📊 La barra de recursos ya no se descuadra con cifras grandes: a partir del millón se escriben en millones (por ejemplo 50M o 1,25M; la cifra exacta, al pasar el ratón) y la producción muy alta abreviada (+125k/h). En pantallas medianas todo va un poco más junto para que nada se corte.',
+    ],
+    en: {
+      title: 'Important notices, in sight',
+      items: [
+        '🐙 When the Kraken wakes up, the notice stands out in the chat, with a «📍 See the area» button that opens the map where sailors have seen it.',
+        '🐙 While it stays awake and can be defeated, its icon appears at the top right, next to the season and the favour. Press it to open the chat at the notice that says where it was seen.',
+        '📣 The other important notices also stand out in the chat, each with its own colour: League feats (Typhon, Hydra, Armada) in gold, barbarian hordes in red and archipelago seasons in turquoise. The feat notices also have a «📍 View on the map» button that opens their continent.',
+        '📊 The resource bar no longer gets thrown off by big numbers: from a million on they are written in millions (for example 50M or 1,25M; the exact figure on hover) and very high production is shortened (+125k/h). On medium screens everything sits a bit closer so nothing gets cut off.',
+      ],
+    },
+  },
+  {
     id: '2026-10-28f',
     date: '2026-10-28',
     title: 'Poderes del templo',

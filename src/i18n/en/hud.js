@@ -163,4 +163,7 @@ export default {
   "Borrar mensaje": "Delete message",
   "Comandos de moderador": "Moderator commands",
   "Se escriben en el chat": "Typed in the chat",
+  "📍 Ver la zona ▶": "📍 See the area ▶",
+  "📍 Ver en el mapa ▶": "📍 View on the map ▶",
+  "El Kraken ha despertado: pulsa para ver dónde lo han visto": "The Kraken has awoken: press to see where it was seen",
 }

@@ -16,6 +16,15 @@ export function fmtShort(n) {
   return `${nf1.format(Math.floor(n / 100_000) / 10)}M`;
 }
 
+/**
+ * Lo que tienes de un recurso en la barra de arriba: entero hasta el millón y, de ahí en adelante,
+ * en millones con hasta dos decimales (1,25M, 50M), para que quepa siempre (la cifra exacta, al pasar el ratón).
+ */
+export function fmtAmount(n) {
+  if (Math.abs(n) < 1_000_000) return fmtNum(n);
+  return `${fmtEs(Math.floor(n / 10_000) / 100, 2)}M`;
+}
+
 /** Cifra muy corta (para la producción por hora en el móvil): 982, 3,5k, 12k, 1,2M. */
 export function fmtTiny(n) {
   const a = Math.abs(n);

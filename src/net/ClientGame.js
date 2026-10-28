@@ -37,6 +37,8 @@ export class ClientGame extends Game {
     this.forumUnread = snap.forumUnread ?? 0;
     this.allianceApplications = snap.applications ?? 0;
     this.friendRequests = snap.friendRequests ?? 0;
+    // Si el Kraken está despierto (sale su icono arriba)
+    this.kraken = !!snap.kraken;
     const islandsChanged = this.world.apply(snap.world);
     if (snap.world.full !== false) this.statesFullAt = Date.now();
     this.state = snap.state;

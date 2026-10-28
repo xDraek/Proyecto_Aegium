@@ -1927,6 +1927,54 @@ body.landing-mode #chat {
   font-size: 13px;
 }
 
+/* Los avisos importantes (el Kraken, las gestas, las hordas, las temporadas): que no pasen
+   desapercibidos entre los demás, cada clase con su color */
+.msg.system.hl {
+  --hl: #b06ad9;
+  --hl-bg: rgba(122, 59, 160, 0.42);
+  --hl-bg2: rgba(47, 108, 140, 0.22);
+  --hl-link: #e2b8ff;
+  color: var(--text);
+  font-style: normal;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 10px;
+  margin: 6px 0;
+  border-left: 3px solid var(--hl);
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--hl-bg), var(--hl-bg2));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--hl) 30%, transparent);
+}
+
+.msg.system.hl .link {
+  color: var(--hl-link);
+  font-weight: 700;
+}
+
+/* Las gestas de la Liga: oro */
+.msg.system.hl-gesta {
+  --hl: #e0b440;
+  --hl-bg: rgba(160, 118, 30, 0.42);
+  --hl-bg2: rgba(120, 70, 20, 0.2);
+  --hl-link: #ffe08a;
+}
+
+/* Las hordas bárbaras: fuego */
+.msg.system.hl-horda {
+  --hl: #e0573f;
+  --hl-bg: rgba(160, 45, 30, 0.42);
+  --hl-bg2: rgba(120, 60, 20, 0.2);
+  --hl-link: #ffb39e;
+}
+
+/* Las temporadas del archipiélago: mar */
+.msg.system.hl-temporada {
+  --hl: #3fbfb0;
+  --hl-bg: rgba(30, 120, 115, 0.42);
+  --hl-bg2: rgba(30, 80, 130, 0.2);
+  --hl-link: #9ff0e4;
+}
+
 .msg time {
   margin-left: 6px;
   font-size: 11px;
@@ -2895,6 +2943,48 @@ input[type='text'] {
 
 .event-pill {
   opacity: 0.75;
+}
+
+/* El Kraken despierto, junto al favor y la temporada */
+.kraken-pill {
+  cursor: pointer;
+  user-select: none;
+  /* Una cápsula redonda justa para el icono, centrado (sin texto: no empuja a los recursos) */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 36px;
+  padding: 0;
+  overflow: hidden;
+  border-color: rgba(176, 106, 217, 0.85);
+  background: rgba(74, 32, 99, 0.82);
+  color: #f3e6ff;
+  animation: kraken-glow 2.4s ease-in-out infinite;
+}
+
+.kraken-pill .res-img.unit-img {
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  vertical-align: middle;
+}
+
+/* El aviso del Kraken al que lleva su icono: brilla un momento para encontrarlo */
+.msg.system.hl.flash {
+  animation: msg-flash 1.6s ease-out 2;
+}
+
+@keyframes msg-flash {
+  0% {
+    box-shadow: 0 0 0 3px var(--hl), 0 0 24px var(--hl);
+  }
+}
+
+@keyframes kraken-glow {
+  50% {
+    box-shadow: 0 0 14px rgba(176, 106, 217, 0.65);
+  }
 }
 
 .event-pill.active {
@@ -5467,10 +5557,64 @@ kbd {
   }
 }
 
-@media (max-width: 1100px) and (min-width: 801px) {
+@media (max-width: 1240px) and (min-width: 801px) {
   /* Pantallas medianas: sin la producción por hora, que se ve al pasar el ratón */
   #topbar .res-rate {
     display: none;
+  }
+}
+
+@media (max-width: 1320px) and (min-width: 801px) {
+  /* Y hasta las de portátil, todo un poco más junto para que quepan las cifras enteras (también
+     con el Kraken despierto arriba) */
+  #topbar #resources {
+    gap: 4px;
+  }
+
+  #topbar .res {
+    padding: 4px 6px;
+    gap: 4px;
+  }
+
+  #topbar .res-amount {
+    font-size: 13px;
+  }
+
+  #topbar .top-status {
+    gap: 4px;
+  }
+
+  #topbar .top-status .pill {
+    padding: 0 8px;
+  }
+
+  #topbar .top-status .kraken-pill {
+    width: 32px;
+    padding: 0;
+  }
+
+  #topbar .kraken-pill .res-img.unit-img {
+    width: 27px;
+    height: 27px;
+  }
+}
+
+@media (max-width: 960px) and (min-width: 801px) {
+  /* Aún más estrecho: los avisos (temporada, Kraken, favor, regalo) en su fila, encima de los
+     recursos, para que las cifras no se corten */
+  #topbar {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  #topbar .top-status {
+    order: -1;
+    flex-basis: 100%;
+    justify-content: flex-end;
+  }
+
+  #topbar #resources {
+    flex: 1 1 100%;
   }
 }
 
@@ -5484,7 +5628,7 @@ kbd {
   #topbar .top-status {
     order: -1;
     flex-basis: 100%;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 4px;
   }
 
@@ -5496,6 +5640,15 @@ kbd {
   #topbar .top-status .icon-btn {
     width: 26px;
     height: 26px;
+  }
+
+  #topbar .top-status .kraken-pill {
+    width: 30px;
+  }
+
+  #topbar .kraken-pill .res-img.unit-img {
+    width: 25px;
+    height: 25px;
   }
 
   #topbar #resources {

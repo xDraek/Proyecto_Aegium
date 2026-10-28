@@ -6,7 +6,7 @@ import { featAt, featCycle } from '../game/feats.js';
 import { api } from '../net/api.js';
 import { armyHtml, armySummary, featWait } from './army.js';
 import { buildingPanel } from './buildingPanel.js';
-import { bag, costItems, escapeHtml, fmtNum, fmtRate, fmtShort, fmtTiny, fmtTime, linkCoords, resIcons, richText, unitList } from './format.js';
+import { bag, costItems, escapeHtml, fmtAmount, fmtNum, fmtRate, fmtShort, fmtTiny, fmtTime, linkCoords, resIcons, richText, unitList } from './format.js';
 import { installResPickers, syncResPickers } from './resPicker.js';
 import { askChoice, askConfirm, askPrompt } from './dialog.js';
 import { unitIcon } from '../scene/portraits.js';
@@ -220,6 +220,9 @@ export class Hud {
     });
     this.favorEl.addEventListener('click', () => this.onSelect('templo'));
     this.eventEl = $('#event-pill');
+    // El Kraken despierto: su icono, mientras se le pueda derrotar; lleva al aviso del chat que dice dónde lo han visto
+    this.krakenEl = $('#kraken-pill');
+    this.krakenEl.addEventListener('click', () => this.showKrakenNotice());
     this.eventEl.addEventListener('click', () => this.openEvents());
     this.modal.addEventListener('click', async (e) => {
       if (e.target === this.modal || e.target.closest('[data-action="close-modal"]')) return this.closeModal();
@@ -685,6 +688,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     this.#updateResources();
     this.#updateFavor();
     this.#updateEvent();
+    this.#updateKraken();
     this.#refreshLive(this.panel);
     this.#refreshLive(this.dock);
     this.#refreshLive(this.dockHead);
@@ -758,8 +762,9 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       const rate = paused ? 0 : prod[key];
       // En el móvil, cifras cortas para que quepan los seis recursos
       const narrow = NARROW.matches;
-      els.amount.textContent = narrow ? fmtShort(amount) : fmtNum(amount);
-      let rateText = narrow ? `${rate < 0 ? '−' : '+'}${Math.abs(rate) < 10 ? fmtRate(rate) : fmtTiny(Math.abs(rate))}` : `${rate < 0 ? '−' : '+'}${fmtRate(rate)}/h`;
+      els.amount.textContent = narrow ? fmtShort(amount) : fmtAmount(amount);
+      // (y en el ordenador, la producción muy alta también abreviada: +125k/h)
+      let rateText = narrow ? `${rate < 0 ? '−' : '+'}${Math.abs(rate) < 10 ? fmtRate(rate) : fmtTiny(Math.abs(rate))}` : `${rate < 0 ? '−' : '+'}${Math.abs(rate) < 10_000 ? fmtRate(rate) : fmtTiny(Math.abs(rate))}/h`;
       if (paused) rateText = '⏸️ vacaciones';
       else if (key === 'comida' && starving) rateText = '¡Hambruna!';
       else if (full && rate > 0) rateText = 'Lleno';
@@ -798,6 +803,24 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     this.eventEl.classList.toggle('active', !!ev.event);
     const title = ev.event ? `${ev.event.name}: ${ev.event.text}\nTermina en ${left}. Clic para ver el calendario.` : `Mares tranquilos. La próxima temporada puede empezar en ${left}.\nClic para ver el calendario.`;
     if (this.eventEl.title !== title) this.eventEl.title = title;
+  }
+
+  /** Abre el chat del archipiélago en el último aviso de que el Kraken ha despertado (y lo hace brillar un momento). */
+  showKrakenNotice() {
+    this.toggleChat(true, 'global');
+    requestAnimationFrame(() => {
+      const msg = [...this.chatEl.querySelectorAll('.msg.kraken-wake')].at(-1);
+      if (!msg) return;
+      msg.scrollIntoView({ block: 'center' });
+      msg.classList.remove('flash');
+      void msg.offsetWidth;
+      msg.classList.add('flash');
+    });
+  }
+
+  /** El icono del Kraken, solo mientras está despierto. */
+  #updateKraken() {
+    if (this.krakenEl.hidden === !!this.game.kraken) this.krakenEl.hidden = !this.game.kraken;
   }
 
   openGuide(topic) {
@@ -1547,8 +1570,17 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
       .filter((m) => (m.channel ?? 'global') === ch)
       .map((m) => {
         const time = new Date(m.t).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        // Los avisos importantes van resaltados, cada clase de su color (el Kraken, las gestas, las
+        // hordas, las temporadas); el despertar del Kraken, con un botón a la zona donde lo han visto
+        // (y las gestas, con un botón a su continente: uno por continente si son varios)
+        const zone = (at, label) => ` <button class="link small" data-coords="${at[0]}:${at[1]}">📍 ${label} ▶</button>`;
+        const kraken = [
+          ...(m.kraken?.near ? [zone(m.kraken.near, 'Ver la zona')] : []),
+          ...(m.zones ?? []).filter(Boolean).map((z) => zone(z.at, z.name ? escapeHtml(z.name) : 'Ver en el mapa')),
+        ].join('');
+        const highlight = m.highlight ?? (m.kraken ? 'kraken' : null);
         return m.system
-          ? `<div class="msg system"><span>${richText(m.text)}</span>${m.offer ? ` <button class="link small" data-offer="${m.offer}">Ver ofertas ▶</button>` : ''}<time>${time}</time></div>`
+          ? `<div class="msg system${highlight ? ` hl hl-${highlight}` : ''}${m.kraken?.near ? ' kraken-wake' : ''}"><span>${richText(m.text)}</span>${m.offer ? ` <button class="link small" data-offer="${m.offer}">Ver ofertas ▶</button>` : ''}${kraken}<time>${time}</time></div>`
           : `<div class="msg${m.name === this.game.username ? ' mine' : ''}"><b data-profile="${escapeHtml(m.name)}" translate="no">${escapeHtml(m.name)}</b>${m.title ? `<em class="msg-title">${escapeHtml(m.title)}</em>` : ''} <span translate="no">${linkCoords(escapeHtml(m.text))}</span>${
               m.report ? `<button class="link small" data-shared="${m.id}">Ver informe ▶</button>` : ''
             }<time>${time}</time>${

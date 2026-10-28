@@ -955,7 +955,7 @@ export class WorldServer {
     rt.horde = { spawn: now, deadline: now + this.#hoursMs(HORDE.warnHours), garrison, start: { ...garrison }, damage: {}, names: {}, colonists: uids.size };
     this.touch(cont.id);
     const total = Object.values(garrison).reduce((a, b) => a + b, 0);
-    this.announce(`🔥 Una horda de ${total} bárbaros desembarca en ${cont.name}: arrasará sus colonias en ${HORDE.warnHours} h si nadie la detiene`);
+    this.announce(`🔥 Una horda de ${total} bárbaros desembarca en ${cont.name}: arrasará sus colonias en ${HORDE.warnHours} h si nadie la detiene`, 'global', { highlight: 'horda' });
     for (const uid of uids) {
       this.hostNews(uid, `🔥 ¡Una horda bárbara amenaza tus colonias de ${cont.name}! Atácala antes de ${HORDE.warnHours} h`);
       this.pendingPush.add(uid);
@@ -982,7 +982,7 @@ export class WorldServer {
       this.hostNews(uid, `🔥 La horda ha saqueado tus colonias de ${cont.name}: no producirán en ${HORDE.ravageHours} h`);
       this.pendingPush.add(uid);
     }
-    this.announce(`🔥 Nadie detuvo a la horda: ha arrasado las colonias de ${cont.name}`);
+    this.announce(`🔥 Nadie detuvo a la horda: ha arrasado las colonias de ${cont.name}`, 'global', { highlight: 'horda' });
     rt.horde = null;
     rt.nextHorde = now + this.#between(HORDE.gapHours);
     this.touch(cont.id);
@@ -1009,7 +1009,7 @@ export class WorldServer {
     const best = ranking[0];
     if (best && Math.random() < BASIC_RELIC_CHANCE) this.games.get(Number(best[0]))?.awardRelic(`entre los estandartes de la horda de ${cont.name}`, 'basica', t);
     const names = ranking.slice(0, 3).map(([uid, n]) => `${h.names?.[uid] ?? '¿?'} (${n})`).join(', ');
-    this.announce(`🏆 ¡La horda de ${cont.name} ha sido derrotada! Más bárbaros abatidos: ${names}`);
+    this.announce(`🏆 ¡La horda de ${cont.name} ha sido derrotada! Más bárbaros abatidos: ${names}`, 'global', { highlight: 'horda' });
     rt.horde = null;
     rt.nextHorde = t + this.#between(HORDE.gapHours);
     this.touch(id);
@@ -1097,7 +1097,7 @@ export class WorldServer {
     if (sites.size) {
       const t = FEAT_THEMES[cyc.theme];
       const names = [...sites.keys()].map((id) => this.islands.get(id)?.name).join(', ');
-      this.announce(`${t.icon} ${t.name}: presagios en ${names}. Los imperios cercanos están convocados a la gesta.`);
+      this.announce(`${t.icon} ${t.name}: presagios en ${names}. Los imperios cercanos están convocados a la gesta.`, 'global', { highlight: 'gesta', zones: [...sites.keys()].map((id) => this.#zoneOf(id, true)) });
     }
   }
 
@@ -1189,7 +1189,7 @@ export class WorldServer {
     const start = omen + Math.round(omenMinutes != null ? (Math.max(1, Number(omenMinutes) || 1) * 60_000) / universe.speed : featHours(FEATS.omenHours));
     this.startFeat(cont.id, { ...(theme ? { theme } : {}), omen, start, players }, now);
     const t = FEAT_THEMES[theme ?? Object.keys(FEAT_THEMES)[0]];
-    this.announce(`${t.icon} Los moderadores despiertan una gesta en ${cont.name}: ${t.name}`);
+    this.announce(`${t.icon} Los moderadores despiertan una gesta en ${cont.name}: ${t.name}`, 'global', { highlight: 'gesta', zones: [this.#zoneOf(cont.id)] });
     return { site: cont.id, name: cont.name, players: players.length };
   }
 
@@ -1353,7 +1353,7 @@ export class WorldServer {
     f.stage = 'lucha';
     f.emergedAt = t;
     const headline = theme.arrives ? theme.arrives(name) : `¡${cap(theme.enemy)} emerge en ${name}!`;
-    this.announce(`${theme.icon} ${headline} ${pledged.length} imperios han jurado hacerle frente.`);
+    this.announce(`${theme.icon} ${headline} ${pledged.length} imperios han jurado hacerle frente.`, 'global', { highlight: 'gesta', zones: [this.#zoneOf(id)] });
     for (const uid of Object.keys(f.pledged)) {
       this.games.get(Number(uid))?.receiveNews(null, `${theme.icon} ${headline} La primera oleada, en cuanto lleguen las flotas.`, 'error');
       this.pendingPush.add(Number(uid));
@@ -1447,7 +1447,7 @@ export class WorldServer {
     // Resumen de la oleada en el chat de la gesta, para coordinarse
     this.announce(`${theme.icon} Oleada: ${Object.keys(byPlayer).length} imperios (${fmtN} efectivos, coraza ${Math.round(coop * 100)} %). ${ctx.lines.join(' ')}`, `f:${id}`);
     if (ctx.victory) this.#finishFeat(id, tw, 'victoria', groups);
-    else if (kind === 'tifon' && wave.phase !== boss.phase) this.announce(`${theme.icon} ${name}: cae la fase «${theme.phases[wave.phase].name}» de ${theme.enemy}. Empieza «${theme.phases[boss.phase].name}».`);
+    else if (kind === 'tifon' && wave.phase !== boss.phase) this.announce(`${theme.icon} ${name}: cae la fase «${theme.phases[wave.phase].name}» de ${theme.enemy}. Empieza «${theme.phases[boss.phase].name}».`, 'global', { highlight: 'gesta', zones: [this.#zoneOf(id)] });
   }
 
   /** Reparte la gloria y las bajas de un combate entre los grupos según `weights`. */
@@ -1858,7 +1858,7 @@ export class WorldServer {
     }
     winner = winner != null ? String(winner) : null;
     const winnerName = winner != null ? nameOf(winner) : null;
-    if (winnerName) this.announce(`🏺 ${winnerName} se queda la reliquia legendaria de ${theme.enemy} tras la disputa en ${this.islands.get(id)?.name ?? ''}.`);
+    if (winnerName) this.announce(`🏺 ${winnerName} se queda la reliquia legendaria de ${theme.enemy} tras la disputa en ${this.islands.get(id)?.name ?? ''}.`, 'global', { highlight: 'gesta', zones: [this.#zoneOf(id)] });
     this.announce(`🏺 Disputa por la reliquia: ${lines.join(' ')}`, `f:${id}`);
     const byUid = (o) => Object.fromEntries(Object.entries(o).map(([uid, v]) => [String(uid), v]));
     return { winner, winnerName, lines, lost: byUid(lost), fallen: byUid(res.lost) };
@@ -1966,7 +1966,7 @@ export class WorldServer {
       media: `${theme.icon} ${cap(theme.enemy)} huye malherido de ${name}: victoria a medias.`,
       derrota: `${theme.icon} ${cap(theme.enemy)} resiste en ${name}: la gesta ha fracasado.${theme.kind === 'armada' ? ` ${name} queda como satrapía ${theme.tune.satrapyHours} h: ni maravilla ni colonias nuevas.` : ''}`,
     }[result];
-    this.announce(msg);
+    this.announce(msg, 'global', { highlight: 'gesta', zones: [this.#zoneOf(id)] });
     this.touch(id);
     this.mapCache = null;
   }
@@ -2014,12 +2014,36 @@ export class WorldServer {
     k.lair = isl.id;
     k.wokeAt = now;
     delete k.left;
+    k.hint = this.#krakenHint(isl);
+    const where = fmtCoords(k.hint);
+    // (el aviso sale resaltado en el chat, con un botón a la zona)
+    const extra = { highlight: 'kraken', kraken: { near: k.hint } };
+    if (k.level > 1) this.announce(`🐙 ¡El Kraken ha despertado, más fuerte que nunca (nivel ${k.level}: ${krakenText(k.level)})! Los marineros han visto sus tentáculos cerca de ${where}.`, 'global', extra);
+    else this.announce(`🐙 ¡El Kraken ha despertado! Los marineros han visto sus tentáculos cerca de ${where}.`, 'global', extra);
+  }
+
+  /**
+   * Un sitio del mapa para el botón de un aviso del chat: sus coordenadas y, con `named`, su nombre
+   * (cuando el aviso habla de varios a la vez).
+   */
+  #zoneOf(id, named = false) {
+    const isl = this.islands.get(id);
+    if (!isl) return null;
+    return { at: coordsOf(isl.x, isl.z), ...(named ? { name: isl.name } : {}) };
+  }
+
+  /** Dónde dicen los marineros que han visto al Kraken: unas coordenadas cerca de su fosa, no las suyas. */
+  #krakenHint(isl) {
     const [cx, cy] = coordsOf(isl.x, isl.z);
     const d = KRAKEN_RULES.hintCells;
     const off = () => Math.floor(Math.random() * (2 * d + 1)) - d;
-    const where = fmtCoords([cx + off(), cy + off()]);
-    if (k.level > 1) this.announce(`🐙 ¡El Kraken ha despertado, más fuerte que nunca (nivel ${k.level}: ${krakenText(k.level)})! Los marineros han visto sus tentáculos cerca de ${where}.`);
-    else this.announce(`🐙 ¡El Kraken ha despertado! Los marineros han visto sus tentáculos cerca de ${where}.`);
+    return [cx + off(), cy + off()];
+  }
+
+  /** Si el Kraken está despierto ahora mismo (todos lo saben por el aviso; dónde, solo más o menos). */
+  #krakenAwake() {
+    const k = this.meta.kraken;
+    return k?.lair != null && !!this.islandStates.get(k.lair)?.kraken;
   }
 
   /** Alguien ha derrotado al Kraken: vuelve a dormir y despertará, más fuerte, en un momento que nadie sabe. */
@@ -2030,7 +2054,7 @@ export class WorldServer {
     this.meta.kraken = { lair: null, level, slainAt: t, wakeAt: t + featHours(R.regenHours) + Math.random() * featHours(R.windowHours) };
     this.touch(id);
     const where = isl ? `${isl.name} ${fmtCoords(coordsOf(isl.x, isl.z))}` : 'su fosa';
-    this.announce(`🐙 ${name} ha derrotado al Kraken en ${where}. Vuelve a dormir en las profundidades… y despertará más fuerte.`);
+    this.announce(`🐙 ${name} ha derrotado al Kraken en ${where}. Vuelve a dormir en las profundidades… y despertará más fuerte.`, 'global', { highlight: 'kraken' });
   }
 
   // ── Eventos a mano (moderadores) ───────────────────────────────────────────
@@ -2524,8 +2548,8 @@ export class WorldServer {
     return out;
   }
 
-  announce(text, channel = 'global') {
-    this.#pushChat({ name: null, text, system: true, channel });
+  announce(text, channel = 'global', extra = {}) {
+    this.#pushChat({ name: null, text, system: true, channel, ...extra });
   }
 
   #pushChat(data) {
@@ -2605,7 +2629,7 @@ export class WorldServer {
     const ev = worldEventAt(now);
     if (this.meta.eventAnnounced !== ev.start) {
       this.meta.eventAnnounced = ev.start;
-      if (ev.event) this.announce(`${ev.event.icon} Comienza ${ev.event.name}: ${ev.event.text}`);
+      if (ev.event) this.announce(`${ev.event.icon} Comienza ${ev.event.name}: ${ev.event.text}`, 'global', { highlight: 'temporada' });
     }
     // Las ofertas del mercado caducan y devuelven lo apartado
     const limit = Date.now() - OFFER_DAYS * 86_400_000;
@@ -2696,6 +2720,7 @@ export class WorldServer {
       forumUnread: this.#forumUnread(userId),
       applications: a && this.#canManage(a, userId) ? (a.applications ?? []).length : 0,
       friendRequests: (this.meta.friendRequests[userId] ?? []).length,
+      kraken: this.#krakenAwake(),
       state,
       world: { islands: knownRev === rev ? null : islands, rev, states, statesRev: this.statesRev(), full: since < 0, players },
       incoming: this.incoming(game.state.home, game.level('torre'), now, game.state.colonies.map((c) => c.id)),
