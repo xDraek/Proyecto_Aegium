@@ -48,6 +48,7 @@ test('la protección de los débiles se mantiene en guerra', async () => {
 test('las ofertas entre jugadores tienen precio libre, pero piden no estar de vacaciones', async () => {
   const { world, players } = await makeWorld();
   const [A] = players;
+  A.state.units.mercante = 30;
   world.postOffer(A.userId, { madera: 10_000 }, { cristal: 1 });
   world.postOffer(A.userId, { cristal: 1 }, { madera: 10_000 });
   A.state.vacation = { since: clock.now(), until: clock.now() + 1 };

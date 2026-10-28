@@ -76,7 +76,7 @@ function fleetRows(game) {
       } else if (m.phase === 'ida') {
         what = `${t.icon} ${t.name} · ${target}${from}`;
         when = `llega en <span data-until="${m.arrive}"></span>`;
-        button = `<button class="ghost small" data-action="recall" data-mission="${m.id}">Retirar</button>`;
+        if (m.type !== 'comercio') button = `<button class="ghost small" data-action="recall" data-mission="${m.id}">Retirar</button>`;
       } else {
         what = `⚓ Vuelve de ${target}`;
         when = `en <span data-until="${m.back}"></span>`;

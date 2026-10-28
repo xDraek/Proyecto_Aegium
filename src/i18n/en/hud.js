@@ -90,7 +90,6 @@ export default {
   "la bestia": "the beast",
   "¿Atacar a los invasores con todo lo que tienes en casa?": "Attack the invaders with everything you have at home?",
   "¿Atacar la flota que bloquea tu puerto con tus barcos de guerra?": "Attack the fleet blockading your port with your warships?",
-  "{0} ¡Un rayo parte los mástiles piratas!": "{0} A thunderbolt splits the pirate masts!",
   "🤝 con {0}": "🤝 with {0}",
   "{0} → nivel {1}": "{0} → level {1}",
   "Bendición del Olimpo · +{0} %": "Blessing of Olympus · +{0} %",

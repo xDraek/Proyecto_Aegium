@@ -7,6 +7,44 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-28f',
+    date: '2026-10-28',
+    title: 'Poderes del templo',
+    items: [
+      '🦉 Inspiración también acelera el reclutamiento: las tropas del cuartel y los barcos del puerto que estén en cola salen un 30 % antes, igual que la obra y la investigación en curso.',
+      '🌬️ Viento favorable ahora dura hora y media: las flotas que ya están en el mar se ahorran la mitad de lo que les queda, y todas las que zarpes mientras esté activo van y vuelven al doble de rápido. Ya no hace falta tener flotas navegando para invocarlo.',
+      '⚡ La Ira de los dioses se convierte en la Furia de Zeus: durante 2 horas tus tropas y barcos tienen +25 % de ataque al atacar, en las batallas que libres mientras dure y con las flotas que zarpen mientras esté activa (aunque lleguen después). Es la pareja de la Égida, que protege al defender.',
+    ],
+    en: {
+      title: 'Temple powers',
+      items: [
+        '🦉 Inspiration also speeds up recruitment: the queued troops in the barracks and ships in the port come out 30 % sooner, just like the construction and research in progress.',
+        '🌬️ Favourable wind now lasts an hour and a half: fleets already at sea save half of what they have left, and every fleet you send while it’s active goes and comes back twice as fast. You no longer need fleets at sea to invoke it.',
+        '⚡ Wrath of the gods becomes Fury of Zeus: for 2 hours your troops and ships get +25 % attack when attacking, in the battles you fight while it lasts and with the fleets that set sail while it’s active (even if they arrive later). It’s the counterpart of the Aegis, which protects when defending.',
+      ],
+    },
+  },
+  {
+    id: '2026-10-28e',
+    date: '2026-10-28',
+    title: 'Los tratos del mercado viajan en barco',
+    items: [
+      '⚖️ Las ofertas del mercado entre jugadores ya no se cambian al instante: al cerrar un trato, los barcos mercantes de cada uno zarpan hacia la ciudad del otro con su parte. Los recursos llegan cuando atracan, y los barcos no vuelven a estar libres hasta que regresan a tu puerto. Verás sus rutas en el mapa.',
+      '🛥 Para publicar una oferta necesitas barcos mercantes libres (uno por cada 500 de carga): se quedan esperando en el puerto con la mercancía hasta que alguien acepta, y vuelven si la retiras o caduca. Para aceptar una, los mercantes que lleven el pago.',
+      '⚓ Los mercaderes de un trato no ocupan una de tus flotas ni se pueden hacer volver: un trato cerrado no se deshace.',
+      '⛓️ Una ciudad ocupada o con el puerto bloqueado no puede comerciar en el mercado: ni cambiar recursos ni publicar o aceptar ofertas. Sus ofertas salen marcadas y nadie las puede aceptar hasta que el puerto quede libre.',
+    ],
+    en: {
+      title: 'Market deals travel by ship',
+      items: [
+        '⚖️ Market offers between players are no longer swapped instantly: when a deal is closed, each side’s merchant ships set sail for the other’s city with their part. The resources arrive when they dock, and the ships aren’t free again until they’re back in your port. You’ll see their routes on the map.',
+        '🛥 To post an offer you need free merchant ships (one for every 500 of cargo): they wait in the port with the goods until someone accepts, and come back if you withdraw it or it expires. To accept one, you need the merchant ships to carry the payment.',
+        '⚓ A deal’s merchants don’t take up one of your fleets and can’t be recalled: a closed deal can’t be undone.',
+        '⛓️ An occupied city or one with a blockaded port can’t trade at the market: no exchanging resources, posting or accepting offers. Its offers are marked and nobody can accept them until the port is free again.',
+      ],
+    },
+  },
+  {
     id: '2026-10-28d',
     date: '2026-10-28',
     title: 'Aviso de actualizaciones',

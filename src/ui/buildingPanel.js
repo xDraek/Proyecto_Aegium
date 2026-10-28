@@ -276,7 +276,7 @@ function portSection(game) {
 
 function marketSection(game) {
   if (game.level('mercado') < 1) return '';
-  const closed = game.portClosed() ? '<p class="hint warn">⛓️ Tu puerto está en manos enemigas: los mercaderes no pueden entrar.</p>' : '';
+  const closed = game.portClosed() ? `<p class="hint warn">${game.state.occupied ? '🦅 Tu ciudad está ocupada' : '⛓️ Tu puerto está bloqueado'}: no puedes comerciar en el mercado (ni cambiar recursos ni publicar o aceptar ofertas) hasta que ${game.state.occupied ? 'te libres de los invasores' : 'se levante el bloqueo'}.</p>` : '';
   return `<h4>Cambiar recursos</h4>${closed}
     <div class="trade">
       <label>Das ${resPicker('t-from', 'madera', 'Recurso que das')}</label>
@@ -286,7 +286,7 @@ function marketSection(game) {
       </div>
       <label>Recibes ${resPicker('t-to', 'oro', 'Recurso que recibes')}</label>
       <div class="hint" data-trade-preview></div>
-      <button class="primary" data-action="trade">Cambiar</button>
+      <button class="primary" data-action="trade" ${closed ? 'disabled' : ''}>Cambiar</button>
     </div>`;
 }
 
@@ -330,9 +330,7 @@ function powerCard(game, id) {
   const p = POWERS[id];
   const until = game.buffUntil(id);
   let blocked = '';
-  if (id === 'inspiracion' && !game.queue && !game.researchQueue) blocked = 'No hay obras ni investigaciones';
-  if (id === 'viento' && !game.missions.length) blocked = 'No hay flotas en el mar';
-  if (id === 'rayo' && !game.raid) blocked = 'No hay piratas a la vista';
+  if (id === 'inspiracion' && !game.queue && !game.researchQueue && !['cuartel', 'puerto'].some((b) => game.training(b).length)) blocked = 'No hay obras, investigaciones ni reclutamientos';
   const ready = game.powerReady(id);
   if (ready) blocked = 'Hay que esperar para volver a invocarla';
   // Los poderes se van desbloqueando con el nivel del templo

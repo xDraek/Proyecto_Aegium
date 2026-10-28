@@ -1,5 +1,6 @@
 import { universe } from '../config.js';
-import { ACHIEVEMENTS, BANNER_COLORS, BANNER_EMBLEMS, DAILY_REWARDS, FAVOR_ICON, RESOURCES, VACATION } from '../game/data.js';
+import { ACHIEVEMENTS, BANNER_COLORS, BANNER_EMBLEMS, DAILY_REWARDS, FAVOR_ICON, RESOURCES, UNITS, VACATION } from '../game/data.js';
+import { tradeShips } from '../game/rules.js';
 import { recentErrors } from '../errors.js';
 import { api, setToken } from '../net/api.js';
 import { bag, escapeHtml, fmtAgo, fmtDec, fmtNum, fmtTime } from './format.js';
@@ -597,27 +598,34 @@ export class Social {
   }
 
   marketHtml() {
+    // Con el puerto bloqueado u ocupado no se comercia (retirar las tuyas sí se puede)
+    const closed = this.game.portClosed();
     const rows = this.offers
       .map((o) => {
         const [gr, gn] = Object.entries(o.give)[0];
         const [wr, wn] = Object.entries(o.want)[0];
         const ratio = (wn * RESOURCES[wr].value) / (gn * RESOURCES[gr].value);
         const deal = ratio < 0.85 ? 'good' : ratio > 1.2 ? 'bad' : '';
+        // Lo que pide lo llevan tus mercantes: cuántos hacen falta (y si los tienes libres en el puerto)
+        const ships = tradeShips(o.want);
+        const free = this.game.units.mercante ?? 0;
+        const fleet = o.mine ? `🛥 ${o.ships ?? 0} esperando en tu puerto` : o.closed ? '⛓️ su puerto está cerrado' : `${free < ships ? '⚠️ ' : ''}llevas el pago en ${ships} 🛥`;
+        const blocked = closed || (o.closed && !o.mine);
         return `<li class="offer ${deal}">
           <div><b>${escapeHtml(o.sellerName)}</b> da ${bag(o.give)} por ${bag(o.want)}
-            <div class="muted small">${fmtAgo(o.t)} · ${deal === 'good' ? 'buen trato' : deal === 'bad' ? 'caro' : 'precio justo'} (×${fmtDec(ratio)})</div></div>
+            <div class="muted small">${fmtAgo(o.t)} · ${deal === 'good' ? 'buen trato' : deal === 'bad' ? 'caro' : 'precio justo'} (×${fmtDec(ratio)}) · ${fleet}</div></div>
           ${o.mine
             ? `<button class="ghost small" data-action="offer-cancel" data-id="${o.id}">Retirar</button>`
-            : `<button class="primary small auto" data-action="offer-accept" data-id="${o.id}" data-need='${JSON.stringify(o.want)}' data-blocked="0">Aceptar</button>`}
+            : `<button class="primary small auto" data-action="offer-accept" data-id="${o.id}" data-need='${JSON.stringify(o.want)}' data-blocked="${blocked ? 1 : 0}" ${blocked ? 'disabled' : ''}>Aceptar</button>`}
         </li>`;
       })
       .join('');
     return `<h4>Mercado del archipiélago</h4>
-      <p class="desc small">Ofertas de otros jugadores, sin impuestos. Lo que ofreces queda apartado hasta que alguien acepta (o caduca a los 3 días).</p>
+      <p class="desc small">Ofertas de otros jugadores, sin impuestos. Lo que ofreces queda apartado, con los barcos mercantes que lo llevarán (uno por cada ${fmtNum(UNITS.mercante.cargo)}), hasta que alguien acepta o caduca a los 3 días. Al cerrar el trato, los mercaderes de cada uno zarpan con su parte: la carga llega cuando atracan y los barcos vuelven después.</p>
       <div class="offer-form">
         <label>Doy ${resPicker('o-give', 'madera', 'Recurso que das')}<input type="number" name="o-give-n" min="1" value="500" inputmode="numeric" /></label>
         <label>Pido ${resPicker('o-want', 'cristal', 'Recurso que pides')}<input type="number" name="o-want-n" min="1" value="200" inputmode="numeric" /></label>
-        <button class="primary small" data-action="offer-post">Publicar oferta</button>
+        <button class="primary small" data-action="offer-post" ${closed ? 'disabled' : ''}>Publicar oferta</button>
       </div>
       ${rows ? `<ul class="offers">${rows}</ul>` : '<p class="muted small">No hay ofertas ahora mismo.</p>'}`;
   }

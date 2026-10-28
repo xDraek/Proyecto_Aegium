@@ -1210,9 +1210,7 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
         await this.social.onPanelAction(action, btn, root);
         break;
       case 'power': {
-        const p = POWERS[btn.dataset.id];
-        const res = await this.#run(btn, () => game.castPower(btn.dataset.id), null, 'magic');
-        if (res?.ok && btn.dataset.id === 'rayo') this.toast(`${p.icon} ¡Un rayo parte los mástiles piratas!`, 'success');
+        await this.#run(btn, () => game.castPower(btn.dataset.id), null, 'magic');
         break;
       }
     }
@@ -1304,7 +1302,7 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
           start,
           end,
           select: m.target,
-          buttons: going ? `<button class="ghost small" data-action="recall" data-mission="${m.id}">Retirar</button>` : '',
+          buttons: going && m.type !== 'comercio' ? `<button class="ghost small" data-action="recall" data-mission="${m.id}">Retirar</button>` : '',
         }),
       );
     }

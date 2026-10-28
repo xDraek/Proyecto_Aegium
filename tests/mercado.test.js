@@ -9,6 +9,7 @@ test('una oferta nueva se anuncia en el chat general, como mucho una por jugador
   const [A, B] = players;
   Object.assign(A.state.resources, { madera: 50_000, piedra: 50_000 });
   Object.assign(B.state.resources, { madera: 50_000 });
+  for (const g of [A, B]) g.state.units.mercante = 10;
   const notices = () => world.chat.filter((m) => m.system && m.offer);
 
   world.postOffer(A.userId, { madera: 1000 }, { cristal: 400 });

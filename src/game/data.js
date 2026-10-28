@@ -873,6 +873,8 @@ export const MISSION_TYPES = {
   invadir: { name: 'Invadir', icon: '🦅' },
   tributo: { name: 'Tributo', icon: '💰' },
   guarnicion: { name: 'Guarnición', icon: '🏕️' },
+  // (no se manda desde una isla: zarpa al cerrar un trato del mercado)
+  comercio: { name: 'Comercio', icon: '⚖️' },
 };
 
 /**
@@ -933,7 +935,7 @@ export const POWERS = {
   inspiracion: {
     name: 'Inspiración',
     icon: '🦉',
-    description: 'La obra y la investigación en curso terminan un 30 % antes.',
+    description: 'La obra, la investigación y el reclutamiento en curso (tropas y barcos) terminan un 30 % antes.',
     templo: 2,
     cost: 90,
     duration: 0,
@@ -942,10 +944,10 @@ export const POWERS = {
   viento: {
     name: 'Viento favorable',
     icon: '🌬️',
-    description: 'Tus flotas en el mar se ahorran la mitad de lo que les queda de trayecto.',
+    description: 'Durante hora y media tus flotas navegan al doble: las que están en el mar se ahorran la mitad de lo que les queda, y las que zarpen mientras dure van y vuelven en la mitad de tiempo.',
     templo: 4,
     cost: 130,
-    duration: 0,
+    duration: 1.5,
     cooldown: 6,
   },
   egida: {
@@ -957,14 +959,16 @@ export const POWERS = {
     duration: 3,
     cooldown: 10,
   },
+  // (se llama `rayo` porque antes era la Ira de los dioses: así se conserva su espera)
   rayo: {
-    name: 'Ira de los dioses',
+    name: 'Furia de Zeus',
     icon: '⚡',
-    description: 'Un rayo hunde el 40 % de la flota pirata que se acerca.',
+    description: '+25 % de ataque para tus tropas y barcos al atacar durante 2 horas: en las batallas que libres mientras dure y con las flotas que zarpen mientras esté activa.',
     templo: 8,
     cost: 220,
-    duration: 0,
+    duration: 2,
     cooldown: 8,
+    attack: 0.25,
   },
 };
 

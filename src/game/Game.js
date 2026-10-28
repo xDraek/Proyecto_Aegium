@@ -391,6 +391,11 @@ export class Game extends EventTarget {
     return until > now ? until : 0;
   }
 
+  /** Con Viento favorable activo, las flotas que zarpan van al doble de rápido. */
+  #wind(now = this.now()) {
+    return (this.state.buffs.viento ?? 0) > now ? 2 : 1;
+  }
+
   buffUntil(id, now = this.now()) {
     const until = this.state.buffs[id] ?? 0;
     return until > now ? until : 0;
@@ -429,8 +434,9 @@ export class Game extends EventTarget {
 
   /** Flotas que ocupan un hueco del puerto (los convoyes del tributo no). */
   fleetsAtSea() {
-    // (las guarniciones de las colonias están en tierra: no ocupan una flota)
-    return this.state.missions.filter((m) => m.type !== 'tributo' && !(m.type === 'guarnicion' && m.phase === 'estacionada')).length;
+    // (las guarniciones de las colonias están en tierra: no ocupan una flota; los mercaderes de un
+    // trato del mercado tampoco, para que comerciar no te deje sin poder zarpar)
+    return this.state.missions.filter((m) => m.type !== 'tributo' && m.type !== 'comercio' && !(m.type === 'guarnicion' && m.phase === 'estacionada')).length;
   }
 
   /** Ciudades que ocupan tus tropas (sus misiones estacionadas). */
@@ -1311,7 +1317,7 @@ export class Game extends EventTarget {
     const withHero = !!opts.hero;
     const heroSpeed = withHero ? 1 + this.heroBonus('velocidad') : 1;
     const dist = base ? this.distanceBetween(base.target, target) : this.distanceTo(target);
-    const travel = Number.isFinite(speed) ? travelSeconds(s, dist, speed, heroSpeed) : 0;
+    const travel = Number.isFinite(speed) ? travelSeconds(s, dist, speed, heroSpeed * this.#wind()) : 0;
     // Unirse al ataque de un aliado: la flota acompasa la marcha para llegar a la vez
     const joint = opts.join ? (this.world.jointAttack?.(opts.join) ?? null) : null;
     const seconds = joint ? Math.max(1, Math.ceil((joint.arrive - this.now()) / 1000)) : travel;
@@ -1530,6 +1536,7 @@ export class Game extends EventTarget {
       back: null,
       phase: 'ida',
       hero: !!opts.hero,
+      ...((this.state.buffs.rayo ?? 0) > now ? { fury: true } : {}),
       // Contra una isla neutral, sus bárbaros (o piratas) a la medida de tu ciudad
       ...(this.world.island(target).loot ? { scaled: true } : {}),
       ...(plan.joint ? { joint: opts.join, leader: plan.joint.leader, trip: plan.travel * 1000 } : {}),
@@ -1555,6 +1562,7 @@ export class Game extends EventTarget {
     this.#advance(now);
     const m = this.state.missions.find((x) => x.id === id);
     if (!m || (m.phase !== 'ida' && m.phase !== 'estacionada')) return this.#fail('Esa flota ya no puede volver.');
+    if (m.type === 'comercio') return this.#fail('Un trato cerrado no se deshace: tus mercaderes ya van de camino.');
     // Levantar un bloqueo o dejar una ciudad ocupada: el tributo pendiente se va con las tropas
     if (m.phase === 'estacionada' && m.feat == null && (m.type === 'bloquear' || m.type === 'invadir')) {
       this.endStation(m, now, 'retirada');
@@ -1639,19 +1647,22 @@ export class Game extends EventTarget {
     if (s.favor < p.cost) return this.#fail('No tienes favor suficiente.');
     if (id === 'inspiracion') {
       const qs = [s.queue, s.researchQueue].filter(Boolean);
-      if (!qs.length) return this.#fail('No hay ninguna obra ni investigación en curso.');
+      const recruiting = Object.values(s.training).filter((q) => q.length);
+      if (!qs.length && !recruiting.length) return this.#fail('No hay ninguna obra, investigación ni reclutamiento en curso.');
       for (const q of qs) q.end = now + (q.end - now) * 0.7;
+      // El reclutamiento, entero: cada unidad que falta (y las tandas que esperan) sale un 30 % antes
+      for (const q of recruiting) {
+        q[0].start = now + (q[0].start - now) * 0.7;
+        for (const b of q) b.each *= 0.7;
+      }
     } else if (id === 'viento') {
-      // Las estacionadas no navegan y las de un ataque conjunto llegan con su jefe
-      const sailing = s.missions.filter((m) => (m.phase === 'ida' && !m.joint) || m.phase === 'vuelta');
-      if (!sailing.length) return this.#fail('No tienes flotas navegando.');
-      for (const m of sailing) {
+      // Las que ya navegan se ahorran media travesía; las que zarpen mientras dure, van al doble
+      // (las estacionadas no navegan y las de un ataque conjunto llegan con su jefe)
+      for (const m of s.missions.filter((x) => (x.phase === 'ida' && !x.joint) || x.phase === 'vuelta')) {
         if (m.phase === 'ida') m.arrive = now + (m.arrive - now) * 0.5;
         else m.back = now + (m.back - now) * 0.5;
       }
-    } else if (id === 'rayo') {
-      if (!s.raid) return this.#fail('No hay piratas a la vista.');
-      for (const u of Object.keys(s.raid.army)) s.raid.army[u] = Math.round(s.raid.army[u] * 0.6);
+      s.buffs.viento = Math.max(s.buffs.viento ?? 0, now) + hours(p.duration);
     } else {
       s.buffs[id] = Math.max(s.buffs[id] ?? 0, now) + hours(p.duration);
     }
@@ -1972,11 +1983,65 @@ export class Game extends EventTarget {
   }
 
   /** Llega a tu isla un transporte de otro jugador. */
-  receiveTransport({ fromName, cargo, islandName }, t) {
+  receiveTransport({ fromName, cargo, islandName, trade }, t) {
     this.#gain(cargo);
-    this.#report({ t, kind: 'transporte', islandName, title: `${fromName} te envía recursos`, loot: { ...cargo }, enemy: fromName });
-    this.#note(`📦 ${fromName} te ha enviado recursos`, 'success');
+    if (trade) {
+      this.#report({ t, kind: 'transporte', islandName, title: `Llega tu trato con ${fromName}`, text: 'Sus mercaderes han atracado en tu puerto con lo acordado en el mercado.', loot: { ...cargo }, enemy: fromName });
+      this.#note(`⚖️ Han llegado los mercaderes de ${fromName} con tu trato`, 'success');
+    } else {
+      this.#report({ t, kind: 'transporte', islandName, title: `${fromName} te envía recursos`, loot: { ...cargo }, enemy: fromName });
+      this.#note(`📦 ${fromName} te ha enviado recursos`, 'success');
+    }
     this.#dirty = true;
+  }
+
+  // ── Mercado del archipiélago: los tratos viajan en barco ───────────────────
+
+  /** Aparta `n` barcos mercantes para llevar una oferta del mercado. Dice si los había libres. */
+  holdShips(n, now = this.now()) {
+    this.#advance(now);
+    if ((this.state.units.mercante ?? 0) < n) return false;
+    this.state.units.mercante -= n;
+    this.#flush(true);
+    return true;
+  }
+
+  /** Vuelven al puerto los mercaderes de una oferta que se retira o caduca. */
+  releaseShips(n) {
+    if (!(n > 0)) return;
+    this.state.units.mercante = (this.state.units.mercante ?? 0) + n;
+    this.#flush(true);
+  }
+
+  /**
+   * Zarpa tu parte de un trato del mercado: `ships` mercantes con `cargo` hacia la ciudad `to` de
+   * `partner`. Con `held`, los barcos ya estaban apartados (los de la oferta); si no, salen del
+   * puerto. Con `pay`, la carga se cobra ahora (si no, ya se apartó al publicar la oferta). La carga
+   * se entrega al llegar y los barcos vuelven después.
+   */
+  sendTrade({ to, partner, cargo, ships, held = false, pay = false }, now = this.now()) {
+    this.#advance(now);
+    if (!held && (this.state.units.mercante ?? 0) < ships) return this.#fail(`Para llevar tu parte necesitas ${ships} ${ships === 1 ? 'barco mercante libre' : 'barcos mercantes libres'} en el puerto.`);
+    if (pay && !canAfford(this.state.resources, cargo)) return this.#fail('No tienes lo que piden.');
+    if (pay) this.#pay(cargo, false);
+    if (!held) this.state.units.mercante -= ships;
+    const isl = this.world.island(to);
+    const seconds = travelSeconds(this.state, this.distanceTo(to), UNITS.mercante.speed, this.#wind(now));
+    this.state.missions.push({
+      id: this.state.seq++,
+      type: 'comercio',
+      target: to,
+      targetName: isl?.name ?? partner,
+      partner,
+      units: ships > 0 ? { mercante: ships } : {},
+      cargo: { ...cargo },
+      depart: now,
+      arrive: now + seconds * 1000,
+      back: null,
+      phase: 'ida',
+      hero: false,
+    });
+    return this.#done();
   }
 
   /** Una flota enemiga llega a bloquear tu puerto: la recibe tu flota (con la de tus aliados). */
@@ -2364,6 +2429,7 @@ export class Game extends EventTarget {
       if (this.#spiesHome(m, t)) return;
       const loot = fmtBag(m.cargo);
       if (m.type === 'tributo') this.#note(`💰 Llega a tu capital lo que mandas desde ${m.targetName}${loot ? `: ${loot}` : ''}`, 'success');
+      else if (m.type === 'comercio') this.#note(`⚖️ Tus mercaderes vuelven de ${m.targetName}${loot ? ` con la carga que no pudieron entregar: ${loot}` : ''}`, loot ? 'info' : 'success');
       else this.#note(`⚓ Ha vuelto la flota de ${m.targetName}${loot ? `: ${loot}` : ''}`, 'success');
       return;
     }
@@ -2380,7 +2446,7 @@ export class Game extends EventTarget {
           this.#report({ t, kind: 'apoyo', island: isl.id, islandName: isl.name, title: `Apoyo rechazado en ${isl.name}`, text: 'Ya no sois aliados. Tus tropas vuelven a casa.' });
           m.rejected = true;
         } else if (this.world.stationAt?.(isl.owner)) this.#arriveRelief(m, isl, t);
-      } else if (m.type === 'transporte') this.#arriveTransport(m, isl, t);
+      } else if (m.type === 'transporte' || m.type === 'comercio') this.#arriveTransport(m, isl, t);
       else if (m.type === 'bloquear') this.#arriveBlockade(m, isl, t);
       else this.#arrivePlayerAttack(m, isl, t);
     } else if (m.type === 'explorar') this.#arriveExplore(m, isl, t);
@@ -2539,7 +2605,7 @@ export class Game extends EventTarget {
       this.#report({ t, kind: 'ataque', island: isl.id, islandName: isl.name, title: `La horda ya no está en ${isl.name}`, text: 'Cuando llegó tu flota ya no quedaba nadie. Vuelve a casa.' });
       return;
     }
-    const { atkMul, hpMul } = playerCombat(this.state);
+    const { atkMul, hpMul } = playerCombat(this.state, { mission: m, t });
     const heroAtk = m.hero ? this.heroBonus('ataque') : 0;
     const result = assault({ units: m.units, atkMul: atkMul + heroAtk, hpMul }, { units: h.garrison });
     if (m.hero) this.#heroXp(result.def.lost, t);
@@ -2623,15 +2689,21 @@ export class Game extends EventTarget {
       this.#report({ t, kind: 'transporte', island: isl.id, islandName: isl.name, title: `Puerto cerrado en ${isl.name}`, text: `${text} Vuelven con todo.` });
       return;
     }
-    const delivered = this.world.deliver?.(isl.owner, { fromName: this.state.name, cargo: m.cargo, islandName: this.homeIsland?.name }, t);
+    const trade = m.type === 'comercio';
+    const delivered = this.world.deliver?.(isl.owner, { fromName: this.state.name, cargo: m.cargo, islandName: this.homeIsland?.name, trade }, t);
     const owner = this.world.playerInfo(isl.owner)?.name ?? isl.name;
     if (!delivered) {
       this.#report({ t, kind: 'transporte', island: isl.id, islandName: isl.name, title: `Nadie recoge la carga en ${isl.name}`, text: 'Los barcos vuelven con todo.' });
       return;
     }
-    this.state.stats.transports = (this.state.stats.transports ?? 0) + 1;
-    this.#report({ t, kind: 'transporte', island: isl.id, islandName: isl.name, title: `Carga entregada a ${owner}`, loot: { ...m.cargo }, enemy: owner });
-    this.#note(`📦 Carga entregada en ${isl.name}`, 'success');
+    if (trade) {
+      this.#report({ t, kind: 'transporte', island: isl.id, islandName: isl.name, title: `Trato entregado a ${owner}`, text: 'Tus mercaderes vuelven a casa.', loot: { ...m.cargo }, enemy: owner });
+      this.#note(`⚖️ Tus mercaderes han entregado el trato en ${isl.name}`, 'success');
+    } else {
+      this.state.stats.transports = (this.state.stats.transports ?? 0) + 1;
+      this.#report({ t, kind: 'transporte', island: isl.id, islandName: isl.name, title: `Carga entregada a ${owner}`, loot: { ...m.cargo }, enemy: owner });
+      this.#note(`📦 Carga entregada en ${isl.name}`, 'success');
+    }
     m.cargo = {};
   }
 
@@ -2659,7 +2731,7 @@ export class Game extends EventTarget {
       this.#report({ t, kind: 'ataque', island: isl.id, islandName: isl.name, title: `Ataque cancelado en ${isl.name}`, text: why });
       return;
     }
-    const { atkMul, hpMul } = playerCombat(this.state);
+    const { atkMul, hpMul } = playerCombat(this.state, { mission: m, t });
     const hero = m.hero ? { atk: this.heroBonus('ataque'), cargo: 1 + this.heroBonus('botin') } : { atk: 0, cargo: 1 };
     const war = this.world.relation?.(this.userId, isl.owner) === 'guerra';
     const cargoMul = hero.cargo * (war ? 1 + DIPLOMACY.warLoot : 1) * (1 + relicBonus(this.state, 'botin'));
@@ -2807,7 +2879,7 @@ export class Game extends EventTarget {
       this.#report({ t, kind: 'ataque', island: isl.id, islandName: isl.name, title: `Bloqueo cancelado en ${isl.name}`, text: why });
       return;
     }
-    const { atkMul, hpMul } = playerCombat(this.state);
+    const { atkMul, hpMul } = playerCombat(this.state, { mission: m, t });
     const heroAtk = m.hero ? this.heroBonus('ataque') : 0;
     const res = this.world.blockadePlayer?.(isl.owner, { attackerName: this.state.name, units: m.units, atkMul: atkMul + heroAtk, hpMul }, t);
     if (!res) {
@@ -3003,7 +3075,7 @@ export class Game extends EventTarget {
       this.#report({ t, kind: 'ataque', island: isl.id, islandName: isl.name, title: `Ataque cancelado en ${isl.name}`, text: why });
       return;
     }
-    const { atkMul, hpMul } = playerCombat(this.state);
+    const { atkMul, hpMul } = playerCombat(this.state, { mission: m, t });
     const war = rel === 'guerra';
     const cargoMul = (m.hero ? 1 + this.heroBonus('botin') : 1) * (war ? 1 + DIPLOMACY.warLoot : 1) * (1 + relicBonus(this.state, 'botin'));
     const res = this.world.raidColony?.(owner, isl.id, { attackerId: this.userId, attackerName: this.state.name, units: { ...m.units }, atkMul: atkMul + (m.hero ? this.heroBonus('ataque') : 0), hpMul, cargoMul }, t);
@@ -3099,7 +3171,7 @@ export class Game extends EventTarget {
     const army = kind === 'bloquear' ? splitForces(s.units).sea : splitForces(s.units).land;
     if (kind === 'invadir') Object.assign(army, splitForces(s.units).sea);
     if (!hasCombat(army)) return this.#fail(kind === 'bloquear' ? 'Necesitas barcos de guerra en el puerto para romper el bloqueo.' : 'Necesitas tropas en casa para echar a los invasores.');
-    const mine = playerCombat(s);
+    const mine = playerCombat(s, { t: now });
     const heroHome = this.heroStatus(now) === 'casa';
     const atkMul = mine.atkMul + (heroHome ? this.heroBonus('ataque') : 0);
     // Junto a casa ayuda el faro
@@ -3133,7 +3205,7 @@ export class Game extends EventTarget {
     const scale = m.scaled ? this.neutralScale() : 1;
     const garrison = garrisonAt(isl, rt, t, scale);
     const stock = stockAt(isl, rt, t, scale);
-    const { atkMul, hpMul } = playerCombat(this.state);
+    const { atkMul, hpMul } = playerCombat(this.state, { mission: m, t });
     const wall = Math.max(0, (isl.wall ?? 0) - siegeOf(m.units));
     const heroAtk = m.hero ? this.heroBonus('ataque') : 0;
     // Primero las flotas y, con el mar libre, el desembarco contra la guarnición y su fortificación
@@ -3340,7 +3412,7 @@ export class Game extends EventTarget {
       // Es una batalla en el mar: luchan los barcos y, si se hunden, las tropas que no caben se ahogan
       const pirata = Math.max(3, Math.round((power / 11) * (0.4 + Math.random() * 0.5)));
       const army = { corsario: Math.max(1, Math.round(pirata * 0.45)) };
-      const { atkMul, hpMul } = playerCombat(s);
+      const { atkMul, hpMul } = playerCombat(s, { mission: m, t });
       const { sea, land } = splitForces(m.units);
       const fight = battle({ units: army }, { units: sea, atkMul, hpMul });
       const { aboard, drowned } = keepAboard(land, seatsOf(fight.def.left));

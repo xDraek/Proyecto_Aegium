@@ -403,7 +403,7 @@ const TOPICS = {
       ${list([
         'Ten en casa tropas que aguanten (hoplitas, espartanos) y algunos barcos de guerra.',
         'Sube la <b>muralla</b>, la <b>torre de vigía</b> y el <b>faro</b>.',
-        `Invoca la <b>Égida</b> (+50 % de vida a los defensores durante 3 h) o la <b>Ira de los dioses</b> contra los piratas (ver ${see('templo', 'Templo')}).`,
+        `Invoca la <b>Égida</b> (+50 % de vida a los defensores durante 3 h) (ver ${see('templo', 'Templo')}).`,
         `Pide <b>tropas de apoyo</b> a tu ${see('alianzas', 'alianza')} o contrata ${see('mercenarios', 'mercenarios')}.`,
         'Sube el almacén: lo que esconde no se lo lleva nadie.',
       ])}
@@ -434,7 +434,7 @@ const TOPICS = {
       ${missionsTable()}
       <h5>Viajes</h5>
       ${list([
-        'La flota va a la velocidad de su <b>barco más lento</b>. Navegación (+5 % por nivel), el faro (+4 %), el puerto (+2 %), el almirante, las reliquias y el Templo de Poseidón la aceleran. El poder <b>Viento favorable</b> ahorra media travesía a las flotas que ya navegan.',
+        'La flota va a la velocidad de su <b>barco más lento</b>. Navegación (+5 % por nivel), el faro (+4 %), el puerto (+2 %), el almirante, las reliquias y el Templo de Poseidón la aceleran. El poder <b>Viento favorable</b> dura hora y media: ahorra media travesía a las flotas que ya navegan, y las que zarpan mientras dura van y vuelven al doble de rápido.',
         'El <b>puerto</b> limita cuántas flotas tienes en el mar a la vez: una por nivel.',
         'Puedes <b>retirar</b> una flota que aún no ha llegado: deshace lo andado. Las tropas de apoyo, los bloqueos y las ocupaciones se retiran cuando quieras.',
         'Las islas que no conoces hay que <b>explorarlas</b> primero con un bote.',
@@ -689,7 +689,7 @@ const TOPICS = {
     title: 'Templo y poderes',
     body: () => `<p>El templo acumula <b>favor</b> de los dioses: 4 por hora por cada nivel hasta el 5 y 2 por cada nivel más, hasta un máximo de 100 más 60 por nivel (el templo llega al nivel 10; el Festival de Poseidón lo duplica). Ni las recompensas lo pasan de ese tope. Lo gastas en poderes, que se van desbloqueando al subir el templo:</p>
       ${powersTable()}
-      ${tip('Inspiración rinde más en obras e investigaciones largas, y Viento favorable cuando tienes varias flotas lejos.')}`,
+      ${tip('Inspiración rinde más en obras, investigaciones y reclutamientos largos, y Viento favorable cuando vas a mandar varias flotas lejos en la próxima hora y media.')}`,
   },
   reliquias: {
     icon: '🏺',

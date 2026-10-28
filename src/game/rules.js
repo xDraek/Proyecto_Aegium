@@ -23,6 +23,7 @@ import {
   TOWN_HALL_GATE,
   TRAIN_SPEED,
   PORT_SAIL_SPEED,
+  POWERS,
   UNITS,
   RELICS,
   WONDERS,
@@ -132,9 +133,14 @@ export function unitSeconds(state, id) {
 }
 
 /** Multiplicadores de combate de tus tropas. */
-export function playerCombat(state) {
+/**
+ * Ataque y vida de las tropas de un jugador. Con `attack` ({ mission, t }) es una batalla en la que
+ * ataca él: la Furia de Zeus suma si está activa en ese momento o si la flota zarpó con ella.
+ */
+export function playerCombat(state, attack = null) {
+  const fury = attack && ((state.buffs?.rayo ?? 0) > attack.t || attack.mission?.fury) ? POWERS.rayo.attack : 0;
   return {
-    atkMul: 1 + 0.05 * lvl(state, 'herreria') + 0.03 * lvl(state, 'forja') + 0.03 * lvl(state, 'tactica') + wonderBonus(state, 'ataque') + relicBonus(state, 'ataque'),
+    atkMul: 1 + 0.05 * lvl(state, 'herreria') + 0.03 * lvl(state, 'forja') + 0.03 * lvl(state, 'tactica') + wonderBonus(state, 'ataque') + relicBonus(state, 'ataque') + fury,
     hpMul: 1 + 0.05 * lvl(state, 'armaduras') + 0.03 * lvl(state, 'tactica') + relicBonus(state, 'defensa'),
   };
 }
@@ -181,6 +187,12 @@ export function wallBonus(level, watch = 0) {
 /** Comida que se ahorran las tropas gracias a la taberna (0 a 0,4). */
 export function tavernSaving(state) {
   return Math.min(0.4, 0.04 * lvl(state, 'taberna'));
+}
+
+/** Barcos mercantes que hacen falta para llevar un lado de un trato del mercado. */
+export function tradeShips(bag) {
+  const total = Object.values(bag ?? {}).reduce((a, n) => a + n, 0);
+  return Math.max(1, Math.ceil(total / UNITS.mercante.cargo));
 }
 
 export function fleetSlots(state) {

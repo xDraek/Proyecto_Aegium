@@ -246,4 +246,11 @@ export default {
   "Con tu aviso se manda también, para encontrar el fallo: lo que tenías abierto en el juego, tu navegador, el tamaño de la pantalla, el idioma y los últimos errores de la página. Te pueden contestar por ✉️ correo.": "Along with your report we also send, to help find the bug: what you had open in the game, your browser, the screen size, the language and the page's latest errors. They can reply to you by ✉️ mail.",
   "Enviar el aviso": "Send the report",
   "🐞 ¡Gracias! Los moderadores ya tienen tu aviso": "🐞 Thank you! The moderators have your report",
+  "Para llevar tu oferta necesitas {0} {1} en el puerto (cada uno carga {2}).": "To carry your offer you need {0} {1} in the port (each one carries {2}).",
+  "Esa oferta ya no existe.": "That offer no longer exists.",
+  "⚖️ {0} ha aceptado tu oferta del mercado: tus mercaderes zarpan hacia su ciudad": "⚖️ {0} has accepted your market offer: your merchants set sail for their city",
+  "🛥 {0} esperando en tu puerto": "🛥 {0} waiting in your port",
+  "⛓️ su puerto está cerrado": "⛓️ their port is closed",
+  "{0}llevas el pago en {1} 🛥": "{0}you carry the payment in {1} 🛥",
+  "Ofertas de otros jugadores, sin impuestos. Lo que ofreces queda apartado, con los barcos mercantes que lo llevarán (uno por cada {0}), hasta que alguien acepta o caduca a los 3 días. Al cerrar el trato, los mercaderes de cada uno zarpan con su parte: la carga llega cuando atracan y los barcos vuelven después.": "Offers from other players, tax-free. What you offer is set aside, along with the merchant ships that will carry it (one for every {0}), until someone accepts or it expires after 3 days. When the deal is closed, each side’s merchants set sail with their part: the cargo arrives when they dock and the ships return afterwards.",
 }

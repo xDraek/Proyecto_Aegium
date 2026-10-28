@@ -193,13 +193,13 @@ export default {
   "Cosecha abundante": "Bountiful harvest",
   "+25 % de toda la producción durante 2 horas.": "+25 % to all production for 2 hours.",
   "Inspiración": "Inspiration",
-  "La obra y la investigación en curso terminan un 30 % antes.": "The construction and research in progress finish 30 % sooner.",
+  "La obra, la investigación y el reclutamiento en curso (tropas y barcos) terminan un 30 % antes.": "The construction, research and recruitment in progress (troops and ships) finish 30 % sooner.",
   "Viento favorable": "Favourable wind",
-  "Tus flotas en el mar se ahorran la mitad de lo que les queda de trayecto.": "Your fleets at sea skip half of their remaining journey.",
+  "Durante hora y media tus flotas navegan al doble: las que están en el mar se ahorran la mitad de lo que les queda, y las que zarpen mientras dure van y vuelven en la mitad de tiempo.": "For an hour and a half your fleets sail twice as fast: those at sea save half of what they have left, and those that set sail while it lasts go and come back in half the time.",
   "Égida": "Aegis",
   "+50 % de vida para los defensores de tu isla durante 3 horas.": "+50 % health for your island's defenders for 3 hours.",
-  "Ira de los dioses": "Wrath of the gods",
-  "Un rayo hunde el 40 % de la flota pirata que se acerca.": "A thunderbolt sinks 40 % of the approaching pirate fleet.",
+  "Furia de Zeus": "Fury of Zeus",
+  "+25 % de ataque para tus tropas y barcos al atacar durante 2 horas: en las batallas que libres mientras dure y con las flotas que zarpen mientras esté activa.": "+25 % attack for your troops and ships when attacking for 2 hours: in the battles you fight while it lasts and with the fleets that set sail while it’s active.",
 
   // Misiones
   "Más madera": "More wood",

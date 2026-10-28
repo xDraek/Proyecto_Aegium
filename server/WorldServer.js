@@ -5,7 +5,7 @@ import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, feat
 import { Game, krakenText, newState, rebuilding } from '../src/game/Game.js';
 import { fmtEs } from '../src/game/num.js';
 import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
-import { playerCombat, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
+import { playerCombat, tradeShips, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
 import { CAMP_LOOT, LAIR_GUARDS, coordsOf, fixPlaceName, freshPlaceName, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { hashPassword, newRecoveryCode, newSecret, normalizeCode, verifyPassword } from './auth.js';
@@ -1389,7 +1389,7 @@ export class WorldServer {
     const groups = all
       .filter((x) => !posted.includes(x))
       .map((x) => {
-        const c = playerCombat(x.game.state);
+        const c = playerCombat(x.game.state, { mission: x.m, t: tw });
         return { ...x, units: { ...x.m.units }, atkMul: c.atkMul, hpMul: c.hpMul };
       });
     const forces = groups.map((g) => forceOf(g.units, g.atkMul, g.hpMul));
@@ -1565,7 +1565,7 @@ export class WorldServer {
         return;
       }
       const groups = here.map((x) => {
-        const c = playerCombat(x.game.state);
+        const c = playerCombat(x.game.state, { mission: x.m, t: ctx.tw });
         return { ...x, units: { ...x.m.units }, atkMul: c.atkMul, hpMul: c.hpMul };
       });
       const forces = groups.map((g) => forceOf(g.units, g.atkMul, g.hpMul));
@@ -1826,7 +1826,7 @@ export class WorldServer {
     const players = [...fleets].map(([uid, { game, ms }]) => {
       const units = {};
       for (const m of ms) for (const [u, n] of Object.entries(landOf(m.units))) units[u] = (units[u] ?? 0) + n;
-      const c = playerCombat(game.state);
+      const c = playerCombat(game.state, { mission: ms.find((m) => m.fury), t });
       return { uid, units, atkMul: c.atkMul, hpMul: c.hpMul, glory: f.glory[uid] ?? 0 };
     });
     const res = relicDuel(players);
@@ -2501,7 +2501,7 @@ export class WorldServer {
         uid: game.userId,
         name: game.name,
         mission,
-        combat: playerCombat(game.state),
+        combat: playerCombat(game.state, { mission, t }),
         settle: (data) => {
           game.settleJoint(mission, data, t);
           game.dirty = true;
@@ -2610,7 +2610,11 @@ export class WorldServer {
     // Las ofertas del mercado caducan y devuelven lo apartado
     const limit = Date.now() - OFFER_DAYS * 86_400_000;
     if (this.meta.offers.some((o) => o.t < limit)) {
-      for (const o of this.meta.offers.filter((x) => x.t < limit)) this.games.get(o.seller)?.giveResources(o.give, '⚖️ Una oferta tuya del mercado ha caducado');
+      for (const o of this.meta.offers.filter((x) => x.t < limit)) {
+        const seller = this.games.get(o.seller);
+        seller?.releaseShips(o.ships);
+        seller?.giveResources(o.give, '⚖️ Una oferta tuya del mercado ha caducado');
+      }
       this.meta.offers = this.meta.offers.filter((o) => o.t >= limit);
     }
   }
@@ -3797,15 +3801,32 @@ export class WorldServer {
     return { [res]: n };
   }
 
-  /** Para comerciar con otros jugadores hace falta el puerto libre y no estar de vacaciones. */
+  /** Para comerciar con otros jugadores hace falta el puerto libre (ni bloqueado ni ocupado) y no estar de vacaciones. */
   #canTrade(game, what) {
     if (game.state.vacation) throw new UserError(`De vacaciones no puedes ${what}.`);
-    if (game.portClosed()) throw new UserError(`Tu puerto está en manos enemigas: no puedes ${what}.`);
+    // (si el bloqueo o la ocupación ya se han acabado, que conste antes de mirar)
+    this.settlePort(game.userId, Date.now());
+    if (game.state.occupied) throw new UserError(`Tu ciudad está ocupada: no puedes ${what} hasta que te libres de los invasores.`);
+    if (game.state.blockade) throw new UserError(`Tu puerto está bloqueado: no puedes ${what} hasta que se levante el bloqueo.`);
+  }
+
+  /** Si el puerto de un jugador está bloqueado u ocupado ahora mismo. */
+  #portClosedNow(userId) {
+    const game = this.games.get(userId);
+    if (!game) return false;
+    this.settlePort(userId, Date.now());
+    return game.portClosed();
   }
 
   listOffers(userId) {
+    const closed = new Map();
+    const isClosed = (id) => {
+      if (!closed.has(id)) closed.set(id, this.#portClosedNow(id));
+      return closed.get(id);
+    };
     return this.meta.offers
-      .map((o) => ({ ...o, sellerName: this.users.get(o.seller)?.username ?? '¿?', mine: o.seller === userId }))
+      // `closed`: el puerto de quien la ofrece está bloqueado u ocupado (de momento no se puede aceptar)
+      .map((o) => ({ ...o, sellerName: this.users.get(o.seller)?.username ?? '¿?', mine: o.seller === userId, closed: isClosed(o.seller) }))
       .sort((a, b) => b.t - a.t)
       .slice(0, 100);
   }
@@ -3818,9 +3839,15 @@ export class WorldServer {
     this.#canTrade(game, 'publicar ofertas');
     if (game.level('mercado') < 1) throw new UserError('Necesitas un mercado para comerciar.');
     if (this.meta.offers.filter((o) => o.seller === userId).length >= MAX_OFFERS) throw new UserError(`Como mucho ${MAX_OFFERS} ofertas a la vez.`);
-    if (!game.takeResources(give)) throw new UserError('No tienes esos recursos.');
+    // Los mercantes que llevarán lo que das se quedan esperando en el puerto con la carga
+    const ships = tradeShips(give);
+    if (!game.holdShips(ships)) throw new UserError(`Para llevar tu oferta necesitas ${ships} ${ships === 1 ? 'barco mercante libre' : 'barcos mercantes libres'} en el puerto (cada uno carga ${fmtEs(UNITS.mercante.cargo)}).`);
+    if (!game.takeResources(give)) {
+      game.releaseShips(ships);
+      throw new UserError('No tienes esos recursos.');
+    }
     const id = (this.meta.offerSeq = (this.meta.offerSeq ?? 0) + 1);
-    this.meta.offers.push({ id, seller: userId, give, want, t: Date.now() });
+    this.meta.offers.push({ id, seller: userId, give, want, ships, t: Date.now() });
     this.#announceOffer(userId, id, give, want);
   }
 
@@ -3839,7 +3866,9 @@ export class WorldServer {
     const o = this.meta.offers.find((x) => x.id === Number(id));
     if (!o || o.seller !== userId) throw new UserError('Esa oferta no es tuya o ya no existe.');
     this.meta.offers = this.meta.offers.filter((x) => x !== o);
-    this.games.get(userId).giveResources(o.give);
+    const game = this.games.get(userId);
+    game.releaseShips(o.ships);
+    game.giveResources(o.give);
   }
 
   acceptOffer(userId, id) {
@@ -3849,14 +3878,20 @@ export class WorldServer {
     const buyer = this.games.get(userId);
     this.#canTrade(buyer, 'aceptar ofertas');
     const owner = this.games.get(o.seller);
-    if (owner?.portClosed()) throw new UserError(`El puerto de ${owner.name} está en manos enemigas: sus mercaderes no pueden salir.`);
-    if (!buyer.takeResources(o.want)) throw new UserError('No tienes lo que piden.');
-    this.meta.offers = this.meta.offers.filter((x) => x !== o);
-    buyer.giveResources(o.give);
+    if (this.#portClosedNow(o.seller)) throw new UserError(`${owner.name} está ${owner.state.occupied ? 'ocupada' : 'bloqueada'}: sus mercaderes no pueden salir del puerto.`);
+    if (!owner) throw new UserError('Esa oferta ya no existe.');
+    // Cada uno manda su parte en sus mercantes: la carga llega al atracar y los barcos vuelven luego
     const name = this.users.get(userId).username;
-    const seller = this.games.get(o.seller);
-    seller?.giveResources(o.want, `⚖️ ${name} ha aceptado tu oferta del mercado`);
-    for (const g of [buyer, seller]) if (g) g.state.stats.trades = (g.state.stats.trades ?? 0) + 1;
+    const sellerName = this.users.get(o.seller)?.username ?? '¿?';
+    const sent = buyer.sendTrade({ to: owner.state.home, partner: sellerName, cargo: o.want, ships: tradeShips(o.want), pay: true });
+    if (!sent.ok) throw new UserError(sent.reason);
+    this.meta.offers = this.meta.offers.filter((x) => x !== o);
+    // (las ofertas de antes de los barcos no apartaron mercantes: salen los que tenga libres)
+    const held = o.ships != null;
+    const ships = held ? o.ships : Math.min(owner.state.units.mercante ?? 0, tradeShips(o.give));
+    owner.sendTrade({ to: buyer.state.home, partner: name, cargo: o.give, ships, held });
+    owner.receiveNews(null, `⚖️ ${name} ha aceptado tu oferta del mercado: tus mercaderes zarpan hacia su ciudad`, 'success');
+    for (const g of [buyer, owner]) g.state.stats.trades = (g.state.stats.trades ?? 0) + 1;
   }
 }
 
