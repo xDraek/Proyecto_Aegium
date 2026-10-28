@@ -1134,7 +1134,7 @@ export const BASIC_RELIC_CHANCE = 0.2;
 // nadie lo derrota, se sumerge y vuelve a asomar en otra fosa al cabo de `diveHours`
 // más un momento cualquiera de la ventana. Cada vez que cae despierta más fuerte: su
 // nivel sube uno y cada nivel le suma `growth` de ataque y de vida.
-export const KRAKEN_RULES = { regenHours: 36, windowHours: 2, relicChance: 0.55, hintCells: 4, stayHours: 6, diveHours: 1, growth: 0.5 };
+export const KRAKEN_RULES = { regenHours: 36, windowHours: 2, relicChance: 0.55, hintCells: 6, stayHours: 6, diveHours: 1, growth: 0.5 };
 
 /** Lo que se multiplican el ataque y la vida del Kraken a un nivel (el 1, los de UNITS.kraken). */
 export const krakenPower = (level) => 1 + KRAKEN_RULES.growth * (Math.max(1, level || 1) - 1);
