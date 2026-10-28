@@ -273,6 +273,16 @@ function startGame(game) {
     el.removeAttribute('title');
   }
 
+  // En el iPhone, al abrir el teclado la página sube para hacerle sitio y al cerrarlo se queda
+  // desplazada (la barra de arriba a medias, todo descuadrado): sin un campo activo, a su sitio
+  const unshift = () => {
+    if (document.activeElement?.matches?.('input, textarea, select')) return;
+    if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
+  };
+  document.addEventListener('focusout', () => setTimeout(unshift, 100));
+  window.addEventListener('scroll', unshift);
+  window.visualViewport?.addEventListener('resize', unshift);
+
   window.addEventListener('keydown', (e) => {
     // Escape también cierra la ventana aunque estés escribiendo en ella (el buscador de la guía…)
     if (e.key === 'Escape' && e.target.closest?.('#modal')) return hud.closeModal();

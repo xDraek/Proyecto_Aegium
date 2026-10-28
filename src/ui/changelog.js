@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-28b',
+    date: '2026-10-28',
+    title: 'Mejor en el móvil',
+    items: [
+      '📱 En el móvil, la pantalla ya no se descuadra (ampliada o desplazada) al escribir una cantidad o al abrir el chat. El chat ya no saca el teclado nada más abrirlo: sale al tocar el campo para escribir.',
+      '⚔️ Al reclutar tropas o botar barcos, el contador vuelve a 0: así se ve al momento que ya han salido.',
+    ],
+    en: {
+      title: 'Better on mobile',
+      items: [
+        '📱 On mobile, the screen no longer gets thrown off (zoomed in or shifted) when typing an amount or opening the chat. The chat no longer pops up the keyboard as soon as it opens: it appears when you tap the field to type.',
+        '⚔️ When you recruit troops or launch ships, the counter goes back to 0, so you can see right away that they’re on their way.',
+      ],
+    },
+  },
+  {
     id: '2026-10-28a',
     date: '2026-10-28',
     title: 'Pequeños arreglos',

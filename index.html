@@ -2,7 +2,9 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- maximum-scale: el iPhone amplía la página al tocar un campo con letra pequeña y la deja así
+         (todo se descuadra); con esto no lo hace, y el zoom con los dedos sigue funcionando -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
     <!-- El juego ya es oscuro: que el modo oscuro automático de algunos navegadores no le cambie los colores -->
     <meta name="color-scheme" content="dark" />
     <title>Aegium · Juego de estrategia en el navegador</title>

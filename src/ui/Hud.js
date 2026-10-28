@@ -1046,8 +1046,16 @@ Los colonos se marchan, dejas de recibir su producción y la isla queda libre pa
       case 'train': {
         const id = btn.dataset.unit;
         // (lo escrito tal cual: con 0, o sin nada, no se recluta; el coste sí se enseña de 1)
-        const n = Math.floor(Number(root.querySelector(`[name="n-${id}"]`)?.value) || 0);
-        await this.#run(btn, () => game.train(id, n), `${UNITS[id].emoji} ${n} × ${UNITS[id].name} en camino`);
+        const field = `[name="n-${id}"]`;
+        const n = Math.floor(Number(root.querySelector(field)?.value) || 0);
+        const res = await this.#run(btn, () => game.train(id, n), `${UNITS[id].emoji} ${n} × ${UNITS[id].name} en camino`);
+        // Ya han salido: el contador vuelve a 0, para que se vea sin tener que leer el aviso
+        // (se busca otra vez: el panel puede haberse repintado mientras tanto)
+        const input = this.panel.querySelector(field);
+        if (res?.ok && input) {
+          input.value = '0';
+          this.#refreshPanel();
+        }
         break;
       }
       case 'cancel-train':
@@ -1427,7 +1435,8 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
     if (!open) return;
     this.chatChannel = (channel === 'alianza' && !this.game.alliance) || (channel === 'gesta' && !this.#featChatOpen()) ? 'global' : channel;
     this.#renderChat(true);
-    this.chatEl.querySelector('input').focus();
+    // En el móvil no: sacaría el teclado nada más abrir el chat (sale al tocar el campo)
+    if (matchMedia('(pointer: fine)').matches) this.chatEl.querySelector('input').focus();
   }
 
   async #pollChat() {
