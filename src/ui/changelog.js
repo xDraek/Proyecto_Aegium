@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-28c',
+    date: '2026-10-28',
+    title: 'Las fortalezas piratas, renovadas',
+    items: [
+      '🏴‍☠️ Las fortalezas piratas tienen un aspecto nuevo: un recinto de piedra almenado sobre las peñas, dos torres con brasero y bandera negra, el templo saqueado con su frontón de la calavera, el mercadillo bajo un toldo negro y un muelle de madera con el corsario amarrado junto a la grúa.',
+    ],
+    en: {
+      title: 'Pirate fortresses, renewed',
+      items: [
+        '🏴‍☠️ Pirate fortresses have a new look: a crenellated stone keep on the rocks, two towers with braziers and black flags, the plundered temple with its skull pediment, a market under a black awning and a wooden pier with the corsair moored beside the crane.',
+      ],
+    },
+  },
+  {
     id: '2026-10-28b',
     date: '2026-10-28',
     title: 'Mejor en el móvil',

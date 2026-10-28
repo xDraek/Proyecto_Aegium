@@ -77,9 +77,10 @@ export function createIslandBase(isl) {
   sand.position.y = -0.45 - 0.65;
   g.add(sand);
 
-  // Uno o dos montes en un lado de la isla
+  // Uno o dos montes en un lado de la isla (en la de los piratas no: la fortaleza la ocupa entera)
   const hills = [];
-  if (isl.type !== 'ruinas') {
+  const pirates = isl.type === 'piratas';
+  if (isl.type !== 'ruinas' && !pirates) {
     const a = rand() * 360;
     hills.push({ p: polar(R * 0.62 * at(a), a, ISLAND_TOP - 0.05), r: R * 0.42 });
     g.userData.hillAngle = a;
@@ -102,7 +103,7 @@ export function createIslandBase(isl) {
 
   // Árboles, arbustos y rocas por el borde (el centro queda libre para lo que haya encima)
   const decor = new Batch();
-  const onHill = (p) => hills.some((h) => p.distanceTo(h.p) < h.r);
+  const onHill = (p) => hills.some((h) => p.distanceTo(h.p) < h.r) || (pirates && pirateBusy(isl, p));
   const trees = isl.type === 'kraken' ? 0 : Math.round(R * 2.4);
   const leafColors = isl.type === 'libre' && isl.specialty === 'madera' ? ['#2f7a43', '#3f8a3a'] : ['#3f8a3a', '#4f9a3a', '#2f7a43', '#5a9e3c'];
   // Un punto al azar dentro de la isla, entre dos fracciones del radio en esa dirección
@@ -133,6 +134,7 @@ export function createIslandBase(isl) {
     for (let i = 0; i < Math.round(R * 0.7); i++) {
       const t = tree('#4f9a3a', true);
       t.position.copy(city ? inland((R + 0.6) / R, (R + 2) / R, -0.45) : inland(1.02, 1.12, -0.45));
+      if (pirates && pirateBusy(isl, t.position)) continue;
       t.scale.setScalar(0.9 + rand() * 0.5);
       t.rotation.y = rand() * Math.PI;
       decor.add(t);
@@ -141,6 +143,7 @@ export function createIslandBase(isl) {
   for (let i = 0; i < 5; i++) {
     const rock = mesh(new THREE.DodecahedronGeometry(0.6 + rand() * 0.8), isl.type === 'kraken' ? '#2f2c33' : '#7c7466');
     rock.position.copy(city ? inland((R + 4.4) / R, (R + 5.5) / R, -0.8) : inland(1.25, 1.45, -0.8));
+    if (pirates && pirateBusy(isl, rock.position)) continue;
     rock.scale.y = 0.6;
     decor.add(rock);
   }
@@ -194,6 +197,7 @@ export function islandProxy(isl) {
       const s = 0.9 + rand() * 0.8;
       const tree = mesh(new THREE.ConeGeometry(0.8 * s, 2.4 * s, 5), greens[i % 3]);
       tree.position.copy(inside(cont ? 0.1 : 0.5, 0.92)).setY(ISLAND_TOP + 1.2 * s);
+      if (isl.type === 'piratas' && pirateBusy(isl, tree.position)) continue;
       b.add(tree);
     }
   }
@@ -206,7 +210,7 @@ export function islandProxy(isl) {
     }
   }
   // El monte grande, donde lo pone la isla de verdad (el primer número de su semilla)
-  if (!cont && isl.type !== 'ruinas') {
+  if (!cont && isl.type !== 'ruinas' && isl.type !== 'piratas') {
     const a = rng(hashString(isl.id))() * 360;
     const at = coastFactor(h, THREE.MathUtils.degToRad(a));
     const hill = mesh(new THREE.ConeGeometry(R * 0.36, R * (isl.type === 'kraken' ? 0.75 : 0.5), 7), pal.rock);
@@ -413,7 +417,7 @@ export function createIslandFeature(isl, fullLook) {
     ciudadela: () => citadel(g, R, rand),
     'ciudadela-propia': () => citadel(g, R, rand, isl.bannerColor ?? C.cloth[0]),
     'ciudadela-otro': () => citadel(g, R, rand, ownerColor(isl)),
-    piratas: () => fort(g, R),
+    piratas: () => fort(g, isl, R, rand),
     ruinas: () => ruins(g, R, rand, true),
     'ruinas-saqueadas': () => ruins(g, R, rand, false),
     libre: () => specialty(g, isl, R, rand),
@@ -509,42 +513,524 @@ function camp(g, R, rand) {
   }
 }
 
-function fort(g, R) {
-  const s = R * 0.36;
-  // Muros
-  for (const [x, z, w, d] of [[0, -s, 2 * s, 0.5], [0, s, 2 * s, 0.5], [-s, 0, 0.5, 2 * s], [s, 0, 0.5, 2 * s]]) {
-    g.add(box(w, 1.4, d, C.stoneDark, x, 0, z));
+// ── La fortaleza pirata ──────────────────────────────────────────────────────
+// Un recinto de piedra clara almenado sobre las peñas, con dos torres con brasero y bandera, el
+// templo saqueado en su terraza (tejado de teja, frontón negro con la calavera, estandartes entre
+// las columnas), el muelle de madera con el corsario amarrado y la grúa, y cajas por todas partes.
+// Se diseña para una isla de radio 11 y se escala a la de verdad; la fachada mira a PIRATE_FRONT
+// (la cámara la ve de tres cuartos, con el muelle a la izquierda).
+
+const PIRATE_FRONT = 80;
+const PIRATE_R = 11;
+const PIRATE_W = 5;
+const PIRATE_D = 3.8;
+const PIER_X = -2.9;
+const PIRATE = {
+  stone: '#e6d2a6', light: '#f0e0bc', dark: '#cdb486', base: '#b9a074', pave: '#d9c69b',
+  tile: '#c4562f', tileDark: '#a5442a', cloth: '#1d1b1a', bone: '#efe7d4', eye: '#141211',
+  wood: '#7a4f2a', woodDark: '#4f3219', plank: '#9a6b3e', rope: '#c9ad78', bronze: '#a8782f', gold: '#d9a83a',
+  rock: ['#bdb8ad', '#aaa498', '#cdc8bc', '#9d978b'], leaf: ['#5f8a3a', '#4b7a30', '#6f9a44', '#557f36'],
+};
+
+/** Un punto de la isla (relativo a su centro) en las coordenadas de la fortaleza (fachada a +Z). */
+function pirateLocal(isl, p) {
+  const k = islandRadius(isl) / FEATURE_SCALE / PIRATE_R;
+  const a = THREE.MathUtils.degToRad(PIRATE_FRONT);
+  const x = p.x / FEATURE_SCALE / k, z = p.z / FEATURE_SCALE / k;
+  return { x: x * Math.cos(a) - z * Math.sin(a), z: x * Math.sin(a) + z * Math.cos(a) };
+}
+
+/** Lo que ocupan la fortaleza, el muelle y el barco: ahí la isla no pone árboles ni peñas. */
+function pirateBusy(isl, p) {
+  const { x, z } = pirateLocal(isl, p);
+  if (Math.abs(x) < PIRATE_W + 2.4 && Math.abs(z) < PIRATE_D + 3.2) return true;
+  return z > 0 && x > PIER_X - 5.8 && x < PIER_X + 2.4;
+}
+
+/** Calavera con las tibias cruzadas, plana, para telas y frontones (se ve por las dos caras). */
+function skullMark(s) {
+  const g = new THREE.Group();
+  for (const r of [-0.6, 0.6]) {
+    const bone = box(s * 3.1, s * 0.26, s * 0.18, PIRATE.bone, 0, -s * 0.13, 0);
+    bone.position.y = -s * 0.55;
+    bone.rotation.z = r;
+    g.add(bone);
+    for (const e of [-1, 1]) {
+      const knob = mesh(new THREE.SphereGeometry(s * 0.2, 6, 4), PIRATE.bone);
+      knob.position.set(Math.cos(r) * s * 1.5 * e, -s * 0.55 + Math.sin(r) * s * 1.5 * e, 0);
+      knob.scale.z = 0.6;
+      g.add(knob);
+    }
   }
-  for (const [x, z] of [[-s, -s], [s, -s], [-s, s], [s, s]]) {
-    g.add(cyl(0.6, 0.7, 2.2, 7, C.stone, x, 0, z));
-    const top = mesh(new THREE.ConeGeometry(0.75, 0.8, 7), '#3a2a20');
-    top.position.set(x, 2.6, z);
-    g.add(top);
+  const head = mesh(new THREE.SphereGeometry(s, 9, 7), PIRATE.bone);
+  head.scale.set(1, 1.02, 0.28);
+  g.add(head, box(s * 1.05, s * 0.5, s * 0.36, PIRATE.bone, 0, -s * 1.15, 0));
+  for (const x of [-0.38, 0.38]) g.add(box(s * 0.36, s * 0.32, s * 0.4, PIRATE.eye, x * s, -s * 0.2, 0));
+  g.add(box(s * 0.14, s * 0.2, s * 0.4, PIRATE.eye, 0, -s * 0.62, 0));
+  return g;
+}
+
+/** Bandera negra deshilachada de `w`×`h` con su calavera; ondea desde el asta (en x = 0). */
+function pirateFlag(w, h) {
+  const shape = new THREE.Shape();
+  for (const [i, [x, y]] of [[0, 0.5], [0.62, 0.5], [0.8, 0.44], [1, 0.36], [0.84, 0.2], [0.97, 0.06], [0.8, -0.05], [0.95, -0.22], [0.86, -0.3], [0.9, -0.45], [0.7, -0.4], [0.55, -0.5], [0, -0.5]].entries()) {
+    if (i) shape.lineTo(x * w, y * h);
+    else shape.moveTo(x * w, y * h);
   }
-  // Torre del homenaje y bandera negra
-  g.add(box(1.8, 2.8, 1.8, C.stone, 0, 0, 0));
-  g.add(cyl(0.05, 0.05, 2.0, 5, C.dark, 0, 2.8, 0));
-  const flag = box(1.0, 0.65, 0.03, '#111111', 0, 0, 0);
-  flag.geometry.translate(0.5, 0, 0);
-  flag.position.set(0, 4.4, 0);
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.03, bevelEnabled: false });
+  geo.translate(0, 0, -0.015);
+  const flag = new THREE.Group();
+  flag.add(mesh(geo, PIRATE.cloth));
+  const mark = skullMark(h * 0.17);
+  mark.position.set(w * 0.42, h * 0.06, 0);
+  flag.add(mark);
   flag.userData.wave = true;
+  return flag;
+}
+
+/** Asta con remate dorado y bandera: la base en (x, y, z). */
+function pirateMast(g, x, y, z, h, w = 1.4) {
+  g.add(cyl(0.05, 0.06, h, 6, PIRATE.woodDark, x, y, z));
+  const ball = mesh(new THREE.SphereGeometry(0.1, 8, 6), PIRATE.gold);
+  ball.position.set(x, y + h + 0.06, z);
+  g.add(ball);
+  const flag = pirateFlag(w, w * 0.6);
+  flag.position.set(x + 0.04, y + h - w * 0.32, z);
   g.add(flag);
-  const skull = box(0.28, 0.28, 0.04, '#f4efe6', 0.5, 4.4, 0.02);
-  g.add(skull);
-  // Cañones
-  for (const a of [0, 90, 180, 270]) {
-    const c = box(0.26, 0.26, 0.9, C.dark);
-    c.position.copy(polar(s + 0.4, a, 1.25));
-    c.rotation.y = THREE.MathUtils.degToRad(a);
-    g.add(c);
+}
+
+/** Estandarte negro colgado de una vara, con su calavera; la cara mira a +Z. */
+function pirateBanner(w, h) {
+  const g = new THREE.Group();
+  g.add(cyl(0.035, 0.035, w + 0.2, 5, PIRATE.woodDark, 0, 0, 0));
+  g.children[0].rotation.z = Math.PI / 2;
+  g.children[0].position.y = 0;
+  g.add(box(w, h * 0.86, 0.03, PIRATE.cloth, 0, -h * 0.86, 0));
+  // Los jirones de abajo
+  for (const x of [-0.33, 0, 0.33]) {
+    const tip = mesh(new THREE.ConeGeometry(w * 0.17, h * 0.16, 3), PIRATE.cloth);
+    tip.rotation.z = Math.PI;
+    tip.scale.z = 0.1;
+    tip.position.set(x * w, -h * 0.94, 0);
+    g.add(tip);
   }
-  // Barco corsario fondeado
+  const mark = skullMark(w * 0.2);
+  mark.position.set(0, -h * 0.4, 0.02);
+  g.add(mark);
+  return g;
+}
+
+/** Brasero de bronce con su fuego (de día también, salvo con `night`: es la fortaleza que vigila). */
+function pirateBrazier(g, x, y, z, k = 1, night = false) {
+  g.add(cyl(0.06 * k, 0.12 * k, 0.35 * k, 6, PIRATE.woodDark, x, y, z));
+  g.add(cyl(0.34 * k, 0.16 * k, 0.24 * k, 9, PIRATE.bronze, x, y + 0.33 * k, z));
+  g.add(makeFire(x, y + 0.5 * k, z, 0.55 * k, { night }));
+}
+
+/** Antorcha de pared: soporte y llama que solo arde de noche. */
+function pirateTorch(g, x, y, z, rotY) {
+  const t = new THREE.Group();
+  t.add(box(0.08, 0.32, 0.18, PIRATE.woodDark, 0, 0, 0.09));
+  t.add(cyl(0.07, 0.04, 0.12, 6, PIRATE.bronze, 0, 0.3, 0.18));
+  t.add(makeFire(0, 0.4, 0.18, 0.28));
+  t.position.set(x, y, z);
+  t.rotation.y = rotY;
+  g.add(t);
+}
+
+function crate(g, x, y, z, s, rotY = 0) {
+  const c = new THREE.Group();
+  c.add(box(s, s, s, PIRATE.plank));
+  for (const h of [0.02, 0.86]) c.add(box(s * 1.04, s * 0.12, s * 1.04, PIRATE.woodDark, 0, h * s, 0));
+  for (const ax of [-1, 1]) c.add(box(s * 0.12, s, s * 1.04, PIRATE.woodDark, ax * s * 0.46, 0, 0));
+  c.position.set(x, y, z);
+  c.rotation.y = rotY;
+  g.add(c);
+}
+
+function barrel(g, x, y, z, s = 1) {
+  g.add(cyl(0.2 * s, 0.2 * s, 0.5 * s, 9, '#8a5a30', x, y, z));
+  g.add(cyl(0.24 * s, 0.24 * s, 0.24 * s, 9, '#9a6a3a', x, y + 0.13 * s, z));
+  for (const h of [0.04, 0.42]) g.add(cyl(0.215 * s, 0.215 * s, 0.05 * s, 9, PIRATE.woodDark, x, y + h * s, z));
+}
+
+/**
+ * Lienzo de muralla de (x0, z0) a (x1, z1) (recto, en X o en Z): zócalo, hiladas, sillares que
+ * sobresalen, cornisa y almenas.
+ */
+function pirateWall(g, x0, z0, x1, z1, h, t, rand) {
+  const alongX = z0 === z1;
+  const len = alongX ? Math.abs(x1 - x0) : Math.abs(z1 - z0);
+  const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  const dims = (l, w) => (alongX ? [l, w] : [w, l]);
+  const [w, d] = dims(len, t);
+  g.add(box(w, h, d, PIRATE.stone, cx, 0, cz));
+  const [bw, bd] = dims(len + 0.1, t + 0.14);
+  g.add(box(bw, 0.35, bd, PIRATE.base, cx, 0, cz));
+  for (const y of [h * 0.42, h * 0.72]) {
+    const [lw, ld] = dims(len + 0.02, t + 0.03);
+    g.add(box(lw, 0.035, ld, PIRATE.dark, cx, y, cz));
+  }
+  // Sillares sueltos, unos más claros y otros más oscuros, para que no parezca un bloque liso
+  for (let i = 0; i < len * 1.6; i++) {
+    const u = (rand() - 0.5) * (len - 0.4);
+    const y = 0.4 + rand() * (h - 0.7);
+    const [sw, sd] = dims(0.36 + rand() * 0.3, t + 0.04);
+    g.add(box(sw, 0.2, sd, rand() < 0.5 ? PIRATE.light : PIRATE.dark, alongX ? cx + u : cx, y, alongX ? cz : cz + u));
+  }
+  const [kw, kd] = dims(len + 0.12, t + 0.16);
+  g.add(box(kw, 0.12, kd, PIRATE.light, cx, h, cz));
+  const n = Math.max(2, Math.round(len / 0.62));
+  for (let i = 0; i < n; i++) {
+    if (i % 2) continue;
+    const u = -len / 2 + (i + 0.5) * (len / n);
+    const px = alongX ? cx + u : cx, pz = alongX ? cz : cz + u;
+    const [mw, md] = dims(len / n, t + 0.04);
+    g.add(box(mw, 0.36, md, i % 4 ? PIRATE.stone : PIRATE.light, px, h + 0.12, pz));
+  }
+}
+
+/** Torre cuadrada con matacán, almenas, troneras, la garita de madera, el brasero y la bandera. */
+function pirateTower(g, x, z, s, h, rand, front) {
+  const t = new THREE.Group();
+  t.add(box(s + 0.3, 0.5, s + 0.3, PIRATE.base, 0, 0, 0));
+  t.add(box(s, h, s, PIRATE.stone, 0, 0, 0));
+  for (const y of [h * 0.3, h * 0.55, h * 0.8]) t.add(box(s + 0.03, 0.035, s + 0.03, PIRATE.dark, 0, y, 0));
+  for (let i = 0; i < 14; i++) {
+    const side = Math.floor(rand() * 4);
+    const u = (rand() - 0.5) * (s - 0.4);
+    const y = 0.6 + rand() * (h - 1);
+    const b = box(side % 2 ? s + 0.04 : 0.3 + rand() * 0.25, 0.2, side % 2 ? 0.3 + rand() * 0.25 : s + 0.04, rand() < 0.5 ? PIRATE.light : PIRATE.dark, side % 2 ? 0 : u, y, side % 2 ? u : 0);
+    t.add(b);
+  }
+  // Matacán (la repisa sobre ménsulas) y las almenas
+  t.add(box(s + 0.36, 0.16, s + 0.36, PIRATE.light, 0, h, 0));
+  for (let i = 0; i < 4; i++) {
+    for (const u of [-0.36, 0, 0.36]) {
+      const c = box(0.14, 0.2, 0.14, PIRATE.dark, 0, h - 0.2, 0);
+      c.position.add(new THREE.Vector3(u * s, 0, (s / 2 + 0.08)).applyAxisAngle(new THREE.Vector3(0, 1, 0), (i * Math.PI) / 2));
+      t.add(c);
+    }
+  }
+  const n = 5;
+  for (let i = 0; i < 4; i++) {
+    for (let j = 0; j < n; j += 2) {
+      const u = -s / 2 - 0.14 + (j + 0.5) * ((s + 0.28) / n);
+      const m = box((s + 0.28) / n, 0.42, 0.24, j === 2 ? PIRATE.light : PIRATE.stone, 0, 0, 0);
+      m.position.add(new THREE.Vector3(u, h + 0.16, s / 2 + 0.04).applyAxisAngle(new THREE.Vector3(0, 1, 0), (i * Math.PI) / 2));
+      m.rotation.y = (i * Math.PI) / 2;
+      t.add(m);
+    }
+  }
+  // Troneras y una ventana en arco, en las caras que dan fuera
+  for (const [face, y] of [[0, h * 0.62], [1, h * 0.45], [3, h * 0.66]]) {
+    const slit = box(0.12, 0.5, 0.06, PIRATE.eye, 0, 0, 0);
+    slit.position.add(new THREE.Vector3(0, y, s / 2 + 0.01).applyAxisAngle(new THREE.Vector3(0, 1, 0), (face * Math.PI) / 2));
+    slit.rotation.y = (face * Math.PI) / 2;
+    t.add(slit);
+  }
+  // La garita de madera de arriba: barandilla, brasero y bandera
+  const top = h + 0.16;
+  const r = s * 0.36;
+  for (const [px, pz] of [[-r, -r], [r, -r], [-r, r], [r, r]]) t.add(box(0.1, 0.7, 0.1, PIRATE.wood, px, top, pz));
+  for (const y of [0.32, 0.64]) {
+    for (const [w, d, px, pz] of [[2 * r + 0.1, 0.07, 0, -r], [2 * r + 0.1, 0.07, 0, r], [0.07, 2 * r + 0.1, -r, 0], [0.07, 2 * r + 0.1, r, 0]]) t.add(box(w, 0.06, d, PIRATE.wood, px, top + y, pz));
+  }
+  pirateBrazier(t, r * 0.5, top, r * 0.5, 1.1);
+  pirateMast(t, -r * 0.55, top, -r * 0.55, 2.0, 1.5);
+  // El estandarte de la cara de delante
+  const banner = pirateBanner(s * 0.5, h * 0.42);
+  banner.position.set(Math.sin(front) * (s / 2 + 0.05), h - 0.35, Math.cos(front) * (s / 2 + 0.05));
+  banner.rotation.y = front;
+  t.add(banner);
+  t.position.set(x, 0, z);
+  g.add(t);
+}
+
+/** El templo de la terraza: escalinata, cuatro columnas de capitel dorado, frontón negro con la calavera. */
+function pirateTemple(g, x, y, z) {
+  const t = new THREE.Group();
+  for (let i = 0; i < 3; i++) t.add(box(3.3 - i * 0.24, 0.13, 3.3 - i * 0.24, i % 2 ? PIRATE.stone : PIRATE.light, 0, i * 0.13, 0));
+  const y0 = 0.39;
+  // La cella, con su puerta en sombra
+  t.add(box(2.5, 2.0, 2.0, PIRATE.stone, 0, y0, -0.45));
+  t.add(box(0.7, 1.15, 0.05, PIRATE.eye, 0, y0, 0.56));
+  t.add(box(0.86, 0.12, 0.08, PIRATE.dark, 0, y0 + 1.15, 0.57));
+  // Columnas de capitel dorado y, entre ellas, los estandartes negros
+  for (const cx of [-1.1, -0.37, 0.37, 1.1]) {
+    t.add(column(cx, y0, 1.05, 2.0, 0.15, PIRATE.light));
+    t.add(box(0.42, 0.07, 0.42, PIRATE.gold, cx, y0 + 1.86, 1.05));
+    t.add(cyl(0.17, 0.17, 0.06, 10, PIRATE.gold, cx, y0 + 0.08, 1.05));
+  }
+  for (const cx of [-0.735, 0.735]) {
+    const b = pirateBanner(0.5, 1.3);
+    b.position.set(cx, y0 + 1.72, 0.92);
+    t.add(b);
+  }
+  // Arquitrabe con su friso dorado, el tejado de teja y el frontón negro
+  t.add(box(3.0, 0.3, 3.1, PIRATE.light, 0, y0 + 2.0, -0.05));
+  t.add(box(3.02, 0.06, 3.12, PIRATE.gold, 0, y0 + 2.12, -0.05));
+  const ry = y0 + 2.3;
+  t.add(gableRoof(3.4, 1.0, 3.4, PIRATE.tile, 0, ry, -0.05));
+  const slope = Math.atan2(1.0, 1.7);
+  const run = Math.hypot(1.0, 1.7);
+  for (const sx of [-1, 1]) {
+    for (let i = 0; i < 11; i++) {
+      const tz = -1.65 + i * 0.32;
+      const strip = box(run, 0.07, 0.08, i % 2 ? PIRATE.tileDark : '#b84c2c', 0, -0.035, 0);
+      strip.position.set(sx * 0.85 + sx * Math.sin(slope) * 0.03, ry + 0.5 + Math.cos(slope) * 0.03, tz);
+      strip.rotation.z = sx * -slope;
+      t.add(strip);
+    }
+  }
+  const ridge = cyl(0.07, 0.07, 3.45, 6, PIRATE.tileDark, 0, 0, 0);
+  ridge.rotation.x = Math.PI / 2;
+  ridge.position.set(0, ry + 1.0, -0.05);
+  t.add(ridge);
+  const front = 1.66;
+  t.add(gableRoof(3.0, 0.8, 0.06, PIRATE.light, 0, ry + 0.03, front));
+  t.add(gableRoof(2.6, 0.64, 0.06, PIRATE.cloth, 0, ry + 0.1, front + 0.02));
+  const mark = skullMark(0.15);
+  mark.position.set(0, ry + 0.37, front + 0.06);
+  t.add(mark);
+  for (const sx of [-1.62, 1.62]) t.add(cyl(0.09, 0.12, 0.2, 6, PIRATE.gold, sx, ry, front));
+  // El torreón de la bandera, sobre la cumbrera de atrás
+  t.add(box(0.5, 0.5, 0.5, PIRATE.light, 0, ry + 0.75, -1.2));
+  t.add(box(0.6, 0.1, 0.6, PIRATE.stone, 0, ry + 1.25, -1.2));
+  pirateMast(t, 0, ry + 1.35, -1.2, 2.6, 2.2);
+  t.position.set(x, y, z);
+  g.add(t);
+}
+
+/** Puerta en arco de la muralla de delante (en z), en sombra y con su portón de madera. */
+function pirateGate(g, x, z, h) {
+  g.add(box(2.0, h + 0.5, 0.75, PIRATE.stone, x, 0, z));
+  g.add(box(2.1, 0.14, 0.85, PIRATE.light, x, h + 0.5, z));
+  for (const u of [-0.75, -0.25, 0.25, 0.75]) g.add(box(0.36, 0.38, 0.8, PIRATE.stone, x + u, h + 0.64, z));
+  g.add(box(1.0, 1.15, 0.78, PIRATE.eye, x, 0, z));
+  const arch = mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.78, 10, 1, false, -Math.PI / 2, Math.PI), PIRATE.eye);
+  arch.rotation.x = -Math.PI / 2;
+  arch.position.set(x, 1.15, z);
+  g.add(arch);
+  const ring = mesh(new THREE.TorusGeometry(0.58, 0.09, 4, 10, Math.PI), PIRATE.light);
+  ring.position.set(x, 1.15, z + 0.4);
+  g.add(ring);
+  g.add(box(0.92, 1.1, 0.06, PIRATE.woodDark, x, 0, z + 0.2));
+  for (const u of [-0.25, 0.25]) g.add(box(0.05, 1.1, 0.07, PIRATE.wood, x + u, 0, z + 0.22));
+}
+
+/** La grúa del muelle: poste, pluma con tornapunta y una red de carga colgando sobre el agua. */
+function pirateCrane(g, x, y, z) {
+  const c = new THREE.Group();
+  c.add(box(0.5, 0.25, 0.5, PIRATE.woodDark, 0, 0, 0));
+  c.add(box(0.2, 2.6, 0.2, PIRATE.wood, 0, 0, 0));
+  c.add(box(2.3, 0.18, 0.18, PIRATE.wood, -0.95, 2.45, 0));
+  const brace = box(1.3, 0.12, 0.12, PIRATE.wood, 0, 0, 0);
+  brace.rotation.z = -0.75;
+  brace.position.set(-0.45, 2.0, 0);
+  c.add(brace);
+  c.add(cyl(0.12, 0.12, 0.26, 8, PIRATE.woodDark, 0, 2.2, 0.16));
+  c.add(cyl(0.015, 0.015, 0.9, 3, PIRATE.rope, -1.95, 1.55, 0));
+  c.add(box(0.75, 0.42, 0.6, PIRATE.rope, -1.95, 1.1, 0));
+  c.add(box(0.6, 0.3, 0.45, PIRATE.plank, -1.95, 1.18, 0));
+  c.position.set(x, y, z);
+  g.add(c);
+}
+
+function fort(g, isl, R, rand) {
+  const k = R / PIRATE_R;
+  const f = new THREE.Group();
+  f.scale.setScalar(k);
+  f.rotation.y = THREE.MathUtils.degToRad(PIRATE_FRONT);
+  g.add(f);
+  const W = PIRATE_W, D = PIRATE_D, H = 1.7;
+
+  // El patio enlosado y la explanada de delante
+  f.add(box(2 * W, 0.08, 2 * D, PIRATE.pave, 0, 0, 0));
+  f.add(box(2 * W + 0.6, 0.12, 2.6, PIRATE.pave, 0, 0, D + 1.3));
+  for (let i = 0; i < 26; i++) f.add(box(0.5 + rand() * 0.4, 0.02, 0.4 + rand() * 0.3, rand() < 0.5 ? PIRATE.light : PIRATE.dark, (rand() - 0.5) * (2 * W - 1), 0.08, (rand() - 0.5) * (2 * D - 1)));
+  for (let i = 0; i < 10; i++) f.add(box(0.5 + rand() * 0.4, 0.02, 0.4 + rand() * 0.3, rand() < 0.5 ? PIRATE.light : PIRATE.dark, (rand() - 0.5) * 2 * W, 0.12, D + 0.4 + rand() * 1.9));
+
+  // Murallas (la de delante, partida por la puerta) y las dos torres
+  pirateWall(f, -W, -D, W, -D, H, 0.5, rand);
+  pirateWall(f, -W, -D, -W, D, H, 0.5, rand);
+  pirateWall(f, W, -D, W, D, H, 0.5, rand);
+  pirateWall(f, -W, D, -1, D, H, 0.5, rand);
+  pirateWall(f, 1, D, W, D, H, 0.5, rand);
+  pirateGate(f, 0, D, H);
+  pirateTower(f, -W, -0.7, 2.3, 4.4, rand, -Math.PI / 2);
+  pirateTower(f, W, 0.5, 2.3, 4.4, rand, 0);
+  // Torretas en las esquinas de delante
+  for (const sx of [-1, 1]) {
+    f.add(box(1.4, 2.3, 1.4, PIRATE.stone, sx * W, 0, D));
+    f.add(box(1.6, 0.12, 1.6, PIRATE.light, sx * W, 2.3, D));
+    for (const [u, v] of [[-0.55, -0.55], [0.55, -0.55], [-0.55, 0.55], [0.55, 0.55], [0, 0.55], [sx * 0.55, 0]]) f.add(box(0.36, 0.34, 0.36, PIRATE.stone, sx * W + u, 2.42, D + v));
+  }
+  pirateBrazier(f, W, 2.42, D, 1, true);
+  pirateTorch(f, -0.95, 1.2, D + 0.38, 0);
+  pirateTorch(f, 0.95, 1.2, D + 0.38, 0);
+
+  // La terraza del templo, con su muro almenado y la escalinata
+  const PH = 1.1, PZ = -0.3;
+  f.add(box(5.6, PH, PZ + D - 0.25, PIRATE.stone, 0, 0, (PZ - D + 0.25) / 2));
+  f.add(box(5.7, 0.1, 0.4, PIRATE.light, 0, PH, PZ));
+  for (let i = 0; i < 9; i++) {
+    const x = -2.6 + i * 0.65;
+    if (Math.abs(x) < 0.9) continue;
+    f.add(box(0.36, 0.36, 0.34, i % 3 ? PIRATE.stone : PIRATE.light, x, PH + 0.1, PZ));
+  }
+  for (let i = 0; i < 7; i++) f.add(box(1.5, PH - i * 0.157, 0.27, i % 2 ? PIRATE.stone : PIRATE.light, 0, 0, PZ + 0.135 + i * 0.27));
+  // Los pretiles de la escalinata, que bajan con ella
+  const cheek = new THREE.Shape([[0, 0], [1.95, 0], [1.95, 0.45], [0, PH + 0.35]].map(([a, b]) => new THREE.Vector2(a, b)));
+  for (const sx of [-0.87, 0.87]) {
+    const geo = new THREE.ExtrudeGeometry(cheek, { depth: 0.24, bevelEnabled: false });
+    geo.rotateY(-Math.PI / 2).translate(sx + 0.12, 0, PZ);
+    f.add(mesh(geo, PIRATE.light));
+    pirateBrazier(f, sx, PH + 0.35, PZ + 0.1, 0.7);
+  }
+  pirateTemple(f, 0, PH, -2.0);
+
+  // La casa del contramaestre y el armero, a la derecha de la terraza
+  f.add(box(1.6, 1.2, 1.3, PIRATE.stone, 3.6, 0, -2.6));
+  f.add(hipRoof(1.9, 1.6, 0.55, PIRATE.tile, 3.6, 1.2, -2.6));
+  f.add(box(0.4, 0.75, 0.05, PIRATE.woodDark, 3.6, 0, -1.93));
+  f.add(box(1.1, 0.08, 0.3, PIRATE.wood, 3.4, 0.7, -1.5));
+  for (let i = 0; i < 5; i++) {
+    const spear = cyl(0.025, 0.025, 1.3, 4, PIRATE.woodDark, 3.0 + i * 0.2, 0, -1.55);
+    spear.rotation.x = -0.18;
+    f.add(spear);
+    const tip = mesh(new THREE.ConeGeometry(0.05, 0.18, 4), '#8a8f96');
+    tip.position.set(3.0 + i * 0.2, 1.36, -1.67);
+    f.add(tip);
+  }
+
+  // El botín del patio: cajas, barriles y ánforas
+  for (const [x, z, s, r] of [[-3.6, 1.6, 0.5, 0.2], [-3.1, 1.9, 0.42, 0.6], [-3.5, 2.1, 0.38, 0], [2.3, 1.4, 0.48, 0.4], [2.75, 1.7, 0.4, 0.1], [-3.45, -2.6, 0.5, 0.3], [-3.5, -3.15, 0.4, 0.8]]) crate(f, x, 0.08, z, s, r);
+  crate(f, -3.6, 0.58, 1.6, 0.36, 0.5);
+  for (const [x, z] of [[-2.6, 1.3], [-2.3, 1.55], [1.9, 2.2], [3.4, 2.6]]) barrel(f, x, 0.08, z);
+  pirateBrazier(f, -3.3, 0.08, -0.1, 0.8, true);
+
+  // Los piratas: de guardia en la puerta, en el patio y en la explanada
+  for (const [x, z, r] of [[-0.7, D + 1.0, 0.2], [0.75, D + 0.9, -0.3], [1.6, 0.8, 2.6], [-1.8, 2.2, 0.9], [-2.6, D + 1.8, -0.6]]) {
+    const p = createSoldier('pirata');
+    p.scale.setScalar(1.7);
+    p.position.set(x, 0.1, z);
+    p.rotation.y = r;
+    f.add(p);
+  }
+
+  // La explanada: el toldo negro del mercadillo con su género
+  const ax = 2.7, az = D + 1.4;
+  for (const [u, v] of [[-1.1, -0.7], [1.1, -0.7], [-1.1, 0.7], [1.1, 0.7]]) f.add(box(0.1, v < 0 ? 1.6 : 1.3, 0.1, PIRATE.wood, ax + u, 0.12, az + v));
+  const awning = box(2.5, 0.04, 1.7, PIRATE.cloth, 0, 0, 0);
+  awning.rotation.x = 0.18;
+  awning.position.set(ax, 1.58, az);
+  f.add(awning);
+  f.add(box(2.5, 0.25, 0.03, PIRATE.cloth, ax, 1.2, az + 0.86));
+  for (const [x, y, z, s] of [[ax - 0.7, 0.12, az - 0.2, 0.45], [ax - 0.2, 0.12, az + 0.1, 0.4], [ax + 0.5, 0.12, az - 0.25, 0.48], [ax + 0.45, 0.12, az + 0.35, 0.36], [ax - 0.7, 0.57, az - 0.2, 0.3]]) crate(f, x, y, z, s, rand() * 0.6);
+  for (const [x, z] of [[-1.7, D + 0.6], [-1.4, D + 0.75]]) barrel(f, x, 0.12, z);
+
+  // El muelle: tablones sobre pilotes hasta pasada la orilla, con un espigón al final
+  const shore = (z) => {
+    const p = polar(1, PIRATE_FRONT).multiplyScalar(z * k).add(polar(1, PIRATE_FRONT + 90).multiplyScalar(PIER_X * k));
+    const deg = THREE.MathUtils.radToDeg(Math.atan2(p.x, p.z));
+    return Math.hypot(p.x, p.z) > R * 1.19 * coastFactor(islandCoast(isl), THREE.MathUtils.degToRad(deg));
+  };
+  let zs = D + 2.6;
+  while (!shore(zs) && zs < 40) zs += 0.2;
+  const z0 = D + 2.6, z1 = zs + 4.6, PY = 0.05;
+  const deep = SEA / k - 0.6;
+  for (let z = z0; z < z1; z += 0.24) f.add(box(1.5, 0.08, 0.2, (Math.round(z * 10) % 3) ? PIRATE.plank : '#8a5d34', PIER_X, PY, z + 0.12));
+  for (let z = z0; z <= z1 + 0.01; z += 1.5) {
+    for (const sx of [-0.8, 0.8]) {
+      f.add(cyl(0.12, 0.13, PY + 0.42 - deep, 7, PIRATE.wood, PIER_X + sx, deep, z));
+      f.add(cyl(0.135, 0.135, 0.06, 7, PIRATE.rope, PIER_X + sx, PY + 0.22, z));
+    }
+    f.add(box(1.75, 0.1, 0.14, PIRATE.woodDark, PIER_X, PY - 0.12, z));
+  }
+  // El espigón del final, ancho, con sus pilotes de amarre (hacia el lado contrario al barco, para que no lo pisen sus remos)
+  f.add(box(2.8, 0.1, 1.4, PIRATE.plank, PIER_X + 0.65, PY, z1 + 0.6));
+  for (const [u, v] of [[2.0, 0], [2.0, 1.2], [0.65, 1.2], [-0.75, 1.2]]) {
+    f.add(cyl(0.14, 0.15, PY + 0.55 - deep, 7, PIRATE.wood, PIER_X + u, deep, z1 + v));
+    f.add(cyl(0.155, 0.155, 0.07, 7, PIRATE.rope, PIER_X + u, PY + 0.3, z1 + v));
+  }
+  for (const [x, z, s] of [[PIER_X + 0.3, z1 + 0.4, 0.42], [PIER_X + 0.75, z1 + 0.6, 0.36]]) crate(f, x, PY + 0.1, z, s, rand());
+  barrel(f, PIER_X - 0.3, PY + 0.1, z0 + 1.2);
+  pirateCrane(f, PIER_X - 0.55, PY + 0.1, z1 - 1.6);
+
+  // El corsario, amarrado al costado del muelle
   const ship = createShip('corsario');
-  ship.scale.setScalar(2.2);
-  ship.position.copy(polar(R * 1.35, 140, SEA));
-  ship.rotation.y = Math.PI * 0.3;
-  ship.userData.bob = { amp: 0.1, speed: 1.2, base: SEA };
-  g.add(ship);
+  // (a la distancia justa para que los remos de ese lado descansen en el borde del muelle)
+  ship.scale.setScalar(1.9);
+  ship.position.set(PIER_X - 3.2, SEA / k, z1 - 1.0);
+  ship.userData.bob = { amp: 0.08, speed: 1.1, base: SEA / k };
+  f.add(ship);
+
+  // Peñas grises con matorral al pie de las murallas, y cipreses asomando por detrás
+  const decor = [];
+  const ring = (u) => {
+    // Un punto del contorno del recinto (u de 0 a 1), sin la fachada ni la explanada
+    const per = 2 * (2 * W + 2 * D);
+    let d = u * per;
+    if (d < 2 * W) return [-W + d, -D];
+    d -= 2 * W;
+    if (d < 2 * D) return [W, -D + d];
+    d -= 2 * D;
+    if (d < 2 * D) return [-W, -D + d];
+    d -= 2 * D;
+    return [-W + d, D];
+  };
+  for (let i = 0; i < 90; i++) {
+    const [px, pz] = ring(rand());
+    // (la fachada no: ahí están la explanada y el muelle)
+    if (pz === D && Math.abs(px) < W) continue;
+    const out = 0.35 + rand() * 1.5;
+    const side = Math.abs(px) >= W;
+    const x = px + (side ? Math.sign(px) * out : 0);
+    const z = pz + (side ? 0 : -out);
+    if (z > D - 0.4 && x < 0) continue;
+    const s = 0.3 + rand() * 0.55;
+    const rock = mesh(new THREE.DodecahedronGeometry(s, 0), PIRATE.rock[i % PIRATE.rock.length]);
+    rock.position.set(x, s * 0.35, z);
+    rock.scale.set(1, 0.75 + rand() * 0.6, 0.9 + rand() * 0.3);
+    rock.rotation.set(rand(), rand() * 3, rand() * 0.4);
+    decor.push(rock);
+    if (rand() < 0.6) {
+      const bush = mesh(new THREE.DodecahedronGeometry(0.22 + rand() * 0.22, 0), PIRATE.leaf[i % PIRATE.leaf.length]);
+      bush.position.set(x + (rand() - 0.5) * s, s * 0.9, z + (rand() - 0.5) * s);
+      bush.scale.y = 0.7;
+      decor.push(bush);
+    }
+  }
+  // También delante a la derecha, junto a la explanada, como en un acantilado
+  for (let i = 0; i < 22; i++) {
+    const s = 0.35 + rand() * 0.6;
+    const rock = mesh(new THREE.DodecahedronGeometry(s, 0), PIRATE.rock[i % PIRATE.rock.length]);
+    rock.position.set(W + 0.4 + rand() * 1.6, s * 0.35, D - 0.5 + rand() * 3.6);
+    rock.scale.set(1, 0.8 + rand() * 0.6, 1);
+    rock.rotation.set(rand(), rand() * 3, 0);
+    decor.push(rock);
+    if (i % 2) {
+      const bush = mesh(new THREE.DodecahedronGeometry(0.3 + rand() * 0.2, 0), PIRATE.leaf[i % PIRATE.leaf.length]);
+      bush.position.set(rock.position.x, s * 0.95, rock.position.z);
+      bush.scale.y = 0.7;
+      decor.push(bush);
+    }
+  }
+  for (const [x, z, s] of [[-2.2, -D - 0.9, 1.0], [1.4, -D - 1.0, 1.15], [3.6, -D - 0.7, 0.9], [W + 0.9, -2.4, 1.05], [-W - 0.9, 1.9, 0.95], [-0.6, -D - 1.2, 0.85]]) {
+    const c = cypress('#3f6e34');
+    c.position.set(x, 0, z);
+    c.scale.setScalar(s * 1.2);
+    decor.push(c);
+  }
+  // Matas en lo alto de las murallas, entre las almenas
+  for (const [x, z] of [[-W, 2.0], [-2.8, -D], [W, -2.6], [2.4, -D]]) {
+    const m = mesh(new THREE.DodecahedronGeometry(0.28, 0), PIRATE.leaf[1]);
+    m.position.set(x, H + 0.2, z);
+    m.scale.y = 0.8;
+    decor.push(m);
+  }
+  for (const d of decor) f.add(d);
 }
 
 function ruins(g, R, rand, treasure) {
