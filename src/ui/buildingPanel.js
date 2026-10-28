@@ -198,7 +198,7 @@ function unitCard(game, id) {
     <div class="train-row">
       <input type="number" name="${input}" min="0" value="1" inputmode="numeric" aria-label="Cantidad de ${u.name}" />
       <button class="ghost small" data-action="max" data-unit="${id}">Máx</button>
-      <button class="primary small" data-action="train" data-unit="${id}" data-need='${JSON.stringify(u.cost)}' data-count="${input}" data-blocked="${works ? 1 : 0}">${works ? 'En obras' : u.kind === 'barco' ? 'Botar' : 'Reclutar'}</button>
+      <button class="primary small" data-action="train" data-unit="${id}" data-need='${JSON.stringify(u.cost)}' data-count="${input}" data-blocked="${works ? 1 : 0}">${works ? 'En obras' : u.kind === 'barco' ? 'Construir' : 'Reclutar'}</button>
     </div>
   </div>`;
 }
