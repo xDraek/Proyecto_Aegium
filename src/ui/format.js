@@ -1,5 +1,5 @@
 import { clock } from '../config.js';
-import { FAVOR_ICON, FOUNDER_ICON, RELICS, RESOURCES, SPY_TIERS, UNITS } from '../game/data.js';
+import { COMBAT, COUNTERS, FAVOR_ICON, FOUNDER_ICON, RELICS, RESOURCES, SPY_TIERS, UNIT_CLASSES, UNITS } from '../game/data.js';
 import { fmtEs } from '../game/num.js';
 
 const nf1 = { format: (n) => fmtEs(n, 1) };
@@ -98,6 +98,28 @@ export function glyphs(html) {
   let s = String(html);
   for (const u of IMAGE_ICONS) s = s.replaceAll(u.emoji, u.icon);
   return s;
+}
+
+/**
+ * El papel de una tropa o un barco en combate: su clase, su puesto (vanguardia o retaguardia) y
+ * contra quién es fuerte o débil. Cada trozo en su etiqueta, para que se traduzca. Vacío si no
+ * tiene clase (los barcos sin ataque).
+ */
+export function unitRole(id) {
+  const u = UNITS[id];
+  const c = UNIT_CLASSES[u?.cls];
+  if (!c) return '';
+  const cls = (k) => `<span class="role-cls">${UNIT_CLASSES[k].icon} <b>${UNIT_CLASSES[k].name}</b></span>`;
+  const parts = [cls(u.cls)];
+  if (u.kind === 'tierra') parts.push(`<span>${c.rear ? 'Retaguardia' : 'Vanguardia'}</span>`);
+  if (c.volley) parts.push(`<span>Dispara primero</span>`);
+  if (u.cls === 'caballeria') parts.push(`<span>Carga al empezar (+${Math.round(COMBAT.charge * 100)} %)</span>`);
+  if (u.cls === 'lanza') parts.push(`<span>Frena la carga</span>`);
+  const strong = Object.entries(COUNTERS[u.cls] ?? {});
+  if (strong.length) parts.push(`<span class="role-good">Fuerte contra</span> ${strong.map(([k, b]) => `${cls(k)} <span class="role-good">+${Math.round(b * 100)} %</span>`).join(' ')}`);
+  const weak = Object.entries(COUNTERS).filter(([, m]) => m[u.cls]).map(([k]) => k);
+  if (weak.length) parts.push(`<span class="role-bad">Débil contra</span> ${weak.map(cls).join(' ')}`);
+  return `<div class="unit-role">${parts.join(' · ')}</div>`;
 }
 
 /** Unidades en línea: "🪖 12 · 🏹 8". */

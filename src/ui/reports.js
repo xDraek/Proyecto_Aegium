@@ -30,6 +30,15 @@ function sideTitles(r) {
   return { attTitle, defTitle };
 }
 
+/** La ventaja de clase que más pesó de cada bando («🐎 Jinete → 🏹 Arquero · +40 bajas»). */
+function edgesHtml(edges, attTitle, defTitle) {
+  const line = (e, who) => {
+    if (!e || !UNITS[e.from] || !UNITS[e.to]) return '';
+    return `<div class="info-row edge"><span>💥 Ventaja de ${who}</span><span>${UNITS[e.from].icon} ${UNITS[e.from].name} → ${UNITS[e.to].icon} ${UNITS[e.to].name} · <span>+${fmtNum(e.kills)} bajas</span></span></div>`;
+  };
+  return line(edges?.att, attTitle) + line(edges?.def, defTitle);
+}
+
 /**
  * Repetición del combate: las dos fuerzas como barras que menguan asalto a
  * asalto. Usa lo que quedaba de cada bando tras cada asalto (`battle.log`).
@@ -98,7 +107,7 @@ function phasesHtml(r) {
   const out = [];
   const phase = (key, heading) => {
     const p = b[key];
-    out.push(`<h5 class="phase-head">${heading}</h5><div class="battle">${sideTable(attTitle, p.att)}${sideTable(defTitle, p.def)}</div>`);
+    out.push(`<h5 class="phase-head">${heading}</h5><div class="battle">${sideTable(attTitle, p.att)}${sideTable(defTitle, p.def)}</div>${edgesHtml(p.edges, attTitle, defTitle)}`);
     if (p.log?.length) out.push(`<button class="ghost small replay-btn" data-action="replay" data-phase="${key}" data-t="${r.t}">▶ Ver la batalla</button><div class="replay"></div>`);
   };
   // Una emboscada en alta mar solo tiene la batalla naval
@@ -123,7 +132,7 @@ function reportBody(r) {
   if (r.battle && 'seaWon' in r.battle) parts.push(...phasesHtml(r));
   else if (r.battle) {
     const { attTitle, defTitle } = sideTitles(r);
-    parts.push(`<div class="battle">${sideTable(attTitle, r.battle.att)}${sideTable(defTitle, r.battle.def)}</div>`);
+    parts.push(`<div class="battle">${sideTable(attTitle, r.battle.att)}${sideTable(defTitle, r.battle.def)}</div>${edgesHtml(r.battle.edges, attTitle, defTitle)}`);
     if (r.battle.log?.length) parts.push(`<button class="ghost small replay-btn" data-action="replay" data-t="${r.t}">▶ Ver el combate</button><div class="replay"></div>`);
   }
   if (r.battle) {

@@ -1,9 +1,13 @@
-import { UNITS } from './data.js';
+import { COMBAT, COUNTERS, UNIT_CLASSES, UNITS } from './data.js';
 
-// Combate por asaltos, al estilo OGame. Cada asalto los dos bandos disparan a la
-// vez; el daño se reparte entre los tipos de unidad según su vida total. Las
-// unidades sin ataque (mercantes, botes) no combaten: solo reciben daño cuando
-// ya no queda ninguna unidad de combate en su bando.
+// Combate por asaltos. Cada asalto los dos bandos disparan a la vez. El daño va sobre todo a la
+// vanguardia: la retaguardia (los de distancia y las catapultas) solo recibe una parte mientras su
+// vanguardia aguante, y lo que sobra al caer una línea pasa a la otra. Cada clase pega más a la que
+// vence (las lanzas a la caballería, la caballería a los de distancia…). En el primer asalto los de
+// distancia sueltan parte de su disparo antes del choque (lo que matan ya no responde) y la
+// caballería carga. Las
+// unidades sin ataque (mercantes, botes) no combaten: solo reciben daño cuando ya no queda
+// ninguna unidad de combate en su bando.
 //
 // Un ataque por mar (`assault`) va en dos fases, como en Ikariam: primero luchan
 // las flotas y, solo si el atacante se hace con el mar, desembarcan las tropas.
@@ -24,22 +28,49 @@ export function battle(attacker, defender, rand = Math.random) {
   // El daño fijo del defensor (torres) sigue aunque no le queden tropas, salvo si va con ellas (`extraOnlyAlive`, la lava de Tifón)
   while (rounds < MAX_ROUNDS && count(att.left) > 0 && (count(def.left) > 0 || (def.extraAtk > 0 && !def.extraOnlyAlive))) {
     rounds++;
-    const toDef = damage(att, rand);
-    const toAtt = damage(def, rand);
-    hit(def, toDef, rand);
-    hit(att, toAtt, rand);
+    if (rounds === 1) {
+      // La descarga y la carga: los de distancia de los dos bandos disparan y la caballería embiste…
+      const toDef = strike(att, def, rand, 'volley');
+      const toAtt = strike(def, att, rand, 'volley');
+      hit(def, toDef, rand);
+      hit(att, toAtt, rand);
+      // …y luego chocan los demás
+      const toDef2 = strike(att, def, rand, 'melee');
+      const toAtt2 = strike(def, att, rand, 'melee');
+      hit(def, toDef2, rand);
+      hit(att, toAtt2, rand);
+    } else {
+      const toDef = strike(att, def, rand, 'all');
+      const toAtt = strike(def, att, rand, 'all');
+      hit(def, toDef, rand);
+      hit(att, toAtt, rand);
+    }
     log.push({ att: { ...att.left }, def: { ...def.left } });
   }
   let winner = 'draw';
   if (!hasCombat(att.left)) winner = 'def';
   else if (count(def.left) === 0) winner = 'att';
-  return { winner, rounds, att: summary(att), def: summary(def), log };
+  return { winner, rounds, att: summary(att), def: summary(def), log, edges: { att: topEdge(att), def: topEdge(def) } };
 }
 
 function prepare(side) {
   const start = {};
   for (const [id, n] of Object.entries(side.units)) if (n > 0) start[id] = Math.floor(n);
-  return { start, left: { ...start }, atkMul: side.atkMul ?? 1, hpMul: side.hpMul ?? 1, extraAtk: side.extraAtk ?? 0, extraOnlyAlive: !!side.extraOnlyAlive, boost: side.boost ?? {} };
+  return { start, left: { ...start }, atkMul: side.atkMul ?? 1, hpMul: side.hpMul ?? 1, extraAtk: side.extraAtk ?? 0, extraOnlyAlive: !!side.extraOnlyAlive, boost: side.boost ?? {}, edges: {} };
+}
+
+/**
+ * La ventaja que más ha pesado de un bando: qué tropa suya ha sacado más partido de su clase y
+ * contra cuál (con las bajas de más que ha causado por ello), o null.
+ */
+function topEdge(side) {
+  let best = null;
+  for (const [key, kills] of Object.entries(side.edges)) {
+    if (kills < 1 || (best && kills <= best.kills)) continue;
+    const [from, to] = key.split('>');
+    best = { from, to, kills: Math.round(kills) };
+  }
+  return best;
 }
 
 function summary(side) {
@@ -66,19 +97,103 @@ export function power(units, atkMul = 1, boost = {}) {
   return p;
 }
 
-function damage(side, rand) {
-  return (power(side.left, side.atkMul, side.boost) + side.extraAtk) * (0.9 + rand() * 0.2);
+/** Si un tipo de unidad forma en la retaguardia (y si dispara en la descarga). */
+const isRear = (id) => !!UNIT_CLASSES[UNITS[id].cls]?.rear;
+const isVolley = (id) => !!UNIT_CLASSES[UNITS[id].cls]?.volley;
+
+/** Lo que suma la clase de `a` a su ataque contra la de `t` (0 si ninguna). */
+export function counterBonus(a, t) {
+  return COUNTERS[UNITS[a]?.cls]?.[UNITS[t]?.cls] ?? 0;
 }
 
-function hit(side, dmg, rand) {
+const unitHp = (side, id) => UNITS[id].hp * side.hpMul * (side.boost[id] ?? 1);
+
+/** A quién pueden dar: las unidades de combate (o, si no queda ninguna, las demás). */
+function targetsOf(side) {
   const alive = Object.entries(side.left).filter(([, n]) => n > 0);
-  let targets = alive.filter(([id]) => UNITS[id].atk > 0);
-  if (!targets.length) targets = alive;
-  const hp = (id) => UNITS[id].hp * side.hpMul * (side.boost[id] ?? 1);
-  const total = targets.reduce((s, [id, n]) => s + n * hp(id), 0);
-  if (total <= 0) return;
-  for (const [id, n] of targets) {
-    const exact = (dmg * (n * hp(id))) / total / hp(id);
+  const fighters = alive.filter(([id]) => UNITS[id].atk > 0);
+  return fighters.length ? fighters : alive;
+}
+
+/**
+ * Qué parte del golpe recibe cada tipo del bando `side`: por su vida, pero la retaguardia solo
+ * una parte de lo que le tocaría mientras haya vanguardia (toda la protección si la vanguardia
+ * tiene al menos tanta vida como ella; menos cuanto más escasa).
+ */
+function weightsOf(side) {
+  const targets = targetsOf(side);
+  const front = targets.filter(([id]) => !isRear(id));
+  const rear = targets.filter(([id]) => isRear(id));
+  const pool = (list) => list.reduce((s, [id, n]) => s + n * unitHp(side, id), 0);
+  const hpF = pool(front);
+  const hpR = pool(rear);
+  const total = hpF + hpR;
+  const w = new Map();
+  if (total <= 0) return w;
+  let shareR = hpR / total;
+  if (hpF > 0 && hpR > 0) shareR *= 1 - COMBAT.rearCover * Math.min(1, hpF / hpR);
+  for (const [list, share, hp] of [[front, 1 - shareR, hpF], [rear, shareR, hpR]]) {
+    for (const [id, n] of list) if (hp > 0) w.set(id, (share * n * unitHp(side, id)) / hp);
+  }
+  return w;
+}
+
+/**
+ * El golpe de `from` contra `to` en esta fase del asalto (`volley`: al empezar, los de distancia y
+ * la caballería con parte de su golpe; `melee`: el choque del primer asalto, con el resto, la carga
+ * de la caballería y el daño fijo; `all`: todos, los demás asaltos). Cada
+ * tipo reparte su ataque según el peso de cada blanco y pega más a los que vence. Devuelve el
+ * daño para cada tipo del otro bando (aún sin aplicar).
+ */
+function strike(from, to, rand, phase) {
+  const weights = weightsOf(to);
+  const dmg = {};
+  if (!weights.size) return dmg;
+  const luck = 0.9 + rand() * 0.2;
+  for (const [a, n] of Object.entries(from.left)) {
+    const u = UNITS[a];
+    if (!(n > 0) || !u.atk) continue;
+    // (los de distancia y la caballería reparten su golpe del primer asalto: una parte al empezar,
+    // con la descarga y la embestida, y el resto con el choque)
+    const charging = u.cls === 'caballeria';
+    const early = isVolley(a) || charging;
+    if (phase === 'volley' && !early) continue;
+    let atk = n * u.atk * from.atkMul * (from.boost[a] ?? 1) * luck;
+    if (early && phase === 'volley') atk *= COMBAT.volley;
+    else if (early && phase === 'melee') atk *= 1 - COMBAT.volley;
+    const charge = phase !== 'all' && charging ? 1 + COMBAT.charge : 1;
+    for (const [t, w] of weights) {
+      const bonus = counterBonus(a, t);
+      // (las lanzas frenan la carga: contra ellas no hay embestida)
+      dmg[t] = (dmg[t] ?? 0) + atk * w * (1 + bonus) * (UNITS[t].cls === 'lanza' ? 1 : charge);
+      // (lo que ha sumado la ventaja, en bajas, para el informe)
+      if (bonus > 0) from.edges[`${a}>${t}`] = (from.edges[`${a}>${t}`] ?? 0) + (atk * w * bonus) / unitHp(to, t);
+    }
+  }
+  // El daño fijo (las torres, el apoyo de los barcos): se reparte igual, sin ventajas
+  if (phase !== 'volley' && from.extraAtk > 0) for (const [t, w] of weights) dmg[t] = (dmg[t] ?? 0) + from.extraAtk * luck * w;
+  return dmg;
+}
+
+/** Aplica el daño a cada tipo; lo que sobra al caer uno entero pasa a los que quedan (según su vida). */
+function hit(side, dmg, rand) {
+  const pool = (id) => (side.left[id] ?? 0) * unitHp(side, id);
+  let spill = 0;
+  for (const [id, d] of Object.entries(dmg)) {
+    if (d > pool(id)) {
+      spill += d - pool(id);
+      dmg[id] = pool(id);
+    }
+  }
+  if (spill > 0) {
+    const room = targetsOf(side).map(([id]) => [id, pool(id) - (dmg[id] ?? 0)]).filter(([, r]) => r > 0);
+    const total = room.reduce((s, [, r]) => s + r, 0);
+    for (const [id, r] of room) dmg[id] = (dmg[id] ?? 0) + Math.min(r, (spill * r) / total);
+  }
+  for (const [id, d] of Object.entries(dmg)) {
+    const n = side.left[id] ?? 0;
+    if (!(n > 0) || !(d > 0)) continue;
+    const exact = d / unitHp(side, id);
     let kills = Math.floor(exact);
     if (rand() < exact - kills) kills++;
     side.left[id] = Math.max(0, n - kills);

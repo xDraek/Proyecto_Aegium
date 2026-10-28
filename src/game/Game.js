@@ -3759,12 +3759,15 @@ function fmtWait(ms) {
 }
 
 function pick(result) {
-  const phase = (b) => b && { rounds: b.rounds, att: { start: b.att.start, lost: b.att.lost }, def: { start: b.def.start, lost: b.def.lost }, log: b.log };
+  // (con la ventaja de clase que más pesó de cada bando, si la hubo)
+  const edges = (b) => (b?.edges?.att || b?.edges?.def ? { edges: b.edges } : {});
+  const phase = (b) => b && { rounds: b.rounds, att: { start: b.att.start, lost: b.att.lost }, def: { start: b.def.start, lost: b.def.lost }, log: b.log, ...edges(b) };
   const out = {
     rounds: result.rounds,
     att: { start: result.att.start, lost: result.att.lost },
     def: { start: result.def.start, lost: result.def.lost },
     log: result.log,
+    ...edges(result),
   };
   // Ataques por mar: la batalla naval y la de tierra por separado, y las tropas ahogadas
   if ('seaWon' in result) {

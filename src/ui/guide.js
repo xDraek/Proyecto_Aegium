@@ -4,9 +4,11 @@ import {
   ACHIEVEMENTS,
   BLOCKADE,
   BUILDINGS,
+  COUNTERS,
   COLONY,
   COLONY_COST,
   COLONY_RAID,
+  COMBAT,
   CONTEST_CATEGORIES,
   CONTEST_DAYS,
   CONTEST_PRIZES,
@@ -37,6 +39,7 @@ import {
   SPY,
   SPY_TIERS,
   TOWN_HALL_GATE,
+  UNIT_CLASSES,
   UNITS,
   VACATION,
   WONDER_LEVELS,
@@ -375,7 +378,23 @@ const TOPICS = {
         <li><b>Batalla naval</b>: tus barcos de guerra contra los suyos. Si su flota sigue a flote, no puedes desembarcar y vuelves con lo que quede. Si se hunden barcos y tus tropas ya no caben en los que quedan, las que sobran <b>se ahogan</b>.</li>
         <li><b>Desembarco</b>: con el mar libre, tus tropas de tierra luchan contra las suyas, con su muralla y sus torres, y tus barcos de guerra bombardean la costa con una cuarta parte de su ataque. <b>Sin tropas de tierra no se puede saquear.</b></li>
       </ol>
-      <p>Cada batalla dura como mucho <b>6 asaltos</b>. En cada uno, los dos bandos disparan a la vez y el daño se reparte entre los tipos de unidad según su vida. Las unidades sin ataque (mercantes, botes) solo reciben daño cuando ya no queda nadie que las proteja. Si tras el sexto asalto siguen los dos en pie, nadie gana y el atacante se retira.</p>
+      <p>Cada batalla dura como mucho <b>6 asaltos</b>. En cada uno, los dos bandos disparan a la vez. Las unidades sin ataque (mercantes, botes) solo reciben daño cuando ya no queda nadie que las proteja. Si tras el sexto asalto siguen los dos en pie, nadie gana y el atacante se retira.</p>
+      <h5>Vanguardia y retaguardia</h5>
+      <p>Los de <b>distancia</b> (honderos, arqueros) y las <b>catapultas</b> forman en la <b>retaguardia</b>; los demás, en la <b>vanguardia</b>. El enemigo golpea sobre todo a la vanguardia: a la retaguardia solo le llega una parte mientras su vanguardia aguante, y más cuanto menos vanguardia tenga. Lo que sobra al caer una línea pasa a la otra. Un muro de hoplitas protege a tus arqueros; un ejército solo de arqueros cae enseguida.</p>
+      <h5>El primer asalto</h5>
+      <p>Al empezar, antes que nadie, los de distancia sueltan el ${Math.round(COMBAT.volley * 100)} % de su disparo y la caballería el ${Math.round(COMBAT.volley * 100)} % de su embestida. Lo que caiga ahí ya no responde. Luego chocan todos, con lo que les quedaba. En ese asalto la <b>caballería carga</b> con +${Math.round(COMBAT.charge * 100)} % de ataque, salvo contra las lanzas, que frenan la carga.</p>
+      <h5>Ventajas entre clases</h5>
+      ${table(
+        ['Clase', 'Tropas', 'Fuerte contra'],
+        Object.entries(UNIT_CLASSES)
+          .filter(([k]) => Object.values(UNITS).some((u) => u.cls === k && !u.npc))
+          .map(([k, c]) => [
+            `${c.icon} <b>${c.name}</b>`,
+            Object.values(UNITS).filter((u) => u.cls === k && !u.npc).map((u) => `${u.icon} ${u.name}`).join(', '),
+            Object.entries(COUNTERS[k] ?? {}).map(([t, b]) => `${UNIT_CLASSES[t].icon} ${UNIT_CLASSES[t].name} (+${Math.round(b * 100)} %)`).join(', ') || '—',
+          ]),
+      )}
+      <p>Los bárbaros, los piratas, los tritones y los inmortales son infantería; los monstruos (el Kraken, las cabezas de Tifón y de la Hidra) no tienen clase. En los informes verás la ventaja que más pesó de cada bando.</p>
       <h5>Qué te hace más fuerte</h5>
       ${table(
         ['Mejora', 'Efecto'],

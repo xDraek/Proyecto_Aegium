@@ -562,6 +562,50 @@ for (const u of Object.values(UNITS)) {
   if (u.img) u.icon = `<img class="res-img unit-img" src="${u.img}" alt="" draggable="false" />`;
 }
 
+// ── Combate: clases de unidad, puestos y ventajas ───────────────────────────
+// Cada tropa y cada barco es de una clase. Las de `rear` forman en la retaguardia: el enemigo
+// golpea sobre todo a la vanguardia y a ellas solo les llega una parte mientras la vanguardia
+// aguante (`COMBAT.rearCover`). En el primer asalto, las de `volley` y la caballería sueltan parte
+// de su golpe (`COMBAT.volley`) antes que nadie; la caballería, además, carga (+`COMBAT.charge` de
+// ataque en ese asalto, salvo contra las lanzas, que frenan la carga). `COUNTERS`: lo que suma una clase
+// a su ataque contra otra (+50 %: las lanzas contra la caballería…). Los monstruos (el Kraken, las
+// cabezas de Tifón y de la Hidra, los gigantes, las sierpes) no tienen clase.
+export const UNIT_CLASSES = {
+  lanza: { name: 'Lanzas', icon: '🛡️' },
+  espada: { name: 'Espadas', icon: '⚔️' },
+  caballeria: { name: 'Caballería', icon: '🐎' },
+  distancia: { name: 'Distancia', icon: '🏹', rear: true, volley: true },
+  asedio: { name: 'Asedio', icon: '🪨', rear: true },
+  infanteria: { name: 'Infantería', icon: '🪓' },
+  ligero: { name: 'Barcos ligeros', icon: '⛵' },
+  pesado: { name: 'Barcos pesados', icon: '⚓' },
+  incendiario: { name: 'Brulotes', icon: '🔥' },
+  rapido: { name: 'Barcos rápidos', icon: '💨' },
+};
+
+export const COUNTERS = {
+  lanza: { caballeria: 0.5 },
+  espada: { lanza: 0.5 },
+  caballeria: { distancia: 0.5, asedio: 0.5 },
+  incendiario: { pesado: 1 },
+  rapido: { incendiario: 0.5, ligero: 0.5 },
+};
+
+export const COMBAT = { rearCover: 0.5, charge: 0.25, volley: 0.5 };
+
+for (const [id, cls] of Object.entries({
+  lancero: 'lanza', hoplita: 'lanza', espartano: 'lanza',
+  espadachin: 'espada',
+  caballero: 'caballeria', catafracto: 'caballeria', elefante: 'caballeria',
+  hondero: 'distancia', arquero: 'distancia', sagitario: 'distancia', arquero_persa: 'distancia',
+  catapulta: 'asedio',
+  barbaro: 'infanteria', pirata: 'infanteria', triton: 'infanteria', inmortal: 'infanteria',
+  trirreme: 'ligero', corsario: 'ligero', hipocampo: 'ligero', fenicia: 'ligero',
+  galeon: 'pesado', dromon: 'pesado',
+  brulote: 'incendiario',
+  liburna: 'rapido',
+})) UNITS[id].cls = cls;
+
 export const UNIT_KEYS = Object.keys(UNITS);
 export const PLAYER_UNITS = UNIT_KEYS.filter((id) => !UNITS[id].npc);
 export const LAND_UNITS = PLAYER_UNITS.filter((id) => UNITS[id].kind === 'tierra');

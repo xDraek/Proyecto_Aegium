@@ -2,7 +2,7 @@ import { BUILDINGS, FAVOR_ICON, HERO, HERO_SKILLS, OCCUPATION, PORT_SAIL_SPEED, 
 import { favorMax, favorRate, hasWorkers, producerOutput, protectedAmount, requirementName, storageCapacity, townSpeedup, wallBonus, workShare, workTaxes } from '../game/rules.js';
 import { splitForces } from '../game/combat.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
-import { bag, costList, escapeHtml, fmtDec, fmtNum, fmtTime, glyphs, resIcons, unitList } from './format.js';
+import { bag, costList, escapeHtml, fmtDec, fmtNum, fmtTime, glyphs, resIcons, unitList, unitRole } from './format.js';
 import { resPicker } from './resPicker.js';
 
 const unitArt = (id) => unitIcon(id, 'card-art');
@@ -186,7 +186,7 @@ function unitCard(game, id) {
   if (info.missing.length) {
     return `<div class="card locked">
       <div class="card-head">${unitArt(id)}<div class="card-title"><b>${u.name}</b> ${homeTag}
-      <div class="card-sub">🔒 Requiere ${reqText(info.missing)}</div></div></div></div>`;
+      <div class="card-sub">🔒 Requiere ${reqText(info.missing)}</div></div></div>${unitRole(id)}</div>`;
   }
   const input = `n-${id}`;
   const works = !!game.closedForWorks(u.building);
@@ -194,6 +194,7 @@ function unitCard(game, id) {
     <div class="card-head">${unitArt(id)}<div class="card-title"><b>${u.name}</b>${u.elite ? ' <span class="elite-tag">⭐ Élite</span>' : ''} ${homeTag}
       <div class="card-sub">${u.description}</div></div></div>
     <div class="stats">${unitStats(u, game)}</div>
+    ${unitRole(id)}
     <div class="card-row">${costList(u.cost, game.resources, input)}<span class="time">⏱ ${fmtTime(info.seconds)} c/u</span></div>
     <div class="train-row">
       <input type="number" name="${input}" min="0" value="1" inputmode="numeric" aria-label="Cantidad de ${u.name}" />

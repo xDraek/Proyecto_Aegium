@@ -183,4 +183,13 @@ export default {
   "🎲 Simulador": "🎲 Simulator",
   "⚔️ Ejército": "⚔️ Army",
   "Ver el ejército (8)": "View the army (8)",
+  "Retaguardia": "Rearguard",
+  "Vanguardia": "Vanguard",
+  "Dispara primero": "Shoots first",
+  "Carga al empezar (+{0} %)": "Charges at the start (+{0} %)",
+  "Frena la carga": "Stops the charge",
+  "Fuerte contra": "Strong against",
+  "Débil contra": "Weak against",
+  "💥 Ventaja de {0}": "💥 Edge of {0}",
+  "+{0} bajas": "+{0} casualties",
 }

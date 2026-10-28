@@ -7,6 +7,28 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-28h',
+    date: '2026-10-28',
+    title: 'Un combate con más táctica',
+    items: [
+      '🛡️ Vanguardia y retaguardia: los de distancia (honderos, arqueros) y las catapultas forman detrás. El enemigo golpea sobre todo a la vanguardia, y a la retaguardia solo le llega una parte mientras su vanguardia aguante: un muro de hoplitas protege a tus arqueros, y un ejército solo de arqueros cae enseguida.',
+      '⚔️ Ventajas entre clases (+50 % de daño): las lanzas contra la caballería, los espadachines contra las lanzas y la caballería contra los de distancia y las catapultas. En el mar, los brulotes hacen +100 % a quinquerremes y dromones, y las liburnas +50 % a brulotes y trirremes.',
+      '🏹 El primer asalto: los de distancia sueltan la mitad de su disparo y la caballería la mitad de su embestida antes que nadie, y lo que cae ahí ya no responde. La caballería carga con +25 % (salvo contra las lanzas, que frenan la carga).',
+      '📋 Cada ficha de tropa dice su clase, su puesto y contra quién es fuerte o débil; los informes, la ventaja que más pesó en cada bando; y la guía lo explica todo en «Cómo se combate». El simulador ya calcula con estas reglas.',
+      '⚖️ Las tropas no cambian de ataque ni de vida: lo que cambia es que la composición importa. Un ejército mezclado y bien pensado pierde menos; uno solo de cuerpo a cuerpo, algo más contra quien lleva arqueros.',
+    ],
+    en: {
+      title: 'Combat with more tactics',
+      items: [
+        '🛡️ Vanguard and rearguard: ranged units (slingers, archers) and catapults form at the back. The enemy strikes mostly at the vanguard, and the rearguard only gets part of it while its vanguard holds: a wall of hoplites protects your archers, and an army of archers alone falls at once.',
+        '⚔️ Class advantages (+50 % damage): spears against cavalry, swordsmen against spears and cavalry against ranged units and catapults. At sea, fireships deal +100 % to quinqueremes and dromons, and liburnas +50 % to fireships and triremes.',
+        '🏹 The first round: ranged units loose half their shots and cavalry half its onslaught before anyone else, and whatever falls there no longer answers. Cavalry charges with +25 % (except against spears, which stop the charge).',
+        '📋 Each troop card shows its class, its position and what it is strong or weak against; reports show the advantage that weighed most on each side; and the guide explains it all in «How combat works». The simulator already uses these rules.',
+        '⚖️ Troops keep their attack and health: what changes is that composition matters. A mixed, well-thought-out army loses less; a melee-only one, somewhat more against enemies with archers.',
+      ],
+    },
+  },
+  {
     id: '2026-10-28g',
     date: '2026-10-28',
     title: 'Avisos importantes, a la vista',

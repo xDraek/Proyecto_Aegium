@@ -6545,3 +6545,28 @@ kbd {
     height: calc(100dvh - var(--top) - var(--bottom) - 16px);
   }
 }
+
+/* El papel de cada tropa en combate, en su ficha: clase, puesto y contra quién es fuerte o débil */
+.unit-role {
+  margin: 4px 0 2px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.unit-role b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.unit-role .role-good {
+  color: var(--ok);
+}
+
+.unit-role .role-bad {
+  color: var(--bad);
+}
+
+.info-row.edge span:first-child {
+  color: var(--gold);
+}
