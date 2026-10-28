@@ -348,13 +348,20 @@ function startGame(game) {
   } catch {
     // sin almacenamiento
   }
-  if (!welcomed && game.score() < 50) hud.social.openWelcome();
+  // (si se ha recargado para ver las novedades de una actualización, primero esas)
+  if (hud.openNewsAfterReload()) {
+    // nada más
+  } else if (!welcomed && game.score() < 50) hud.social.openWelcome();
   else if (game.dailyStatus().available) hud.social.openDaily();
 
   game.start();
+  // La versión que corre esta página (el nombre de su código, como lo pone la compilación)
+  const build = import.meta.env.PROD ? new URL(import.meta.url).pathname.split('/').pop() : null;
   connectLive(game, {
     onChat: (m) => hud.receiveChat(m),
     onChatDelete: (id) => hud.removeChat(id),
+    // Tras una actualización, al reconectar el servidor ya sirve otra: se avisa sin esperar a recargar
+    onBuild: (server) => build && server !== build && hud.outdated(),
     onBanned: async () => {
       setToken(null);
       await showAlert('Tu cuenta ha sido suspendida.', { title: 'Cuenta suspendida', icon: '🚫' });

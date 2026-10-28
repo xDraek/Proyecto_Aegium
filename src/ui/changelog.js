@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-28d',
+    date: '2026-10-28',
+    title: 'Aviso de actualizaciones',
+    items: [
+      '🆕 Cuando salga una actualización con el juego abierto, te avisará al momento y se marcará 📰, sin tener que recargar la página. Al pulsarlo, se carga la versión nueva y te enseña lo que ha cambiado.',
+    ],
+    en: {
+      title: 'Update notices',
+      items: [
+        '🆕 When an update comes out while you have the game open, you’ll be told right away and 📰 will light up, with no need to reload the page. Press it to load the new version and see what’s changed.',
+      ],
+    },
+  },
+  {
     id: '2026-10-28c',
     date: '2026-10-28',
     title: 'Las fortalezas piratas, renovadas',

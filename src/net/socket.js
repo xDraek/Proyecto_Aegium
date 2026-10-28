@@ -5,7 +5,7 @@ import { getToken } from './api.js';
 // reintenta con esperas cada vez más largas; mientras tanto el juego sigue
 // preguntando al servidor de vez en cuando.
 
-export function connectLive(game, { onChat, onChatDelete, onBanned }) {
+export function connectLive(game, { onChat, onChatDelete, onBanned, onBuild }) {
   let retry = 1000;
   let ws = null;
 
@@ -27,6 +27,7 @@ export function connectLive(game, { onChat, onChatDelete, onBanned }) {
       if (msg.type === 'snapshot') game.applySnapshot(msg.data);
       else if (msg.type === 'chat') onChat(msg.message);
       else if (msg.type === 'chat-delete') onChatDelete(msg.id);
+      else if (msg.type === 'hello') onBuild?.(msg.build);
     };
     ws.onclose = (e) => {
       game.live = false;

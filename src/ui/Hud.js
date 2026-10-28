@@ -24,6 +24,8 @@ const $ = (sel) => document.querySelector(sel);
 const CHAT_KEY = 'aegium.chatRead2';
 const DOCK_KEY = 'aegium.dockCollapsed';
 const SIDE_KEY = 'aegium.sideCollapsed';
+/** Recargada desde 📰 por una actualización: al volver, se abren las novedades. */
+const NEWS_RELOAD_KEY = 'aegium.newsReload';
 /** Qué botón de la barra de abajo abre cada ventana (para resaltarlo mientras está abierta). */
 const ACTIVE_BUTTON = {
   army: 'army-btn',
@@ -202,6 +204,16 @@ export class Hud {
     this.newsBtn = $('#news-btn');
     this.newsBtn.querySelector('.badge').hidden = !hasUnreadNews(game.state.seen?.news);
     this.newsBtn.addEventListener('click', () => {
+      // Con una actualización publicada, sus notas vienen con el código nuevo: se recarga y se abren
+      if (this.isOutdated) {
+        try {
+          sessionStorage.setItem(NEWS_RELOAD_KEY, '1');
+        } catch {
+          // sin almacenamiento: se recarga igual y la marca de novedades lo dirá
+        }
+        location.reload();
+        return;
+      }
       game.markSeen({ news: markNewsRead() });
       this.newsBtn.querySelector('.badge').hidden = true;
       this.showModal('news', newsHtml());
@@ -432,7 +444,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       this.render();
       // Lo que hayas leído en otro dispositivo ya no sale como nuevo
       if (this.#syncChatRead()) this.#renderChat();
-      if (!hasUnreadNews(game.state.seen?.news)) this.newsBtn.querySelector('.badge').hidden = true;
+      if (!hasUnreadNews(game.state.seen?.news) && !this.isOutdated) this.newsBtn.querySelector('.badge').hidden = true;
     });
     game.addEventListener('offline', () => ($('#offline').hidden = false));
     game.addEventListener('online', () => ($('#offline').hidden = true));
@@ -490,6 +502,38 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     this.viewBtn.innerHTML = view === 'isla' ? '🗺️ <span>Mapa</span>' : '🏝️ <span>Mi isla</span>';
     this.viewBtn.classList.toggle('active', view === 'mapa');
     this.render();
+  }
+
+  /**
+   * Hay una versión nueva del juego publicada: se marca 📰 (al pulsarlo, recarga y enseña las
+   * novedades). Si la pestaña no se está mirando, se recarga ya, sin que se note, salvo que haya
+   * algo escrito a medias.
+   */
+  outdated() {
+    if (this.isOutdated) return;
+    this.isOutdated = true;
+    this.newsBtn.querySelector('.badge').hidden = false;
+    this.newsBtn.title = 'Hay una actualización: pulsa para verla';
+    this.toast('🆕 ¡Aegium se ha actualizado! Pulsa 📰 para ver las novedades.', 'success');
+    const drafting = () => [...document.querySelectorAll('input[type="text"], input:not([type]), textarea')].some((el) => el.value.trim());
+    const quietReload = () => {
+      if (document.hidden && !drafting()) location.reload();
+    };
+    quietReload();
+    document.addEventListener('visibilitychange', quietReload);
+  }
+
+  /** Tras recargar desde 📰 por una actualización, abre las novedades. Dice si las ha abierto. */
+  openNewsAfterReload() {
+    let pending = false;
+    try {
+      pending = sessionStorage.getItem(NEWS_RELOAD_KEY) === '1';
+      sessionStorage.removeItem(NEWS_RELOAD_KEY);
+    } catch {
+      // sin almacenamiento
+    }
+    if (pending) this.newsBtn.click();
+    return pending;
   }
 
   toast(text, kind = 'info') {

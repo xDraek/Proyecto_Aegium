@@ -1,4 +1,4 @@
-import { createReadStream } from 'node:fs';
+import { createReadStream, readFileSync, statSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { brotliCompressSync, constants as zlib, gzipSync } from 'node:zlib';
 import { createServer } from 'node:http';
@@ -606,6 +606,21 @@ async function serveStatic(req, res, url) {
 
 const compressed = new Map();
 
+// La versión del juego que se sirve: el nombre del código principal, que cambia en cada
+// compilación. Se la dice a cada navegador al conectarse y, si no es la que tiene, sabe que hay
+// una actualización (se relee solo si la página ha cambiado)
+let build = { mtime: 0, name: null };
+function currentBuild() {
+  try {
+    const page = join(DIST, 'index.html');
+    const { mtimeMs } = statSync(page);
+    if (mtimeMs !== build.mtime) build = { mtime: mtimeMs, name: /\/assets\/(index-[\w-]+\.js)/.exec(readFileSync(page, 'utf8'))?.[1] ?? null };
+    return build.name;
+  } catch {
+    return null;
+  }
+}
+
 let vite = null;
 if (DEV) {
   const { createServer: createVite } = await import('vite');
@@ -660,6 +675,9 @@ server.on('upgrade', (req, socket, head) => {
     });
     ws.on('message', () => {}); // el cliente no manda nada por aquí: las acciones van por la API
     ws.on('close', () => world.removeSocket(uid, ws));
+    // (en desarrollo no: Vite recarga el código él solo)
+    const version = DEV ? null : currentBuild();
+    if (version) ws.send(JSON.stringify({ type: 'hello', build: version }));
   });
 });
 // Latido: cierra las conexiones muertas

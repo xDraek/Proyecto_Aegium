@@ -66,6 +66,8 @@ export default {
   "Mapa del mundo": "World map",
   "Informes": "Reports",
   "Novedades": "News",
+  "Hay una actualización: pulsa para verla": "There's an update: click to see it",
+  "🆕 ¡Aegium se ha actualizado! Pulsa 📰 para ver las novedades.": "🆕 Aegium has been updated! Press 📰 to see what's new.",
   "Mundo": "World",
   "Opciones": "Options",
   "Volumen de la música": "Music volume",
