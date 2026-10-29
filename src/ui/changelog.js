@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-29c',
+    date: '2026-10-29',
+    title: 'Investigaciones más largas',
+    items: [
+      '📜 Todas las investigaciones duran un 75 % más, en todos los niveles: iban demasiado rápidas. Por ejemplo, Herrería a nivel 5 tarda unos 24 minutos en vez de 14, y a nivel 10, unas 2 h 38 min en vez de 1 h 30 min. Las que ya están en marcha terminan cuando estaba previsto.',
+    ],
+    en: {
+      title: 'Longer research',
+      items: [
+        '📜 All research takes 75 % longer, at every level: it was going too fast. For example, Smithing at level 5 takes about 24 minutes instead of 14, and at level 10 about 2 h 38 min instead of 1 h 30 min. Research already under way finishes when planned.',
+      ],
+    },
+  },
+  {
     id: '2026-10-29b',
     date: '2026-10-29',
     title: 'Obras algo más largas',

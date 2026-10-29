@@ -41,6 +41,8 @@ const TIME_FACTOR = 1.45;
 /** Lo que duran todas las obras respecto a la fórmula base (+25 %: iban demasiado rápidas). */
 const BUILD_TIME_MULT = 1.25;
 const RESEARCH_TIME_FACTOR = 1.55;
+/** Lo que duran todas las investigaciones respecto a la fórmula base (+75 %: iban demasiado rápidas). */
+const RESEARCH_TIME_MULT = 1.75;
 const TOWN_SPEEDUP = 0.1;
 const HOUR_MS = 3_600_000;
 
@@ -116,7 +118,7 @@ export function researchCost(id, level) {
 }
 
 export function researchSeconds(state, id, level) {
-  const raw = RESEARCH[id].baseTime * (RESEARCH[id].long ? RESEARCH_LONG.time : RESEARCH_TIME_FACTOR) ** (level - 1);
+  const raw = RESEARCH[id].baseTime * (RESEARCH[id].long ? RESEARCH_LONG.time : RESEARCH_TIME_FACTOR) ** (level - 1) * RESEARCH_TIME_MULT;
   const speed = (1 + 0.1 * Math.max(0, lvl(state, 'academia') - 1)) * (1 + wonderBonus(state, 'investigacion'));
   return Math.max(1, Math.round(raw / speed / universe.speed));
 }
