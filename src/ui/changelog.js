@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-29b',
+    date: '2026-10-29',
+    title: 'Obras algo más largas',
+    items: [
+      '🏗️ Todas las obras duran un 25 % más, en todos los edificios y niveles: iban demasiado rápidas. Por ejemplo, el ayuntamiento a nivel 10 tarda unos 28 minutos en vez de 22. Las obras que ya están en marcha terminan cuando estaba previsto.',
+    ],
+    en: {
+      title: 'Somewhat longer construction',
+      items: [
+        '🏗️ All construction takes 25 % longer, for every building and level: it was going too fast. For example, the town hall at level 10 takes about 28 minutes instead of 22. Works already under way finish when planned.',
+      ],
+    },
+  },
+  {
     id: '2026-10-29a',
     date: '2026-10-29',
     title: 'Las ciudades bárbaras, renovadas',

@@ -38,6 +38,8 @@ import {
 // Fórmulas puras. Reciben el estado de la partida (o partes) y no lo modifican.
 
 const TIME_FACTOR = 1.45;
+/** Lo que duran todas las obras respecto a la fórmula base (+25 %: iban demasiado rápidas). */
+const BUILD_TIME_MULT = 1.25;
 const RESEARCH_TIME_FACTOR = 1.55;
 const TOWN_SPEEDUP = 0.1;
 const HOUR_MS = 3_600_000;
@@ -91,7 +93,7 @@ export function costFor(id, level) {
 
 /** Segundos de obra para llevar `id` hasta `level`. */
 export function buildSeconds(state, id, level) {
-  const raw = BUILDINGS[id].baseTime * TIME_FACTOR ** (level - 1);
+  const raw = BUILDINGS[id].baseTime * TIME_FACTOR ** (level - 1) * BUILD_TIME_MULT;
   const speed = (1 + TOWN_SPEEDUP * lvl(state, 'ayuntamiento')) * (1 + 0.04 * lvl(state, 'arquitectura'));
   return Math.max(1, Math.round(raw / speed / universe.speed));
 }
