@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-29g',
+    date: '2026-10-29',
+    title: 'Más ligero',
+    items: [
+      '⚡ El juego descarga menos al entrar: la guía se carga al abrirla y estas novedades justo después de entrar (un 16 % menos de código para empezar a jugar).',
+      '🌓 Las piezas diminutas (chispas, banderines, humo) ya no proyectan sombra: no se notaba y cada una costaba trabajo en cada imagen. En tu isla, casi la mitad de las sombras que se dibujaban.',
+    ],
+    en: {
+      title: 'Lighter',
+      items: [
+        '⚡ The game downloads less on entering: the guide loads when you open it and these news right after you enter (16 % less code to start playing).',
+        '🌓 Tiny pieces (sparks, pennants, smoke) no longer cast shadows: it wasn’t noticeable and each one cost work on every frame. On your island, almost half of the shadows that were being drawn.',
+      ],
+    },
+  },
+  {
     id: '2026-10-29f',
     date: '2026-10-29',
     title: 'Un mapa más fluido',
