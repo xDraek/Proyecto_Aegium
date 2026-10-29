@@ -141,6 +141,8 @@ const DETAIL_MAX_LOW = 12;
  * con el tamaño del archipiélago ni al recorrer el mapa (en el iPhone, Safari cerraba la página).
  */
 const FEATURE_FRACTION = 0.45;
+/** En calidad alta, las ciudadelas (con su silueta) se ven hasta esta fracción del tamaño de los adornos. */
+const CITADEL_FAR = 0.15;
 const FEATURES_MAX = 120;
 const FEATURES_MAX_LOW = 24;
 const HIDDEN_BASES = 16;
@@ -2850,7 +2852,9 @@ export class World {
     const seen = [];
     for (const e of Object.values(this.islands)) {
       e.lodD = Math.hypot(e.pos.x - cam.x, cam.y, e.pos.z - cam.z);
-      e.group.visible = e.lodD - e.radius * 1.5 <= fogFar && (!e.isl.land || ratio(e) > featureSize || e.isl.id === this.selected);
+      // (en calidad alta, las ciudadelas se ven también de lejos, con su silueta)
+      const landSize = !low && e.isl.type === 'ciudadela' ? featureSize * CITADEL_FAR : featureSize;
+      e.group.visible = e.lodD - e.radius * 1.5 <= fogFar && (!e.isl.land || ratio(e) > landSize || e.isl.id === this.selected);
       // El letrero, solo en el mapa y si la isla se ve
       e.label.visible = this.view === 'mapa' && e.group.visible;
       if (e.group.visible) seen.push(e);
@@ -2888,6 +2892,8 @@ export class World {
       if (deco && e.feature) {
         e.feature.visible = true;
         this.#lightFires(e);
+        // (la silueta de una ciudadela no se pinta encima de la de verdad)
+        if (e.proxy && e.isl.land) e.proxy.visible = false;
       }
     }
     // Las enteras que ya no se ven: se guardan unas pocas (las más cercanas) por si se vuelve

@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-29d',
+    date: '2026-10-29',
+    title: 'Gráficos en el ordenador',
+    items: [
+      '🖥️ En el ordenador, el juego vuelve a la calidad alta (si luego eliges la baja en los ajustes, se respeta). Y en calidad alta las ciudades bárbaras de los continentes ya no desaparecen al alejar el mapa: de lejos se ven con su silueta (el anillo de estacas, el salón y las torres rojas).',
+      '📱 En el móvil sigue la calidad ligera: de muy lejos las ciudades bárbaras no se dibujan, para que el mapa vaya fluido.',
+    ],
+    en: {
+      title: 'Graphics on computers',
+      items: [
+        '🖥️ On computers the game goes back to high quality (if you then choose low in the settings, it’s respected). And in high quality the barbarian cities on the continents no longer vanish when zooming out the map: from afar they show their silhouette (the ring of stakes, the hall and the red towers).',
+        '📱 On mobile the light quality stays: from very far the barbarian cities aren’t drawn, so the map runs smoothly.',
+      ],
+    },
+  },
+  {
     id: '2026-10-29c',
     date: '2026-10-29',
     title: 'Investigaciones más largas',

@@ -153,6 +153,37 @@ export function createIslandBase(isl) {
   return bakeStatic(g);
 }
 
+/**
+ * Una ciudadela vista de lejos: el anillo de estacas, la plaza, el gran salón y las tres atalayas con su
+ * tejado rojo (o del color de su dueño), donde los pone la de verdad, en una sola malla de pocos
+ * triángulos.
+ */
+function citadelProxy(isl, R) {
+  const s = R / CITADEL_R; // del diseño de la ciudadela al mundo (lo que hacen su escala y FEATURE_SCALE)
+  const a = THREE.MathUtils.degToRad(CITADEL_FRONT);
+  const place = (m, x, y, z, turn = 0) => {
+    m.position.set((x * Math.cos(a) + z * Math.sin(a)) * s, ISLAND_TOP + y * s, (-x * Math.sin(a) + z * Math.cos(a)) * s);
+    m.rotation.y = a + turn;
+    return m;
+  };
+  const roof = isl.bannerColor ?? CIT.cloth;
+  const b = new Batch();
+  // El anillo de estacas, por fuera y por dentro (una pared doble, sin tapas)
+  const wall = new THREE.CylinderGeometry(4.85 * s, 4.85 * s, 1.7 * s, 24, 1, true);
+  const inner = wall.clone().scale(-0.97, 1, 0.97);
+  b.add(place(mesh(wall, CIT.stake), 0, 0.85, 0));
+  b.add(place(mesh(inner, CIT.stakeDark), 0, 0.85, 0));
+  b.add(place(mesh(new THREE.CylinderGeometry(4.75 * s, 4.75 * s, 0.05 * s, 20), CIT.sand), 0, 0.03, 0));
+  // El gran salón y las atalayas con su tejado
+  b.add(place(box(2.8 * s, 1.2 * s, 3.4 * s, CIT.plankDark), 0.2, 0.6, -0.6));
+  b.add(place(gableRoof(3.5 * s, 1.5 * s, 3.9 * s, CIT.plank), 0.2, 1.2, -0.6));
+  for (const [x, z] of [[0, -3.6], [-3.5, -0.6], [3.6, -0.3]]) {
+    b.add(place(box(1.4 * s, 3.4 * s, 1.4 * s, CIT.plank), x, 1.7, z));
+    b.add(place(mesh(new THREE.ConeGeometry(1.15 * s, 1.0 * s, 4), roof), x, 3.9, z, Math.PI / 4));
+  }
+  return b.build({ shadows: false });
+}
+
 /** Un asentamiento dentro de un continente: solo un claro de tierra (el relieve es del continente). */
 function siteBase(isl, R) {
   const g = new THREE.Group();
@@ -170,7 +201,9 @@ function siteBase(isl, R) {
  * Los asentamientos no tienen: van sobre su continente; el Mar de las Brumas ya es ligero.
  */
 export function islandProxy(isl) {
-  if (isl.land || isl.type === 'brumas') return null;
+  // (de los asentamientos de un continente, solo las ciudadelas: en calidad alta se ven de lejos)
+  if (isl.land) return isl.type === 'ciudadela' ? citadelProxy(isl, islandRadius(isl)) : null;
+  if (isl.type === 'brumas') return null;
   const R = islandRadius(isl);
   if (isl.type === 'kraken') return gulfBase(isl, R, rng(hashString(isl.id)), hashString(isl.id), true);
   const h = islandCoast(isl);

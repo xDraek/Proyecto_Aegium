@@ -27,11 +27,17 @@ const QUALITY_KEY = 'aegium.quality';
  * elegido la alta; si después la activan otra vez, se respeta.
  */
 const QUALITY_RESET_KEY = 'aegium.quality.ligera';
+/** Y en el ordenador, una vez (2026-10-29), todos vuelven a la calidad alta; si después eligen la baja, se respeta. */
+const QUALITY_HIGH_KEY = 'aegium.quality.alta';
 function readQuality() {
   const touch = !!window.matchMedia?.('(pointer: coarse)').matches;
   try {
     if (touch && !localStorage.getItem(QUALITY_RESET_KEY)) {
       localStorage.setItem(QUALITY_RESET_KEY, '1');
+      localStorage.removeItem(QUALITY_KEY);
+    }
+    if (!touch && !localStorage.getItem(QUALITY_HIGH_KEY)) {
+      localStorage.setItem(QUALITY_HIGH_KEY, '1');
       localStorage.removeItem(QUALITY_KEY);
     }
     const saved = localStorage.getItem(QUALITY_KEY);
