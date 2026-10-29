@@ -73,6 +73,7 @@ import {
   favorMax,
   favorRate,
   fleetSlots,
+  mercenaryCost,
   hasWorkers,
   maxColonies,
   missingRequirements,
@@ -854,7 +855,7 @@ export class Game extends EventTarget {
     return Object.entries(MERCENARIES).map(([id, m]) => {
       const locked = lvl < m.taberna;
       const count = Math.round(m.base + m.per * Math.max(0, lvl - m.taberna));
-      const cost = Object.fromEntries(Object.entries(m.price).map(([r, n]) => [r, n * count]));
+      const cost = mercenaryCost(m, count);
       return { id, ...m, count, cost, locked, hired: hired.includes(id) };
     });
   }

@@ -167,7 +167,12 @@ export class WorldServer {
     }
     // (y lo que cada uno vio en ellas con sus botes)
     for (const g of this.games.values()) {
-      for (const [id, k] of Object.entries(g.state.known ?? {})) if (this.islands.get(id)?.type === 'kraken') renameGuards(k.intel?.garrison);
+      for (const [id, k] of Object.entries(g.state.known ?? {})) {
+        const type = this.islands.get(id)?.type;
+        if (type === 'kraken') renameGuards(k.intel?.garrison);
+        // (y los arqueros que vio en los campamentos, las ciudadelas y las hordas: arqueros bárbaros)
+        if (type === 'barbaros' || type === 'ciudadela' || this.islandStates.get(id)?.horde) renameGuards(k.intel?.garrison, BARBARIAN_ARCHERS);
+      }
     }
     this.#fixIslandNames();
     this.meta.mod ??= {};

@@ -23,6 +23,7 @@ import {
   TOWN_HALL_GATE,
   TRAIN_SPEED,
   PORT_SAIL_SPEED,
+  MERC_PRICE,
   POWERS,
   UNITS,
   RELICS,
@@ -197,6 +198,15 @@ export function tavernSaving(state) {
 export function tradeShips(bag) {
   const total = Object.values(bag ?? {}).reduce((a, n) => a + n, 0);
   return Math.max(1, Math.ceil(total / UNITS.mercante.cargo));
+}
+
+/** Lo que cuesta contratar `count` soldados de la compañía `m` de la taberna (ver MERC_PRICE). */
+export function mercenaryCost(m, count) {
+  const value = (bag) => Object.entries(bag).reduce((s, [r, n]) => s + n * (RESOURCES[r].value ?? 1), 0);
+  const quality = m.taberna >= MERC_PRICE.eliteFrom ? MERC_PRICE.elite : 1;
+  const crowd = Math.min(MERC_PRICE.crowdMax, 1 + MERC_PRICE.crowd * Math.max(0, count - m.base));
+  const each = (value(UNITS[m.unit].cost) * MERC_PRICE.rent * quality * crowd) / value(m.price);
+  return Object.fromEntries(Object.entries(m.price).map(([r, n]) => [r, Math.ceil(n * each * count)]));
 }
 
 export function fleetSlots(state) {

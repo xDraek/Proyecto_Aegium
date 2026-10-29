@@ -147,6 +147,20 @@ const FEATURES_MAX = 120;
 const FEATURES_MAX_LOW = 24;
 const HIDDEN_BASES = 16;
 const HIDDEN_BASES_LOW = 4;
+/** Adornos de islas que se dejan de ver que se guardan (los más cercanos) por si se vuelve, en vez de rehacerlos. */
+const HIDDEN_FEATURES = 40;
+/** Casillas como mucho de la cuadrícula con la que los barcos buscan su camino entre las islas. */
+const NAV_CELLS = 120000;
+const HIDDEN_FEATURES_LOW = 10;
+/**
+ * Mientras la cámara se mueve no se construye nada pesado (una isla o su adorno tardan de 20 a 400 ms
+ * y darían tirones): se espera a que lleve este rato quieta.
+ */
+const BUILD_IDLE_MS = 220;
+/** Islas sin silueta que se preparan como mucho por fotograma (las demás, en los siguientes). */
+const PROXIES_PER_FRAME = 4;
+/** Las nubes de las islas sin explorar (y los bancos de niebla del Mar de las Brumas): pesan poco y se ven siempre. */
+const isMist = (e) => /^(niebla|brumas)\b/.test(e.featureArgs?.[1] ?? '');
 /** En calidad baja las sombras se rehacen una de cada tantas imágenes (casi todo lo que las da está quieto). */
 const SHADOW_EVERY_LOW = 3;
 /** Píxeles de la escena en calidad baja: en las tablets, de pantalla grande, se baja la resolución interna. */
@@ -2515,8 +2529,33 @@ export class World {
   #navigate(a, b) {
     a = a.clone().setY(0);
     b = b.clone().setY(0);
-    const near = (o, p) => Math.hypot(p.x - o.p.x, p.z - o.p.z) < o.r + 0.5;
-    const obstacles = (this.islandObstacles ?? []).map((o) => ({ p: o.p, r: o.core + 4 })).filter((o) => !near(o, a) && !near(o, b));
+    // Primero, apartándose de las costas lo de siempre; si así las islas cierran el paso (dos islas
+    // grandes muy juntas), arrimándose más (antes, sin camino, el barco iba en línea recta por tierra)
+    for (const margin of [4, 1]) {
+      const path = this.#seaPath(a, b, margin);
+      if (path) return path;
+    }
+    return [a, b];
+  }
+
+  /** El camino por mar de `a` a `b` apartándose `margin` de las costas, o null si no lo hay. */
+  #seaPath(a, b, margin) {
+    // Cada isla es un obstáculo; si la salida o la llegada caen dentro de su margen, el margen se
+    // encoge lo justo para dejarlas fuera (antes se quitaba la isla entera y el barco la cruzaba)
+    const obstacles = (this.islandObstacles ?? [])
+      .map((o) => {
+        let r = o.core + margin;
+        let tight = false;
+        for (const p of [a, b]) {
+          const d = Math.hypot(p.x - o.p.x, p.z - o.p.z);
+          if (d < r + 0.5) {
+            r = d - 1.5;
+            tight = true;
+          }
+        }
+        return { p: o.p, r, tight };
+      })
+      .filter((o) => o.r > 0);
     const homeR = (x, z) => this.coast(THREE.MathUtils.radToDeg(Math.atan2(x, z))) + 6;
     const home = Math.hypot(a.x, a.z) > homeR(a.x, a.z) - 0.5 && Math.hypot(b.x, b.z) > homeR(b.x, b.z) - 0.5;
     const blockedAt = (x, z, pad) => (home && Math.hypot(x, z) < homeR(x, z) + pad) || obstacles.some((o) => Math.hypot(x - o.p.x, z - o.p.z) < o.r + pad);
@@ -2527,18 +2566,40 @@ export class World {
     };
     if (clear(a, b)) return [a, b];
 
-    const CELL = 3;
-    const minX = Math.min(a.x, b.x) - 90;
-    const minZ = Math.min(a.z, b.z) - 90;
-    const W = Math.ceil((Math.max(a.x, b.x) + 90 - minX) / CELL) + 1;
-    const H = Math.ceil((Math.max(a.z, b.z) + 90 - minZ) / CELL) + 1;
-    if (W * H > 120000) return [a, b];
+    // La cuadrícula por la que se busca el camino: de 3 leguas, o más gruesa en los viajes largos para
+    // no pasar de NAV_CELLS casillas (antes, en un viaje largo, el barco iba en línea recta y
+    // atravesaba las islas)
+    let minX = Math.min(a.x, b.x) - 90;
+    let minZ = Math.min(a.z, b.z) - 90;
+    let maxX = Math.max(a.x, b.x) + 90;
+    let maxZ = Math.max(a.z, b.z) + 90;
+    // (y que quepan enteras, con agua alrededor, las islas que toca: si no, el borde de la cuadrícula
+    // podía cerrar el rodeo por fuera de una isla grande)
+    for (const o of obstacles) {
+      if (o.p.x + o.r < minX || o.p.x - o.r > maxX || o.p.z + o.r < minZ || o.p.z - o.r > maxZ) continue;
+      const out = o.r + 15;
+      minX = Math.min(minX, o.p.x - out);
+      maxX = Math.max(maxX, o.p.x + out);
+      minZ = Math.min(minZ, o.p.z - out);
+      maxZ = Math.max(maxZ, o.p.z + out);
+    }
+    const spanX = maxX - minX;
+    const spanZ = maxZ - minZ;
+    const CELL = Math.max(3, Math.sqrt((spanX * spanZ) / NAV_CELLS));
+    const W = Math.ceil(spanX / CELL) + 1;
+    const H = Math.ceil(spanZ / CELL) + 1;
+    // (para marcar las casillas, solo las islas que caen dentro)
+    const inside = obstacles.filter((o) => o.p.x + o.r > minX - CELL && o.p.x - o.r < minX + spanX + CELL && o.p.z + o.r > minZ - CELL && o.p.z - o.r < minZ + spanZ + CELL);
+    // (tu isla, con el margen de siempre: la bocana del puerto queda cerca de su costa; y las islas
+    // encogidas porque la salida o la llegada están a su lado, sin margen de más, o el barco no
+    // encontraría por dónde llegar y acabaría yendo en línea recta)
+    const blockedCell = (x, z, pad) => (home && Math.hypot(x, z) < homeR(x, z) + 2) || inside.some((o) => Math.hypot(x - o.p.x, z - o.p.z) < o.r + (o.tight ? 0 : pad));
     const cellOf = (p) => Math.round((p.z - minZ) / CELL) * W + Math.round((p.x - minX) / CELL);
     const at = (k) => new THREE.Vector3(minX + (k % W) * CELL, 0, minZ + Math.floor(k / W) * CELL);
     const blocked = new Uint8Array(W * H);
     for (let k = 0; k < W * H; k++) {
       const c = at(k);
-      blocked[k] = blockedAt(c.x, c.z, 2) ? 1 : 0;
+      blocked[k] = blockedCell(c.x, c.z, Math.max(2, CELL * 0.7)) ? 1 : 0;
     }
     const s0 = cellOf(a);
     const t0 = cellOf(b);
@@ -2608,7 +2669,7 @@ export class World {
         }
       }
     }
-    if (!found) return [a, b];
+    if (!found) return null;
     const cells = [];
     for (let k = t0; k >= 0 && k !== s0; k = from[k]) cells.push(at(k));
     const path = [a, ...cells.reverse().slice(0, -1), b];
@@ -2840,6 +2901,8 @@ export class World {
     // Solo cuando la cámara se ha movido algo (o lo pide quien rehace las islas)
     if (!force && this.detailAt && this.detailAt.distanceTo(cam) < 4) return this.#buildPending();
     (this.detailAt ??= new THREE.Vector3()).copy(cam);
+    this.camMovedAt = performance.now();
+    let proxies = force ? Infinity : PROXIES_PER_FRAME;
     const fogFar = this.scene.fog.far;
     const low = this.high === false;
     const detailSize = low ? DETAIL_SIZE_LOW : DETAIL_SIZE;
@@ -2864,14 +2927,20 @@ export class World {
     const big = new Set(seen.filter((e) => ratio(e) > detailSize).sort(byRatio).slice(0, low ? DETAIL_MAX_LOW : DETAIL_MAX));
     const decorated = new Set(seen.filter((e) => ratio(e) > featureSize).sort(byRatio).slice(0, low ? FEATURES_MAX_LOW : FEATURES_MAX));
     for (const e of big) decorated.add(e);
+    // Las nubes de lo que no has explorado, siempre (si no, de lejos se vería la isla de debajo)
+    for (const e of seen) if (isMist(e)) decorated.add(e);
     const picked = this.islands[this.selected];
     if (picked?.group.visible) decorated.add(picked);
     const hidden = [];
+    const hiddenFeatures = [];
     for (const e of Object.values(this.islands)) {
       const shown = e.group.visible;
       if (shown && e.proxy === undefined) {
-        e.proxy = islandProxy(e.isl);
-        if (e.proxy) e.group.add(e.proxy);
+        // (unas pocas por vez; las demás, en la próxima pasada)
+        if (proxies-- > 0) {
+          e.proxy = islandProxy(e.isl);
+          if (e.proxy) e.group.add(e.proxy);
+        } else this.detailAt = null;
       }
       e.near = big.has(e);
       // Sin silueta (asentamientos, brumas), la de verdad siempre que se ve
@@ -2884,10 +2953,13 @@ export class World {
       if (e.proxy) e.proxy.visible = shown && (!full || !e.base);
       // El adorno: se construye al acercarse y se suelta al alejarse
       const deco = decorated.has(e);
-      if (deco && !e.feature && e.featureArgs) this.pendingBases.push({ e, d: e.lodD, feature: true });
+      // (las nubes que ya se hicieron vuelven al momento; lo demás, a la cola)
+      if (deco && !e.feature && e.featureArgs && this.mistCache?.has(`${e.isl.id}|${e.featureArgs[1]}`)) this.#buildFeature(e);
+      else if (deco && !e.feature && e.featureArgs) this.pendingBases.push({ e, d: e.lodD, feature: true });
       else if (!deco && e.feature) {
-        if (!shown || ratio(e) < featureSize * 0.6) this.#dropFeature(e);
-        else e.feature.visible = false;
+        // (se esconde; si hay demasiados escondidos, se sueltan los más lejanos más abajo)
+        e.feature.visible = false;
+        hiddenFeatures.push(e);
       }
       if (deco && e.feature) {
         e.feature.visible = true;
@@ -2896,6 +2968,11 @@ export class World {
         if (e.proxy && e.isl.land) e.proxy.visible = false;
       }
     }
+    // Los adornos que ya no se ven: se guardan unos cuantos (los más cercanos) por si se vuelve
+    hiddenFeatures.sort(byRatio);
+    hiddenFeatures.forEach((e, i) => {
+      if (i >= (low ? HIDDEN_FEATURES_LOW : HIDDEN_FEATURES) || !e.group.visible) this.#dropFeature(e);
+    });
     // Las enteras que ya no se ven: se guardan unas pocas (las más cercanas) por si se vuelve
     hidden.sort(byRatio);
     hidden.forEach((e, i) => {
@@ -2913,7 +2990,9 @@ export class World {
 
   /** El adorno de una isla (ciudad, campamento, ruinas…) con lo que dijo #syncIslands. */
   #buildFeature(e) {
-    e.feature = createIslandFeature(...e.featureArgs);
+    const key = isMist(e) ? `${e.isl.id}|${e.featureArgs[1]}` : null;
+    e.feature = (key && this.mistCache?.get(key)) || createIslandFeature(...e.featureArgs);
+    if (key) (this.mistCache ??= new Map()).set(key, e.feature);
     e.group.add(e.feature);
     this.#lightFires(e);
     this.animDirty = true;
@@ -2921,7 +3000,12 @@ export class World {
 
   #dropFeature(e) {
     e.group.remove(e.feature);
-    disposeTree(e.feature);
+    // (las nubes guardadas no se tiran: se vuelven a usar; si la isla ya no las lleva, sí)
+    const cached = [...(this.mistCache?.entries() ?? [])].find(([, f]) => f === e.feature);
+    if (cached && cached[0] !== `${e.isl.id}|${e.featureArgs?.[1]}`) {
+      this.mistCache.delete(cached[0]);
+      disposeTree(e.feature);
+    } else if (!cached) disposeTree(e.feature);
     e.feature = null;
     e.fires = null;
     e.firesOf = null;
@@ -2944,6 +3028,8 @@ export class World {
   /** Construye las islas pendientes, las más cercanas primero, sin pasar de `ms` por fotograma. */
   #buildPending(ms = 6) {
     const t0 = performance.now();
+    // Moviendo la cámara, nada (salvo que lo pida quien rehace las islas, con más margen)
+    if (ms <= 6 && t0 - (this.camMovedAt ?? 0) < BUILD_IDLE_MS) return;
     while (this.pendingBases?.length && performance.now() - t0 < ms) {
       const { e, feature } = this.pendingBases.shift();
       if (!this.islands[e.isl.id]) continue;

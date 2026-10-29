@@ -1959,7 +1959,7 @@ function hordeCamp(g, R, rand) {
     g.add(flag);
   }
   for (let i = 0; i < 6; i++) {
-    const b = createSoldier(i % 2 ? 'barbaro' : 'arquero');
+    const b = createSoldier(i % 2 ? 'barbaro' : 'arquero_barbaro');
     b.scale.setScalar(1.8);
     b.position.copy(at(0.74, (i - 2.5) * 5));
     b.rotation.y = rand() * Math.PI * 2;

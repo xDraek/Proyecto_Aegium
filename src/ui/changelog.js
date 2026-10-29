@@ -7,6 +7,40 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-29f',
+    date: '2026-10-29',
+    title: 'Un mapa más fluido',
+    items: [
+      '☁️ Las nubes de las islas que aún no has explorado ya no desaparecen al alejar la vista: se ven a cualquier distancia.',
+      '🗺️ Al alejar o mover el mapa ya no da tirones: las islas y sus construcciones se preparan cuando la cámara se para, de una en una, y las que dejas de ver se guardan un rato por si vuelves.',
+      '⛵ Los barcos que van a espiar, transportar o atacar ya no se meten por tierra: rodean las islas también en los viajes largos y entre islas muy juntas.',
+      '🪃 Lo que viste de un campamento o una ciudadela bárbara antes de que tuvieran sus propios arqueros ya muestra arqueros bárbaros (y el simulador cuenta con ellos), y en el campamento de la horda también se ven.',
+    ],
+    en: {
+      title: 'A smoother map',
+      items: [
+        '☁️ The clouds over islands you haven’t explored yet no longer vanish when zooming out: they show at any distance.',
+        '🗺️ Zooming out or moving the map no longer stutters: islands and their buildings are prepared when the camera stops, one at a time, and the ones you stop seeing are kept for a while in case you come back.',
+        '⛵ Ships sent to spy, transport or attack no longer sail over land: they go around islands on long voyages too, and between islands that are very close together.',
+        '🪃 What you saw of a barbarian camp or citadel before they had their own archers now shows barbarian archers (and the simulator counts them), and they also show in the horde camp.',
+      ],
+    },
+  },
+  {
+    id: '2026-10-29e',
+    date: '2026-10-29',
+    title: 'Mercenarios más caros',
+    items: [
+      '🍺 Los mercenarios de la taberna cobran ahora según lo que valen: cada soldado, lo que cuesta entrenarlo (en oro y en el recurso de su compañía); la élite, un 50 % más; y cuanto más grande es la compañía, más pide cada uno (un 1 % por cada soldado de más, hasta el doble). Por ejemplo, la milicia de lanceros de una taberna 15 (85 soldados) pasa de 425 de oro y 340 de comida a unos 3.000 de oro y 2.400 de comida.',
+    ],
+    en: {
+      title: 'Pricier mercenaries',
+      items: [
+        '🍺 Tavern mercenaries now charge according to their worth: each soldier, what it costs to train them (in gold and their company’s resource); the elite, 50 % more; and the bigger the company, the more each one asks (1 % per extra soldier, up to double). For example, the spear militia of a level-15 tavern (85 soldiers) goes from 425 gold and 340 food to about 3,000 gold and 2,400 food.',
+      ],
+    },
+  },
+  {
     id: '2026-10-29d',
     date: '2026-10-29',
     title: 'Gráficos en el ordenador',

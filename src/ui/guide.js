@@ -24,6 +24,7 @@ import {
   LAND_UNITS,
   MERCENARIES,
   MERCENARY_HOURS,
+  MERC_PRICE,
   MISSION_TYPES,
   OCCUPATION,
   POWERS,
@@ -48,7 +49,7 @@ import {
   WORLD_EVENT_HOURS,
   WORLD_EVENTS,
 } from '../game/data.js';
-import { producerOutput, protectedAmount, storageCapacity } from '../game/rules.js';
+import { mercenaryCost, producerOutput, protectedAmount, storageCapacity } from '../game/rules.js';
 import { bag, escapeHtml, fmtDec, fmtNum, glyphs, resIcons } from './format.js';
 
 // Guía del juego: capítulos con sus temas, un índice a un lado y un buscador.
@@ -250,8 +251,8 @@ function heroTable() {
 
 function mercsTable() {
   return table(
-    ['Compañía', 'Taberna', 'Tropa', 'Cuántos vienen', 'Precio por soldado'],
-    Object.values(MERCENARIES).map((m) => [`${glyphs(m.icon)} <b>${m.name}</b>`, `Nv ${m.taberna}`, unitName(m.unit), `${fmtDec(m.base)} y ${fmtDec(m.per)} más por cada nivel más de taberna`, bag(m.price)]),
+    ['Compañía', 'Taberna', 'Tropa', 'Cuántos vienen', 'Precio al empezar'],
+    Object.values(MERCENARIES).map((m) => [`${glyphs(m.icon)} <b>${m.name}</b>`, `Nv ${m.taberna}`, unitName(m.unit), `${fmtDec(m.base)} y ${fmtDec(m.per)} más por cada nivel más de taberna`, bag(mercenaryCost(m, m.base))]),
   );
 }
 
@@ -442,6 +443,7 @@ const TOPICS = {
     title: 'Mercenarios',
     body: () => `<p>En la <b>taberna</b> se contratan compañías de mercenarios durante ${MERCENARY_HOURS} h. Al principio solo vienen milicianos; al subir la taberna llegan compañías mejores, hasta la élite, y de cada una vienen más soldados. Cada compañía se puede contratar una vez al día:</p>
       ${mercsTable()}
+      <p>Cada soldado cobra lo que cuesta entrenarlo, en oro y en el recurso de su compañía; la élite (desde la taberna ${MERC_PRICE.eliteFrom}), un ${Math.round((MERC_PRICE.elite - 1) * 100)} % más. Y cuanto más grande es la compañía, más pide cada uno: un ${Math.round(MERC_PRICE.crowd * 100)} % por cada soldado de más, hasta el doble.</p>
       <p>Pasado el plazo se marchan los que sigan vivos. A veces llegan también <b>mercenarios de paso</b> al puerto que se quedan para siempre a cambio de oro.</p>
       ${tip('Son perfectos para una defensa urgente o un ataque puntual sin cargar con su comida para siempre.')}`,
   },

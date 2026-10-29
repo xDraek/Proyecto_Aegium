@@ -48,3 +48,25 @@ test('los campamentos grandes, las ciudadelas y la horda llevan berserkers, tamb
   assert.ok(BARBARIAN_GARRISONS.ciudadela[5].berserker > 0);
   assert.ok(HORDE.garrison.berserker > 0);
 });
+
+test('lo que los jugadores vieron de un campamento antes del cambio también pasa a arqueros bárbaros', async () => {
+  const { world, players } = await makeWorld(['Lucio']);
+  const camp = [...world.islands.values()].find((i) => i.type === 'barbaros' && i.garrison.arquero_barbaro);
+  const state = players[0].state;
+  const home = state.home;
+  // Lo que vio su bote antes: arqueros del jugador en el campamento (y los suyos, en su ciudad, se quedan)
+  state.known = { ...state.known, [camp.id]: { intel: { t: 0, garrison: { barbaro: 7, arquero: 4 } } }, [home]: { intel: { t: 0, garrison: { arquero: 9 } } } };
+  const data = {
+    meta: world.meta,
+    users: [...world.users.values()],
+    players: { [players[0].userId]: structuredClone(state) },
+    islands: [...world.islands.values()],
+    islandStates: Object.fromEntries(world.islandStates),
+    chat: [],
+  };
+  const again = new WorldServer({ load: async () => structuredClone(data), save: async () => {}, createUser: async () => 1 });
+  await again.load();
+  const known = again.games.get(players[0].userId).state.known;
+  assert.deepEqual(known[camp.id].intel.garrison, { barbaro: 7, arquero_barbaro: 4 });
+  assert.deepEqual(known[home].intel.garrison, { arquero: 9 });
+});

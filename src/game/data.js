@@ -1118,6 +1118,13 @@ export const MERCENARIES = {
   catafractos: { name: 'Catafractos de Partia', icon: '🏇', unit: 'catafracto', taberna: 12, base: 4, per: 0.8, price: { oro: 140, hierro: 40 } },
 };
 export const MERCENARY_HOURS = 24;
+/**
+ * Lo que cobran los mercenarios: cada soldado, lo que vale entrenarlo (`rent` veces, en valor), en
+ * oro y en el recurso de su compañía en la proporción de su `price`. La élite (compañías desde
+ * `eliteFrom` de taberna) cobra `elite` veces más, y cuanto más grande es la compañía más pide cada
+ * uno: +`crowd` por cada soldado por encima de los que trae al principio, hasta `crowdMax` veces.
+ */
+export const MERC_PRICE = { rent: 1, elite: 1.5, eliteFrom: 7, crowd: 0.01, crowdMax: 2 };
 
 // ── Estandarte ───────────────────────────────────────────────────────────────
 // Cada jugador elige el color de sus banderas y un emblema que le identifica.
