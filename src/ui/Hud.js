@@ -12,13 +12,16 @@ import { askChoice, askConfirm, askPrompt } from './dialog.js';
 import { unitIcon } from '../scene/portraits.js';
 import { citySimPreset, featSimPreset, fleetFor, islandPanel, readFleet, readPayload, readOpts } from './islandPanel.js';
 import { questsHtml, rankingHtml } from './modals.js';
-import { openGuide } from './guide.js';
 import { Tutorial } from './tutorial.js';
 import { WorldMap } from './worldMap.js';
 import { openStats } from './stats.js';
 import { reportsHtml, playReplay, sharedReportHtml } from './reports.js';
-import { hasUnreadNews, markNewsRead, newsHtml } from './changelog.js';
 import { Social } from './social.js';
+
+// La guía y las novedades (mucho texto) se descargan aparte: la guía al abrirla, y las novedades
+// justo después de entrar, sin retrasar la carga del juego
+const loadGuide = () => import('./guide.js');
+const loadNews = () => import('./changelog.js');
 
 const $ = (sel) => document.querySelector(sel);
 const CHAT_KEY = 'aegium.chatRead2';
@@ -202,8 +205,12 @@ export class Hud {
     });
     // Novedades: las notas de las últimas actualizaciones (marcado mientras haya una sin leer)
     this.newsBtn = $('#news-btn');
-    this.newsBtn.querySelector('.badge').hidden = !hasUnreadNews(game.state.seen?.news);
-    this.newsBtn.addEventListener('click', () => {
+    this.newsBtn.querySelector('.badge').hidden = true;
+    loadNews().then((news) => {
+      this.news = news;
+      if (news.hasUnreadNews(game.state.seen?.news)) this.newsBtn.querySelector('.badge').hidden = false;
+    });
+    this.newsBtn.addEventListener('click', async () => {
       // Con una actualización publicada, sus notas vienen con el código nuevo: se recarga y se abren
       if (this.isOutdated) {
         try {
@@ -214,9 +221,10 @@ export class Hud {
         location.reload();
         return;
       }
-      game.markSeen({ news: markNewsRead() });
+      const news = await loadNews();
+      game.markSeen({ news: news.markNewsRead() });
       this.newsBtn.querySelector('.badge').hidden = true;
-      this.showModal('news', newsHtml());
+      this.showModal('news', news.newsHtml());
     });
     this.favorEl.addEventListener('click', () => this.onSelect('templo'));
     this.eventEl = $('#event-pill');
@@ -228,7 +236,7 @@ export class Hud {
       if (e.target === this.modal || e.target.closest('[data-action="close-modal"]')) return this.closeModal();
       // Enlaces a un tema de la guía (dentro de la guía o desde otra ventana)
       const guide = e.target.closest('[data-guide]');
-      if (guide) return openGuide(this, { topic: guide.dataset.guide });
+      if (guide) return this.openGuide(guide.dataset.guide);
       const task = e.target.closest('[data-action="claim-task"]');
       if (task && !task.disabled) return this.#run(task, () => game.claimTask(task.dataset.id), null, 'coins');
       // Ventana del ejército: retirar flotas, abrir el simulador o ir a un edificio o isla
@@ -412,7 +420,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     });
     this.menu.querySelector('[data-action="guide"]').addEventListener('click', () => {
       this.menu.hidden = true;
-      openGuide(this);
+      this.openGuide();
     });
     this.menu.querySelector('[data-action="vacation"]').addEventListener('click', () => {
       this.menu.hidden = true;
@@ -447,7 +455,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       this.render();
       // Lo que hayas leído en otro dispositivo ya no sale como nuevo
       if (this.#syncChatRead()) this.#renderChat();
-      if (!hasUnreadNews(game.state.seen?.news) && !this.isOutdated) this.newsBtn.querySelector('.badge').hidden = true;
+      if (this.news && !this.news.hasUnreadNews(game.state.seen?.news) && !this.isOutdated) this.newsBtn.querySelector('.badge').hidden = true;
     });
     game.addEventListener('offline', () => ($('#offline').hidden = false));
     game.addEventListener('online', () => ($('#offline').hidden = true));
@@ -824,7 +832,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
   }
 
   openGuide(topic) {
-    openGuide(this, { topic });
+    return loadGuide().then(({ openGuide }) => openGuide(this, { topic }));
   }
 
   openEvents() {
@@ -1199,7 +1207,7 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
         await this.#run(btn, () => game.breakPort(), null, 'sail');
         break;
       case 'guide':
-        openGuide(this, { topic: btn.dataset.topic });
+        this.openGuide(btn.dataset.topic);
         break;
       case 'mail-to':
         this.social.compose(btn.dataset.name);

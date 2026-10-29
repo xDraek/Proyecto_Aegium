@@ -163,6 +163,18 @@ const PROXIES_PER_FRAME = 4;
 const isMist = (e) => /^(niebla|brumas)\b/.test(e.featureArgs?.[1] ?? '');
 /** En calidad baja las sombras se rehacen una de cada tantas imágenes (casi todo lo que las da está quieto). */
 const SHADOW_EVERY_LOW = 3;
+/**
+ * Las piezas más pequeñas que esto (de radio, en el mundo: chispas, banderines, humo, tejas sueltas)
+ * no dan sombra: apenas se vería y cada una costaba un dibujo más en cada imagen.
+ */
+const TINY_SHADOW = 0.5;
+/** Lo que mide de radio una pieza en el mundo. */
+function worldRadius(o) {
+  if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+  let r = o.geometry.boundingSphere.radius;
+  for (let p = o; p; p = p.parent) r *= Math.max(Math.abs(p.scale.x), Math.abs(p.scale.y), Math.abs(p.scale.z));
+  return r;
+}
 /** Píxeles de la escena en calidad baja: en las tablets, de pantalla grande, se baja la resolución interna. */
 const PIXELS_LOW = 600_000;
 const SHIP_PRIORITY = ['dromon', 'galeon', 'liburna', 'trirreme', 'brulote', 'mercante', 'bote'];
@@ -3057,6 +3069,7 @@ export class World {
         const d = o.userData;
         if (d.spin || d.swing || d.wave || d.smoke || d.flicker || d.bob || d.wiggle || d.sparks || d.fire) this.animated.push(o);
         if (d.fire && d.night) this.nightFires.push(o);
+        if (o.castShadow && o.isMesh && !o.isInstancedMesh && worldRadius(o) < TINY_SHADOW) o.castShadow = false;
       });
     for (const slot of Object.values(this.slots)) {
       collect(slot.building);
