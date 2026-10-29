@@ -8,7 +8,7 @@
 export const SECTOR_SPACING = 430;
 
 // ── Coordenadas ─────────────────────────────────────────────────────────────
-// Como en Ikariam: el mapa se divide en casillas de COORD_CELL leguas y cada una
+// El mapa se divide en casillas de COORD_CELL leguas y cada una
 // tiene sus coordenadas [x:y], con [50:50] en el centro del archipiélago (la y
 // crece hacia el sur, como en el mapa del mundo).
 

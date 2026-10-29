@@ -2,9 +2,9 @@
 
 - El juego se llama **Aegium** en todo: textos, correos, logo, `package.json`, claves `aegium.*` de `localStorage` y `window.__AEGIUM__`. Antes se llamaba Imperium: `src/migrate.js` pasa al cargar las claves antiguas `imperium.*` a `aegium.*` (no lo quites, o quien vuelva tras mucho tiempo perdería la sesión y sus ajustes).
 
-Juego de estrategia multijugador en el navegador al estilo de Ikariam/OGame: un archipiélago low-poly en 3D (Three.js + Vite) compartido por todos los jugadores. Hay un servidor Node (`server/`) que guarda las cuentas y el mundo (Postgres si hay `DATABASE_URL`, si no un archivo en `server/data/`).
+Juego de estrategia multijugador en el navegador: un archipiélago low-poly en 3D (Three.js + Vite) compartido por todos los jugadores. Hay un servidor Node (`server/`) que guarda las cuentas y el mundo (Postgres si hay `DATABASE_URL`, si no un archivo en `server/data/`).
 
-- El juego no tiene final ni condición de victoria (como Ikariam): no añadas metas que «ganen» la partida; el Coloso es una maravilla sin tope.
+- El juego no tiene final ni condición de victoria: no añadas metas que «ganen» la partida; el Coloso es una maravilla sin tope.
 - El usuario escribe en español. Responde, comenta el código y escribe los textos del juego en español.
 - Estructura: las reglas puras van en `src/game/` (sin Three.js ni DOM): las usan tanto el servidor como el navegador. La escena 3D va en `src/scene/`, la interfaz en `src/ui/` y la conexión con el servidor en `src/net/`.
 - `Game` es la partida de un jugador. En el servidor (`mode: 'server'`) decide todo: `#advance` procesa en orden cronológico los sucesos (obras, investigaciones, reclutas, flotas, piratas, visitantes, fin de poderes) y acumula la producción entre uno y otro. En el navegador (`ClientGame`, `mode: 'mirror'`) solo deja correr la producción y pide el estado nuevo al servidor cuando toca un suceso. Las acciones del jugador siempre las ejecuta el servidor.

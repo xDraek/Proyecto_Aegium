@@ -462,7 +462,7 @@ export function favorMax(state) {
 
 // ── Clasificación ────────────────────────────────────────────────────────────
 
-/** Un punto por cada 100 recursos invertidos, como en OGame (allí son 1000). */
+/** Un punto por cada 100 recursos invertidos. */
 export function scoreOf(spent) {
   return Math.floor(spent / 100);
 }

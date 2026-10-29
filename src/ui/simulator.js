@@ -3,7 +3,7 @@ import { assault, seatsOf, seatsUsed, siegeOf, splitForces } from '../game/comba
 import { unitIcon } from '../scene/portraits.js';
 import { fmtDec, fmtNum } from './format.js';
 
-// Simulador de combate, como el de OGame: repite la batalla muchas veces con
+// Simulador de combate: repite la batalla muchas veces con
 // las mismas reglas que el servidor y enseña qué suele pasar. Como los ataques
 // de verdad, va en dos fases: primero las flotas y, con el mar libre, el desembarco.
 

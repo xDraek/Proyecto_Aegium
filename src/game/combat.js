@@ -9,7 +9,7 @@ import { COMBAT, COUNTERS, UNIT_CLASSES, UNITS } from './data.js';
 // unidades sin ataque (mercantes, botes) no combaten: solo reciben daño cuando ya no queda
 // ninguna unidad de combate en su bando.
 //
-// Un ataque por mar (`assault`) va en dos fases, como en Ikariam: primero luchan
+// Un ataque por mar (`assault`) va en dos fases: primero luchan
 // las flotas y, solo si el atacante se hace con el mar, desembarcan las tropas.
 
 const MAX_ROUNDS = 6;

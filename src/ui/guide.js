@@ -273,7 +273,7 @@ const TOPICS = {
     icon: '🚀',
     title: 'Primeros pasos',
     body: () => `<p>Gobiernas una ciudad en una isla de un archipiélago que comparten todos los jugadores. Tu isla <b>produce recursos sin parar</b>, también con el juego cerrado, y tú decides en qué gastarlos: mejorar edificios, investigar, entrenar tropas y botar barcos.</p>
-      <p>Como en Ikariam, el juego <b>no tiene final</b> ni condición de victoria: tu imperio crece mientras quieras jugar. Cada semana hay una ${see('competicion', 'competición')} con premios, y la clasificación premia todo lo que inviertes.</p>
+      <p>El juego <b>no tiene final</b> ni condición de victoria: tu imperio crece mientras quieras jugar. Cada semana hay una ${see('competicion', 'competición')} con premios, y la clasificación premia todo lo que inviertes.</p>
       <h5>Un buen comienzo</h5>
       <ol class="guide-steps">
         <li><b>Sube los productores</b>: aserradero, cantera y granja. Son la base de todo.</li>
@@ -373,7 +373,7 @@ const TOPICS = {
   combate: {
     icon: '⚔️',
     title: 'Cómo se combate',
-    body: () => `<p>Los ataques por mar van en <b>dos fases</b>, como en Ikariam:</p>
+    body: () => `<p>Los ataques por mar van en <b>dos fases</b>:</p>
       <ol class="guide-steps">
         <li><b>Batalla naval</b>: tus barcos de guerra contra los suyos. Si su flota sigue a flote, no puedes desembarcar y vuelves con lo que quede. Si se hunden barcos y tus tropas ya no caben en los que quedan, las que sobran <b>se ahogan</b>.</li>
         <li><b>Desembarco</b>: con el mar libre, tus tropas de tierra luchan contra las suyas, con su muralla y sus torres, y tus barcos de guerra bombardean la costa con una cuarta parte de su ataque. <b>Sin tropas de tierra no se puede saquear.</b></li>
@@ -474,7 +474,7 @@ const TOPICS = {
         `Quien lo derrota tiene un <b>${Math.round(KRAKEN_RULES.relicChance * 100)} %</b> de encontrar una ${see('reliquias', 'reliquia épica')} entre sus restos. Después vuelve a dormir en las profundidades… y <b>despierta más fuerte</b>: cada vez que cae sube un nivel, con un ${Math.round(KRAKEN_RULES.growth * 100)} % más de ataque y de vida que al principio.`,
       ])}
       <h5>📍 Coordenadas</h5>
-      <p>El mapa del mundo está dividido en casillas, como en Ikariam: cada una tiene sus coordenadas <b>[x:y]</b>, con [50:50] en el centro del archipiélago. Las ves en la ficha de cada isla y al pasar por el mapa, y puedes ir a unas concretas con la casilla «Ir». Si escribes unas coordenadas en el chat, los demás pueden pulsarlas para verlas en el mapa.</p>`,
+      <p>El mapa del mundo está dividido en casillas: cada una tiene sus coordenadas <b>[x:y]</b>, con [50:50] en el centro del archipiélago. Las ves en la ficha de cada isla y al pasar por el mapa, y puedes ir a unas concretas con la casilla «Ir». Si escribes unas coordenadas en el chat, los demás pueden pulsarlas para verlas en el mapa.</p>`,
   },
   expediciones: {
     icon: '🧭',

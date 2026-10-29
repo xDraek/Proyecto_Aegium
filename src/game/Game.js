@@ -3360,7 +3360,7 @@ export class Game extends EventTarget {
     this.#note(`🚩 Has fundado una colonia en ${isl.name}`, 'success');
   }
 
-  /** Expedición al Mar de las Brumas: un poco de todo, como en OGame. */
+  /** Expedición al Mar de las Brumas: un poco de todo. */
   #arriveExpedition(m, isl, t) {
     const s = this.state;
     s.stats.expeditions++;
