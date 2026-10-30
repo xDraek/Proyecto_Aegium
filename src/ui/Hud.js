@@ -931,7 +931,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
           const t = ISLAND_TYPES[v.type];
           let icon = v.explored ? t.icon : '❔';
           if (v.colonized) icon = '🚩';
-          let tag = v.inbound.length ? '⛵' : v.explored && v.tier && !v.colonized ? `Nv ${v.tier}` : '';
+          let tag = v.inbound.length ? '⛵' : '';
           if (v.colonized && !v.inbound.length) tag = `${v.colony?.upgradeEnd ? '🔨 ' : ''}Nv ${v.colony?.level ?? 1}`;
           if (v.type === 'jugador') tag = `${fmtNum(v.score)}`;
           const cls = [v.id === this.selected && 'active', !v.explored && 'empty', v.type === 'jugador' && 'player'].filter(Boolean).join(' ');

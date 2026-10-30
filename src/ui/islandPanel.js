@@ -143,7 +143,7 @@ function continentSection(game, view) {
   const rows = sites
     .map((s) => {
       const t = ISLAND_TYPES[s.type];
-      const what = !s.explored ? '❔ Sin explorar' : s.colonized ? '🚩 Tu colonia' : s.colonizedBy != null ? `🚩 Colonia de ${escapeHtml(s.colonistName)}` : `${t.icon} ${s.typeName}${s.tier ? ` · Nv ${s.tier}` : ''}`;
+      const what = !s.explored ? '❔ Sin explorar' : s.colonized ? '🚩 Tu colonia' : s.colonizedBy != null ? `🚩 Colonia de ${escapeHtml(s.colonistName)}` : `${t.icon} ${s.typeName}`;
       return `<li data-select="${escapeHtml(s.id)}"><span><b>${escapeHtml(s.name)}</b><div class="muted small">${what}</div></span><span class="muted small">›</span></li>`;
     })
     .join('');
@@ -813,7 +813,7 @@ export function islandPanel(hud, id) {
   const view = game.island(id);
   const t = ISLAND_TYPES[view.type];
   let icon = view.colonized || view.colonizedBy != null ? '🚩' : view.explored ? t.icon : '❔';
-  let sub = view.colonized ? `Tu colonia · nivel ${view.colony?.level ?? 1}` : view.colonizedBy != null ? `Colonia de ${escapeHtml(view.colonistName)}` : view.explored ? `${view.typeName}${view.tier ? ` · Nv ${view.tier}` : ''}` : 'Isla desconocida';
+  let sub = view.colonized ? `Tu colonia · nivel ${view.colony?.level ?? 1}` : view.colonizedBy != null ? `Colonia de ${escapeHtml(view.colonistName)}` : view.explored ? view.typeName : 'Isla desconocida';
   if (view.type === 'jugador') {
     icon = '🏰';
     sub = `Ciudad de ${escapeHtml(view.ownerName)}`;

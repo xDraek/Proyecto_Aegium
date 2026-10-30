@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-30c',
+    date: '2026-10-30',
+    title: 'Fuera los niveles de los enemigos',
+    items: [
+      '🧹 Los campamentos bárbaros, las ciudadelas, las fortalezas piratas y las fosas del Kraken ya no muestran un «Nv»: no servía para nada. Lo que importa es su guarnición, que ves al explorarlos o espiarlos.',
+    ],
+    en: {
+      title: 'Enemy levels removed',
+      items: [
+        '🧹 Barbarian camps, citadels, pirate fortresses and Kraken lairs no longer show a «Lv»: it served no purpose. What matters is their garrison, which you see when you explore or spy on them.',
+      ],
+    },
+  },
+  {
     id: '2026-10-30b',
     date: '2026-10-30',
     title: 'Tope de favor',

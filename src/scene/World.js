@@ -2454,7 +2454,6 @@ export class World {
         status = `${this.game.world.playerInfo(view.owner)?.banner?.emblem ?? '🏰'} ${tag}${view.ownerName} · ${view.score} pts${view.protected ? ' · 🛡️' : ''}${view.vacation ? ' · 🏖️' : view.inactive ? ' · 💤' : ''}${view.relation === 'guerra' ? ' · ⚔️' : view.relation === 'pacto' ? ' · 🕊️' : ''}`;
       } else if (view.colonized) status = `🚩 Tu colonia · Nv ${view.colony?.level ?? 1}${view.colony?.upgradeEnd ? ' 🔨' : ''}`;
       else if (view.colonizedBy != null) status = `🚩 Colonia de ${view.colonistName}`;
-      else if (view.explored && view.tier) status += ` · Nv ${view.tier}`;
       const feat = view.type === 'continente' && (view.feat?.stage === 'presagio' || view.feat?.stage === 'lucha') ? view.feat : null;
       if (feat) status = featStatus(feat);
       else if (view.type === 'continente') status = view.horde ? `🔥 ¡Horda! ${view.horde.left} bárbaros` : `🗺️ Continente · maravilla nivel ${view.wonder?.level ?? 0}`;
