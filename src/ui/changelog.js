@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-30h',
+    date: '2026-10-30',
+    title: 'Barcos en la costa',
+    items: [
+      '⛵ Las flotas que van a una ciudad o una tierra de un continente (o salen de ella) atracan ahora en la costa del continente, frente a ella, en vez de quedarse tierra adentro junto a la ciudad. También las de otros jugadores que ves pasar.',
+    ],
+    en: {
+      title: 'Ships on the coast',
+      items: [
+        '⛵ Fleets heading to a city or land on a continent (or leaving it) now drop anchor on the continent’s coast in front of it, instead of sitting inland next to the city. The same goes for other players’ fleets you see passing by.',
+      ],
+    },
+  },
+  {
     id: '2026-10-30g',
     date: '2026-10-30',
     title: 'Gestas a tu alcance',

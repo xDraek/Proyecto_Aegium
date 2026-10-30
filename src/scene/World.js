@@ -2736,6 +2736,20 @@ export class World {
     return out;
   }
 
+  /**
+   * Dónde atraca una flota que va a un asentamiento de un continente (o sale de él): en la costa
+   * del continente frente al asentamiento, en el mar. Null si `isl` no está en un continente (antes
+   * los barcos se quedaban tierra adentro, junto a la ciudad).
+   */
+  #landingAt(pos, isl) {
+    if (!isl?.land) return null;
+    const o = this.islandObstacles?.find((x) => x.id === isl.land);
+    if (!o) return null;
+    const dir = pos.clone().sub(o.p).setY(0);
+    if (dir.lengthSq() < 1e-6) dir.set(0, 0, 1);
+    return o.p.clone().setY(0).addScaledVector(dir.normalize(), o.core + 4);
+  }
+
   /** Cuánto apartarse del centro de una isla para salir o llegar por mar (o `fallback` si no se conoce). */
   #offshore(p, fallback) {
     if (p.length() < 3) return this.coastMaxR + 10;
@@ -2757,7 +2771,10 @@ export class World {
     const toward = pos.clone().normalize();
     const side = new THREE.Vector3(toward.z, 0, -toward.x);
     const stop = (entry ? islandExtent(entry.isl) : 10) + 4;
-    const end = pos.clone().addScaledVector(toward, -stop).addScaledVector(side, (lane - 1) * 4.5);
+    // (a una ciudad de un continente se llega por la costa del continente, cada flota a un lado a lo largo de ella)
+    const landing = this.#landingAt(pos, entry?.isl);
+    const along = landing && landing.clone().sub(this.islandObstacles.find((o) => o.id === entry.isl.land).p).normalize();
+    const end = landing ? landing.addScaledVector(new THREE.Vector3(along.z, 0, -along.x), (lane - 1) * 4.5) : pos.clone().addScaledVector(toward, -stop).addScaledVector(side, (lane - 1) * 4.5);
     return new Route(this.#navigate(mouth, end));
   }
 
@@ -2768,8 +2785,8 @@ export class World {
     const to = at(toId);
     if (!from || !to) return this.#routeTo(toId);
     const dir = to.clone().sub(from).normalize();
-    const a = from.clone().addScaledVector(dir, this.#offshore(from, 14));
-    const b = to.clone().addScaledVector(dir, -this.#offshore(to, 14));
+    const a = this.#landingAt(from, this.islands[fromId]?.isl) ?? from.clone().addScaledVector(dir, this.#offshore(from, 14));
+    const b = this.#landingAt(to, this.islands[toId]?.isl) ?? to.clone().addScaledVector(dir, -this.#offshore(to, 14));
     return new Route(this.#navigate(a, b));
   }
 
@@ -2817,8 +2834,10 @@ export class World {
       const from = new THREE.Vector3(m.fx - home.x, 0, m.fz - home.z);
       const to = new THREE.Vector3(m.tx - home.x, 0, m.tz - home.z);
       const dir = to.clone().sub(from).normalize();
-      const a = from.clone().addScaledVector(dir, this.#offshore(from, 22));
-      const b = to.clone().addScaledVector(dir, -this.#offshore(to, 14));
+      // (de o a una ciudad de un continente, por la costa del continente)
+      const islAt = (v) => Object.values(this.islands).find((e) => e.pos.distanceTo(v) < 1)?.isl;
+      const a = this.#landingAt(from, islAt(from)) ?? from.clone().addScaledVector(dir, this.#offshore(from, 22));
+      const b = this.#landingAt(to, islAt(to)) ?? to.clone().addScaledVector(dir, -this.#offshore(to, 14));
       const route = new Route(this.#navigate(a, b));
       const group = new THREE.Group();
       group.add(createShip(m.ship));
