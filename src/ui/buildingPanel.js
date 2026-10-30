@@ -1,5 +1,5 @@
 import { BUILDINGS, FAVOR_ICON, HERO, HERO_SKILLS, OCCUPATION, PORT_SAIL_SPEED, POWER_KEYS, POWERS, RELIC_RARITY, RELIC_SLOTS, RESEARCH, RESEARCH_KEYS, RESOURCES, TRAIN_SPEED, UNIT_KEYS, UNITS, WORK } from '../game/data.js';
-import { favorMax, favorRate, hasWorkers, producerOutput, protectedAmount, requirementName, storageCapacity, townSpeedup, wallBonus, workShare, workTaxes } from '../game/rules.js';
+import { favorRate, hasWorkers, producerOutput, protectedAmount, requirementName, storageCapacity, townSpeedup, wallBonus, workShare, workTaxes } from '../game/rules.js';
 import { splitForces } from '../game/combat.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
 import { bag, costList, escapeHtml, fmtDec, fmtNum, fmtTime, glyphs, resIcons, unitList, unitRole } from './format.js';
@@ -34,10 +34,7 @@ function effectFor(game, id, level, next) {
         effectRow('🔒 A salvo de saqueos', fmtNum(protectedAmount(withLevel(game, id, level))), fmtNum(protectedAmount(withLevel(game, id, next))))
       );
     case 'templo':
-      return (
-        effectRow(`${FAVOR_ICON} Favor por hora`, fmtDec(favorRate(withLevel(game, id, level))), fmtDec(favorRate(withLevel(game, id, next)))) +
-        effectRow('⛲ Favor máximo', favorMax(withLevel(game, id, level)), favorMax(withLevel(game, id, next)))
-      );
+      return effectRow(`${FAVOR_ICON} Favor por hora`, fmtDec(favorRate(withLevel(game, id, level))), fmtDec(favorRate(withLevel(game, id, next))));
     case 'coloso':
       return effectRow('✨ Producción de todo', `+${level * 5} %`, `+${next * 5} %`);
     case 'ayuntamiento':

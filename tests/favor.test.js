@@ -46,3 +46,12 @@ test('los poderes se desbloquean con el nivel del templo', async () => {
   A.state.buildings.templo = 6;
   assert.equal(A.castPower('egida').ok, true);
 });
+
+test('el favor se acumula como mucho hasta 250, sea cual sea el nivel del templo', async () => {
+  const { players } = await makeWorld();
+  const [A] = players;
+  const max = (templo) => favorMax({ ...A.state, buildings: { ...A.state.buildings, templo } });
+  assert.equal(max(0), 0);
+  assert.equal(max(1), 250);
+  assert.equal(max(10), 250);
+});

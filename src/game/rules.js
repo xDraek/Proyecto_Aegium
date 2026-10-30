@@ -5,6 +5,7 @@ import {
   BUILDINGS,
   COLONY,
   COLONY_COST,
+  FAVOR_MAX,
   FEATS,
   OCCUPATION,
   PLAYER_UNITS,
@@ -469,9 +470,9 @@ export function favorRate(state, t = state.lastUpdate) {
   return (4 * Math.min(n, 5) + 2 * Math.max(0, n - 5)) * universe.speed * (worldEventAt(t).event?.favor ?? 1) * (1 + relicBonus(state, 'favor'));
 }
 
+/** El favor que se puede acumular: FAVOR_MAX con cualquier templo (sin templo, nada). */
 export function favorMax(state) {
-  const n = lvl(state, 'templo');
-  return n ? 100 + 60 * n : 0;
+  return lvl(state, 'templo') ? FAVOR_MAX : 0;
 }
 
 // ── Clasificación ────────────────────────────────────────────────────────────

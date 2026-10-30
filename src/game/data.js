@@ -23,6 +23,8 @@ export const RESOURCE_KEYS = Object.keys(RESOURCES);
 
 /** El favor de los dioses (no es un recurso del almacén): su icono en HTML y el emoji para los textos. */
 export const FAVOR_ICON = '<img class="res-img" src="/ui/favor.png" alt="🙏" draggable="false" />';
+/** El favor que se puede acumular con un templo, sea del nivel que sea (no crece al subirlo). */
+export const FAVOR_MAX = 250;
 /** El emblema de los Fundadores (un yelmo con laureles); en los textos va como 🌅 y se cambia al pintarlos. */
 export const FOUNDER_ICON = '<img class="res-img" src="/ui/fundador.png" alt="🌅" draggable="false" />';
 

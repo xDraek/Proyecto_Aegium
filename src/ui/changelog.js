@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-30b',
+    date: '2026-10-30',
+    title: 'Tope de favor',
+    items: [
+      '🙏 El favor de los dioses se acumula como mucho hasta <b>250</b>, sea cual sea el nivel del templo (antes, 100 más 60 por nivel). Subir el templo sigue dando más favor por hora y desbloqueando poderes. Si tenías más de 250, se queda en 250.',
+    ],
+    en: {
+      title: 'Favour cap',
+      items: [
+        '🙏 The favour of the gods builds up to at most <b>250</b>, whatever the temple level (before, 100 plus 60 per level). Upgrading the temple still gives more favour per hour and unlocks powers. If you had more than 250, it stays at 250.',
+      ],
+    },
+  },
+  {
     id: '2026-10-30a',
     date: '2026-10-30',
     title: 'El almirante, a tu gusto',
