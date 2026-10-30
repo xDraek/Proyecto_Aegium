@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-30i',
+    date: '2026-10-30',
+    title: 'Juramentos a tu alcance',
+    items: [
+      '🧭 Sin Cartas náuticas no puedes jurar una gesta que esté más lejos de lo que llegan tus flotas de guerra (300 leguas): en su panel verás a cuántas leguas está, en vez del botón de jurar.',
+    ],
+    en: {
+      title: 'Oaths within reach',
+      items: [
+        '🧭 Without Nautical charts you can’t swear a feat that is farther than your warships reach (300 leagues): its panel shows how many leagues away it is instead of the swear button.',
+      ],
+    },
+  },
+  {
     id: '2026-10-30h',
     date: '2026-10-30',
     title: 'Barcos en la costa',

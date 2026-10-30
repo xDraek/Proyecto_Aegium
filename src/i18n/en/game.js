@@ -537,4 +537,5 @@ export default {
   "Tu almirante no tiene ningún punto repartido.": "Your admiral has no points assigned.",
   "🎖️ {0} olvida lo aprendido: tienes {1} {2} para repartir": "🎖️ {0} forgets what they learned: you have {1} {2} to assign",
   "Esa gesta está a {0} leguas: sin Cartas náuticas tus flotas de guerra solo llegan a {1}. Investígalas en la academia.": "That feat is {0} leagues away: without Nautical charts your warships only reach {1}. Research them at the academy.",
+  "Esa gesta está a {0} leguas: sin Cartas náuticas tus flotas de guerra solo llegan a {1}. Investígalas en la academia para poder jurarla.": "That feat is {0} leagues away: without Nautical charts your warships only reach {1}. Research them at the academy to be able to swear it.",
 }

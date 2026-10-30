@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BLOCKADE, COLONY, COLONY_RAID, FEATS, FEAT_THEMES, ISLAND_TYPES, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, RESOURCES, RESOURCE_KEYS, SPY_TIERS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
+import { BLOCKADE, COLONY, COLONY_RAID, FEATS, FEAT_THEMES, ISLAND_TYPES, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, PVP_RANGE, RESOURCES, RESOURCE_KEYS, SPY_TIERS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
 import { colonyUpgrade, colonyYield, navalDefense, playerCombat, spyRisk, wallBonus } from '../game/rules.js';
 import { featCoop, forceOf, forgeBonus } from '../game/feats.js';
 import { krakenText, NEWBIE_POINTS, neutralsOf } from '../game/Game.js';
@@ -219,6 +219,8 @@ function featSection(game, view) {
         ? `<p class="hint ok small">⛵ Tu flota llega en <span class="q-time" data-until="${myFleet.arrive}"></span>${f.stage === 'lucha' && myFleet.arrive > f.nextWave ? ': después de la próxima oleada, así que combatirá en la siguiente' : ' y esperará a la oleada'}.</p>`
         : '<p class="hint ok small">⚓ Tu flota espera frente a la costa: combatirá en la próxima oleada.</p>';
     mine = `<p class="hint ok small">⚔️ Has jurado esta gesta${f.stage === 'lucha' ? ` · tu gloria: ${pct(f.myGlory)} · trajiste el ${pct(f.myEffort)} de tu fuerza` : ''}.</p>${fleet}`;
+  } else if (f.convoked && f.pledgeOpen && game.featOutOfReach(view.id)) {
+    mine = `<p class="hint warn small">🧭 Esta gesta está a ${game.featOutOfReach(view.id)} leguas: sin Cartas náuticas tus flotas de guerra solo llegan a ${PVP_RANGE}. Investígalas en la academia para poder jurarla.</p>`;
   } else if (f.convoked && f.pledgeOpen) {
     mine = `<p class="desc small">Estás convocado. Al jurar se anota tu poder (el enemigo crece con el de todos) y te comprometes a combatir (o a ofrendar en la fragua): quien jura y no hace ninguna de las dos en ${FEATS.perjuryHours} h es perjuro. Y dejas tus guerras: terminan tus ocupaciones y bloqueos de otras ciudades y vuelven las flotas que van a por otros jugadores.</p>
       <button class="primary wide" data-action="pledge-feat" data-site="${escapeHtml(view.id)}">${f.icon} Jurar la gesta</button>`;

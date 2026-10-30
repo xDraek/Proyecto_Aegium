@@ -1770,10 +1770,18 @@ export class Game extends EventTarget {
   }
 
   /** Juras combatir en la gesta del continente `site`: queda anotado tu poder y tu producción. */
+  /** Leguas hasta una gesta que queda fuera de tu alcance (sin Cartas náuticas, más allá de PVP_RANGE), o 0 si llegas. */
+  featOutOfReach(site) {
+    const dist = this.distanceTo(site);
+    return this.researchLevel('cartas') < 1 && dist > PVP_RANGE ? Math.round(dist) : 0;
+  }
+
   pledgeFeat(site, now = this.now()) {
     this.#advance(now);
     const s = this.state;
     if (s.vacation) return this.#fail('De vacaciones no puedes jurar una gesta.');
+    const far = this.featOutOfReach(site);
+    if (far) return this.#fail(`Esa gesta está a ${far} leguas: sin Cartas náuticas tus flotas de guerra solo llegan a ${PVP_RANGE}. Investígalas en la academia para poder jurarla.`);
     if ((s.perjuryUntil ?? 0) > now) return this.#fail('Rompiste tu juramento en la última gesta: aún no puedes volver a jurar.');
     if (this.isProtected()) return this.#fail('Con protección de novato aún no puedes jurar gestas.');
     const power = featPower(s);

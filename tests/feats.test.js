@@ -437,8 +437,13 @@ test('sin Cartas náuticas solo se convoca a las gestas a tu alcance', async () 
   assert.equal(rt.feat.convoked.includes(far.userId), false, 'no lo convocan');
   assert.match(far.state.notes.at(-1).text, /Cartas náuticas/);
   for (const g of env.players.slice(0, 4)) assert.ok(rt.feat.convoked.includes(g.userId));
-  // Y aunque lo estuviera, sin Cartas su flota no llega
+  // Y aunque lo estuviera, sin Cartas no la puede jurar ni su flota llega
   rt.feat.convoked.push(far.userId);
+  far.state.units.hoplita = 20;
+  const pledge = far.pledgeFeat(site);
+  assert.equal(pledge.ok, false);
+  assert.match(pledge.reason, /Cartas náuticas/);
+  assert.equal(rt.feat.pledged?.[far.userId], undefined);
   rt.feat.pledged = { ...rt.feat.pledged, [far.userId]: { name: far.state.name } };
   far.state.units.dromon = 5;
   assert.match(far.planMission('atacar', site, { dromon: 5 }).reason, /Cartas náuticas/);

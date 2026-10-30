@@ -302,4 +302,5 @@ export default {
   "⚠️ {0} {1} de {2}{3}{4}": "⚠️ {0} {1} from {2}{3}{4}",
   "⚓ Vuelve de {0}{1}": "⚓ Returning from {0}{1}",
   "Aún no se sabe qué trae: lo verá tu torre de vigía cuando se acerque": "What it carries is still unknown: your watchtower will see it as it gets closer",
+  "🧭 Esta gesta está a {0} leguas: sin Cartas náuticas tus flotas de guerra solo llegan a {1}. Investígalas en la academia para poder jurarla.": "🧭 This feat is {0} leagues away: without Nautical charts your warships only reach {1}. Research them at the academy to be able to swear it.",
 }
