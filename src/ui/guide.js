@@ -4,6 +4,7 @@ import {
   FAVOR_MAX,
   ACHIEVEMENTS,
   BLOCKADE,
+  CANCEL_REFUND,
   BUILDINGS,
   COUNTERS,
   COLONY,
@@ -291,12 +292,12 @@ const TOPICS = {
     icon: '🖥️',
     title: 'La pantalla',
     body: () => `${list([
-      '<b>Arriba</b>: tus recursos (pasa el ratón por encima para ver de dónde sale cada uno y cuánto ganas o pierdes por hora), la temporada del archipiélago, el favor de los dioses y los botones de cada ventana.',
+      '<b>Arriba</b>: tus recursos (pasa el ratón por encima para ver de dónde sale cada uno y cuánto ganas o pierdes por hora), la temporada del archipiélago, el favor de los dioses y los botones de cada ventana. Mientras el Kraken está despierto sale además su icono 🐙: púlsalo para ver en el chat dónde lo han visto.',
       '<b>A la izquierda</b>: tus edificios o, en el mapa, las islas que conoces. Pulsa uno para abrir su panel.',
       '<b>A la derecha</b>: el panel de lo que hayas elegido (mejorar, entrenar, mandar flotas…).',
       '<b>Abajo</b>: lo que está en marcha —obras, investigaciones, reclutas y flotas— con su cuenta atrás.',
       '<b>Avisos</b>: un recuadro rojo arriba cuando vienen piratas, una flota enemiga o una horda, o cuando te bloquean o te ocupan. Púlsalo para ir a defenderte.',
-      '<b>El mapa</b> (tecla <b>M</b>): el archipiélago alrededor de tu isla, con las flotas navegando. El 🌍 <b>mapa del mundo</b> enseña todo, con las ciudades coloreadas según vuestra relación.',
+      '<b>El mapa</b> (tecla <b>M</b>): el archipiélago alrededor de tu isla, con las flotas navegando. Si te alejas mucho, los campamentos, fortalezas, ciudades y fosas del Kraken se ven con su icono, y al acercarte vuelven a verse enteros. El 🌍 <b>mapa del mundo</b> enseña todo, con las ciudades coloreadas según vuestra relación.',
     ])}
       ${tip(`En ${see('atajos', 'Cámara y atajos')} tienes todas las teclas.`)}`,
   },
@@ -335,7 +336,7 @@ const TOPICS = {
   edificios: {
     icon: '🏛️',
     title: 'Edificios',
-    body: () => `<p>Solo se construye <b>una obra a la vez</b>. El ayuntamiento acelera las obras un 10 % por nivel y Arquitectura otro 4 % por nivel. Si cancelas una obra recuperas lo que costó. Cada edificio pide otros (o investigaciones) para poder construirse:</p>
+    body: () => `<p>Solo se construye <b>una obra a la vez</b>. El ayuntamiento acelera las obras un 10 % por nivel y Arquitectura otro 4 % por nivel. Si cancelas una obra recuperas el ${pct(CANCEL_REFUND)} de lo que costó. Cada edificio pide otros (o investigaciones) para poder construirse:</p>
       ${buildingsTable()}
       <h5>El ayuntamiento manda</h5>
       <p>Además de desbloquear edificios, el ayuntamiento marca hasta dónde puedes subir los demás: hasta el nivel ${TOWN_HALL_GATE.free} no pide nada, y a partir de ahí hace falta tenerlo a cierto nivel.</p>
@@ -353,11 +354,12 @@ const TOPICS = {
     title: 'Mercado y comercio',
     body: () => `${list([
       '<b>Cambiar en el mercado</b>: cambias un recurso por otro al momento. Cada recurso vale distinto (el oro y el cristal valen más) y el mercader se queda una comisión: empiezas recibiendo una cuarta parte de lo justo; cada nivel de mercado mejora el cambio un 2 % y cada nivel de Comercio un 0,5 %, hasta el 60 %. La Gran feria lo mejora otro 15 %. <b>Comprar oro</b>, que escasea, sale a la mitad: como mucho, un 30 %. Con otros jugadores no hay impuestos.',
-      '<b>Ofertas entre jugadores</b>: en el mercado publicas qué das y qué pides (hasta 5 ofertas, que caducan a los 3 días). Lo que ofreces queda apartado hasta que alguien acepta o la retiras.',
+      `<b>Ofertas entre jugadores</b>: en el mercado publicas qué das y qué pides (hasta 5 ofertas, que caducan a los 3 días). Lo que ofreces queda apartado hasta que alguien acepta o la retiras, y también los <b>mercantes</b> que lo llevarán (uno por cada ${fmtNum(UNITS.mercante.cargo)} de carga).`,
+      '<b>Al aceptar un trato</b>, cada uno manda lo suyo en sus mercantes, como en un transporte: los recursos llegan cuando atracan los barcos, y los mercantes no se pueden usar hasta que vuelven a casa. Estos convoyes no ocupan flota en el mar y no se pueden retirar.',
       '<b>Transportes</b>: manda mercantes con recursos a la ciudad de cualquier jugador. Si no eliges barcos, salen los que hagan falta.',
       `<b>Mercader ambulante</b>: de vez en cuando atraca uno que compra lo que te sobra y paga mejor que el mercado (ver ${see('visitantes', 'Visitantes')}).`,
     ])}
-      ${warn('Con el puerto bloqueado u ocupado no puedes cambiar en el mercado ni recibir transportes.')}`,
+      ${warn('Con el puerto bloqueado u ocupado no puedes cambiar en el mercado, publicar ni aceptar ofertas, ni recibir transportes.')}`,
   },
 
   unidades: {
@@ -408,6 +410,7 @@ const TOPICS = {
           ['🏰 Muralla (al defender)', '+10 % de vida y 10 de daño de sus torres por nivel'],
           ['👁️ Torre de vigía (al defender)', '8 de daño de sus arqueros por nivel'],
           ['🪔 Faro (al defender)', '+4 % de vida de tus barcos por nivel'],
+          [`${POWERS.rayo.icon} ${POWERS.rayo.name} (${see('templo', 'poder del templo')})`, POWERS.rayo.description],
           ['☄️ Catapultas (al atacar)', 'Cada una resta un 6 % de vida a la muralla o fortificación enemiga (en ciudades e islas; las torres siguen disparando)'],
           [`🎖️ ${see('almirante', 'Almirante')}, 🏺 ${see('reliquias', 'reliquias')} y ${see('continentes', 'maravillas')}`, 'Más ataque, vida, carga o velocidad'],
         ],
@@ -459,7 +462,7 @@ const TOPICS = {
       ${list([
         'La flota va a la velocidad de su <b>barco más lento</b>. Navegación (+5 % por nivel), el faro (+4 %), el puerto (+2 %), el almirante, las reliquias y el Templo de Poseidón la aceleran. El poder <b>Viento favorable</b> dura hora y media: ahorra media travesía a las flotas que ya navegan, y las que zarpan mientras dura van y vuelven al doble de rápido.',
         'El <b>puerto</b> limita cuántas flotas tienes en el mar a la vez: una por nivel.',
-        'Puedes <b>retirar</b> una flota que aún no ha llegado: deshace lo andado. Las tropas de apoyo, los bloqueos y las ocupaciones se retiran cuando quieras.',
+        'Puedes <b>retirar</b> una flota que aún no ha llegado: deshace lo andado (salvo los convoyes de un trato del mercado). Las tropas de apoyo, los bloqueos y las ocupaciones se retiran cuando quieras.',
         'Las islas que no conoces hay que <b>explorarlas</b> primero con un bote.',
       ])}
       ${tip('Si no eliges unidades, explorar manda un bote, y un transporte, los mercantes que hagan falta para la carga.')}`,
@@ -473,7 +476,7 @@ const TOPICS = {
       <p>📈 Todas ellas (salvo el propio Kraken) <b>crecen con tu ciudad</b>: cuanto más producen tus edificios, más guerreros y más botín ves en ellas, así que siempre merece la pena saquearlas. Cada jugador las ve a su medida; si alguien las arrasa, quedan arrasadas para todos. Al rearmarse vuelven con la mitad de su botín.</p>
       <h5>🐙 El Kraken</h5>
       ${list([
-        'Solo hay <b>un Kraken</b> en todos los mares. Despierta en una de las fosas que no estén arrasadas, y nadie sabe cuándo ni en cuál: en el chat se avisa con unas <b>coordenadas aproximadas</b> (pulsa en ellas para verlas en el mapa).',
+        'Solo hay <b>un Kraken</b> en todos los mares. Despierta en una de las fosas que no estén arrasadas, y nadie sabe cuándo ni en cuál: en el chat se avisa, resaltado, con unas <b>coordenadas aproximadas</b> (pulsa en ellas para verlas en el mapa), y mientras siga despierto sale su icono 🐙 arriba.',
         'Para saber si está en una fosa, envía un bote explorador. Si en unas horas nadie lo derrota, <b>se sumerge</b> y al rato asoma en otra fosa.',
         `Quien lo derrota tiene un <b>${Math.round(KRAKEN_RULES.relicChance * 100)} %</b> de encontrar una ${see('reliquias', 'reliquia épica')} entre sus restos. Después vuelve a dormir en las profundidades… y <b>despierta más fuerte</b>: cada vez que cae sube un nivel, con un ${Math.round(KRAKEN_RULES.growth * 100)} % más de ataque y de vida que al principio.`,
       ])}

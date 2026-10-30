@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-30e',
+    date: '2026-10-30',
+    title: 'La guía, al día',
+    items: [
+      '📖 Repaso de la guía: los tratos del mercado viajan en mercantes (y no se pueden retirar), cancelar una obra devuelve el 70 % de lo que costó, la Furia de Zeus sale entre lo que te hace más fuerte, y se explican el icono del Kraken de arriba y los iconos del mapa de lejos.',
+    ],
+    en: {
+      title: 'The guide, up to date',
+      items: [
+        '📖 Guide review: market deals travel in merchant ships (and can’t be recalled), cancelling a construction refunds 70 % of its cost, Zeus’ Fury is listed among what makes you stronger, and the Kraken icon at the top and the map icons from afar are explained.',
+      ],
+    },
+  },
+  {
     id: '2026-10-30d',
     date: '2026-10-30',
     title: 'El mapa de lejos, con iconos',
