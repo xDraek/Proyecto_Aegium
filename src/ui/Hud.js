@@ -871,7 +871,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
         const live = now >= c.omen && now < c.end;
         const label = live ? (now < c.start ? 'presagios ahora' : 'en lucha ahora') : `presagios el ${when(c.omen)}`;
         return `<div class="event-row ${live ? 'current' : ''}"><span class="event-icon">${resIcons(t.icon)}</span>
-          <div><b>${t.name}</b><div class="small muted">${live ? 'Convocados los imperios cercanos a algunos continentes.' : `${FEATS.omenHours} h de presagios y ${FEATS.hours} h de lucha.`}</div></div>
+          <div><b>${t.name}</b><div class="small muted">${live ? 'Convocados todos los imperios, repartidos por algunos continentes.' : `${FEATS.omenHours} h de presagios y ${FEATS.hours} h de lucha.`}</div></div>
           <span class="small">${label}</span></div>`;
       })
       .join('');

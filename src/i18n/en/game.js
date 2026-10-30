@@ -232,7 +232,7 @@ export default {
   "La fragua no está abierta.": "The forge isn't open.",
   "La fragua ya está llena.": "The forge is already full.",
   "🔥 Ofrendas {0} en la fragua de Hefesto": "🔥 You offer {0} at the forge of Hephaestus",
-  "{0} Los imperios cercanos estáis convocados en {1}: jura la gesta desde el panel del continente y manda tu flota antes de cada oleada.": "{0} The nearby empires are summoned to {1}: swear the feat from the continent's panel and send your fleet before each wave.",
+  "{0} Estás convocado a la gesta de {1}: jura la gesta desde el panel del continente y manda tu flota antes de cada oleada.": "{0} You're summoned to the feat at {1}: swear the feat from the continent's panel and send your fleet before each wave.",
   "{0} ¡{1} despierta en {2}! Estás convocado a la gesta": "{0} {1} awakens at {2}! You are summoned to the feat",
   "Nada que hacer en {0}": "Nothing to do at {0}",
   "La gesta ya ha terminado. La flota vuelve a casa.": "The feat has already ended. The fleet returns home.",

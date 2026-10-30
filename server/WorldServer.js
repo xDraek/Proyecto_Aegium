@@ -1035,7 +1035,7 @@ export class WorldServer {
 
   // ── Gestas de la Liga ──────────────────────────────────────────────────────
   // Eventos cooperativos puntuales (data.js: FEATS y FEAT_THEMES; reglas puras en
-  // src/game/feats.js). El calendario convoca a los imperios cercanos a un
+  // src/game/feats.js). El calendario convoca a todos los imperios (repartidos) a un
   // continente; los que juran combaten en oleadas que se resuelven aquí, en el
   // tick, con la hora exacta de cada una (no según el orden de las partidas).
 
@@ -1077,44 +1077,53 @@ export class WorldServer {
   }
 
   /**
-   * Al empezar los presagios de un ciclo: en cada continente libre se convoca a los imperios
-   * cercanos (primero donde más hay), sin repetir a nadie.
+   * Al empezar los presagios de un ciclo se convoca a todos los imperios que pueden, estén donde
+   * estén: en grupos de hasta FEATS.maxConvoked, cada uno en el continente libre que le queda más a
+   * mano (primero el grupo más junto), sin repetir a nadie. Los que no llegan a formar otro grupo (o
+   * no tienen continente libre) se suman a la gesta más cercana.
    */
   #summonFeats(cyc, now) {
     let pool = [...this.games.values()].filter((g) => this.#featCandidate(g, now));
     const homeOf = (g) => this.islands.get(g.state.home);
+    const dist = (g, c) => Math.hypot(homeOf(g).x - c.x, homeOf(g).z - c.z);
     const sites = new Map();
     const busy = (c) => {
       const rt = this.islandStates.get(c.id);
       return !rt || rt.horde || (rt.feat && rt.feat.stage !== 'fin');
     };
-    for (const radius of [FEATS.radius, FEATS.radiusMax]) {
-      let free = [...this.islands.values()].filter((c) => c.type === 'continente' && !sites.has(c.id) && !busy(c));
-      while (pool.length >= FEATS.minConvoked && free.length) {
-        let best = null;
-        for (const c of free) {
-          const near = pool
-            .map((g) => ({ g, d: Math.hypot(homeOf(g).x - c.x, homeOf(g).z - c.z) }))
-            .filter((x) => x.d <= radius)
-            .sort((a, b) => a.d - b.d);
-          if (!best || near.length > best.near.length) best = { c, near };
-        }
-        if (!best || best.near.length < FEATS.minConvoked) break;
-        const chosen = best.near.slice(0, FEATS.maxConvoked).map((x) => x.g);
-        sites.set(best.c.id, chosen);
-        pool = pool.filter((g) => !chosen.includes(g));
-        free = free.filter((c) => c !== best.c);
+    let free = [...this.islands.values()].filter((c) => c.type === 'continente' && !busy(c));
+    while (pool.length >= FEATS.minConvoked && free.length) {
+      let best = null;
+      for (const c of free) {
+        const near = pool
+          .map((g) => ({ g, d: dist(g, c) }))
+          .sort((a, b) => a.d - b.d)
+          .slice(0, FEATS.maxConvoked);
+        const spread = near.reduce((a, x) => a + x.d, 0) / near.length;
+        if (!best || spread < best.spread) best = { c, near, spread };
       }
+      const chosen = best.near.map((x) => x.g);
+      sites.set(best.c.id, chosen);
+      pool = pool.filter((g) => !chosen.includes(g));
+      free = free.filter((c) => c !== best.c);
+    }
+    // Los que quedan, a la gesta más cercana: nadie se queda fuera por estar lejos
+    if (sites.size) {
+      for (const g of pool) {
+        const site = [...sites.keys()].sort((a, b) => dist(g, this.islands.get(a)) - dist(g, this.islands.get(b)))[0];
+        sites.get(site).push(g);
+      }
+      pool = [];
     }
     for (const [site, games] of sites) this.startFeat(site, { ...cyc, players: games.map((g) => g.userId) }, now);
     for (const g of pool) {
-      g.receiveNews(null, `${FEAT_THEMES[cyc.theme].icon} ${cap(FEAT_THEMES[cyc.theme].enemy)} despierta en el archipiélago, pero esta vez no hay ninguna gesta cerca de tu ciudad`, 'info');
+      g.receiveNews(null, `${FEAT_THEMES[cyc.theme].icon} ${cap(FEAT_THEMES[cyc.theme].enemy)} despierta en el archipiélago, pero esta vez no hay bastantes imperios para una gesta`, 'info');
       this.pendingPush.add(g.userId);
     }
     if (sites.size) {
       const t = FEAT_THEMES[cyc.theme];
       const names = [...sites.keys()].map((id) => this.islands.get(id)?.name).join(', ');
-      this.announce(`${t.icon} ${t.name}: presagios en ${names}. Los imperios cercanos están convocados a la gesta.`, 'global', { highlight: 'gesta', zones: [...sites.keys()].map((id) => this.#zoneOf(id, true)) });
+      this.announce(`${t.icon} ${t.name}: presagios en ${names}. Todos los imperios están convocados a la gesta.`, 'global', { highlight: 'gesta', zones: [...sites.keys()].map((id) => this.#zoneOf(id, true)) });
     }
   }
 
@@ -1195,13 +1204,8 @@ export class WorldServer {
     });
     if (!cont) throw new UserError('No hay ningún continente libre para la gesta.');
     const now = clock.now();
-    const players = [...this.games.values()]
-      .filter((g) => !g.state.vacation && !this.#inFeat(g.userId))
-      .map((g) => ({ g, d: Math.hypot(this.islands.get(g.state.home).x - cont.x, this.islands.get(g.state.home).z - cont.z) }))
-      .filter((x) => x.d <= FEATS.radiusMax)
-      .sort((a, b) => a.d - b.d)
-      .slice(0, FEATS.maxConvoked)
-      .map((x) => x.g.userId);
+    // (todos los que no estén ya en otra ni de vacaciones, estén donde estén)
+    const players = [...this.games.values()].filter((g) => !g.state.vacation && !this.#inFeat(g.userId)).map((g) => g.userId);
     const omen = now;
     const start = omen + Math.round(omenMinutes != null ? (Math.max(1, Number(omenMinutes) || 1) * 60_000) / universe.speed : featHours(FEATS.omenHours));
     this.startFeat(cont.id, { ...(theme ? { theme } : {}), omen, start, players }, now);

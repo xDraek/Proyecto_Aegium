@@ -1850,7 +1850,7 @@ export class Game extends EventTarget {
     this.state.feat = info ? { k: info.k, site: info.site, theme: info.theme } : null;
     if (info) {
       const theme = FEAT_THEMES[info.theme];
-      this.#report({ t, kind: 'gesta', island: info.site, islandName: info.siteName, title: `${theme.icon} ${theme.name}`, text: `${theme.text} Los imperios cercanos estáis convocados en ${info.siteName}: jura la gesta desde el panel del continente y manda tu flota antes de cada oleada.` });
+      this.#report({ t, kind: 'gesta', island: info.site, islandName: info.siteName, title: `${theme.icon} ${theme.name}`, text: `${theme.text} Estás convocado a la gesta de ${info.siteName}: jura la gesta desde el panel del continente y manda tu flota antes de cada oleada.` });
       this.#note(`${theme.icon} ¡${theme.enemy.charAt(0).toUpperCase() + theme.enemy.slice(1)} despierta en ${info.siteName}! Estás convocado a la gesta`, 'info');
     }
     this.#dirty = true;

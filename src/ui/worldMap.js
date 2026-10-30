@@ -545,7 +545,7 @@ export class WorldMap {
         <div><b>${f.icon} ${escapeHtml(f.enemy)} en ${escapeHtml(f.name)}</b>
           <div class="small">${f.stage === 'presagio' ? 'Presagios: emerge pronto' : 'En plena lucha'} · ${f.pledged} de ${f.convoked} convocados han jurado${f.me ? ' · <b>estás convocado</b>' : ''}</div>
           ${far}</div>
-        <div class="row-actions">${visible ? `<button class="primary small" data-action="goto" data-island="${escapeHtml(f.site)}">⚓ Ver la gesta</button>` : '<span class="muted small">Solo los imperios cercanos están convocados</span>'}</div>
+        <div class="row-actions">${visible ? `<button class="primary small" data-action="goto" data-island="${escapeHtml(f.site)}">⚓ Ver la gesta</button>` : '<span class="muted small">Solo para los imperios convocados a ella</span>'}</div>
       </div>`;
     } else {
       const [, , type, colonist] = hit.item;

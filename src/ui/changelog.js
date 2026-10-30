@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-30f',
+    date: '2026-10-30',
+    title: 'Gestas para todos',
+    items: [
+      '🌋 Las Gestas de la Liga convocan ahora a <b>todos los imperios</b> que cumplen los requisitos, estén donde estén: ya no hace falta vivir cerca de un continente. Se reparten en grupos de hasta 16, cada uno en el continente que le queda más a mano, y los que sobran se suman a la gesta más cercana.',
+    ],
+    en: {
+      title: 'Feats for everyone',
+      items: [
+        '🌋 League Feats now summon <b>every empire</b> that meets the requirements, wherever it is: you no longer need to live near a continent. They’re split into groups of up to 16, each on the continent closest to hand, and the rest join the nearest feat.',
+      ],
+    },
+  },
+  {
     id: '2026-10-30e',
     date: '2026-10-30',
     title: 'La guía, al día',

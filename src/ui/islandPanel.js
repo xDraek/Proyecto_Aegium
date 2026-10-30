@@ -223,7 +223,7 @@ function featSection(game, view) {
     mine = `<p class="desc small">Estás convocado. Al jurar se anota tu poder (el enemigo crece con el de todos) y te comprometes a combatir (o a ofrendar en la fragua): quien jura y no hace ninguna de las dos en ${FEATS.perjuryHours} h es perjuro. Y dejas tus guerras: terminan tus ocupaciones y bloqueos de otras ciudades y vuelven las flotas que van a por otros jugadores.</p>
       <button class="primary wide" data-action="pledge-feat" data-site="${escapeHtml(view.id)}">${f.icon} Jurar la gesta</button>`;
   } else if (f.convoked) mine = '<p class="muted small">El juramento ya está cerrado.</p>';
-  else mine = '<p class="muted small">No estás convocado a esta gesta: solo los imperios cercanos al continente.</p>';
+  else mine = '<p class="muted small">No estás convocado a esta gesta: cada imperio lucha en una sola, la que le toca.</p>';
   const forge = f.pledged && f.forge ? forgeSection(game, view, f) : '';
   const estimate = f.pledged && f.stage === 'lucha' ? estimateHint(f) : '';
   const top = f.top.length ? `<h5>Más gloria</h5><ol class="mini-rank contest-list">${f.top.map((x) => `<li class="${x.me ? 'me' : ''}"><span>${escapeHtml(x.name)}</span><b>${pct(x.share)}</b></li>`).join('')}</ol>` : '';

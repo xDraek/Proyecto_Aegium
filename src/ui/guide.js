@@ -537,7 +537,7 @@ const TOPICS = {
       <h5>Hordas bárbaras 🔥</h5>
       <p>Cada pocos días desembarca una horda en los continentes con colonias, más grande cuantos más colonos haya. Durante <b>${HORDE.warnHours} h</b> cualquiera puede atacarla (es lo único que se puede atacar en un continente). Si cae, el botín (${bag(HORDE.reward)}) se reparte según los bárbaros que abatió cada uno, y el mejor puede llevarse una reliquia. Si nadie la detiene, las colonias del continente <b>no producen en ${HORDE.ravageHours} h</b>.</p>
       <h5>Gestas 🌋</h5>
-      <p>De vez en cuando despierta en un continente un enemigo de leyenda que solo cae si combaten juntos los imperios cercanos: ver ${see('gestas', 'Gestas de la Liga')}.</p>`,
+      <p>De vez en cuando despierta en un continente un enemigo de leyenda que solo cae si combaten juntos muchos imperios: ver ${see('gestas', 'Gestas de la Liga')}.</p>`,
   },
 
   jugadores: {
@@ -628,7 +628,7 @@ const TOPICS = {
       return `<p>Cada ${FEATS.periodDays} días de juego, más o menos, despierta un enemigo de leyenda en algunos continentes: ${themes.map((x) => `<b>${x.name}</b> ${x.icon}`).join(', ').replace(/, ([^,]*)$/, ' o $1')} (nunca la misma dos veces seguidas). Ningún imperio puede vencerlo solo, ni siquiera el más grande: hay que combatir <b>juntos</b>. No es para ganar la partida: es una hazaña con un buen botín para todos los que luchan.</p>
       <h5>1. Convocatoria y juramento</h5>
       ${list([
-        `Empieza con <b>${FEATS.omenHours} h de presagios</b>. En cada continente se convoca a los imperios más cercanos (a menos de ${fmtNum(FEATS.radius)} leguas; si faltan, hasta ${fmtNum(FEATS.radiusMax)}): de ${FEATS.minConvoked} a ${FEATS.maxConvoked} por continente.`,
+        `Empieza con <b>${FEATS.omenHours} h de presagios</b>. Se convoca a <b>todos los imperios</b> que cumplen los requisitos, estén donde estén: en grupos de hasta ${FEATS.maxConvoked}, cada uno en el continente que le queda más a mano, y los que sobran se suman a la gesta más cercana. Hacen falta al menos ${FEATS.minConvoked} en todo el archipiélago.`,
         `Te convocan si has jugado en las últimas ${FEATS.seenHours} h, tienes al menos ${fmtNum(FEATS.minPoints)} puntos y ${FEATS.minDays} días de juego, y no estás de vacaciones ni eres perjuro. Te llega un aviso arriba y un informe.`,
         '<b>Jura la gesta</b> desde el panel del continente. Al jurar se anota tu poder: el enemigo se hace a la medida de todos los que juran (y nadie cuenta más que todos los demás juntos, para que un imperio enorme no lo haga imposible para el resto).',
         `Solo emerge si han jurado al menos <b>${FEATS.minPledges} imperios</b> y suman al menos ${String(FEATS.minEffective).replace('.', ',')} imperios efectivos (ver la coraza). Si no, vuelve a dormirse y nadie pierde nada.`,

@@ -1346,7 +1346,7 @@ export const VISITORS = {
 // ── Gestas de la Liga ────────────────────────────────────────────────────────
 // Eventos cooperativos puntuales (src/game/feats.js y WorldServer.#updateFeats).
 // Cada `periodDays` días aparece un enemigo mítico junto a un continente; los
-// imperios cercanos son convocados y pueden jurar combatirlo. Durante la lucha se
+// imperios son convocados (todos, estén donde estén) y pueden jurar combatirlo. Durante la lucha se
 // le ataca en oleadas fijas cada `waveHours` horas: las flotas que esperan allí
 // combaten juntas, y solo hacen daño si son varias (la coraza, `coop`).
 // Las horas son de juego (se dividen por la velocidad del universo).
@@ -1360,8 +1360,8 @@ export const FEATS = {
   pledgeCloseHours: 12, // ya en la lucha, hasta cuándo se puede jurar
   perjuryHours: 24, // si a esta hora de la lucha no has combatido, eres perjuro
   truceAfterHours: 6, // la tregua entre juramentados dura lo que la lucha y esto más
-  radius: 900, // leguas desde tu capital al continente para ser convocado
-  radiusMax: 1300, // segunda pasada si no hay bastantes
+  // Se convoca a todos, estén donde estén: en grupos de hasta maxConvoked por continente (los que
+  // sobran, a la gesta más cercana); con menos de minConvoked en total no hay gesta
   minConvoked: 4,
   maxConvoked: 16,
   minPledges: 3,

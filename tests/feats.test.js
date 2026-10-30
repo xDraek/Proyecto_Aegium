@@ -402,6 +402,24 @@ test('el calendario convoca a los imperios activos cercanos al llegar los presag
   assert.equal([...W.islandStates.values()].filter((rt) => rt.feat?.k === cyc.k).length, 1);
 });
 
+test('se convoca a todos, aunque vivan muy lejos de cualquier continente', async () => {
+  const env = await makeWorld(NAMES.slice(0, 5));
+  const W = env.world;
+  for (const g of env.players) {
+    g.state.history = Array.from({ length: FEATS.minDays }, (_, i) => ({ t: i, score: 1000, army: 10 }));
+    g.state.lastSeen = Date.now();
+  }
+  // Uno, al otro lado del mundo
+  const far = env.players[4];
+  Object.assign(W.islands.get(far.state.home), { x: 50_000, z: -50_000 });
+  const cyc = featAt(clock.now() + featPeriod());
+  env.until(cyc.omen);
+  const feats = [...W.islandStates.values()].filter((rt) => rt.feat?.k === cyc.k).map((rt) => rt.feat);
+  assert.equal(feats.length, 1);
+  for (const g of env.players) assert.ok(feats[0].convoked.includes(g.userId), 'convocado');
+  assert.ok(far.featInfo(), 'el lejano lo ve en su panel');
+});
+
 test('un jugador inactivo o sin recorrido no es convocado', async () => {
   const env = await makeWorld(NAMES.slice(0, 4));
   const W = env.world;

@@ -41,7 +41,7 @@ export default {
   "Aprovecha la Fiebre del oro para guardar oro, el Festival de Poseidón para acumular favor o la Gran feria para cambiar en el mercado.": "Make the most of the Gold rush to stockpile gold, the Festival of Poseidon to build up favour or the Great fair to trade at the market.",
   "Qué es esto (guía)": "What is this (guide)",
   "en lucha ahora": "fighting now",
-  "Convocados los imperios cercanos a algunos continentes.": "Empires near some continents have been summoned.",
+  "Convocados todos los imperios, repartidos por algunos continentes.": "All empires have been summoned, spread across some continents.",
   "{0} h de presagios y {1} h de lucha.": "{0} h of omens and {1} h of fighting.",
   "y has jurado": "and you have sworn",
   "{0} Estás convocado en": "{0} You are summoned to",
