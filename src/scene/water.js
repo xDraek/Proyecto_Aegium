@@ -63,6 +63,8 @@ export function createWater(shores, level) {
     uFoam: { value: new THREE.Color('#f4fbff') },
     // Destellos del sol: 1 con el cielo despejado, 0 con nubes o lluvia (World, #updateWeather)
     uSparkle: { value: 1 },
+    // 1 con la vista muy alejada: sin olas, orillas, espuma ni destellos (de tan lejos no se ven)
+    uFar: { value: 0 },
   };
 
   const material = new THREE.MeshStandardMaterial({
@@ -76,6 +78,7 @@ export function createWater(shores, level) {
 
   const common = /* glsl */ `
     uniform float uTime;
+    uniform float uFar;
     uniform vec4 uShoreA[${MAX_SHORES}];
     uniform vec4 uShoreB[${MAX_SHORES}];
     uniform vec4 uShoreC[${MAX_SHORES}];
@@ -105,11 +108,13 @@ export function createWater(shores, level) {
       /* glsl */ `#include <begin_vertex>
       // (en coordenadas del mundo: de lejos el mar sigue a la cámara y se estira)
       vec2 p = (modelMatrix * vec4(position, 1.0)).xz;
-      float calm = smoothstep(0.0, 10.0, shoreDistance(p));
-      float wave = sin(p.x * 0.21 + uTime * 1.1) * 0.12
-                 + cos(p.y * 0.17 - uTime * 0.9) * 0.10
-                 + sin((p.x + p.y) * 0.11 + uTime * 0.7) * 0.08;
-      transformed.y += wave * (0.3 + 0.7 * calm);
+      if (uFar < 0.5) {
+        float calm = smoothstep(0.0, 10.0, shoreDistance(p));
+        float wave = sin(p.x * 0.21 + uTime * 1.1) * 0.12
+                   + cos(p.y * 0.17 - uTime * 0.9) * 0.10
+                   + sin((p.x + p.y) * 0.11 + uTime * 0.7) * 0.08;
+        transformed.y += wave * (0.3 + 0.7 * calm);
+      }
       vWaterPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`,
     );
     shader.fragmentShader =
@@ -123,6 +128,10 @@ export function createWater(shores, level) {
       shader.fragmentShader.replace(
         '#include <color_fragment>',
         /* glsl */ `#include <color_fragment>
+        // De muy lejos, solo el color del mar abierto (lo demás no se distingue y es lo que más cuesta)
+        if (uFar > 0.5) {
+          diffuseColor.rgb = uDeep;
+        } else {
         float d = shoreDistance(vWaterPos.xz);
         // Agua clara y poco profunda junto a la playa
         float shallow = 1.0 - smoothstep(0.0, 16.0, d);
@@ -141,7 +150,8 @@ export function createWater(shores, level) {
         sparkle *= 0.5 + 0.5 * sin(uTime * 6.0 + cell.x * 1.7 + cell.y);
         water += vec3(1.0, 0.97, 0.88) * sparkle * 0.9 * uSparkle * (1.0 - foam) * smoothstep(4.0, 12.0, d);
         diffuseColor.rgb = mix(water, uFoam, foam);
-        diffuseColor.a = mix(diffuseColor.a, 1.0, foam);`,
+        diffuseColor.a = mix(diffuseColor.a, 1.0, foam);
+        }`,
       );
   };
   // Que three.js no reutilice el programa de otro material estándar

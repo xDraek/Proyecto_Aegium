@@ -143,6 +143,47 @@ const DETAIL_MAX_LOW = 12;
 const FEATURE_FRACTION = 0.45;
 /** En calidad alta, las ciudadelas (con su silueta) se ven hasta esta fracción del tamaño de los adornos. */
 const CITADEL_FAR = 0.15;
+/**
+ * Alejando el mapa más que esto (de la cámara a lo que mira), los campamentos, fortalezas, ciudades y
+ * fosas del Kraken se ven con su icono en vez de con su modelo, y el mar, sin olas, orillas, espuma ni
+ * brillo del sol: de tan lejos no se distinguen y eran lo que más costaba dibujar.
+ */
+const ICON_VIEW = 600;
+/** Tamaño del icono en pantalla (no cambia con la distancia). */
+const ICON_SIZE = 0.05;
+/** El icono que se ve de lejos según el aspecto de la isla (lo de antes de «|» en su `look`), o null si se ve su modelo. */
+function siteIcon(look) {
+  const k = look?.split('|')[0] ?? '';
+  if (k === 'barbaros' || k === 'piratas') return ISLAND_TYPES[k].icon;
+  if (k.startsWith('kraken')) return ISLAND_TYPES.kraken.icon;
+  if (k.startsWith('ciudadela')) return ISLAND_TYPES.ciudadela.icon;
+  if (k.startsWith('ciudad-')) return ISLAND_TYPES.jugador.icon;
+  return null;
+}
+/** Una moneda con el icono dentro, para cada emoji (se comparte entre todas las islas). */
+const iconTextures = new Map();
+function iconTexture(emoji) {
+  let tex = iconTextures.get(emoji);
+  if (tex) return tex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.beginPath();
+  ctx.arc(64, 64, 58, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(24, 28, 38, 0.88)';
+  ctx.fill();
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = '#d9b35b';
+  ctx.stroke();
+  ctx.font = '66px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(emoji, 64, 70);
+  tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  iconTextures.set(emoji, tex);
+  return tex;
+}
 const FEATURES_MAX = 120;
 const FEATURES_MAX_LOW = 24;
 const HIDDEN_BASES = 16;
@@ -2920,6 +2961,13 @@ export class World {
     const featureSize = detailSize * FEATURE_FRACTION;
     const ratio = (e) => e.radius / e.lodD;
     const byRatio = (a, b) => ratio(b) - ratio(a);
+    // Muy de lejos: iconos en vez de modelos, y el mar sencillo
+    const far = this.view === 'mapa' && cam.distanceTo(this.controls.target) > ICON_VIEW;
+    const iconOf = (e) => (far ? siteIcon(e.look) : null);
+    if (this.water) {
+      this.water.userData.uniforms.uFar.value = far ? 1 : 0;
+      this.water.material.roughness = far ? 1 : 0.32;
+    }
     this.pendingBases = [];
     // A la vista, lo que no se pierde en la niebla; los asentamientos de un continente, solo de
     // cerca (de lejos basta la silueta del continente)
@@ -2928,7 +2976,7 @@ export class World {
       e.lodD = Math.hypot(e.pos.x - cam.x, cam.y, e.pos.z - cam.z);
       // (en calidad alta, las ciudadelas se ven también de lejos, con su silueta)
       const landSize = !low && e.isl.type === 'ciudadela' ? featureSize * CITADEL_FAR : featureSize;
-      e.group.visible = e.lodD - e.radius * 1.5 <= fogFar && (!e.isl.land || ratio(e) > landSize || e.isl.id === this.selected);
+      e.group.visible = e.lodD - e.radius * 1.5 <= fogFar && (!e.isl.land || ratio(e) > landSize || e.isl.id === this.selected || !!iconOf(e));
       // El letrero, solo en el mapa y si la isla se ve
       e.label.visible = this.view === 'mapa' && e.group.visible;
       if (e.group.visible) seen.push(e);
@@ -2942,6 +2990,7 @@ export class World {
     for (const e of seen) if (isMist(e)) decorated.add(e);
     const picked = this.islands[this.selected];
     if (picked?.group.visible) decorated.add(picked);
+    for (const e of decorated) if (iconOf(e)) decorated.delete(e);
     const hidden = [];
     const hiddenFeatures = [];
     for (const e of Object.values(this.islands)) {
@@ -2978,6 +3027,24 @@ export class World {
         // (la silueta de una ciudadela no se pinta encima de la de verdad)
         if (e.proxy && e.isl.land) e.proxy.visible = false;
       }
+      // De lejos, el icono (en un continente, en lugar de la silueta de la ciudadela)
+      const icon = shown && iconOf(e);
+      if (icon) {
+        if (!e.icon) {
+          e.icon = new THREE.Sprite(new THREE.SpriteMaterial({ depthTest: false, sizeAttenuation: false, toneMapped: false }));
+          e.icon.scale.set(ICON_SIZE, ICON_SIZE, 1);
+          e.icon.position.y = 6;
+          e.icon.renderOrder = 20;
+          e.group.add(e.icon);
+        }
+        const tex = iconTexture(icon);
+        if (e.icon.material.map !== tex) {
+          e.icon.material.map = tex;
+          e.icon.material.needsUpdate = true;
+        }
+        if (e.proxy && e.isl.land) e.proxy.visible = false;
+      }
+      if (e.icon) e.icon.visible = !!icon;
     }
     // Los adornos que ya no se ven: se guardan unos cuantos (los más cercanos) por si se vuelve
     hiddenFeatures.sort(byRatio);

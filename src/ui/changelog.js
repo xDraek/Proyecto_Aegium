@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-30d',
+    date: '2026-10-30',
+    title: 'El mapa de lejos, con iconos',
+    items: [
+      '🗺️ Al alejar mucho la vista del mapa, los campamentos bárbaros, las fortalezas piratas, las ciudades y las fosas del Kraken se ven con su icono en vez de con su modelo, y al acercarte vuelven a aparecer enteros. Cada uno costaba de 20 a 40 dibujos y su icono, uno.',
+      '🌊 De tan lejos, el mar se dibuja sin olas, espuma ni brillo del sol: no se distinguían y cuesta un tercio.',
+    ],
+    en: {
+      title: 'The map from afar, with icons',
+      items: [
+        '🗺️ When you zoom the map far out, barbarian camps, pirate fortresses, cities and Kraken lairs show their icon instead of their model, and they come back in full as you zoom in. Each one cost 20 to 40 draws and its icon, one.',
+        '🌊 From that far, the sea is drawn without waves, foam or sun glare: they couldn’t be told apart and it costs a third.',
+      ],
+    },
+  },
+  {
     id: '2026-10-30c',
     date: '2026-10-30',
     title: 'Fuera los niveles de los enemigos',
