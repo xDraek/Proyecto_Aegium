@@ -1,6 +1,6 @@
 import { play } from '../audio.js';
 import { clock, universe } from '../config.js';
-import { BUILDING_KEYS, BUILDINGS, CANCEL_REFUND, FAVOR_ICON, FEAT_THEMES, FEATS, ISLAND_TYPES, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCE_KEYS, RESOURCES, TRAIN_CANCEL_REFUND, UNITS, VISITORS, WORLD_EVENTS } from '../game/data.js';
+import { BUILDING_KEYS, BUILDINGS, CANCEL_REFUND, FAVOR_ICON, FEAT_THEMES, FEATS, HERO, HERO_SKILLS, ISLAND_TYPES, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCE_KEYS, RESOURCES, TRAIN_CANCEL_REFUND, UNITS, VISITORS, WORLD_EVENTS } from '../game/data.js';
 import { HOUR_MS, canAfford, colonyYield, multiplyCost, upcomingWorldEvents } from '../game/rules.js';
 import { featAt, featCycle } from '../game/feats.js';
 import { api } from '../net/api.js';
@@ -22,6 +22,8 @@ import { Social } from './social.js';
 // justo después de entrar, sin retrasar la carga del juego
 const loadGuide = () => import('./guide.js');
 const loadNews = () => import('./changelog.js');
+/** Lo que cuesta repartir de nuevo los puntos del almirante, en texto (los diálogos no llevan HTML). */
+const resetCostText = () => Object.entries(HERO.resetCost).map(([r, n]) => `${fmtNum(n)} ${RESOURCES[r].emoji}`).join(' ');
 
 const $ = (sel) => document.querySelector(sel);
 const CHAT_KEY = 'aegium.chatRead2';
@@ -1220,9 +1222,23 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
         await this.#run(btn, () => game.hireHero(name), null, 'success');
         break;
       }
-      case 'hero-skill':
+      case 'hero-skill': {
+        const sk = HERO_SKILLS[btn.dataset.skill];
+        const h = game.hero;
+        if (!sk || !h) break;
+        const n = h.skills[btn.dataset.skill];
+        if (!(await askConfirm(`¿Dar un punto a ${sk.icon} ${sk.name}? Pasa a nivel ${n + 1}: ${sk.text(n + 1)}. Para cambiarlo después tendrás que repartir de nuevo todos los puntos por ${resetCostText()}.`, { title: 'Habilidad del almirante', icon: '🎖️', ok: 'Asignar' }))) break;
         await this.#run(btn, () => game.heroSkill(btn.dataset.skill), null, 'magic');
         break;
+      }
+      case 'hero-reset': {
+        const h = game.hero;
+        if (!h) break;
+        const spent = Object.values(h.skills).reduce((a, n) => a + n, 0);
+        if (!(await askConfirm(`¿Repartir de nuevo los puntos de ${h.name}? Olvida todas sus habilidades y ${spent === 1 ? 'recuperas su punto para asignarlo' : `recuperas sus ${spent} puntos para asignarlos`} otra vez. Cuesta ${resetCostText()}.`, { title: 'Repartir de nuevo', icon: '🔄', ok: 'Repartir de nuevo', danger: true }))) break;
+        await this.#run(btn, () => game.heroReset(), null, 'magic');
+        break;
+      }
       case 'simulate': {
         const view = game.island(this.selected);
         const attacker = readFleet(root);

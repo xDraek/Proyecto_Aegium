@@ -1624,6 +1624,22 @@ export class Game extends EventTarget {
     return this.#done();
   }
 
+  /** Devuelve todos los puntos de habilidad del almirante para repartirlos de nuevo (por HERO.resetCost). */
+  heroReset(now = this.now()) {
+    this.#advance(now);
+    const h = this.state.hero;
+    if (!h) return this.#fail('No tienes almirante.');
+    if (h.mission != null) return this.#fail('Tu almirante está en el mar: espera a que vuelva.');
+    const spent = Object.values(h.skills).reduce((a, n) => a + n, 0);
+    if (!spent) return this.#fail('Tu almirante no tiene ningún punto repartido.');
+    if (!canAfford(this.state.resources, HERO.resetCost)) return this.#fail('No tienes recursos suficientes.');
+    this.#pay(HERO.resetCost);
+    for (const id of Object.keys(h.skills)) h.skills[id] = 0;
+    h.points += spent;
+    this.#note(`🎖️ ${h.name} olvida lo aprendido: tienes ${h.points} ${h.points === 1 ? 'punto' : 'puntos'} para repartir`, 'success');
+    return this.#done();
+  }
+
   claimDaily(now = this.now()) {
     this.#advance(now);
     const d = this.dailyStatus(now);

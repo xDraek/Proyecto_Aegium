@@ -166,4 +166,11 @@ export default {
   "📍 Ver la zona ▶": "📍 See the area ▶",
   "📍 Ver en el mapa ▶": "📍 View on the map ▶",
   "El Kraken ha despertado: pulsa para ver dónde lo han visto": "The Kraken has awoken: press to see where it was seen",
+  "¿Dar un punto a {0} {1}? Pasa a nivel {2}: {3}. Para cambiarlo después tendrás que repartir de nuevo todos los puntos por {4}.": "Give a point to {0} {1}? It goes to level {2}: {3}. To change it later you'll have to reassign all the points for {4}.",
+  "Habilidad del almirante": "Admiral skill",
+  "Asignar": "Assign",
+  "¿Repartir de nuevo los puntos de {0}? Olvida todas sus habilidades y {1} otra vez. Cuesta {2}.": "Reassign {0}'s points? They forget all their skills and {1} again. It costs {2}.",
+  "recuperas su punto para asignarlo": "you get back their point to assign it",
+  "recuperas sus {0} puntos para asignarlos": "you get back their {0} points to assign them",
+  "Repartir de nuevo": "Reassign",
 }

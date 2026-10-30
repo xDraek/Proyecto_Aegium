@@ -192,4 +192,6 @@ export default {
   "Débil contra": "Weak against",
   "💥 Ventaja de {0}": "💥 Edge of {0}",
   "+{0} bajas": "+{0} casualties",
+  "Está en el mar": "At sea",
+  "🔄 Repartir de nuevo los puntos": "🔄 Reassign the points",
 }

@@ -436,6 +436,7 @@ const TOPICS = {
     body: () => `<p>Un héroe que se contrata en el <b>ayuntamiento</b> (desde el nivel ${HERO.requires.ayuntamiento}, por ${bag(HERO.cost)}). Puede acompañar a una de tus flotas (marca la casilla al mandarla) o quedarse en casa defendiendo.</p>
       <p>Gana experiencia con los enemigos que abate y llega hasta el nivel ${HERO.maxLevel}. Con cada nivel te da un punto para una habilidad:</p>
       ${heroTable()}
+      <p>Si te arrepientes de cómo los repartiste, en el ayuntamiento puedes <b>repartirlos de nuevo</b> por ${bag(HERO.resetCost)}: olvida todas sus habilidades y te devuelve los puntos (con él en casa).</p>
       ${warn(`Si su flota cae, o pierdes una defensa con él en casa, vuelve herido y tarda ${HERO.woundHours} h en recuperarse.`)}`,
   },
   mercenarios: {

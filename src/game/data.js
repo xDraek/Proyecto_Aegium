@@ -1267,6 +1267,8 @@ export const HERO = {
   /** Experiencia total para llegar a `level`. */
   xpFor: (level) => Math.round(80 * (level - 1) ** 1.6),
   woundHours: 2,
+  /** Lo que cuesta olvidar lo aprendido: todos los puntos de habilidad vuelven para repartirlos de nuevo. */
+  resetCost: { oro: 50000 },
 };
 
 export const HERO_SKILLS = {

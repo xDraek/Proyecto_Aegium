@@ -97,6 +97,7 @@ const ACTIONS = {
       : bad(),
   hireHero: (g, [name]) => g.hireHero(typeof name === 'string' ? name : ''),
   heroSkill: (g, [skill]) => (own(HERO_SKILLS, skill) ? g.heroSkill(skill) : bad()),
+  heroReset: (g) => g.heroReset(),
   recall: (g, [id]) => g.recall(int(id)),
   plunder: (g, [id]) => (int(id) >= 0 ? g.plunder(int(id)) : bad()),
   breakPort: (g) => g.breakPort(),

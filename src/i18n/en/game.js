@@ -533,4 +533,7 @@ export default {
   "Tus mercaderes vuelven a casa.": "Your merchants are heading home.",
   "⚖️ Tus mercaderes han entregado el trato en {0}": "⚖️ Your merchants have delivered the deal at {0}",
   "Para llevar tu parte necesitas {0} {1} en el puerto.": "To carry your part you need {0} {1} in the port.",
+  "Tu almirante está en el mar: espera a que vuelva.": "Your admiral is at sea: wait for them to return.",
+  "Tu almirante no tiene ningún punto repartido.": "Your admiral has no points assigned.",
+  "🎖️ {0} olvida lo aprendido: tienes {1} {2} para repartir": "🎖️ {0} forgets what they learned: you have {1} {2} to assign",
 }

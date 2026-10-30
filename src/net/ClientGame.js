@@ -196,6 +196,10 @@ export class ClientGame extends Game {
     return this.#act('heroSkill', skill);
   }
 
+  heroReset() {
+    return this.#act('heroReset');
+  }
+
   setWork(id, pct) {
     return this.#act('setWork', id, pct);
   }

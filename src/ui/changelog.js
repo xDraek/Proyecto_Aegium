@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-30a',
+    date: '2026-10-30',
+    title: 'El almirante, a tu gusto',
+    items: [
+      '🎖️ Al dar un punto de habilidad al almirante se pide confirmación, con lo que gana en ese nivel: ya no se gasta uno por un clic sin querer.',
+      '🔄 Puedes <b>repartir de nuevo</b> sus puntos desde el ayuntamiento por 50.000 🪙: olvida todas sus habilidades y te devuelve los puntos para asignarlos otra vez (con él en casa).',
+    ],
+    en: {
+      title: 'The admiral, your way',
+      items: [
+        '🎖️ Giving the admiral a skill point now asks for confirmation, showing what they gain at that level: no more spending one by an accidental click.',
+        '🔄 You can <b>reassign</b> their points from the town hall for 50,000 🪙: they forget all their skills and give you the points back to assign again (while at home).',
+      ],
+    },
+  },
+  {
     id: '2026-10-29g',
     date: '2026-10-29',
     title: 'Más ligero',

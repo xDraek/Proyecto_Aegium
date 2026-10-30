@@ -701,4 +701,7 @@ export default {
   "Los bárbaros, los piratas, los tritones y los inmortales son infantería; los berserkers, la élite de los bárbaros, son espadas (cuidado con tus lanzas); los arqueros bárbaros, distancia; y los monstruos (el Kraken, las cabezas de Tifón y de la Hidra) no tienen clase. En los informes verás la ventaja que más pesó de cada bando.": "Barbarians, pirates, tritons and immortals are infantry; berserkers, the barbarian elite, are swords (watch your spears); barbarian archers, ranged; and monsters (the Kraken, the heads of Typhon and the Hydra) have no class. In the reports you’ll see the advantage that weighed most on each side.",
   "Precio al empezar": "Starting price",
   "Cada soldado cobra lo que cuesta entrenarlo, en oro y en el recurso de su compañía; la élite (desde la taberna {2}), un {3} % más. Y cuanto más grande es la compañía, más pide cada uno: un {4} % por cada soldado de más, hasta el doble.": "Each soldier charges what it costs to train them, in gold and in their company’s resource; the elite (from tavern {2}), {3} % more. And the bigger the company, the more each one asks: {4} % per extra soldier, up to double.",
+  "Si te arrepientes de cómo los repartiste, en el ayuntamiento puedes": "If you regret how you assigned them, at the town hall you can",
+  "repartirlos de nuevo": "reassign them",
+  "por {4}: olvida todas sus habilidades y te devuelve los puntos (con él en casa).": "for {4}: they forget all their skills and give you the points back (while at home).",
 }

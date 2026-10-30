@@ -459,6 +459,10 @@ function heroSection(game) {
     <p class="muted small">${h.level >= HERO.maxLevel ? `🏅 Nivel máximo · ${fmtNum(prev)} de experiencia` : `${fmtNum(h.xp)} / ${fmtNum(next)} de experiencia`} · ${where}</p>
     ${h.points ? `<p class="hint ok">Tienes ${h.points} ${h.points === 1 ? 'punto' : 'puntos'} para repartir</p>` : ''}
     <div class="skills">${skills}</div>
+    ${Object.values(h.skills).some((n) => n > 0)
+      ? `<div class="hero-reset"><button class="ghost small" data-action="hero-reset" data-need='${JSON.stringify(HERO.resetCost)}' ${h.mission != null ? 'disabled title="Está en el mar"' : ''}>🔄 Repartir de nuevo los puntos</button>
+          ${costList(HERO.resetCost, game.resources)}</div>`
+      : ''}
     <p class="desc small">Para llevarlo, marca «Que vaya el almirante» al mandar una flota. Si su flota cae, vuelve herido.</p>`;
 }
 
