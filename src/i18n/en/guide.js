@@ -496,7 +496,6 @@ export default {
   "{0} h de presagios": "{0} h of omens",
   ". Se convoca a": ". All the",
   "todos los imperios": "empires",
-  "que cumplen los requisitos, estén donde estén: en grupos de hasta {1}, cada uno en el continente que le queda más a mano, y los que sobran se suman a la gesta más cercana. Hacen falta al menos {2} en todo el archipiélago.": "that meet the requirements are summoned, wherever they are: in groups of up to {1}, each on the continent closest to hand, and the rest join the nearest feat. At least {2} are needed across the whole archipelago.",
   "Te convocan si has jugado en las últimas {0} h, tienes al menos {1} puntos y {2} días de juego, y no estás de vacaciones ni eres perjuro. Te llega un aviso arriba y un informe.": "You're summoned if you've played in the last {0} h, have at least {1} points and {2} days of play, and aren't on vacation or an oathbreaker. You get an alert at the top and a report.",
   "Jura la gesta": "Swear the feat",
   "desde el panel del continente. Al jurar se anota tu poder: el enemigo se hace a la medida de todos los que juran (y nadie cuenta más que todos los demás juntos, para que un imperio enorme no lo haga imposible para el resto).": "from the continent's panel. On swearing, your power is recorded: the enemy is scaled to everyone who swears (and nobody counts for more than all the others together, so a huge empire doesn't make it impossible for the rest).",
@@ -712,4 +711,6 @@ export default {
   "por {4}: olvida todas sus habilidades y te devuelve los puntos (con él en casa).": "for {4}: they forget all their skills and give you the points back (while at home).",
   ". El ayuntamiento acelera las obras un 10 % por nivel y Arquitectura otro 4 % por nivel. Si cancelas una obra recuperas el {0} de lo que costó. Cada edificio pide otros (o investigaciones) para poder construirse:": ". The town hall speeds up construction by 10 % per level and Architecture by another 4 % per level. If you cancel a construction you get back {0} of what it cost. Each building requires others (or research) before it can be built:",
   "poder del templo": "temple power",
+  "que cumplen los requisitos a una gesta a su alcance: con": "that meet the requirements are summoned to a feat within their reach: with",
+  ", a cualquiera, esté donde esté; sin ellas, solo a las que estén a {1} leguas o menos. Se reparten en grupos de hasta {2}, cada uno en el continente que le queda más a mano, y los que sobran se suman a la gesta más cercana a su alcance. Hacen falta al menos {3} por gesta.": ", to any of them, wherever it is; without them, only to those {1} leagues away or less. They're split into groups of up to {2}, each on the continent closest to hand, and the rest join the nearest feat within their reach. At least {3} are needed per feat.",
 }

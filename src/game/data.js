@@ -1360,8 +1360,9 @@ export const FEATS = {
   pledgeCloseHours: 12, // ya en la lucha, hasta cuándo se puede jurar
   perjuryHours: 24, // si a esta hora de la lucha no has combatido, eres perjuro
   truceAfterHours: 6, // la tregua entre juramentados dura lo que la lucha y esto más
-  // Se convoca a todos, estén donde estén: en grupos de hasta maxConvoked por continente (los que
-  // sobran, a la gesta más cercana); con menos de minConvoked en total no hay gesta
+  // Se convoca a todos a una gesta a su alcance (con Cartas náuticas, cualquiera; sin ellas, a
+  // PVP_RANGE leguas): en grupos de hasta maxConvoked por continente (los que sobran, a la más
+  // cercana); con menos de minConvoked no hay gesta
   minConvoked: 4,
   maxConvoked: 16,
   minPledges: 3,

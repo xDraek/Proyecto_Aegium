@@ -275,4 +275,5 @@ export default {
   "Fosa del Kraken": "Kraken's Trench",
   "Cuéntanos un poco más: qué pasó y qué estabas haciendo.": "Tell us a bit more: what happened and what you were doing.",
   "Ya nos has mandado varios avisos. Espera un rato antes de mandar otro.": "You've already sent us several reports. Wait a while before sending another.",
+  "{0} {1} despierta en el archipiélago, pero ninguna gesta queda a tu alcance: sin Cartas náuticas tus flotas solo llegan a {2} leguas": "{0} {1} awakens in the archipelago, but no feat is within your reach: without Nautical charts your fleets only reach {2} leagues",
 }

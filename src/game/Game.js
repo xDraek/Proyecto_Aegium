@@ -1352,6 +1352,7 @@ export class Game extends EventTarget {
       else if (!feat.pledged?.[this.userId]) reason ||= feat.convoked?.includes(this.userId) ? 'Jura primero la gesta desde el panel del continente.' : 'No te han convocado a esta gesta.';
       else if (s.missions.some((m) => m.target === target && m.type === type && m.phase !== 'vuelta'))
         reason ||= type === 'bloquear' ? 'Ya tienes una flota en un fondeadero o de camino: solo puedes sostener uno.' : 'Ya tienes una flota de camino o esperando: espera a que combata en la oleada.';
+      else if (this.researchLevel('cartas') < 1 && dist > PVP_RANGE) reason ||= `Esa gesta está a ${Math.round(dist)} leguas: sin Cartas náuticas tus flotas de guerra solo llegan a ${PVP_RANGE}. Investígalas en la academia.`;
       else if (this.now() + seconds * 1000 >= feat.end) reason ||= 'Tu flota no llegaría antes de que acabe la gesta.';
       if (type === 'bloquear') {
         if (Object.keys(sent).some((id) => UNITS[id].kind !== 'barco' || !(UNITS[id].atk > 0))) reason ||= 'A los fondeaderos solo van barcos de guerra.';

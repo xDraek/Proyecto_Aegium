@@ -420,6 +420,30 @@ test('se convoca a todos, aunque vivan muy lejos de cualquier continente', async
   assert.ok(far.featInfo(), 'el lejano lo ve en su panel');
 });
 
+test('sin Cartas náuticas solo se convoca a las gestas a tu alcance', async () => {
+  const env = await makeWorld(NAMES.slice(0, 5));
+  const W = env.world;
+  for (const g of env.players) {
+    g.state.history = Array.from({ length: FEATS.minDays }, (_, i) => ({ t: i, score: 1000, army: 10 }));
+    g.state.lastSeen = Date.now();
+  }
+  // El lejano, sin Cartas náuticas
+  const far = env.players[4];
+  Object.assign(W.islands.get(far.state.home), { x: 50_000, z: -50_000 });
+  far.state.research.cartas = 0;
+  const cyc = featAt(clock.now() + featPeriod());
+  env.until(cyc.omen);
+  const [site, rt] = [...W.islandStates.entries()].find(([, r]) => r.feat?.k === cyc.k);
+  assert.equal(rt.feat.convoked.includes(far.userId), false, 'no lo convocan');
+  assert.match(far.state.notes.at(-1).text, /Cartas náuticas/);
+  for (const g of env.players.slice(0, 4)) assert.ok(rt.feat.convoked.includes(g.userId));
+  // Y aunque lo estuviera, sin Cartas su flota no llega
+  rt.feat.convoked.push(far.userId);
+  rt.feat.pledged = { ...rt.feat.pledged, [far.userId]: { name: far.state.name } };
+  far.state.units.dromon = 5;
+  assert.match(far.planMission('atacar', site, { dromon: 5 }).reason, /Cartas náuticas/);
+});
+
 test('un jugador inactivo o sin recorrido no es convocado', async () => {
   const env = await makeWorld(NAMES.slice(0, 4));
   const W = env.world;

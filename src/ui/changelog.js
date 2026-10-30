@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-10-30g',
+    date: '2026-10-30',
+    title: 'Gestas a tu alcance',
+    items: [
+      '🧭 Para ir a una gesta lejana hacen falta las <b>Cartas náuticas</b>: con ellas te pueden convocar a cualquiera, esté donde esté; sin ellas, solo a las que estén a 300 leguas o menos (lo mismo que alcanzan tus flotas de guerra).',
+    ],
+    en: {
+      title: 'Feats within reach',
+      items: [
+        '🧭 To go to a distant feat you need <b>Nautical charts</b>: with them you can be summoned to any of them, wherever it is; without them, only to those 300 leagues away or less (as far as your warships reach).',
+      ],
+    },
+  },
+  {
     id: '2026-10-30f',
     date: '2026-10-30',
     title: 'Gestas para todos',

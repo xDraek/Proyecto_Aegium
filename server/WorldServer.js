@@ -4,7 +4,7 @@ import { assault, battle, combineGroups, count, hasCombat, shareSurvivors, split
 import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, forgeBonus, forgeGoal, forgeHours, forgeRoom, pledgeEmpires, relicDuel, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
 import { Game, krakenText, newState, rebuilding } from '../src/game/Game.js';
 import { fmtEs } from '../src/game/num.js';
-import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
+import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, PVP_RANGE, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
 import { playerCombat, tradeShips, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
 import { BARBARIAN_ARCHERS, BARBARIAN_GARRISONS, CAMP_LOOT, LAIR_GUARDS, coordsOf, fixPlaceName, freshPlaceName, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
@@ -1077,15 +1077,17 @@ export class WorldServer {
   }
 
   /**
-   * Al empezar los presagios de un ciclo se convoca a todos los imperios que pueden, estén donde
-   * estén: en grupos de hasta FEATS.maxConvoked, cada uno en el continente libre que le queda más a
-   * mano (primero el grupo más junto), sin repetir a nadie. Los que no llegan a formar otro grupo (o
-   * no tienen continente libre) se suman a la gesta más cercana.
+   * Al empezar los presagios de un ciclo se convoca a todos los imperios que pueden a una gesta a su
+   * alcance (con Cartas náuticas, cualquiera; sin ellas, a PVP_RANGE leguas como mucho): en grupos de
+   * hasta FEATS.maxConvoked, cada uno en el continente libre que le queda más a mano (primero el
+   * grupo más junto), sin repetir a nadie. Los que no llegan a formar otro grupo (o no tienen
+   * continente libre) se suman a la gesta más cercana a su alcance.
    */
   #summonFeats(cyc, now) {
     let pool = [...this.games.values()].filter((g) => this.#featCandidate(g, now));
     const homeOf = (g) => this.islands.get(g.state.home);
     const dist = (g, c) => Math.hypot(homeOf(g).x - c.x, homeOf(g).z - c.z);
+    const reach = (g, c) => g.researchLevel('cartas') >= 1 || dist(g, c) <= PVP_RANGE;
     const sites = new Map();
     const busy = (c) => {
       const rt = this.islandStates.get(c.id);
@@ -1096,28 +1098,34 @@ export class WorldServer {
       let best = null;
       for (const c of free) {
         const near = pool
+          .filter((g) => reach(g, c))
           .map((g) => ({ g, d: dist(g, c) }))
           .sort((a, b) => a.d - b.d)
           .slice(0, FEATS.maxConvoked);
+        if (near.length < FEATS.minConvoked) continue;
         const spread = near.reduce((a, x) => a + x.d, 0) / near.length;
         if (!best || spread < best.spread) best = { c, near, spread };
       }
+      if (!best) break;
       const chosen = best.near.map((x) => x.g);
       sites.set(best.c.id, chosen);
       pool = pool.filter((g) => !chosen.includes(g));
       free = free.filter((c) => c !== best.c);
     }
-    // Los que quedan, a la gesta más cercana: nadie se queda fuera por estar lejos
-    if (sites.size) {
-      for (const g of pool) {
-        const site = [...sites.keys()].sort((a, b) => dist(g, this.islands.get(a)) - dist(g, this.islands.get(b)))[0];
-        sites.get(site).push(g);
-      }
-      pool = [];
+    // Los que quedan, a la gesta más cercana que tengan a su alcance
+    for (const g of pool) {
+      const site = [...sites.keys()].filter((id) => reach(g, this.islands.get(id))).sort((a, b) => dist(g, this.islands.get(a)) - dist(g, this.islands.get(b)))[0];
+      if (site) sites.get(site).push(g);
     }
+    const convoked = new Set([...sites.values()].flat());
+    pool = pool.filter((g) => !convoked.has(g));
     for (const [site, games] of sites) this.startFeat(site, { ...cyc, players: games.map((g) => g.userId) }, now);
     for (const g of pool) {
-      g.receiveNews(null, `${FEAT_THEMES[cyc.theme].icon} ${cap(FEAT_THEMES[cyc.theme].enemy)} despierta en el archipiélago, pero esta vez no hay bastantes imperios para una gesta`, 'info');
+      const t = FEAT_THEMES[cyc.theme];
+      const text = sites.size && g.researchLevel('cartas') < 1
+        ? `${t.icon} ${cap(t.enemy)} despierta en el archipiélago, pero ninguna gesta queda a tu alcance: sin Cartas náuticas tus flotas solo llegan a ${PVP_RANGE} leguas`
+        : `${t.icon} ${cap(t.enemy)} despierta en el archipiélago, pero esta vez no hay bastantes imperios para una gesta`;
+      g.receiveNews(null, text, 'info');
       this.pendingPush.add(g.userId);
     }
     if (sites.size) {
@@ -1204,8 +1212,9 @@ export class WorldServer {
     });
     if (!cont) throw new UserError('No hay ningún continente libre para la gesta.');
     const now = clock.now();
-    // (todos los que no estén ya en otra ni de vacaciones, estén donde estén)
-    const players = [...this.games.values()].filter((g) => !g.state.vacation && !this.#inFeat(g.userId)).map((g) => g.userId);
+    // (todos los que no estén ya en otra ni de vacaciones y la tengan a su alcance)
+    const reach = (g) => g.researchLevel('cartas') >= 1 || Math.hypot(this.islands.get(g.state.home).x - cont.x, this.islands.get(g.state.home).z - cont.z) <= PVP_RANGE;
+    const players = [...this.games.values()].filter((g) => !g.state.vacation && !this.#inFeat(g.userId) && reach(g)).map((g) => g.userId);
     const omen = now;
     const start = omen + Math.round(omenMinutes != null ? (Math.max(1, Number(omenMinutes) || 1) * 60_000) / universe.speed : featHours(FEATS.omenHours));
     this.startFeat(cont.id, { ...(theme ? { theme } : {}), omen, start, players }, now);

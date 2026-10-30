@@ -31,6 +31,7 @@ import {
   OCCUPATION,
   POWERS,
   PROTECTION,
+  PVP_RANGE,
   BASIC_RELIC_CHANCE,
   KRAKEN_RULES,
   RELIC_RARITY,
@@ -628,7 +629,7 @@ const TOPICS = {
       return `<p>Cada ${FEATS.periodDays} días de juego, más o menos, despierta un enemigo de leyenda en algunos continentes: ${themes.map((x) => `<b>${x.name}</b> ${x.icon}`).join(', ').replace(/, ([^,]*)$/, ' o $1')} (nunca la misma dos veces seguidas). Ningún imperio puede vencerlo solo, ni siquiera el más grande: hay que combatir <b>juntos</b>. No es para ganar la partida: es una hazaña con un buen botín para todos los que luchan.</p>
       <h5>1. Convocatoria y juramento</h5>
       ${list([
-        `Empieza con <b>${FEATS.omenHours} h de presagios</b>. Se convoca a <b>todos los imperios</b> que cumplen los requisitos, estén donde estén: en grupos de hasta ${FEATS.maxConvoked}, cada uno en el continente que le queda más a mano, y los que sobran se suman a la gesta más cercana. Hacen falta al menos ${FEATS.minConvoked} en todo el archipiélago.`,
+        `Empieza con <b>${FEATS.omenHours} h de presagios</b>. Se convoca a <b>todos los imperios</b> que cumplen los requisitos a una gesta a su alcance: con <b>Cartas náuticas</b>, a cualquiera, esté donde esté; sin ellas, solo a las que estén a ${PVP_RANGE} leguas o menos. Se reparten en grupos de hasta ${FEATS.maxConvoked}, cada uno en el continente que le queda más a mano, y los que sobran se suman a la gesta más cercana a su alcance. Hacen falta al menos ${FEATS.minConvoked} por gesta.`,
         `Te convocan si has jugado en las últimas ${FEATS.seenHours} h, tienes al menos ${fmtNum(FEATS.minPoints)} puntos y ${FEATS.minDays} días de juego, y no estás de vacaciones ni eres perjuro. Te llega un aviso arriba y un informe.`,
         '<b>Jura la gesta</b> desde el panel del continente. Al jurar se anota tu poder: el enemigo se hace a la medida de todos los que juran (y nadie cuenta más que todos los demás juntos, para que un imperio enorme no lo haga imposible para el resto).',
         `Solo emerge si han jurado al menos <b>${FEATS.minPledges} imperios</b> y suman al menos ${String(FEATS.minEffective).replace('.', ',')} imperios efectivos (ver la coraza). Si no, vuelve a dormirse y nadie pierde nada.`,
