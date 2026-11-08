@@ -17,7 +17,7 @@ const ASSAULT = { dromon: 120, hoplita: 1500, espadachin: 600 };
 
 /** Un mundo con `n` jugadores armados y una gesta del tema `theme` en el continente que mejor les pilla. */
 async function themeWorld(theme, n = 4, army = ARMY) {
-  const env = await makeWorld(NAMES.slice(0, n));
+  const env = await makeWorld(NAMES.slice(0, n), { fed: true });
   const W = env.world;
   // Ejércitos enormes: con oro de sobra para su paga mientras dura la gesta
   for (const g of env.players) {

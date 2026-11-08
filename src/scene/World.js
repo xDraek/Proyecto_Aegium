@@ -46,6 +46,7 @@ import { createRain, createSplashes, rainUniforms } from './rain.js';
 import { createWater, setShores, swellAt, waterGeometry, SEGMENTS, SEGMENTS_LOW } from './water.js';
 import { coastFactor, coastMax, islandCoast, shapeGeometry } from './coast.js';
 import { clock } from '../config.js';
+import { wrapDelta } from '../game/world.js';
 import { setGulls, setRain, thunder } from '../audio.js';
 
 const HORIZON = '#cfe8f7';
@@ -218,7 +219,7 @@ function worldRadius(o) {
 }
 /** Píxeles de la escena en calidad baja: en las tablets, de pantalla grande, se baja la resolución interna. */
 const PIXELS_LOW = 600_000;
-const SHIP_PRIORITY = ['dromon', 'galeon', 'liburna', 'trirreme', 'brulote', 'mercante', 'bote'];
+const SHIP_PRIORITY = ['dromon', 'galeon', 'liburna', 'trirreme', 'brulote', 'mercante', 'kleptes', 'bote'];
 
 // Clima: cada media hora real cambia (igual para todos, sale de la hora). Llueve de vez en cuando:
 // una media hora de cada diez, más o menos, y tormenta muy de tarde en tarde
@@ -362,10 +363,14 @@ export class World {
     return { x: 0, z: 0, r: ISLAND_R + 2.7, h: this.homeCoast };
   }
 
-  /** Posición de una isla del mundo relativa a la tuya (tu isla está en el origen). */
+  /**
+   * Posición de una isla del mundo relativa a la tuya (tu isla está en el origen). El mapa da la
+   * vuelta: se ve en su copia más cercana, así que tú estás siempre en el centro.
+   */
   #relPos(isl) {
     const home = this.game.homeIsland;
-    return new THREE.Vector3(isl.x - (home?.x ?? 0), 0, isl.z - (home?.z ?? 0));
+    const d = wrapDelta(isl.x - (home?.x ?? 0), isl.z - (home?.z ?? 0));
+    return new THREE.Vector3(d.dx, 0, d.dz);
   }
 
   /** Centro de un edificio o isla en el mundo. */
@@ -2500,6 +2505,8 @@ export class World {
       else if (view.type === 'continente') status = view.horde ? `🔥 ¡Horda! ${view.horde.left} bárbaros` : `🗺️ Continente · maravilla nivel ${view.wonder?.level ?? 0}`;
       if (port) status += port.kind === 'invadir' ? ` · 🦅 Ocupada${port.by === this.game.userId ? ' por ti' : ''}` : ` · ⛓️ Bloqueada${port.by === this.game.userId ? ' por ti' : ''}`;
       else if (view.shield) status += ' · 🛡️ Recién liberada';
+      if (view.crush) status += ' · 🛡️ Arrasada';
+      if (view.wreck) status += ' · 🪝 Pecio';
       if (view.inbound.length) status += ' · ⛵';
       // Con todo el archipiélago, solo se toca el letrero si cambia
       if (entry.status !== status) {
@@ -2831,8 +2838,8 @@ export class World {
     for (const m of traffic) {
       const key = `tr-${m.id}`;
       if (this.fleets.has(key)) continue;
-      const from = new THREE.Vector3(m.fx - home.x, 0, m.fz - home.z);
-      const to = new THREE.Vector3(m.tx - home.x, 0, m.tz - home.z);
+      const from = this.#relPos({ x: m.fx, z: m.fz });
+      const to = this.#relPos({ x: m.tx, z: m.tz });
       const dir = to.clone().sub(from).normalize();
       // (de o a una ciudad de un continente, por la costa del continente)
       const islAt = (v) => Object.values(this.islands).find((e) => e.pos.distanceTo(v) < 1)?.isl;
@@ -2853,8 +2860,7 @@ export class World {
       const key = `in-${m.id}`;
       if (this.fleets.has(key)) continue;
       // Del puerto enemigo hasta la entrada del tuyo
-      const home = this.game.homeIsland;
-      const from = new THREE.Vector3(m.x - home.x, 0, m.z - home.z);
+      const from = this.#relPos({ x: m.x, z: m.z });
       const deg = THREE.MathUtils.radToDeg(Math.atan2(from.x, from.z));
       const to = polar(this.coast(deg) + 12, deg);
       const start = from.clone().setLength(Math.max(this.coastMaxR + 20, from.length() - this.#offshore(from, 25)));

@@ -150,7 +150,7 @@ export function intelRows(intel) {
   const d = intel.defenses;
   out.push(
     d
-      ? row('👁️ Torre de vigía · 🪔 Faro', `Nv ${d.torre} · Nv ${d.faro}`) + row('🔒 A salvo en el almacén', `${fmtNum(d.safe)} de cada recurso`)
+      ? row('👁️ Torre de vigía · 🪔 Faro', `Nv ${d.torre} · Nv ${d.faro}`) + row('🪤 Fosos · 🔗 Cadena del puerto', `Nv ${d.fosos ?? 0} · Nv ${d.cadena ?? 0}`) + row('🔒 A salvo de saqueos', `${fmtNum(d.safe)} de cada recurso`)
       : row('Defensas', unseen(4)),
   );
   if (intel.support) {

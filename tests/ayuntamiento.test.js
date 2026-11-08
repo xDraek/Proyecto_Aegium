@@ -52,7 +52,7 @@ test('la taberna atrae mercenarios mejores al subir: al principio solo miliciano
   assert.equal(lanceros.count, 15 + 5 * 11);
 });
 
-test('los barcos de guerra piden su nivel de astillero; solo el astillero los construye más rápido y el puerto acelera las flotas', async () => {
+test('los barcos de guerra piden su nivel de astillero; solo el astillero los construye más rápido y el puerto ya no acelera las flotas', async () => {
   const { players } = await makeWorld(['Lucio']);
   const [g] = players;
   Object.assign(g.state.buildings, { ayuntamiento: 4, puerto: 10, astillero: 0 });
@@ -68,8 +68,8 @@ test('los barcos de guerra piden su nivel de astillero; solo el astillero los co
   assert.equal(unitSeconds(g.state, 'mercante'), Math.max(1, Math.round(UNITS.mercante.time / universe.speed)));
   g.state.buildings.astillero = 5;
   assert.equal(unitSeconds(g.state, 'mercante'), Math.max(1, Math.round(UNITS.mercante.time / 1.4 / universe.speed)));
-  // Y cada nivel de puerto hace las flotas un 2 % más rápidas
+  // La velocidad de las flotas es de la Navegación y el Faro: el puerto ya no la sube
   const base = fleetSpeedBonus(g.state);
   g.state.buildings.puerto = 11;
-  assert.ok(Math.abs(fleetSpeedBonus(g.state) - base - 0.02) < 1e-9);
+  assert.equal(fleetSpeedBonus(g.state), base);
 });

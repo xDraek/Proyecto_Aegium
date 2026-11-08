@@ -29,12 +29,14 @@ export class ClientGame extends Game {
     clock.offset = snap.serverTime - Date.now();
     universe.speed = snap.speed ?? universe.speed;
     universe.eventSeed = snap.eventSeed ?? universe.eventSeed;
+    universe.wrap = snap.wrap ?? 0;
     if ('eventOverride' in snap) universe.eventOverride = snap.eventOverride;
     this.username = snap.username;
     this.alliance = snap.alliance ?? null;
     this.admin = !!snap.admin;
     this.mailUnread = snap.mailUnread ?? 0;
     this.forumUnread = snap.forumUnread ?? 0;
+    this.boardUnread = snap.boardUnread ?? 0;
     this.allianceApplications = snap.applications ?? 0;
     this.friendRequests = snap.friendRequests ?? 0;
     // Si el Kraken está despierto (sale su icono arriba)
@@ -45,6 +47,7 @@ export class ClientGame extends Game {
     this.incoming = snap.incoming ?? [];
     this.world.joints = snap.joint ?? [];
     this.world.truces = new Set(snap.truce ?? []);
+    this.world.wrecks = snap.wrecks ?? {};
     this.traffic = snap.traffic ?? [];
     this.support = snap.support ?? [];
     this.owed = snap.owed ?? {};
@@ -198,6 +201,14 @@ export class ClientGame extends Game {
 
   heroReset() {
     return this.#act('heroReset');
+  }
+
+  shelter(units) {
+    return this.#act('shelter', units ?? null);
+  }
+
+  unshelter() {
+    return this.#act('unshelter');
   }
 
   setWork(id, pct) {

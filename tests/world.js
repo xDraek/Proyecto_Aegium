@@ -28,7 +28,11 @@ const RICH = { madera: 50000, piedra: 50000, comida: 50000, hierro: 50000, crist
  * almacén grande, Cartas náuticas, muchos recursos y sin piratas (ayuntamiento 2). Todos conocen las ciudades de
  * los demás. `advance(ms)` adelanta el reloj y da una vuelta al bucle del servidor.
  */
-export async function makeWorld(names = ['Lucio', 'Anibal', 'Pericles']) {
+/**
+ * `fed`: los graneros nunca se vacían (para las pruebas de las gestas, con ejércitos enormes que se
+ * comerían toda la comida y no podrían zarpar por falta de provisiones).
+ */
+export async function makeWorld(names = ['Lucio', 'Anibal', 'Pericles'], { fed = false } = {}) {
   const world = new WorldServer(new MemoryStore());
   await world.load();
   const players = [];
@@ -43,9 +47,14 @@ export async function makeWorld(names = ['Lucio', 'Anibal', 'Pericles']) {
     players.push(g);
   }
   for (const a of players) for (const b of players) if (a !== b) a.state.known[b.state.home] = { explored: true };
+  const feed = () => {
+    if (fed) for (const g of players) g.state.resources.comida = Math.max(g.state.resources.comida, 1e6);
+  };
+  feed();
   const advance = (ms) => {
     clock.offset += ms;
     world.tick();
+    feed();
   };
   /** Adelanta hasta justo después del instante `t`. */
   const until = (t) => advance(Math.max(0, t - clock.now()) + 10);

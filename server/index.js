@@ -6,7 +6,7 @@ import { WebSocketServer } from 'ws';
 import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { universe } from '../src/config.js';
-import { BUILDINGS, HERO_SKILLS, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCES, UNITS } from '../src/game/data.js';
+import { BOT_CHECK, BUILDINGS, HERO_SKILLS, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCES, UNITS } from '../src/game/data.js';
 import { readToken, signToken } from './auth.js';
 import { MAILS, publicUrl, sendMail } from './mail.js';
 import { openStore } from './store.js';
@@ -93,11 +93,21 @@ const ACTIONS = {
           from: opts?.from != null && int(opts.from) >= 0 ? int(opts.from) : undefined,
           // Fondeadero de la Armada del Gran Rey
           post: opts?.post != null && int(opts.post) >= 0 && int(opts.post) < 16 ? int(opts.post) : undefined,
+          // La marcha (1 = a toda vela; las demás, de FLEET_COST.paces)
+          pace: typeof opts?.pace === 'number' ? opts.pace : undefined,
         })
       : bad(),
   hireHero: (g, [name]) => g.hireHero(typeof name === 'string' ? name : ''),
   heroSkill: (g, [skill]) => (own(HERO_SKILLS, skill) ? g.heroSkill(skill) : bad()),
   heroReset: (g) => g.heroReset(),
+  shelter: (g, [units]) => {
+    if (units == null) return g.shelter(null);
+    if (typeof units !== 'object' || Array.isArray(units)) return bad();
+    const clean = {};
+    for (const [id, n] of Object.entries(units)) if (own(UNITS, id) && int(n) > 0) clean[id] = int(n);
+    return g.shelter(clean);
+  },
+  unshelter: (g) => g.unshelter(),
   recall: (g, [id]) => g.recall(int(id)),
   plunder: (g, [id]) => (int(id) >= 0 ? g.plunder(int(id)) : bad()),
   breakPort: (g) => g.breakPort(),
@@ -239,6 +249,13 @@ async function api(req, res, url) {
   const route = `${req.method} ${url.pathname}`;
   try {
     if (route === 'GET /api/stats') return send(res, 200, world.stats());
+    // El foro de la comunidad se lee sin cuenta (con sesión, además se ve qué hay sin leer)
+    if (route === 'GET /api/board' || route === 'GET /api/board/thread') {
+      if (limited(`board:${ip(req)}`, 120, 60_000)) return send(res, 429, { error: 'Vas demasiado rápido.' });
+      const reader = req.headers.authorization ? authUser(req) : null;
+      if (route === 'GET /api/board') return send(res, 200, world.boardList(reader, url.searchParams.get('section')));
+      return send(res, 200, { thread: world.boardThread(reader, int(url.searchParams.get('id'))) });
+    }
 
     // Cuentas: todo lo que va por correo (registro, confirmar, contraseña olvidada)
     if (route.startsWith('POST /api/') && ['register', 'login', 'verify', 'email/start', 'forgot', 'reset'].includes(url.pathname.slice(5))) {
@@ -314,8 +331,18 @@ async function api(req, res, url) {
     const srev = String(req.headers['x-states'] ?? '') || null;
     if (route === 'GET /api/state') return send(res, 200, world.snapshot(uid, rev, srev));
 
+    // La comprobación contra los bots
+    if (route === 'POST /api/human') {
+      if (limited(`human:${uid}`, 10, 60_000)) return send(res, 429, { error: 'Espera un poco.' });
+      const { id, answer } = await readJson(req);
+      return send(res, 200, { ok: world.botAnswer(uid, String(id ?? ''), String(answer ?? '')) });
+    }
+
     if (route === 'POST /api/action') {
-      if (limited(`act:${uid}`, 40, 10_000)) return send(res, 429, { error: 'Vas demasiado rápido.' });
+      // A quien parece un programa: sus acciones, más despacio, y de vez en cuando una comprobación
+      const suspect = !!world.botSuspect(uid);
+      if (limited(`act:${uid}`, suspect ? BOT_CHECK.slowActions : 40, 10_000)) return send(res, 429, { error: 'Vas demasiado rápido.' });
+      if (world.botAction(uid)) return send(res, 428, { error: 'Antes de seguir, una comprobación rápida.', challenge: world.botChallenge(uid) });
       const { action, args } = await readJson(req);
       const handler = own(ACTIONS, action) ? ACTIONS[action] : null;
       if (!handler) return send(res, 400, { error: 'Acción desconocida.' });
@@ -459,6 +486,23 @@ async function api(req, res, url) {
     // Foro de la alianza
     if (route === 'GET /api/forum') return send(res, 200, world.forumList(uid));
     if (route === 'GET /api/forum/thread') return send(res, 200, { thread: world.forumThread(uid, int(url.searchParams.get('id'))), snapshot: world.snapshot(uid, rev, srev) });
+    if (req.method === 'POST' && url.pathname.startsWith('/api/board')) {
+      const body = await readJson(req);
+      const sub = url.pathname.slice('/api/board'.length);
+      if (sub === '' || sub === '/reply') {
+        if (limited(`board-post:${uid}`, 6, 60_000)) return send(res, 429, { error: 'Escribes muy deprisa. Espera un minuto.' });
+        if (sub === '' && limited(`board-new:${uid}`, 5, 3_600_000)) return send(res, 429, { error: 'Ya has abierto varios temas esta hora. Espera un poco.' });
+        const thread = world.boardPost(uid, sub === '' ? { section: String(body.section ?? ''), title: body.title, text: body.text } : { threadId: int(body.id), text: body.text });
+        return send(res, 200, { thread });
+      }
+      if (sub === '/report') {
+        if (limited(`board-report:${uid}`, 10, 3_600_000)) return send(res, 429, { error: 'Has denunciado muchos mensajes esta hora.' });
+        world.boardReport(uid, int(body.id), int(body.post));
+        return send(res, 200, { ok: true });
+      }
+      if (['/pin', '/lock', '/move', '/delete', '/delete-post'].includes(sub)) return send(res, 200, world.boardModerate(uid, sub.slice(1), { id: int(body.id), postId: int(body.post), section: String(body.section ?? '') }));
+      return send(res, 404, { error: 'No existe.' });
+    }
     if (req.method === 'POST' && url.pathname.startsWith('/api/forum')) {
       const body = await readJson(req);
       const sub = url.pathname.slice('/api/forum'.length);

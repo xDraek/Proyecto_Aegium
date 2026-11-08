@@ -30,7 +30,7 @@ test('las catapultas rebajan la muralla de una ciudad como en las islas neutrale
     const wall = wallBonus(10, 0);
     const mine = playerCombat(B.state);
     return fixedRandom(() =>
-      assault({ units, atkMul: 1, hpMul: 1 }, { units: { hoplita: 60 }, atkMul: mine.atkMul, hpMul: mine.hpMul, navalHpMul: navalDefense(0), wallHp, extraAtk: wall.towers }, { needLanding: true, rand: Math.random }),
+      assault({ units, atkMul: 1, hpMul: 1 }, { units: { hoplita: 60 }, atkMul: mine.atkMul, hpMul: mine.hpMul, navalHpMul: navalDefense(0), wallHp, absorb: wall.absorb * (wallHp / wall.hp), extraAtk: wall.towers }, { needLanding: true, rand: Math.random }),
     );
   };
   assert.deepEqual(res.result.def.lost, expected(wallBonus(10).hp - 0.6).def.lost, 'combate con la muralla rebajada');

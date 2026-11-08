@@ -39,7 +39,11 @@ export function simulatorHtml(preset = {}) {
         <label><span>⚔️ Bono de ataque %</span><input type="number" name="d-atk" value="${Math.round(((preset.defAtkMul ?? 1) - 1) * 100)}" /></label>
         <label><span>❤️ Bono de vida % (y coraza)</span><input type="number" name="d-hp" value="${Math.round(((preset.defHpMul ?? 1) - 1) * 100)}" /></label>
         <label><span>🏰 Muralla / fortificación % (en tierra; las catapultas la rebajan)</span><input type="number" name="d-wall" value="${Math.round((preset.wall ?? 0) * 100)}" /></label>
+        <label><span>🛡️ Muralla: ataque que para de los que desembarcan %</span><input type="number" name="d-absorb" value="${Math.round((preset.absorb ?? 0) * 100)}" /></label>
         <label><span>🏹 Daño de las torres (en tierra)</span><input type="number" name="d-towers" value="${preset.towers ?? 0}" /></label>
+        <label><span>👁️ Torre de vigía: ataque y vida de sus honderos y arqueros %</span><input type="number" name="d-ranged" value="${Math.round((preset.ranged ?? 0) * 100)}" /></label>
+        <label><span>🪤 Fosos: desembarcados que caen antes de luchar %</span><input type="number" name="d-traps" value="${Math.round((preset.traps ?? 0) * 100)}" /></label>
+        <label><span>🔗 Cadena del puerto: ataque que pierden tus barcos %</span><input type="number" name="d-chain" value="${Math.round((preset.chain ?? 0) * 100)}" /></label>
         <label><span>🪔 Faro: vida de sus barcos %</span><input type="number" name="d-naval" value="${Math.round((preset.naval ?? 0) * 100)}" /></label>
         <label data-kraken-level${preset.defender?.kraken > 0 ? '' : ' hidden'}><span>🐙 Nivel del Kraken</span><input type="number" name="d-kraken-level" min="1" value="${preset.kraken || 1}" /></label>
       </fieldset>
@@ -117,8 +121,16 @@ export function runSimulation(form) {
     wallHp: Math.max(0, (Number(data['d-wall']) || 0) / 100 - siegeOf(attacker)),
     extraAtk: Number(data['d-towers']) || 0,
     navalHpMul: (Number(data['d-naval']) || 0) / 100,
+    traps: Math.min(1, Math.max(0, (Number(data['d-traps']) || 0) / 100)),
+    chain: Math.min(1, Math.max(0, (Number(data['d-chain']) || 0) / 100)),
     boost: { kraken: krakenPower(Number(data['d-kraken-level']) || 1) },
   };
+  // Lo que para la muralla baja con ella cuando las catapultas la rebajan
+  const wallFull = (Number(data['d-wall']) || 0) / 100;
+  def.absorb = wallFull > 0 ? Math.max(0, (Number(data['d-absorb']) || 0) / 100) * (def.wallHp / wallFull) : 0;
+  // Los honderos y arqueros, desde la torre
+  const ranged = (Number(data['d-ranged']) || 0) / 100;
+  if (ranged > 0) for (const id of Object.keys(UNITS)) if (UNITS[id].cls === 'distancia') def.boost[id] = 1 + ranged;
   // Contra una ciudad hace falta desembarcar para ganar
   const city = form.dataset.landing !== undefined ? form.dataset.landing === '1' : !Object.keys(defender).some((id) => UNITS[id].npc);
 

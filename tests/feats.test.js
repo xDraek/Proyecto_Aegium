@@ -14,7 +14,7 @@ const NAMES = ['Lucio', 'Anibal', 'Pericles', 'Temis', 'Ciro', 'Dido'];
 
 /** Un mundo con `n` jugadores armados y una gesta convocada en el continente que mejor les pilla. */
 async function featWorld(n = 4, army = ARMY) {
-  const env = await makeWorld(NAMES.slice(0, n));
+  const env = await makeWorld(NAMES.slice(0, n), { fed: true });
   const W = env.world;
   for (const g of env.players) Object.assign(g.state.units, army);
   const homes = env.players.map((g) => W.islands.get(g.state.home));

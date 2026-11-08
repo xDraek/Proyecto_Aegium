@@ -201,4 +201,7 @@ export default {
   "{0} de octubre de {1}": "{0} October {1}",
   "{0} de noviembre de {1}": "{0} November {1}",
   "{0} de diciembre de {1}": "{0} December {1}",
+  "¿Sigues ahí?": "Are you still there?",
+  "Hace falta la comprobación para seguir.": "The check is needed to continue.",
+  "No era ese. Inténtalo otra vez.": "That wasn't it. Try again.",
 }

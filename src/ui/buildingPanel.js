@@ -1,5 +1,5 @@
-import { BUILDINGS, FAVOR_ICON, HERO, HERO_SKILLS, OCCUPATION, PORT_SAIL_SPEED, POWER_KEYS, POWERS, RELIC_RARITY, RELIC_SLOTS, RESEARCH, RESEARCH_KEYS, RESOURCES, TRAIN_SPEED, UNIT_KEYS, UNITS, WORK } from '../game/data.js';
-import { favorRate, hasWorkers, producerOutput, protectedAmount, requirementName, storageCapacity, townSpeedup, wallBonus, workShare, workTaxes } from '../game/rules.js';
+import { BUILDINGS, FAVOR_ICON, HERO, HERO_SKILLS, OCCUPATION, POWER_KEYS, POWERS, RELIC_RARITY, RELIC_SLOTS, RESEARCH, RESEARCH_KEYS, RESOURCES, TRAIN_SPEED, UNIT_KEYS, UNITS, WORK } from '../game/data.js';
+import { favorRate, hasWorkers, producerOutput, requirementName, shelterRoom, storageCapacity, townSpeedup, wallBonus, workShare, workTaxes } from '../game/rules.js';
 import { splitForces } from '../game/combat.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
 import { bag, costList, escapeHtml, fmtDec, fmtNum, fmtTime, glyphs, resIcons, unitList, unitRole } from './format.js';
@@ -29,10 +29,7 @@ function effectFor(game, id, level, next) {
   }
   switch (id) {
     case 'almacen':
-      return (
-        effectRow('📦 Capacidad', fmtNum(storageCapacity(withLevel(game, id, level))), fmtNum(storageCapacity(withLevel(game, id, next)))) +
-        effectRow('🔒 A salvo de saqueos', fmtNum(protectedAmount(withLevel(game, id, level))), fmtNum(protectedAmount(withLevel(game, id, next))))
-      );
+      return effectRow('📦 Capacidad', fmtNum(storageCapacity(withLevel(game, id, level))), fmtNum(storageCapacity(withLevel(game, id, next))));
     case 'templo':
       return effectRow(`${FAVOR_ICON} Favor por hora`, fmtDec(favorRate(withLevel(game, id, level))), fmtDec(favorRate(withLevel(game, id, next))));
     case 'coloso':
@@ -44,11 +41,15 @@ function effectFor(game, id, level, next) {
     case 'cuartel':
       return effectRow('🛡️ Velocidad de reclutamiento', `+${Math.round(Math.max(0, level - 1) * TRAIN_SPEED.cuartel * 100)} %`, `+${Math.round((next - 1) * TRAIN_SPEED.cuartel * 100)} %`);
     case 'puerto':
-      return effectRow('⚓ Flotas a la vez', level, next) + effectRow('⛵ Velocidad de tus flotas', `+${Math.round(level * PORT_SAIL_SPEED * 100)} %`, `+${Math.round(next * PORT_SAIL_SPEED * 100)} %`);
+      return effectRow('⚓ Flotas a la vez', level, next);
     case 'muralla': {
       const a = wallBonus(level, game.level('torre'));
       const b = wallBonus(next, game.level('torre'));
-      return effectRow('❤️ Vida de los defensores', `+${Math.round(a.hp * 100)} %`, `+${Math.round(b.hp * 100)} %`) + effectRow('🏹 Daño de las torres', a.towers, b.towers);
+      return (
+        effectRow('❤️ Vida de los defensores', `+${Math.round(a.hp * 100)} %`, `+${Math.round(b.hp * 100)} %`) +
+        effectRow('🛡️ Ataque que para de los que desembarcan', `${Math.round(a.absorb * 100)} %`, `${Math.round(b.absorb * 100)} %`) +
+        effectRow('🏹 Daño de las torres', a.towers, b.towers)
+      );
     }
     case 'taberna':
       return effectRow('🍺 Comida que ahorran las tropas', `${Math.min(40, level * 4)} %`, `${Math.min(40, next * 4)} %`);
@@ -57,7 +58,7 @@ function effectFor(game, id, level, next) {
     case 'torre':
       return (
         effectRow('🔭 Caza de espías', `+${level * 4} %`, `+${next * 4} %`) +
-        effectRow('🏹 Daño extra de las torres', level * 8, next * 8)
+        effectRow('🏹 Ataque y vida de tus honderos y arqueros al defender', `+${Math.round(wallBonus(0, level).ranged * 100)} %`, `+${Math.round(wallBonus(0, next).ranged * 100)} %`)
       );
     case 'faro':
       return effectRow('⛵ Velocidad de las flotas', `+${level * 4} %`, `+${next * 4} %`);
@@ -219,6 +220,22 @@ function trainingQueue(game, building) {
   return `<h4>${building === 'puerto' ? 'Botándose' : 'En entrenamiento'}</h4><ul class="train-queue">${rows}</ul>`;
 }
 
+/** El refugio: cuántas tropas caben y quién está escondido, con los botones para esconderlas o sacarlas. */
+function shelterSection(game) {
+  const room = shelterRoom(game.state);
+  if (!room) return '';
+  const inside = game.state.sheltered ?? {};
+  const used = Object.entries(inside).reduce((a, [id, n]) => a + n * (UNITS[id].size ?? 1), 0);
+  const any = Object.values(inside).some((n) => n > 0);
+  return `<h4>🛖 Refugio <span class="muted small">(${fmtNum(used)} / ${fmtNum(room)} plazas)</span></h4>
+    <p class="desc small">Las tropas escondidas no defienden la ciudad, pero tampoco mueren ni se pueden mandar. Siguen comiendo y cobrando.</p>
+    ${any ? `<p class="small">Escondidas: ${unitList(inside)}</p>` : ''}
+    <div class="row-actions">
+      <button class="ghost small" data-action="shelter" ${used >= room ? 'disabled' : ''}>🛖 Esconder a las que quepan</button>
+      <button class="ghost small" data-action="unshelter" ${any ? '' : 'disabled'}>Sacarlas a todas</button>
+    </div>`;
+}
+
 function recruitSection(game, building) {
   const title = building === 'puerto' ? 'Botar barcos' : 'Reclutar';
   // Aunque no tengas puerto te pueden ocupar: desde aquí se echa a los invasores
@@ -230,6 +247,7 @@ function recruitSection(game, building) {
     extra = `${port}<div class="effect"><span>⛵ Flotas en el mar</span><b>${game.fleetsAtSea()} / ${game.fleetSlots()}</b></div>
       <button class="ghost wide" data-action="open-map">🗺️ Abrir el mapa del archipiélago</button>`;
   }
+  if (building === 'cuartel') extra += shelterSection(game);
   const works = game.closedForWorks(building);
   return `${extra}${trainingQueue(game, building)}<h4>${title}</h4>${works ? `<div class="hint warn">🏗️ ${works}</div>` : ''}<div class="cards">${ids.map((id) => unitCard(game, id)).join('')}</div>`;
 }

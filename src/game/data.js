@@ -112,7 +112,7 @@ export const BUILDINGS = {
   almacen: {
     name: 'Almacén',
     icon: '📦',
-    description: 'Amplía la capacidad máxima de todos los recursos y esconde una parte de cada uno, que los piratas no pueden robar.',
+    description: 'Amplía la capacidad máxima de todos los recursos.',
     baseCost: { madera: 100, piedra: 60 },
     costFactor: 1.7,
     baseTime: 45,
@@ -148,7 +148,7 @@ export const BUILDINGS = {
   puerto: {
     name: 'Puerto',
     icon: '⚓',
-    description: 'Muelles y gradas donde se botan los barcos. Cada nivel permite tener una flota más en el mar a la vez y hace tus flotas un 2 % más rápidas. Los barcos de guerra piden además el astillero, que es quien los construye más rápido.',
+    description: 'Muelles y gradas donde se botan los barcos. Cada nivel permite tener una flota más en el mar a la vez. Los barcos de guerra piden además el astillero, que es quien los construye más rápido.',
     baseCost: { madera: 200, piedra: 80, comida: 80 },
     costFactor: 1.7,
     baseTime: 90,
@@ -157,7 +157,7 @@ export const BUILDINGS = {
   muralla: {
     name: 'Muralla',
     icon: '🏰',
-    description: 'Rodea la ciudad. Cada nivel da un 10 % más de vida a los defensores y sus torres disparan a los asaltantes.',
+    description: 'Rodea la ciudad. Cada nivel da un 10 % más de vida a los defensores, para un 2 % del ataque de los que desembarcan (hasta un 40 %) y sus torres disparan a los asaltantes. Las catapultas la rebajan.',
     baseCost: { madera: 60, piedra: 250 },
     costFactor: 1.75,
     baseTime: 100,
@@ -184,7 +184,7 @@ export const BUILDINGS = {
   torre: {
     name: 'Torre de vigía',
     icon: '👁️',
-    description: 'Vigila el horizonte: distingue qué tropas trae una flota enemiga desde 40 leguas, y 30 más por nivel (antes solo se sabe que viene). Cada nivel da también un 2,5 % más de probabilidad de descubrir espías y saboteadores (hasta un 50 %, en el nivel 20) y sus arqueros añaden 8 de daño por asalto cuando defiendes la isla.',
+    description: 'Vigila el horizonte: distingue qué tropas trae una flota enemiga desde 40 leguas, y 30 más por nivel (antes solo se sabe que viene). Cada nivel da también un 2,5 % más de probabilidad de descubrir espías y saboteadores (hasta un 50 %, en el nivel 20) y, desde lo alto, un 4 % más de ataque y vida a tus honderos y arqueros cuando defiendes la isla (hasta un 80 %).',
     baseCost: { madera: 120, piedra: 220 },
     costFactor: 1.65,
     baseTime: 80,
@@ -445,6 +445,23 @@ export const UNITS = {
     capacity: 12,
     requires: { puerto: 1 },
   },
+  kleptes: {
+    name: 'Kleptes',
+    icon: '🪝',
+    kind: 'barco',
+    building: 'puerto',
+    description: 'Barco de rescate con grúa, garfios y redes: recoge los pecios que dejan las batallas en el mar, sean de quien sean. No combate ni lleva tropas.',
+    cost: { madera: 220, hierro: 80 },
+    time: 120,
+    atk: 0,
+    hp: 40,
+    upkeep: 1,
+    pay: 0.4,
+    speed: 0.9,
+    cargo: 1500,
+    capacity: 0,
+    requires: { puerto: 4, navegacion: 2 },
+  },
   trirreme: {
     name: 'Trirreme',
     icon: '🚣‍♂️',
@@ -598,6 +615,28 @@ export const COUNTERS = {
 };
 
 export const COMBAT = { rearCover: 0.5, charge: 0.25, volley: 0.5 };
+
+/**
+ * Los pecios: cada batalla en el mar deja frente a la isla `share` de lo que costaban los barcos que
+ * se hunden (de los dos bandos) durante `hours` h. Los recogen los Kleptes de quien llegue antes.
+ */
+export const WRECK = { share: 0.3, hours: 48 };
+
+/**
+ * Zarpar cuesta comida de travesía: por cada `per` leguas, `ship` por barco y `seat` por plaza de
+ * tropas a bordo (ida y vuelta), y en proporción a la marcha: a menos velocidad, menos. `paces`: las
+ * marchas que se pueden elegir (1 = a toda vela) para llegar a la hora que quieras.
+ */
+export const FLEET_COST = { per: 100, ship: 2, seat: 0.5, paces: [1, 0.9, 0.8, 0.7, 0.6, 0.5] };
+
+/**
+ * Las defensas de una ciudad (por nivel): la muralla da `wallHp` de vida a los defensores, para
+ * `wallAbsorb` del ataque de los que desembarcan (hasta `wallAbsorbMax`) y sus torres hacen
+ * `towers` de daño por asalto; la torre de vigía da `watch` de ataque y vida a los honderos y
+ * arqueros que defienden (hasta `watchMax`); los fosos tumban `traps` de los que desembarcan; la
+ * cadena quita `chain` de ataque a los barcos que atacan; y el refugio esconde `shelter` plazas.
+ */
+export const DEFENSE = { wallHp: 0.1, wallAbsorb: 0.02, wallAbsorbMax: 0.4, towers: 25, watch: 0.04, watchMax: 0.8, traps: 0.04, chain: 0.06, shelter: 150 };
 
 for (const [id, cls] of Object.entries({
   lancero: 'lanza', hoplita: 'lanza', espartano: 'lanza',
@@ -768,11 +807,41 @@ export const RESEARCH = {
     maxLevel: 1,
     requires: { academia: 5, navegacion: 4, cartografia: 1 },
   },
+  fosos: {
+    name: 'Fosos y estacas',
+    icon: '🪤',
+    description: 'Zanjas, estacas afiladas y cepos al pie de la muralla: una parte de los que desembarcan para asaltar tu ciudad cae antes de luchar.',
+    effect: (n) => `${n * 4} % de los que desembarcan caen antes de luchar`,
+    baseCost: { madera: 500, piedra: 700, hierro: 200 },
+    baseTime: 400,
+    maxLevel: 5,
+    requires: { academia: 4, muralla: 3 },
+  },
+  cadena: {
+    name: 'Cadena del puerto',
+    icon: '🔗',
+    description: 'Una cadena de bronce cierra la bocana: los barcos que atacan tu ciudad entran a trompicones y pegan menos en la batalla naval.',
+    effect: (n) => `−${n * 6} % de ataque a los barcos que atacan tu ciudad`,
+    baseCost: { madera: 400, hierro: 600, cristal: 200 },
+    baseTime: 450,
+    maxLevel: 5,
+    requires: { academia: 4, puerto: 5, faro: 1 },
+  },
+  refugio: {
+    name: 'Refugios',
+    icon: '🛖',
+    description: 'Cuevas y sótanos donde esconder a tus tropas de tierra: las que metas en el refugio (desde el cuartel) no defienden la ciudad, pero tampoco mueren ni se pueden mandar. Siguen comiendo y cobrando.',
+    effect: (n) => `Sitio para ${n * 150} plazas de tropas`,
+    baseCost: { madera: 600, piedra: 600, comida: 300 },
+    baseTime: 300,
+    maxLevel: 5,
+    requires: { academia: 3, cuartel: 3 },
+  },
   tactica: {
     name: 'Táctica militar',
     icon: '📜',
     description: 'Formaciones, disciplina y oficiales de carrera. Necesaria para las tropas de élite: espartanos (1), arqueros cretenses y liburnas (2) y catafractos (3).',
-    effect: (n) => `+${n * 3} % de ataque y vida de tus tropas`,
+    effect: (n) => `+${n * 3} % de vida de tus tropas`,
     baseCost: { hierro: 250, cristal: 450, oro: 200 },
     baseTime: 420,
     maxLevel: 5,
@@ -837,8 +906,6 @@ export const BUILD_COST = { woodStone: 0.85, fromLevel: 7, hierro: 0.12, cristal
  * tropas. Los barcos solo los acelera el astillero (+8 % por nivel).
  */
 export const TRAIN_SPEED = { cuartel: 0.1 };
-/** Lo que el puerto hace más rápidas tus flotas por cada nivel. */
-export const PORT_SAIL_SPEED = 0.02;
 
 /**
  * El ayuntamiento manda: para subir cualquier otro edificio por encima del nivel `free` hace falta
@@ -846,8 +913,12 @@ export const PORT_SAIL_SPEED = 0.02;
  */
 export const TOWN_HALL_GATE = { free: 5, every: 5, need: 3 };
 
-/** El almacén esconde lo más alto de: 100 + 250 por nivel, o este porcentaje de lo que cabe. */
-export const PROTECTED_SHARE = 0.08;
+/**
+ * Lo que nadie te puede robar ni quemar de cada recurso: un mínimo fijo para que a una ciudad
+ * pequeña no la dejen a cero. No crece con el almacén (antes escondía hasta un 8 % de lo que cabe y
+ * acumular sin defenderse salía gratis).
+ */
+export const PROTECTED_AMOUNT = 500;
 /** Todas las investigaciones cuestan esto más que su `baseCost` (en todos los niveles). */
 export const RESEARCH_COST_MULT = 1.25;
 /** …salvo el oro, que escasea: de oro piden un 35 % menos de lo que saldría. */
@@ -894,7 +965,7 @@ export const SPY_TIERS = [
   { boats: 1, text: 'Recursos, muralla y ayuntamiento' },
   { boats: 2, text: 'Los barcos que tiene en el puerto' },
   { boats: 3, text: 'Sus tropas de tierra' },
-  { boats: 4, text: 'Sus defensas: torre de vigía, faro y lo que esconde el almacén' },
+  { boats: 4, text: 'Sus defensas: torre de vigía, faro, fosos y cadena del puerto' },
   { boats: 5, text: 'Los refuerzos de sus aliados y sus mejoras militares' },
 ];
 
@@ -925,6 +996,7 @@ export const MISSION_TYPES = {
   guarnicion: { name: 'Guarnición', icon: '🏕️' },
   // (no se manda desde una isla: zarpa al cerrar un trato del mercado)
   comercio: { name: 'Comercio', icon: '⚖️' },
+  recoger: { name: 'Recoger el pecio', icon: '🪝' },
 };
 
 /**
@@ -955,6 +1027,19 @@ export const OCCUPATION = { hours: 24, tribute: 0.2, plunderHours: 4, plunderSha
  * `revengeHours` horas.
  */
 export const PROTECTION = { shieldHours: 12, attacksPerDay: 5, newbiePoints: 1000, newbieDays: 5, weakRatio: 0.2, revengeHours: 48 };
+/**
+ * Contra la bola de nieve (salvo entre alianzas en guerra):
+ * - `lootDecay`: qué parte del botín se lleva quien saquea al mismo jugador por 1.ª, 2.ª… vez en 24 h.
+ * - `honor`: las bajas de un ataque cuentan para tu clasificación militar según el tamaño del
+ *   rival (sus puntos / los tuyos), entre `min` y `max`: abusar de los pequeños no da gloria.
+ * - `crush`: si un ataque te arrasa (pierdes al menos `share` de un ejército de `min` unidades o
+ *   más), nadie te puede atacar, bloquear ni invadir durante `hours` (si atacas tú, se acaba).
+ */
+export const ANTI_BULLY = {
+  lootDecay: [1, 0.75, 0.5, 0.3, 0.15],
+  honor: { min: 0.2, max: 1.5 },
+  crush: { share: 0.7, min: 20, hours: 8 },
+};
 /** Misiones contra otro jugador que cuentan para el límite de ataques. */
 export const HOSTILE_MISSIONS = ['atacar', 'invadir', 'bloquear'];
 /** Misiones que se pueden lanzar desde una base: una ciudad ocupada o una colonia con guarnición. */
@@ -1214,6 +1299,12 @@ export const DAILY_TASKS = {
 };
 export const DAILY_TASK_REWARD = { madera: 250, piedra: 250, comida: 200, oro: 60 };
 export const DAILY_TASK_BONUS = { cristal: 300, oro: 200, favor: 15 };
+/**
+ * Las recompensas de las misiones y los encargos valen al menos estas horas de tu producción: al
+ * principio, las de siempre; con una ciudad grande, la misma mezcla multiplicada (si no, pasado un
+ * punto no valían nada).
+ */
+export const REWARD_HOURS = { quest: 0.5, task: 1, taskBonus: 2 };
 
 // ── Competición semanal ──────────────────────────────────────────────────────
 // Cada semana se premia a los tres mejores de cada categoría por lo que han
@@ -1257,6 +1348,29 @@ export const ACHIEVEMENTS = [
   { id: 'navarco', icon: '⚓', name: 'Navarco', text: 'Sostén más que nadie un fondeadero contra la Armada del Gran Rey', check: (g) => (g.stats.featNavarch ?? 0) >= 1 },
   { id: 'heracles', icon: '🏺', name: 'Heracles', text: 'Vence a la Hidra de Lerna', check: (g) => (g.stats.featHydra ?? 0) >= 1 },
 ];
+
+// ── Contra los bots ──────────────────────────────────────────────────────────
+// Señales de que juega un programa: actividad casi todas las horas del día (`hours` de las últimas
+// 24), un ritmo demasiado regular entre acciones (variación por debajo de `steady` en las últimas
+// `sample`) o demasiadas acciones por minuto (`perMinute`). A quien las da se le pide, de vez en
+// cuando, una comprobación sencilla (vale `passHours` h) y sus acciones van más despacio.
+
+export const BOT_CHECK = { hours: 20, steady: 0.15, sample: 60, perMinute: 45, passHours: 6, slowActions: 15 };
+
+// ── Foro de la comunidad ─────────────────────────────────────────────────────
+// Público: lo lee cualquiera (también sin cuenta) y escriben los jugadores. En los anuncios solo
+// escriben los moderadores.
+
+export const BOARD_SECTIONS = {
+  anuncios: { icon: '📢', name: 'Anuncios', text: 'Novedades y avisos del equipo de Aegium.', modOnly: true },
+  sugerencias: { icon: '💡', name: 'Sugerencias', text: 'Ideas para mejorar el juego.' },
+  errores: { icon: '🐞', name: 'Errores', text: 'Algo que no funciona como debería.' },
+  estrategia: { icon: '⚔️', name: 'Estrategia y guías', text: 'Consejos, tácticas y guías para jugar mejor.' },
+  comercio: { icon: '⚖️', name: 'Comercio y diplomacia', text: 'Tratos, alianzas que buscan miembros y pactos.' },
+  general: { icon: '💬', name: 'General', text: 'De todo un poco.' },
+};
+/** Temas por sección (sobran los más viejos sin fijar), mensajes por tema y largo del título y del texto. */
+export const BOARD = { threads: 100, posts: 300, title: 80, text: 3000 };
 
 // ── Almirante (héroe) ────────────────────────────────────────────────────────
 // Acompaña a una flota o se queda defendiendo la isla. Gana experiencia en

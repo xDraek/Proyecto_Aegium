@@ -33,7 +33,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function api(method, path, body) {
+export async function api(method, path, body, retried = false) {
   const token = getToken();
   let res;
   try {
@@ -50,6 +50,16 @@ export async function api(method, path, body) {
     data = await res.json();
   } catch {
     // respuesta vacía
+  }
+  // Una comprobación contra los bots: se responde y se repite lo que se iba a hacer
+  if (res.status === 428 && data.challenge && !retried) {
+    const { askChoice } = await import('../ui/dialog.js');
+    const c = data.challenge;
+    const answer = await askChoice(c.question, c.options.map((o) => ({ label: o, value: o })), { title: '¿Sigues ahí?', icon: '🤖' });
+    if (answer == null) throw new ApiError('Hace falta la comprobación para seguir.', 428, data);
+    const check = await api('POST', '/api/human', { id: c.id, answer });
+    if (!check.ok) throw new ApiError('No era ese. Inténtalo otra vez.', 428, data);
+    return api(method, path, body, true);
   }
   if (!res.ok) throw new ApiError(data.error ?? `Error ${res.status}`, res.status, data);
   return data;

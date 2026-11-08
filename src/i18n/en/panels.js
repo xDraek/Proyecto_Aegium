@@ -193,4 +193,11 @@ export default {
   "+{0} bajas": "+{0} casualties",
   "Está en el mar": "At sea",
   "🔄 Repartir de nuevo los puntos": "🔄 Reassign the points",
+  "🛡️ Ataque que para de los que desembarcan": "🛡️ Attack it stops from those who land",
+  "🏹 Ataque y vida de tus honderos y arqueros al defender": "🏹 Attack and health of your slingers and archers when defending",
+  "Escondidas: {0}": "Hidden: {0}",
+  "🛖 Refugio": "🛖 Shelter",
+  "Las tropas escondidas no defienden la ciudad, pero tampoco mueren ni se pueden mandar. Siguen comiendo y cobrando.": "Hidden troops don't defend the city, but they don't die and can't be sent either. They still eat and get paid.",
+  "🛖 Esconder a las que quepan": "🛖 Hide as many as fit",
+  "Sacarlas a todas": "Bring them all out",
 }

@@ -79,6 +79,13 @@ export function showLanding({ onLogin, message, mode: firstMode = 'login', reset
   card.querySelector('[data-action="mail-back"]').addEventListener('click', () => setMode(mode));
 
   root.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.tab)));
+  // El foro se lee sin cuenta
+  const openBoard = async () => {
+    const { Board } = await import('./board.js');
+    new Board().show();
+  };
+  root.querySelector('[data-action="open-board"]')?.addEventListener('click', openBoard);
+  if (location.hash === '#foro') openBoard();
   root.querySelector('[data-action="go-register"]')?.addEventListener('click', () => {
     setMode('register');
     field('email').focus();

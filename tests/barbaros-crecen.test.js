@@ -5,9 +5,12 @@ import { CAMP_LOOT } from '../src/game/world.js';
 import { makeWorld, sendAndArrive } from './world.js';
 
 // Las islas neutrales crecen con la ciudad de quien las mira (o las ataca): sus guerreros y su
-// botín se multiplican por lo que producen sus edificios. Lo compartido es lo que les queda.
+// botín se multiplican según sus puntos (todo lo invertido, no solo las minas). Lo compartido es lo
+// que les queda.
 
 const PRODUCERS = ['aserradero', 'cantera', 'granja', 'mina', 'fundicion', 'mercado'];
+/** Una ciudad grande: unos 5.000 puntos. */
+const BIG = 500_000;
 
 /** El campamento bárbaro más pequeño cerca de A, que todos conocen. */
 function camp(env) {
@@ -22,11 +25,11 @@ const total = (bag) => Object.values(bag).reduce((a, b) => a + b, 0);
 test('una ciudad que empieza los ve como siempre; una grande, mucho más grandes', async () => {
   const env = await makeWorld();
   const [A, B] = env.players;
-  for (const id of PRODUCERS) A.state.buildings[id] = 1;
-  for (const id of PRODUCERS) B.state.buildings[id] = 10;
+  A.state.stats.spent = 0;
+  B.state.stats.spent = BIG;
   assert.equal(neutralScale(A.state), 1);
   const k = neutralScale(B.state);
-  assert.ok(k > 4 && k < 8, `escala con los productores a nivel 10: ${k}`);
+  assert.ok(k > 4 && k < 8, `escala con 5.000 puntos: ${k}`);
 
   const isl = camp(env);
   assert.deepEqual(A.island(isl.id).garrison, { barbaro: 8 });
@@ -37,7 +40,8 @@ test('una ciudad que empieza los ve como siempre; una grande, mucho más grandes
 test('lo que queda se comparte: si uno grande la arrasa, vuelve con la mitad del botín para todos', async () => {
   const env = await makeWorld();
   const [A, B] = env.players;
-  for (const id of PRODUCERS) B.state.buildings[id] = 10;
+  A.state.stats.spent = 0;
+  B.state.stats.spent = BIG;
   const k = neutralScale(B.state);
   const isl = camp(env);
   const before = total(B.island(isl.id).stock);
@@ -59,7 +63,7 @@ test('lo que queda se comparte: si uno grande la arrasa, vuelve con la mitad del
 test('las flotas que zarparon antes del cambio luchan contra el campamento de antes', async () => {
   const env = await makeWorld();
   const [, B] = env.players;
-  for (const id of PRODUCERS) B.state.buildings[id] = 10;
+  B.state.stats.spent = BIG;
   const isl = camp(env);
   Object.assign(B.state.units, { lancero: 1, mercante: 1 });
   assert.ok(B.sendMission('atacar', isl.id, { lancero: 1, mercante: 1 }).ok);
@@ -69,6 +73,16 @@ test('las flotas que zarparon antes del cambio luchan contra el campamento de an
   env.until(m.arrive);
   const enemy = B.state.reports.at(-1).battle.def;
   assert.equal(count(enemy.start), 8);
+});
+
+test('subir las minas no los hace más duros: solo cuentan los puntos, se gasten donde se gasten', async () => {
+  const env = await makeWorld();
+  const [A] = env.players;
+  const k = neutralScale(A.state);
+  for (const id of PRODUCERS) A.state.buildings[id] = 15;
+  assert.equal(neutralScale(A.state), k, 'las minas no cuentan aparte');
+  A.state.stats.spent *= 4;
+  assert.ok(neutralScale(A.state) > k, 'con más puntos, sí');
 });
 
 function count(units) {

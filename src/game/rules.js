@@ -1,5 +1,7 @@
 import { universe } from '../config.js';
 import {
+  ANTI_BULLY,
+  DEFENSE,
   BASE_PRODUCTION,
   BUILD_COST,
   BUILDINGS,
@@ -9,7 +11,7 @@ import {
   FEATS,
   OCCUPATION,
   PLAYER_UNITS,
-  PROTECTED_SHARE,
+  PROTECTED_AMOUNT,
   MARKET_GOLD,
   RESEARCH,
   RESEARCH_COST_FACTOR,
@@ -23,7 +25,6 @@ import {
   SPY_TIERS,
   TOWN_HALL_GATE,
   TRAIN_SPEED,
-  PORT_SAIL_SPEED,
   MERC_PRICE,
   POWERS,
   UNITS,
@@ -146,7 +147,8 @@ export function unitSeconds(state, id) {
 export function playerCombat(state, attack = null) {
   const fury = attack && ((state.buffs?.rayo ?? 0) > attack.t || attack.mission?.fury) ? POWERS.rayo.attack : 0;
   return {
-    atkMul: 1 + 0.05 * lvl(state, 'herreria') + 0.03 * lvl(state, 'forja') + 0.03 * lvl(state, 'tactica') + wonderBonus(state, 'ataque') + relicBonus(state, 'ataque') + fury,
+    // (el ataque: la Herrería y la Forja; la vida: las Armaduras y la Táctica; lo demás, extras)
+    atkMul: 1 + 0.05 * lvl(state, 'herreria') + 0.03 * lvl(state, 'forja') + wonderBonus(state, 'ataque') + relicBonus(state, 'ataque') + fury,
     hpMul: 1 + 0.05 * lvl(state, 'armaduras') + 0.03 * lvl(state, 'tactica') + relicBonus(state, 'defensa'),
   };
 }
@@ -186,8 +188,23 @@ export function navalDefense(faroLevel) {
 }
 
 /** Defensa de la muralla; la torre de vigía añade arqueros a las torres. */
+/**
+ * Lo que dan la muralla y la torre de vigía a quien defiende (ver DEFENSE): vida, la parte del
+ * ataque de los que desembarcan que para (`absorb`), el daño de las torres y lo que ganan sus
+ * honderos y arqueros (`ranged`).
+ */
 export function wallBonus(level, watch = 0) {
-  return { hp: 0.1 * level, towers: 10 * level + 8 * watch };
+  return {
+    hp: DEFENSE.wallHp * level,
+    absorb: Math.min(DEFENSE.wallAbsorbMax, DEFENSE.wallAbsorb * level),
+    towers: DEFENSE.towers * level,
+    ranged: Math.min(DEFENSE.watchMax, DEFENSE.watch * watch),
+  };
+}
+
+/** Plazas de tropas que caben en el refugio. */
+export function shelterRoom(state) {
+  return DEFENSE.shelter * (state.research?.refugio ?? 0);
 }
 
 /** Comida que se ahorran las tropas gracias a la taberna (0 a 0,4). */
@@ -223,7 +240,8 @@ export function colonyCost(colonies) {
 }
 
 export function fleetSpeedBonus(state) {
-  return 1 + 0.05 * lvl(state, 'navegacion') + 0.04 * lvl(state, 'faro') + PORT_SAIL_SPEED * lvl(state, 'puerto') + wonderBonus(state, 'velocidad') + relicBonus(state, 'velocidad');
+  // (la velocidad: la Navegación y el Faro; lo demás, extras)
+  return 1 + 0.05 * lvl(state, 'navegacion') + 0.04 * lvl(state, 'faro') + wonderBonus(state, 'velocidad') + relicBonus(state, 'velocidad');
 }
 
 /** Segundos de viaje (solo ida) hasta una isla con una flota a cierta velocidad. */
@@ -353,7 +371,7 @@ export function hash01(seed, n) {
 /** Todas las unidades que mantienes: en casa y en misiones. */
 export function totalUnits(state) {
   const out = {};
-  for (const id of PLAYER_UNITS) out[id] = state.units[id] ?? 0;
+  for (const id of PLAYER_UNITS) out[id] = (state.units[id] ?? 0) + (state.sheltered?.[id] ?? 0);
   for (const m of state.missions) {
     for (const [id, n] of Object.entries(m.units)) out[id] = (out[id] ?? 0) + n;
   }
@@ -436,20 +454,23 @@ export function economy(state, t = state.lastUpdate) {
   return { base, buildings, research, colonies, taxes, bonus, eventBonus, gross, tribute, upkeep, pay, net, hungry, closed };
 }
 
-/** Lo que producen los edificios de una ciudad que empieza (con los productores a nivel 4, más o menos). */
-const NEUTRAL_REF = 1000;
+/**
+ * La curva con la que crecen las islas neutrales: (puntos / NEUTRAL_POINTS) ^ NEUTRAL_EXP. Calibrada
+ * para que una ciudad equilibrada las vea como antes, cuando crecían con lo que producen sus edificios
+ * (con los productores a nivel 10, unas 6,5 veces).
+ */
+const NEUTRAL_POINTS = 25;
+const NEUTRAL_EXP = 0.36;
 
 /**
  * Cuánto crecen para ti los bárbaros, los piratas y los tritones de las islas neutrales (y su
- * botín): lo que producen tus edificios (en valor, sin bonos ni eventos) frente a una ciudad que
- * empieza. Así un campamento vale siempre más o menos las mismas horas de tu producción.
+ * botín): según tus puntos, es decir, todo lo que has invertido (edificios, investigaciones, tropas y
+ * colonias), no solo tus minas. Así da igual dónde gastes: subir la producción ya no los hace más
+ * duros que hacer ejército.
  */
 export function neutralScale(state) {
-  let value = 0;
-  for (const [id, b] of Object.entries(BUILDINGS)) {
-    if (b.produces) value += (producerOutput(id, state.buildings[id] ?? 0) / universe.speed) * RESOURCES[b.produces].value;
-  }
-  return Math.max(1, Math.round((value / NEUTRAL_REF) * 100) / 100);
+  const points = scoreOf(state.stats?.spent ?? 0);
+  return Math.max(1, Math.round((points / NEUTRAL_POINTS) ** NEUTRAL_EXP * 100) / 100);
 }
 
 /** Si el puerto de la ciudad está cerrado por un bloqueo o una ocupación enemiga. */
@@ -457,9 +478,9 @@ export function portClosed(state) {
   return !!(state.blockade || state.occupied);
 }
 
-/** Lo que el almacén esconde de cada recurso y los piratas no pueden robar. */
-export function protectedAmount(state) {
-  return Math.max(100 + 250 * lvl(state, 'almacen'), Math.floor(storageCapacity(state) * PROTECTED_SHARE));
+/** Lo que nadie puede robar ni quemar de cada recurso (el mismo mínimo para todos, ver PROTECTED_AMOUNT). */
+export function protectedAmount() {
+  return PROTECTED_AMOUNT;
 }
 
 // ── Templo ───────────────────────────────────────────────────────────────────
@@ -476,6 +497,16 @@ export function favorMax(state) {
 }
 
 // ── Clasificación ────────────────────────────────────────────────────────────
+
+/**
+ * Cuánto cuentan para tu clasificación militar las bajas de un ataque a otro jugador: según su
+ * tamaño frente al tuyo (sus puntos / los tuyos), entre ANTI_BULLY.honor.min y max.
+ */
+export function pvpHonor(myScore, theirScore) {
+  const { min, max } = ANTI_BULLY.honor;
+  if (!(myScore > 0)) return 1;
+  return Math.min(max, Math.max(min, Math.round((theirScore / myScore) * 100) / 100));
+}
 
 /** Un punto por cada 100 recursos invertidos. */
 export function scoreOf(spent) {

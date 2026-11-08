@@ -16,7 +16,12 @@ import {
   DAILY_TOWN_BONUS,
   DAILY_TASKS,
   DAILY_TASK_BONUS,
+  REWARD_HOURS,
   DAILY_TASK_REWARD,
+  ANTI_BULLY,
+  DEFENSE,
+  FLEET_COST,
+  WRECK,
   DIPLOMACY,
   HERO,
   HOSTILE_MISSIONS,
@@ -57,9 +62,9 @@ import {
   WORK,
 } from './data.js';
 import { featHours, featPower, featProd, forgeRoom, forgeValue } from './feats.js';
-import { withoutGold } from './world.js';
+import { distance, withoutGold } from './world.js';
 import { fmtEs } from './num.js';
-import { assault, attackOf, battle, combineGroups, count, hasCombat, keepAboard, seatsOf, shareSurvivors, siegeOf, splitBag, splitForces } from './combat.js';
+import { assault, attackOf, battle, combineGroups, count, hasCombat, keepAboard, seatsOf, seatsUsed, shareSurvivors, siegeOf, splitBag, splitForces } from './combat.js';
 import {
   HOUR_MS,
   buildSeconds,
@@ -81,6 +86,8 @@ import {
   multiplyCost,
   neutralScale,
   playerCombat,
+  shelterRoom,
+  pvpHonor,
   portClosed,
   protectedAmount,
   researchCost,
@@ -423,14 +430,14 @@ export class Game extends EventTarget {
   distanceTo(id) {
     const a = this.homeIsland;
     const b = this.world.island(id);
-    return a && b ? Math.hypot(a.x - b.x, a.z - b.z) : Infinity;
+    return a && b ? distance(a, b) : Infinity;
   }
 
   /** Distancia en leguas entre dos islas cualesquiera. */
   distanceBetween(from, to) {
     const a = this.world.island(from);
     const b = this.world.island(to);
-    return a && b ? Math.hypot(a.x - b.x, a.z - b.z) : Infinity;
+    return a && b ? distance(a, b) : Infinity;
   }
 
   /** Flotas que ocupan un hueco del puerto (los convoyes del tributo no). */
@@ -480,7 +487,7 @@ export class Game extends EventTarget {
       .slice(0, ACTIVE_QUESTS)
       .map((q) => {
         const [current, target] = q.goal(this);
-        return { ...q, current, target, done: current >= target };
+        return { ...q, reward: this.#atLeastHours(q.reward, REWARD_HOURS.quest), current, target, done: current >= target };
       });
   }
 
@@ -530,9 +537,21 @@ export class Game extends EventTarget {
     });
   }
 
+  /**
+   * Una recompensa que vale al menos `hours` horas de tu producción: con poca, la misma; con mucha,
+   * la misma mezcla multiplicada (el favor no cambia).
+   */
+  #atLeastHours(reward, hours) {
+    const { favor, ...rest } = reward;
+    const value = Object.entries(rest).reduce((a, [r, n]) => a + n * RESOURCES[r].value, 0);
+    const k = value > 0 ? Math.max(1, (featProd(this.state).value * hours) / value) : 1;
+    const out = Object.fromEntries(Object.entries(rest).map(([r, n]) => [r, Math.round(n * k)]));
+    return favor ? { ...out, favor } : out;
+  }
+
   /** Lo que se gana además al cumplir todos los encargos del día (el favor, solo con templo). */
   taskBonus() {
-    const { favor, ...rest } = DAILY_TASK_BONUS;
+    const { favor, ...rest } = this.#atLeastHours(DAILY_TASK_BONUS, REWARD_HOURS.taskBonus);
     return favorMax(this.state) > 0 ? { ...rest, favor } : rest;
   }
 
@@ -541,7 +560,7 @@ export class Game extends EventTarget {
     const k = 1 + 0.3 * (Math.max(1, this.state.tasks?.town ?? 1) - 1);
     const out = {};
     for (const [r, n] of Object.entries(DAILY_TASK_REWARD)) out[r] = Math.round(n * k);
-    return out;
+    return this.#atLeastHours(out, REWARD_HOURS.task);
   }
 
   claimTask(id, now = this.now()) {
@@ -1094,6 +1113,8 @@ export class Game extends EventTarget {
       // Las ciudades de los jugadores están a la vista: se pueden atacar sin espiarlas antes
       explored: isl.type === 'brumas' || isl.type === 'continente' || isl.type === 'jugador' || isl.owner === this.userId || !!known?.explored,
       intel: known?.intel ?? null,
+      // El pecio que hay frente a ella (lo recogen los Kleptes)
+      wreck: this.world.wreckAt?.(id, t) ?? null,
       inbound: this.state.missions.filter((m) => m.target === id),
       mine: isl.owner != null && isl.owner === this.userId,
     };
@@ -1113,6 +1134,8 @@ export class Game extends EventTarget {
         port: p?.port ?? null,
         // Hasta cuándo está a salvo de bloqueos e invasiones (recién liberada)
         shield: isShielded(p?.shieldFrom, p?.shield, t) ? p.shield : null,
+        // Hasta cuándo está a salvo de todo ataque (un ataque lo dejó sin ejército)
+        crush: (p?.crush ?? 0) > t ? p.crush : null,
         // Estatua de una gesta ganada (una semana)
         statue: p?.statue && p.statue.until > t ? p.statue.theme : null,
       });
@@ -1288,7 +1311,7 @@ export class Game extends EventTarget {
     const rt = this.world.islandState(target);
     const view = this.island(target);
     // Sin explorar no se sabe qué hay: solo se puede mandar un bote a mirar
-    if (!view.explored && type !== 'explorar') reason = 'Primero explora la isla con un bote: no sabes qué hay en ella.';
+    if (!view.explored && type !== 'explorar' && type !== 'recoger') reason = 'Primero explora la isla con un bote: no sabes qué hay en ella.';
     // Desde una base (ciudad ocupada o colonia con guarnición) zarpan las tropas que hay en ella
     const base = opts.from != null ? (this.bases().find((m) => m.id === opts.from) ?? null) : null;
     if (opts.from != null && !base) reason ||= 'Esa base ya no es tuya.';
@@ -1318,10 +1341,15 @@ export class Game extends EventTarget {
     const withHero = !!opts.hero;
     const heroSpeed = withHero ? 1 + this.heroBonus('velocidad') : 1;
     const dist = base ? this.distanceBetween(base.target, target) : this.distanceTo(target);
-    const travel = Number.isFinite(speed) ? travelSeconds(s, dist, speed, heroSpeed * this.#wind()) : 0;
+    // La marcha elegida (a menos velocidad, se tarda más y se gasta menos comida)
+    const pace = FLEET_COST.paces.includes(opts.pace) ? opts.pace : 1;
+    const travel = Number.isFinite(speed) ? Math.round(travelSeconds(s, dist, speed, heroSpeed * this.#wind()) / pace) : 0;
     // Unirse al ataque de un aliado: la flota acompasa la marcha para llegar a la vez
     const joint = opts.join ? (this.world.jointAttack?.(opts.join) ?? null) : null;
     const seconds = joint ? Math.max(1, Math.ceil((joint.arrive - this.now()) / 1000)) : travel;
+    // Comida de travesía: por barco y por plaza a bordo, según la distancia y la marcha
+    // (explorar con botes es gratis: si no, con hambruna no se podría ni mirar)
+    const food = ships > 0 && type !== 'explorar' && Number.isFinite(dist) ? Math.ceil((ships * FLEET_COST.ship + used * FLEET_COST.seat) * (dist / FLEET_COST.per) * (joint ? 1 : pace)) : 0;
     const slots = fleetSlots(s);
     const pendingColonies = s.missions.filter((m) => m.type === 'colonizar' || m.type === 'conquistar').length;
     let cost = null;
@@ -1344,7 +1372,11 @@ export class Game extends EventTarget {
     else if (s.blockade) reason ||= `${s.blockade.name} bloquea tu puerto: no puede zarpar ningún barco.`;
     // Un continente solo se ataca cuando hay una horda bárbara o una gesta en él
     const feat = rt?.feat && (rt.feat.stage === 'presagio' || rt.feat.stage === 'lucha') ? rt.feat : null;
-    if (isl.type === 'continente' && feat) {
+    // Recoger un pecio: solo con Kleptes, y que quede algo
+    if (type === 'recoger') {
+      if (!view.wreck) reason ||= 'Aquí no hay ningún pecio que recoger.';
+      if (!sent.kleptes || Object.keys(sent).some((id) => id !== 'kleptes')) reason ||= 'Para recoger un pecio envía solo Kleptes.';
+    } else if (isl.type === 'continente' && feat) {
       const fth = FEAT_THEMES[feat.theme];
       const armada = fth.kind === 'armada';
       const posts = armada ? (feat.boss?.posts?.length ?? this.world.sitesOn(target).length) : 0;
@@ -1384,7 +1416,9 @@ export class Game extends EventTarget {
     if (isl.type === 'jugador' && ['explorar', 'sabotaje', 'atacar', 'invadir', 'bloquear'].includes(type) && this.world.truce?.(this.userId, isl.owner, this.now())) {
       reason ||= `Tregua sagrada: ${view.ownerName} y tú habéis jurado la misma gesta. No os podéis atacar ni espiar hasta unas horas después de que acabe.`;
     }
-    if (isl.type === 'jugador') {
+    if (type === 'recoger') {
+      // (recoger un pecio ya está comprobado arriba: vale en cualquier isla)
+    } else if (isl.type === 'jugador') {
       if (type === 'explorar') {
         if (Object.keys(sent).some((id) => !UNITS[id].explorer)) reason ||= 'Para espiar envía solo botes exploradores.';
         if (view.vacation) reason ||= `${view.ownerName} está de vacaciones: no hay nada que espiar.`;
@@ -1428,6 +1462,8 @@ export class Game extends EventTarget {
         if (this.researchLevel('cartas') < 1 && dist > PVP_RANGE) {
           reason ||= `Esa ciudad está a ${Math.round(dist)} leguas: sin Cartas náuticas tus flotas de guerra solo llegan a ${PVP_RANGE}. Investígalas en la academia.`;
         }
+        // Arrasada hace poco: nadie la puede atacar (salvo en guerra)
+        if (view.crush && view.relation !== 'guerra') reason ||= `${view.ownerName} acaba de perder casi todo su ejército: nadie le puede atacar hasta dentro de ${fmtWait(view.crush - this.now())}.`;
         // Recién liberada: nadie la puede volver a bloquear ni invadir durante un tiempo
         if ((type === 'invadir' || type === 'bloquear') && view.shield) reason ||= `${view.ownerName} acaba de librarse de un bloqueo o una ocupación: nadie la puede bloquear ni invadir hasta dentro de un rato.`;
         // Contra el acoso: un máximo de ataques al mismo jugador al día (salvo en guerra)
@@ -1494,7 +1530,12 @@ export class Game extends EventTarget {
       // (los fondeaderos de la Armada ya se han comprobado arriba)
       reason ||= 'Esa misión no se puede hacer en esta isla.';
     }
-    return { ok: !reason, reason, units: sent, seconds, travel, capacity, used, cargo, ships, cost, load, joint, base };
+    // (la comida de travesía, encima de lo que lleven en las bodegas)
+    if (food > 0 && !reason) {
+      const comida = (cost?.comida ?? 0) + (load?.comida ?? 0) + food;
+      if (s.resources.comida < comida) reason = `Faltan provisiones: la travesía pide ${fmtEs(food)} de comida.`;
+    }
+    return { ok: !reason, reason, units: sent, seconds, travel, capacity, used, cargo, ships, cost, load, joint, base, food, pace };
   }
 
   /** Por qué no puedes saquear la colonia de otro jugador ('' si puedes): las mismas reglas que contra su ciudad. */
@@ -1526,6 +1567,7 @@ export class Game extends EventTarget {
     if (plan.base) plan.base.units = clean(plan.base.units);
     if (plan.cost) this.#pay(plan.cost);
     if (plan.load) this.#pay(plan.load, false);
+    if (plan.food) this.#pay({ comida: plan.food }, false);
     this.state.missions.push({
       id: this.state.seq++,
       type,
@@ -1556,6 +1598,8 @@ export class Game extends EventTarget {
     }
     // Quien bloquea o invade pierde su propia protección
     if ((type === 'invadir' || type === 'bloquear') && owner != null) this.state.shieldFrom = this.state.shieldUntil = 0;
+    // Y quien ataca a otro jugador, la de haber sido arrasado
+    if (owner != null && HOSTILE_MISSIONS.includes(type)) this.state.crushUntil = 0;
     return this.#done();
   }
 
@@ -1625,6 +1669,72 @@ export class Game extends EventTarget {
     return this.#done();
   }
 
+  /** Los barcos hundidos en una batalla (de los dos bandos) dejan un pecio frente a la isla. */
+  #wreck(islandId, result, t) {
+    const bag = {};
+    for (const side of [result.att, result.def]) {
+      for (const [id, n] of Object.entries(side?.lost ?? {})) {
+        const u = UNITS[id];
+        if (!(n > 0) || u?.kind !== 'barco') continue;
+        // (los barcos de los piratas y las fosas no tienen precio: madera y bronce según su casco)
+        const cost = u.cost ?? { madera: u.hp * 3, hierro: u.hp };
+        for (const [r, k] of Object.entries(cost)) bag[r] = (bag[r] ?? 0) + k * n * WRECK.share;
+      }
+    }
+    if (Object.keys(bag).length) this.world.addWreck?.(islandId, bag, t);
+  }
+
+  /** Tus Kleptes llegan a un pecio y cargan lo que cabe. */
+  #arriveWreck(m, isl, t) {
+    const room = Math.max(0, cargoOf(m.units) - count(m.cargo));
+    const taken = this.world.takeWreck?.(isl.id, room, t) ?? {};
+    for (const [r, n] of Object.entries(taken)) m.cargo[r] = (m.cargo[r] ?? 0) + n;
+    const got = fmtBag(taken);
+    const title = got ? `Pecio recogido frente a ${isl.name}` : `No queda nada del pecio de ${isl.name}`;
+    this.#report({ t, kind: 'recoger', island: isl.id, islandName: isl.name, title, loot: got ? taken : null, text: got ? 'Tus Kleptes cargan lo que se puede salvar y vuelven a casa.' : 'Alguien se ha llevado ya lo que quedaba (o se ha hundido del todo).' });
+    this.#note(`🪝 ${title}${got ? `: ${got}` : ''}`, got ? 'success' : 'info');
+  }
+
+  /**
+   * Mete en el refugio las tropas de tierra que quepan (`units`: cuántas de cada; sin decir, todas
+   * las que quepan, empezando por las que más plazas ocupan). No defienden ni mueren, ni se mandan.
+   */
+  shelter(units = null, now = this.now()) {
+    this.#advance(now);
+    const s = this.state;
+    const room = shelterRoom(s);
+    if (!room) return this.#fail('Investiga los Refugios en la academia.');
+    s.sheltered ??= {};
+    let free = room - seatsUsed(s.sheltered);
+    const want = units ?? Object.fromEntries(LAND_UNITS.map((id) => [id, s.units[id] ?? 0]));
+    const order = Object.keys(want).filter((id) => LAND_UNITS.includes(id)).sort((a, b) => (UNITS[b].size ?? 1) - (UNITS[a].size ?? 1));
+    let moved = 0;
+    for (const id of order) {
+      const size = UNITS[id].size ?? 1;
+      const n = Math.min(Math.floor(want[id] ?? 0), s.units[id] ?? 0, Math.floor(free / size));
+      if (n <= 0) continue;
+      s.units[id] -= n;
+      s.sheltered[id] = (s.sheltered[id] ?? 0) + n;
+      free -= n * size;
+      moved += n;
+    }
+    if (!moved) return this.#fail(free <= 0 ? 'El refugio está lleno.' : 'No tienes tropas de tierra en casa para esconder.');
+    this.#note(`🛖 ${moved} ${moved === 1 ? 'soldado se esconde' : 'soldados se esconden'} en el refugio`, 'success');
+    return this.#done();
+  }
+
+  /** Saca a todas las tropas del refugio. */
+  unshelter(now = this.now()) {
+    this.#advance(now);
+    const s = this.state;
+    const n = count(s.sheltered ?? {});
+    if (!n) return this.#fail('No hay nadie en el refugio.');
+    for (const [id, k] of Object.entries(s.sheltered)) s.units[id] = (s.units[id] ?? 0) + k;
+    s.sheltered = {};
+    this.#note(`🛖 ${n} ${n === 1 ? 'soldado sale' : 'soldados salen'} del refugio`, 'success');
+    return this.#done();
+  }
+
   /** Devuelve todos los puntos de habilidad del almirante para repartirlos de nuevo (por HERO.resetCost). */
   heroReset(now = this.now()) {
     this.#advance(now);
@@ -1672,6 +1782,9 @@ export class Game extends EventTarget {
       for (const q of recruiting) {
         q[0].start = now + (q[0].start - now) * 0.7;
         for (const b of q) b.each *= 0.7;
+        // (y las tandas que esperan empiezan cuando acabe la anterior, ya acortada: si no, la cola
+        // seguía marcando la hora de antes)
+        for (let i = 1; i < q.length; i++) q[i].start = q[i - 1].start + q[i - 1].count * q[i - 1].each;
       }
     } else if (id === 'viento') {
       // Las que ya navegan se ahorran media travesía; las que zarpen mientras dure, van al doble
@@ -1964,6 +2077,8 @@ export class Game extends EventTarget {
       watch: this.level('torre'),
       town: this.level('ayuntamiento'),
       faro: this.level('faro'),
+      fosos: this.researchLevel('fosos'),
+      cadena: this.researchLevel('cadena'),
       safe: protectedAmount(this.state),
       support: (this.world.supportersAt?.(this.state.home, this.userId) ?? []).map(({ game, mission }) => ({ from: game.name, units: { ...mission.units } })),
       upgrades: { forja: this.level('forja'), herreria: this.researchLevel('herreria'), armaduras: this.researchLevel('armaduras') },
@@ -1974,7 +2089,7 @@ export class Game extends EventTarget {
    * Otro jugador ataca tu isla en el instante `t`. Defienden tus tropas en casa
    * y la muralla; si ganan los atacantes se llevan recursos (salvo lo protegido).
    */
-  receiveAttack({ attackerName, units, atkMul, hpMul, cargoMul = 1, islandName, joint = false }, t) {
+  receiveAttack({ attackerId = null, attackerName, units, atkMul, hpMul, cargoMul = 1, islandName, joint = false, war = false }, t) {
     const s = this.state;
     const { result, wall } = this.#defend({ units, atkMul, hpMul }, t, attackerName);
 
@@ -1983,22 +2098,37 @@ export class Game extends EventTarget {
     for (const [id, n] of Object.entries(result.att.left)) cargo += n * (UNITS[id].cargo ?? 0);
     cargo = Math.floor(cargo * cargoMul);
     const outcome = result.winner === 'att' ? 'derrota' : result.winner === 'def' ? 'victoria' : 'empate';
+    // Quien te saquea otra vez el mismo día se lleva cada vez menos (salvo en guerra)
+    const looted = (s.lootedBy ?? []).filter((x) => x.t > t - hours(24));
+    const times = attackerId != null && !war ? looted.filter((x) => x.uid === attackerId).length : 0;
+    const share = ANTI_BULLY.lootDecay[Math.min(times, ANTI_BULLY.lootDecay.length - 1)];
     if (outcome === 'derrota') {
       const bag = {};
       const safe = protectedAmount(s);
       for (const res of RESOURCE_KEYS) bag[res] = Math.max(0, s.resources[res] - safe);
-      stolen = takeLoot(bag, cargo);
+      stolen = takeLoot(bag, cargo, share);
       for (const [res, n] of Object.entries(stolen)) s.resources[res] -= n;
+      s.lootedBy = attackerId != null ? [...looted, { uid: attackerId, t }] : looted;
     }
+    // Arrasado: si pierdes casi todo tu ejército, unas horas sin que nadie te ataque
+    const C = ANTI_BULLY.crush;
+    const defenders = count(result.def.start ?? {});
+    const crushed = outcome === 'derrota' && !war && defenders >= C.min && count(result.def.lost) >= defenders * C.share;
+    if (crushed) s.crushUntil = Math.max(s.crushUntil ?? 0, t + hours(C.hours));
     const title = {
       victoria: `Has rechazado el ataque de ${attackerName}`,
       empate: joint ? `${attackerName} se retiran de tu isla` : `${attackerName} se retira de tu isla`,
       derrota: joint ? `${attackerName} han saqueado tu isla` : `${attackerName} ha saqueado tu isla`,
     }[outcome];
-    this.#report({ t, kind: 'defensa', outcome, title, text: defenseText(result) || undefined, islandName, battle: pick(result), loot: stolen, towers: wall.towers, enemy: attackerName });
+    const extra = [
+      outcome === 'derrota' && share < 1 ? `Ya te había saqueado hoy: esta vez solo se lleva el ${Math.round(share * 100)} % de lo que habría podido.` : '',
+      crushed ? `🛡️ Has perdido casi todo tu ejército: nadie te puede atacar, bloquear ni invadir durante ${C.hours} h (salvo en guerra; si atacas tú, se acaba).` : '',
+    ];
+    const text = [defenseText(result), ...extra].filter(Boolean).join(' ');
+    this.#report({ t, kind: 'defensa', outcome, title, text: text || undefined, islandName, battle: pick(result), loot: stolen, towers: wall.towers, enemy: attackerName });
     this.#note(`⚔️ ${title}`, outcome === 'derrota' ? 'error' : 'success');
     this.#dirty = true;
-    return { result, stolen: stolen ?? {} };
+    return { result, stolen: stolen ?? {}, share, crushed };
   }
 
   /** Un informe y un aviso que llegan de fuera (por ejemplo, de tus tropas de apoyo). */
@@ -2463,7 +2593,8 @@ export class Game extends EventTarget {
     const isl = this.world.island(m.target);
     if (!isl) {
       // La isla ha desaparecido del mundo: la flota vuelve sin más
-    } else if (isl.type === 'jugador') {
+    } else if (m.type === 'recoger') this.#arriveWreck(m, isl, t);
+    else if (isl.type === 'jugador') {
       if (m.type === 'explorar') this.#arriveSpy(m, isl, t);
       else if (m.type === 'sabotaje') this.#arriveSabotage(m, isl, t);
       else if (m.type === 'apoyo') {
@@ -2791,7 +2922,9 @@ export class Game extends EventTarget {
       for (const a of allies) a.settle({ left: a.mission.units, loot: {}, kills: 0, won: false, report: empty });
       return;
     }
-    const { result, stolen } = res;
+    const { result, stolen, share = 1 } = res;
+    // Honor: abatir a alguien mucho más pequeño cuenta poco para la clasificación militar
+    const honor = war ? 1 : pvpHonor(this.score(), this.world.playerInfo?.(isl.owner)?.score ?? this.score());
     const lefts = shareSurvivors(groups.map((g) => g.units), result.att.left);
     const loots = splitBag(stolen, lefts.map(cargoOf));
     const killed = count(result.def.lost);
@@ -2803,7 +2936,7 @@ export class Game extends EventTarget {
     m.units = lefts[0];
     for (const [r, n] of Object.entries(loots[0])) m.cargo[r] = (m.cargo[r] ?? 0) + n;
     if (m.hero) this.#heroXp(result.def.lost, t);
-    this.state.stats.kills += Math.round((killed * shares[0]) / shareSum);
+    this.state.stats.kills += Math.round(((killed * shares[0]) / shareSum) * honor);
     this.state.stats.loot += count(loots[0]);
     if (outcome === 'victoria') {
       this.state.stats.victories++;
@@ -2824,7 +2957,12 @@ export class Game extends EventTarget {
           ? 'La ciudad acaba de librarse de un bloqueo o una ocupación y está protegida: tus tropas la saquean y vuelven a casa.'
           : 'No te quedan tropas de tierra para ocupar la ciudad.'
         : '';
-    const text = [phaseText(result), names.length ? `🤝 Ataque conjunto con ${names.join(', ')}. El botín se reparte según la bodega de cada uno.` : '', warText, occupyText].filter(Boolean).join(' ') || undefined;
+    const bullyText = [
+      outcome === 'victoria' && share < 1 ? `Ya le habías saqueado hoy: esta vez solo te llevas el ${Math.round(share * 100)} % de lo que habrías podido.` : '',
+      honor < 1 ? `Es mucho más pequeño que tú: sus bajas solo cuentan un ${Math.round(honor * 100)} % para tu clasificación militar.` : honor > 1 ? `Es más grande que tú: sus bajas cuentan un ${Math.round(honor * 100)} % para tu clasificación militar.` : '',
+      res.crushed ? 'Ha perdido casi todo su ejército: queda unas horas a salvo de ataques.' : '',
+    ];
+    const text = [phaseText(result), names.length ? `🤝 Ataque conjunto con ${names.join(', ')}. El botín se reparte según la bodega de cada uno.` : '', warText, occupyText, ...bullyText].filter(Boolean).join(' ') || undefined;
     this.#report({ t, kind: 'ataque', island: isl.id, islandName: isl.name, outcome, title, text, battle: battleLog, loot: loots[0], enemy, pvp: true });
     this.#note(`${occupy ? '🦅' : '⚔️'} ${title}${fmtBag(loots[0]) ? ` · botín ${fmtBag(loots[0])}` : ''}`, outcome === 'victoria' ? 'success' : 'error');
     if (occupy) this.#station(m, isl, t, OCCUPATION.hours);
@@ -2835,7 +2973,7 @@ export class Game extends EventTarget {
       a.settle({
         left: lefts[i + 1],
         loot: loots[i + 1],
-        kills: Math.round((killed * shares[i + 1]) / shareSum),
+        kills: Math.round(((killed * shares[i + 1]) / shareSum) * (a.uid != null && !war ? pvpHonor(this.world.playerInfo?.(a.uid)?.score ?? 0, this.world.playerInfo?.(isl.owner)?.score ?? 0) : 1)),
         won: outcome === 'victoria',
         report: {
           t,
@@ -3238,6 +3376,7 @@ export class Game extends EventTarget {
     // El Kraken, con la fuerza de su nivel
     const boost = garrison.kraken ? { kraken: krakenPower(krakenLevel(rt)) } : undefined;
     const result = assault({ units: m.units, atkMul: atkMul + heroAtk, hpMul }, { units: garrison, wallHp: wall, boost });
+    this.#wreck(isl.id, result, t);
     if (m.hero) this.#heroXp(result.def.lost, t);
     this.state.stats.kills += count(result.def.lost);
 
@@ -3533,17 +3672,24 @@ export class Game extends EventTarget {
     for (const pool of pools) for (const [id, n] of Object.entries(pool.units)) if (n > 0) combined[id] = (combined[id] ?? 0) + n;
     const heroHome = this.heroStatus(t) === 'casa';
     const heroDef = heroHome ? this.heroBonus('defensa') : 0;
-    // Primero tu flota (con el faro) contra la suya; si la vences, no llegan a desembarcar
+    // Las catapultas del atacante rebajan la muralla (y con ella lo que para de su ataque)
+    const wallHp = Math.max(0, wall.hp - siegeOf(attacker.units));
+    // Primero tu flota (con el faro y la cadena) contra la suya; si la vences, no llegan a desembarcar
     const result = assault(attacker, {
       units: combined,
       atkMul: mine.atkMul,
       hpMul: mine.hpMul + aegis + heroDef,
       navalHpMul: navalDefense(this.level('faro')),
-      // Las catapultas del atacante rebajan la muralla
-      wallHp: Math.max(0, wall.hp - siegeOf(attacker.units)),
+      chain: DEFENSE.chain * this.researchLevel('cadena'),
+      wallHp,
+      absorb: wall.hp > 0 ? wall.absorb * (wallHp / wall.hp) : 0,
+      traps: DEFENSE.traps * this.researchLevel('fosos'),
       extraAtk: wall.towers,
+      // Desde la torre de vigía, tus honderos y arqueros disparan mejor
+      boost: wall.ranged > 0 ? Object.fromEntries(PLAYER_UNITS.filter((id) => UNITS[id].cls === 'distancia').map((id) => [id, 1 + wall.ranged])) : undefined,
     }, { needLanding: true });
     s.stats.kills += count(result.att.lost);
+    this.#wreck(s.home, result, t);
     if (heroHome) {
       this.#heroXp(result.att.lost, t);
       if (result.winner === 'att') this.#heroWounded(t);
@@ -3808,8 +3954,9 @@ function pick(result) {
 function defenseText(result) {
   if (!('seaWon' in result)) return '';
   if (!result.seaWon) return 'Tu flota les cierra el paso: no han podido desembarcar.';
-  if (result.naval) return result.landed ? 'Han vencido a tu flota y desembarcan.' : 'Han vencido a tu flota, pero no traían tropas para desembarcar.';
-  return result.landed ? '' : 'Se acercan con sus barcos, pero no traen tropas para desembarcar.';
+  const traps = result.trapped ? ` 🪤 ${result.trapped} caen en los fosos antes de luchar.` : '';
+  if (result.naval) return (result.landed ? 'Han vencido a tu flota y desembarcan.' : 'Han vencido a tu flota, pero no traían tropas para desembarcar.') + traps;
+  return (result.landed ? '' : 'Se acercan con sus barcos, pero no traen tropas para desembarcar.') + traps;
 }
 
 /** Una frase con lo que ha pasado en el mar (para los informes de ataque). */
@@ -3819,6 +3966,7 @@ function phaseText(result) {
   if (!result.seaWon) parts.push('La flota enemiga os cierra el paso: no habéis podido desembarcar.');
   else if (result.naval) parts.push('Vuestra flota se hace con el mar.');
   if (drowned) parts.push(`Se ahogan ${drowned} soldados que ya no cabían en los barcos.`);
+  if (result.trapped) parts.push(`🪤 ${result.trapped} de los vuestros caen en sus fosos antes de luchar.`);
   if (result.seaWon && !result.landed && result.winner !== 'att') parts.push('No lleváis tropas de tierra para desembarcar.');
   return parts.join(' ');
 }
@@ -3854,7 +4002,7 @@ function spyIntel(info, level, t) {
     town: info.town,
     ships: level >= 2 ? ships : null,
     troops: level >= 3 ? troops : null,
-    defenses: level >= 4 ? { torre: info.watch ?? 0, faro: info.faro ?? 0, safe: info.safe ?? 0 } : null,
+    defenses: level >= 4 ? { torre: info.watch ?? 0, faro: info.faro ?? 0, fosos: info.fosos ?? 0, cadena: info.cadena ?? 0, safe: info.safe ?? 0 } : null,
     support: level >= 5 ? (info.support ?? []) : null,
     upgrades: level >= 5 ? (info.upgrades ?? null) : null,
   };

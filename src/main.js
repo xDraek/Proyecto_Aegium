@@ -361,6 +361,8 @@ function startGame(game) {
   else if (game.dailyStatus().available) hud.social.openDaily();
 
   game.start();
+  // Con un enlace al foro (…/#foro), se abre al entrar
+  if (location.hash === '#foro') hud.openBoard();
   // La versión que corre esta página (el nombre de su código, como lo pone la compilación)
   const build = import.meta.env.PROD ? new URL(import.meta.url).pathname.split('/').pop() : null;
   connectLive(game, {

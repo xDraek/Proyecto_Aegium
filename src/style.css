@@ -2944,6 +2944,112 @@ input[type='text'] {
   overflow-wrap: anywhere;
 }
 
+/* ── Foro de la comunidad ───────────────────────────────────────────────── */
+
+.board-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  padding: 16px;
+  background: rgba(10, 8, 6, 0.55);
+  z-index: 100;
+}
+
+.modal-card.board-card {
+  width: min(760px, 100%);
+  max-height: calc(100dvh - 32px);
+}
+
+.board-sections {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.board-section {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+}
+
+.board-section:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.board-section.unread {
+  border-color: var(--gold);
+}
+
+.board-icon {
+  font-size: 1.6em;
+}
+
+.board-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.board-last {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge-inline {
+  display: inline-block;
+  min-width: 1.4em;
+  padding: 0 0.4em;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #1b140c;
+  font-size: 0.75em;
+  font-weight: 700;
+  text-align: center;
+}
+
+.board-title {
+  margin: 4px 0 8px;
+  overflow-wrap: anywhere;
+}
+
+.board-mod {
+  margin-bottom: 8px;
+}
+
+.post.first {
+  border-color: rgba(217, 179, 91, 0.25);
+}
+
+.post-head .link {
+  margin-left: 6px;
+}
+
+.board-reports {
+  color: #ff8a7a;
+  margin-left: 6px;
+}
+
+.board-login {
+  margin-top: 12px;
+}
+
+.landing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* ── Eventos del archipiélago ───────────────────────────────────────────── */
 
 .event-pill {
@@ -5630,25 +5736,29 @@ kbd {
     gap: 4px;
   }
 
+  /* Arriba, solo los recursos: la temporada, el Kraken, el favor y el regalo van como iconos sueltos
+     bajo la esquina derecha, sin texto (al pulsarlos se ve el detalle). Así no roban una fila entera */
   #topbar .top-status {
-    order: -1;
-    flex-basis: 100%;
-    justify-content: center;
-    gap: 4px;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 6px;
+    gap: 6px;
   }
 
-  #topbar .top-status .pill {
-    height: 26px;
-    font-size: 12px;
-  }
-
+  #topbar .top-status .pill,
   #topbar .top-status .icon-btn {
-    width: 26px;
-    height: 26px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(24, 20, 16, 0.88);
+    border: 1px solid var(--panel-border);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
   }
 
-  #topbar .top-status .kraken-pill {
-    width: 30px;
+  #topbar .top-status .pill-text {
+    display: none;
   }
 
   #topbar .kraken-pill .res-img.unit-img {

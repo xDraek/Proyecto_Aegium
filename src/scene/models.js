@@ -5368,6 +5368,39 @@ const SHIPS = {
     for (let i = 0; i < 6; i++) g.add(amphora(-0.25 + (i % 3) * 0.25, hull.top(0.5) - 0.05, 0.45 + Math.floor(i / 3) * 0.22, i % 2 ? '#b9643a' : '#a5542f', 0.45));
     steering(g, -0.85, hull.half(-0.85) + 0.03, hull.top(0.1));
   },
+  kleptes(g) {
+    // Kleptes: casco ancho y bajo de rescate, una grúa con su garfio colgando por la borda, redes y
+    // un montón de tablas y ánforas recuperadas en cubierta
+    const hull = shipHull({ len: 2.4, beam: 1.1, depth: 0.45, rise: 0.15, full: 0.35, color: '#5f6a63', band: '#d9a441' });
+    g.add(hull.mesh);
+    sternPost(g, -1.2, hull.top(0), false, '#4a524d');
+    const deck = hull.top(0.5);
+    // La grúa: un mástil corto a popa y un brazo largo que sale por la proa, algo levantado
+    const top = deck + 1.15;
+    const z0 = -0.35;
+    g.add(cyl(0.06, 0.07, top - deck + 0.05, 6, C.woodDark, 0, deck - 0.05, z0));
+    const tilt = 0.3;
+    const reach = 1.85;
+    const boom = mesh(new THREE.BoxGeometry(0.07, 0.07, reach), C.woodDark);
+    boom.position.set(0, top + (Math.sin(tilt) * reach) / 2, z0 + (Math.cos(tilt) * reach) / 2);
+    boom.rotation.x = -tilt;
+    g.add(boom);
+    // El cabo y el garfio, colgando por delante de la proa, sobre el agua
+    const tipZ = z0 + Math.cos(tilt) * reach;
+    const tipY = top + Math.sin(tilt) * reach;
+    const hookY = deck - 0.3;
+    g.add(cyl(0.012, 0.012, tipY - hookY, 4, '#d8c9a0', 0, hookY, tipZ));
+    const hook = mesh(new THREE.TorusGeometry(0.09, 0.025, 4, 8, Math.PI * 1.3), '#7a7f84');
+    hook.position.set(0, hookY - 0.04, tipZ);
+    hook.rotation.y = Math.PI / 2;
+    hook.rotation.z = Math.PI * 0.85;
+    g.add(hook);
+    // Redes sobre la borda y lo recuperado
+    for (const s of [-1, 1]) g.add(box(0.04, 0.22, 0.7, '#c9b98a', s * 0.52, deck - 0.02, -0.45));
+    g.add(box(0.5, 0.08, 0.3, '#8b5a2b', -0.15, deck + 0.02, 0.7), box(0.45, 0.08, 0.28, '#7a4f26', -0.12, deck + 0.1, 0.72));
+    for (let i = 0; i < 3; i++) g.add(amphora(-0.3 + i * 0.22, deck - 0.05, -0.55, i % 2 ? '#b9643a' : '#a5542f', 0.4));
+    steering(g, -0.9, hull.half(-0.9) + 0.03, hull.top(0.1));
+  },
   trirreme(g) {
     // Trirreme: casco largo y fino, tres filas de remos, espolón, ojos en la proa y vela a rayas
     const hull = shipHull({ len: 3.0, beam: 0.72, depth: 0.42, rise: 0.3, full: 0.75, color: '#c8a070', band: '#2b2620' });

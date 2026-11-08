@@ -5,7 +5,7 @@
  * (variable GAME_SPEED) y el navegador la recibe al conectarse. `eventOverride`:
  * una temporada del archipiélago puesta a mano por los moderadores ({ id, start, end }).
  */
-export const universe = { speed: 1, eventSeed: 0, eventOverride: null };
+export const universe = { speed: 1, eventSeed: 0, eventOverride: null, wrap: 0 };
 
 /** Reloj del juego. En el navegador se corrige con la hora del servidor. */
 export const clock = {

@@ -1,7 +1,7 @@
 import { clock } from '../config.js';
 import { ISLAND_TYPES, MISSION_TYPES, PVP_RANGE, UNITS } from '../game/data.js';
 import { travelSeconds } from '../game/rules.js';
-import { COORD_CELL, coordsCenter, coordsOf, fmtCoords } from '../game/world.js';
+import { COORD_CELL, coordsCenter, coordsOf, distance, fmtCoords, wrapDelta } from '../game/world.js';
 import { escapeHtml, fmtNum, fmtTime, unitList } from './format.js';
 
 // Mapa de todo el archipiélago: las ciudades de todos los jugadores y las
@@ -258,7 +258,11 @@ export class WorldMap {
       return i ? [i.x, i.z] : null;
     };
     const home = [this.home.x, this.home.z];
-    const lerp = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+    // (cruzando la costura si es más corto: el mapa da la vuelta)
+    const lerp = (a, b, k) => {
+      const d = wrapDelta(b[0] - a[0], b[1] - a[1]);
+      return [a[0] + d.dx * k, a[1] + d.dz * k];
+    };
     const out = [];
     for (const m of this.game.missions ?? []) {
       const a = m.from ? where(m.from) : home;
@@ -289,7 +293,7 @@ export class WorldMap {
 
   /** Dónde se pinta el barco de una flota (las que están quietas, junto a la ciudad). */
   #fleetSpot(f) {
-    const [x, y] = this.#toScreen(...f.at);
+    const [x, y] = this.#spot(...f.at);
     return f.parked ? [x - 14, y + 14] : [x, y];
   }
 
@@ -323,13 +327,25 @@ export class WorldMap {
     return [(x - this.cx) * this.scale + this.w / 2, (z - this.cz) * this.scale + this.h / 2];
   }
 
+  /**
+   * Dónde se pinta en pantalla algo del mundo: el mapa da la vuelta, así que en su copia más cercana
+   * a lo que miras (al moverte, lo del otro lado de la costura va apareciendo).
+   */
+  #spot(x, z) {
+    const d = wrapDelta(x - this.cx, z - this.cz);
+    return this.#toScreen(this.cx + d.dx, this.cz + d.dz);
+  }
+
   #toWorld(px, py) {
     return [(px - this.w / 2) / this.scale + this.cx, (py - this.h / 2) / this.scale + this.cz];
   }
 
   #clampScale(s) {
     let ext = 1500;
-    for (const c of this.data.cities) ext = Math.max(ext, Math.abs(c.x - this.home.x), Math.abs(c.z - this.home.z));
+    for (const c of this.data.cities) {
+      const d = wrapDelta(c.x - this.home.x, c.z - this.home.z);
+      ext = Math.max(ext, Math.abs(d.dx), Math.abs(d.dz));
+    }
     return Math.min(1.2, Math.max(this.w / (ext * 2.6), s));
   }
 
@@ -444,7 +460,7 @@ export class WorldMap {
     let bestD = 14;
     for (const city of this.data.cities) {
       if (!this.#shown({ kind: 'city', item: city })) continue;
-      const [x, y] = this.#toScreen(city.x, city.z);
+      const [x, y] = this.#spot(city.x, city.z);
       const d = Math.hypot(x - px, y - py);
       if (d < bestD) {
         best = { kind: 'city', item: city };
@@ -453,7 +469,7 @@ export class WorldMap {
     }
     if (best) return best;
     for (const feat of this.data.feats ?? []) {
-      const [x, y] = this.#toScreen(feat.x, feat.z);
+      const [x, y] = this.#spot(feat.x, feat.z);
       const d = Math.hypot(x - px, y - py);
       if (d < Math.max(14, feat.size * this.scale * 1.4)) return { kind: 'feat', item: feat };
     }
@@ -461,7 +477,7 @@ export class WorldMap {
     bestD = Math.max(8, 24 * this.scale);
     for (const isl of this.data.islands) {
       if (isl[2] === 'continente') continue;
-      const [x, y] = this.#toScreen(isl[0], isl[1]);
+      const [x, y] = this.#spot(isl[0], isl[1]);
       const d = Math.hypot(x - px, y - py);
       if (d < bestD) {
         best = { kind: 'island', item: isl };
@@ -515,7 +531,7 @@ export class WorldMap {
       return;
     }
     const pos = hit.kind === 'city' || hit.kind === 'feat' ? hit.item : { x: hit.item[0], z: hit.item[1] };
-    const dist = Math.round(Math.hypot(pos.x - this.home.x, pos.z - this.home.z));
+    const dist = Math.round(distance(pos, this.home));
     const trip = fmtTime(travelSeconds(this.game.state, dist, UNITS.trirreme.speed));
     const far = `<span class="muted small">${fmtCoords(coordsOf(pos.x, pos.z))} · a ${fmtNum(dist)} leguas · ⛵ ${trip} en trirreme</span>`;
     if (hit.kind === 'city') {
@@ -600,7 +616,8 @@ export class WorldMap {
     // La casilla buscada
     if (this.mark) {
       const c = coordsCenter(...this.mark);
-      const [sx, sy] = this.#toScreen(c.x - COORD_CELL / 2, c.z - COORD_CELL / 2);
+      const [mx, my] = this.#spot(c.x, c.z);
+      const [sx, sy] = [mx - (COORD_CELL / 2) * this.scale, my - (COORD_CELL / 2) * this.scale];
       ctx.strokeStyle = 'rgba(242,201,76,0.9)';
       ctx.fillStyle = 'rgba(242,201,76,0.12)';
       ctx.lineWidth = 2;
@@ -612,7 +629,7 @@ export class WorldMap {
 
     // Hasta donde llegan tus flotas de guerra (sin Cartas náuticas)
     if (!this.charts) {
-      const [hx, hy] = this.#toScreen(this.home.x, this.home.z);
+      const [hx, hy] = this.#spot(this.home.x, this.home.z);
       ctx.setLineDash([6, 6]);
       ctx.strokeStyle = 'rgba(242,201,76,0.45)';
       ctx.beginPath();
@@ -626,7 +643,7 @@ export class WorldMap {
     // Continentes (debajo de todo)
     for (const [x, z, type, , size] of this.data.islands) {
       if (type !== 'continente') continue;
-      const [sx, sy] = this.#toScreen(x, z);
+      const [sx, sy] = this.#spot(x, z);
       const cr = Math.max(4, size * scale);
       if (!inView(sx, sy, cr + 20)) continue;
       const seed = Math.imul(x, 73856093) ^ Math.imul(z, 19349663);
@@ -644,7 +661,7 @@ export class WorldMap {
     // Gestas en marcha: anillos de lava que laten sobre su continente
     const beat = (Math.sin(performance.now() / 400) + 1) / 2;
     for (const f of this.data.feats ?? []) {
-      const [sx, sy] = this.#toScreen(f.x, f.z);
+      const [sx, sy] = this.#spot(f.x, f.z);
       const fr = Math.max(8, f.size * scale);
       if (!inView(sx, sy, fr * 2 + 20)) continue;
       ctx.strokeStyle = f.stage === 'lucha' ? `rgba(255, 110, 40, ${0.55 + 0.4 * beat})` : `rgba(255, 190, 90, ${0.4 + 0.3 * beat})`;
@@ -660,19 +677,19 @@ export class WorldMap {
     const r = Math.max(1.6, 24 * scale);
     const shapes = r >= 4;
     const icons = r >= 10;
-    const islands = this.hidden.has('islas') ? [] : this.data.islands.filter(([x, z, type]) => type !== 'continente' && inView(...this.#toScreen(x, z)));
+    const islands = this.hidden.has('islas') ? [] : this.data.islands.filter(([x, z, type]) => type !== 'continente' && inView(...this.#spot(x, z)));
     if (shapes) {
       ctx.fillStyle = 'rgba(120, 200, 215, 0.12)';
       for (const [x, z, type] of islands) {
         if (type === 'brumas') continue;
-        const [sx, sy] = this.#toScreen(x, z);
+        const [sx, sy] = this.#spot(x, z);
         ctx.beginPath();
         ctx.arc(sx, sy, r * 1.9, 0, Math.PI * 2);
         ctx.fill();
       }
     }
     for (const [x, z, type, colonist] of islands) {
-      const [sx, sy] = this.#toScreen(x, z);
+      const [sx, sy] = this.#spot(x, z);
       if (type === 'brumas') {
         const mist = ctx.createRadialGradient(sx, sy, 0, sx, sy, r * 1.8);
         mist.addColorStop(0, 'rgba(205, 220, 230, 0.5)');
@@ -724,9 +741,14 @@ export class WorldMap {
     for (const f of fleets) {
       if (f.parked) continue;
       const color = f.mine ? (HOSTILE.has(f.m.type) ? '#ff9a8a' : f.m.type === 'tributo' ? '#ffd27a' : '#ffffff') : '#ff5a4a';
-      const [ax, ay] = this.#toScreen(...f.a);
-      const [bx, by] = this.#toScreen(...f.b);
-      const [fx, fy] = this.#toScreen(...f.at);
+      // (la ruta, alrededor de donde va el barco: si cruza la costura, por el camino corto)
+      const [fx, fy] = this.#spot(...f.at);
+      const toward = (p) => {
+        const d = wrapDelta(p[0] - f.at[0], p[1] - f.at[1]);
+        return [fx + d.dx * this.scale, fy + d.dz * this.scale];
+      };
+      const [ax, ay] = toward(f.a);
+      const [bx, by] = toward(f.b);
       const [ex, ey] = f.back ? [ax, ay] : [bx, by];
       ctx.strokeStyle = color;
       ctx.globalAlpha = 0.25;
@@ -753,7 +775,7 @@ export class WorldMap {
     ctx.font = '600 11px Inter, system-ui, sans-serif';
     ctx.textAlign = 'center';
     for (const c of this.data.cities) {
-      const [sx, sy] = this.#toScreen(c.x, c.z);
+      const [sx, sy] = this.#spot(c.x, c.z);
       if (!inView(sx, sy, 80)) continue;
       const rel = this.#relation(c.uid, c.aid);
       if (rel !== 'yo' && this.hidden.has(rel)) continue;
@@ -823,7 +845,7 @@ export class WorldMap {
 
     // El icono de cada gesta, encima de todo (junto al borde de su anillo)
     for (const f of this.data.feats ?? []) {
-      const [sx, sy] = this.#toScreen(f.x, f.z);
+      const [sx, sy] = this.#spot(f.x, f.z);
       const fr = Math.max(8, f.size * scale);
       if (!inView(sx, sy, fr * 2 + 20)) continue;
       const by = sy - fr * 1.3;

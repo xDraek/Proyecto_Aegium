@@ -181,4 +181,12 @@ export default {
   "Contraseña temporal de {0}: pásasela y que la cambie al entrar.": "{0}'s temporary password: give it to them and have them change it when they log in.",
   "Quitar amigo": "Remove friend",
   "Quitar": "Remove",
+  "🤖 Posibles bots": "🤖 Possible bots",
+  "Señales": "Signs",
+  "Comprobación": "Check",
+  "✅ superada": "✅ passed",
+  "⏳ pendiente": "⏳ pending",
+  "· {0} fallos": "· {0} failures",
+  "Nadie da señales de jugar con un programa ahora mismo.": "Nobody shows signs of playing with a program right now.",
+  "Señales: actividad casi todas las horas del día, un ritmo demasiado regular entre acciones o demasiadas acciones por minuto. A quien las da se le pide una comprobación sencilla de vez en cuando y sus acciones van más despacio. Si sigue, suspende la cuenta desde su perfil (⛔ Suspender).": "Signs: activity almost every hour of the day, a rhythm between actions that's too regular or too many actions per minute. Whoever shows them is asked for a simple check now and then and their actions go slower. If it continues, suspend the account from their profile (⛔ Suspend).",
 }

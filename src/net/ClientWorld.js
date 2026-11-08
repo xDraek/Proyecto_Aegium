@@ -1,4 +1,6 @@
+import { clock } from '../config.js';
 import { session } from './api.js';
+import { distance } from '../game/world.js';
 
 // Copia en el navegador del mundo que ve el jugador (la manda el servidor en cada
 // estado). Tiene la misma interfaz `world` que usa Game.
@@ -10,7 +12,14 @@ export class ClientWorld {
     this.players = {};
     this.joints = [];
     this.truces = new Set();
+    this.wrecks = {};
     this.version = 0;
+  }
+
+  /** El pecio que hay frente a una isla (lo manda el servidor en cada estado), o null. */
+  wreckAt(id, t = clock.now()) {
+    const w = this.wrecks[id];
+    return w && w.until > t ? w : null;
   }
 
   /**
@@ -81,7 +90,7 @@ export class ClientWorld {
     const home = this.island(homeId);
     if (!home) return [];
     return this.islands()
-      .map((i) => ({ ...i, d: Math.hypot(i.x - home.x, i.z - home.z) }))
+      .map((i) => ({ ...i, d: distance(i, home) }))
       .filter((i) => i.d <= radius)
       .sort((a, b) => a.d - b.d);
   }

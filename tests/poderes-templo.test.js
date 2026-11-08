@@ -36,6 +36,22 @@ test('Inspiración adelanta un 30 % el reclutamiento en curso, también el de ba
   assert.equal(A.training('cuartel').length, 0);
 });
 
+test('Inspiración acorta toda la cola del puerto, también las tandas que esperan', async () => {
+  const env = await makeWorld();
+  const [A] = env.players;
+  withTemple(A);
+  for (const [id, n] of [['mercante', 3], ['bote', 4], ['mercante', 2]]) assert.ok(A.train(id, n).ok);
+  env.advance(60_000);
+  const now = clock.now();
+  const ends = A.training('puerto').map((b) => b.end);
+  assert.ok(A.castPower('inspiracion').ok);
+  A.training('puerto').forEach((b, i) => assert.ok(Math.abs(b.end - (now + (ends[i] - now) * 0.7)) < 50, `la tanda ${i + 1} termina un 30 % antes`));
+  // Y salen cuando dice la cola
+  const last = A.training('puerto').at(-1).end;
+  env.until(last);
+  assert.equal(A.training('puerto').length, 0);
+});
+
 test('Inspiración se puede invocar con solo un reclutamiento en marcha', async () => {
   const env = await makeWorld();
   const [A] = env.players;

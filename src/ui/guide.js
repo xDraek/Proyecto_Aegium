@@ -3,8 +3,14 @@ import {
   FAVOR_ICON,
   FAVOR_MAX,
   ACHIEVEMENTS,
+  ANTI_BULLY,
   BLOCKADE,
+  BOARD,
+  BOARD_SECTIONS,
   CANCEL_REFUND,
+  DEFENSE,
+  WRECK,
+  FLEET_COST,
   BUILDINGS,
   COUNTERS,
   COLONY,
@@ -39,6 +45,7 @@ import {
   RELICS,
   RESEARCH,
   RESOURCES,
+  REWARD_HOURS,
   SHIP_UNITS,
   SPY,
   SPY_TIERS,
@@ -139,9 +146,9 @@ function shipTable() {
 function storageTable() {
   const rows = [0, 1, 3, 5, 8, 10, 15].map((n) => {
     const s = { buildings: { almacen: n }, research: {} };
-    return [n ? `Nivel ${n}` : 'Sin almacén', fmtNum(storageCapacity(s)), fmtNum(protectedAmount(s))];
+    return [n ? `Nivel ${n}` : 'Sin almacén', fmtNum(storageCapacity(s))];
   });
-  return table(['Almacén', 'Máximo de cada recurso', 'Escondido (no se roba)'], rows);
+  return table(['Almacén', 'Máximo de cada recurso'], rows);
 }
 
 function productionTable() {
@@ -166,6 +173,7 @@ function missionsTable() {
     ['colonizar', 'Un mercante y los recursos de la colonia', 'Funda una colonia en una isla libre explorada.'],
     ['conquistar', 'Tropas, un mercante y los recursos', 'Asalta una ciudad bárbara y, si cae entera, la gobiernas.'],
     ['expedicion', 'Lo que quieras', 'Se adentra en el Mar de las Brumas: tesoros, barcos perdidos… o monstruos.'],
+    ['recoger', 'Solo Kleptes', 'Recoge el pecio que ha dejado una batalla en el mar frente a una isla, sea de quien sea.'],
   ];
   return table(
     ['Misión', 'Qué mandas', 'Qué pasa'],
@@ -310,7 +318,8 @@ const TOPICS = {
       '<b>Encargos diarios</b>: cada día tocan hasta tres tareas adaptadas a tu ciudad (construir, entrenar, saquear, comerciar…). Si las cumples todas hay un premio extra.',
       '<b>Regalo diario</b> 🎁: entra cada día para recogerlo. Cuantos más días seguidos, mejor (el séptimo es el bueno), y crece con el nivel del ayuntamiento. Si te saltas un día, la racha vuelve a empezar.',
       `<b>Logros</b>: se ganan solos y salen en tu ${see('perfil', 'perfil')}.`,
-    ])}`,
+    ])}
+      ${tip(`Las recompensas de las misiones y los encargos crecen con tu ciudad: valen al menos ${String(REWARD_HOURS.quest).replace('.', ',')} h de lo que produces (cada encargo, ${REWARD_HOURS.task} h, y cumplirlos todos, ${REWARD_HOURS.taskBonus} h más).`)}`,
   },
 
   recursos: {
@@ -322,7 +331,8 @@ const TOPICS = {
       ${productionTable()}
       <p>A eso se suman las ${see('investigacion', 'investigaciones')} (+5 % por nivel; Comercio, +2,5 % de oro), tus ${see('colonias', 'colonias')}, el Coloso (+5 % de todo por nivel), las ${see('eventos', 'temporadas')} y algunas ${see('reliquias', 'reliquias')}.</p>
       <h5>El almacén</h5>
-      <p>Cada recurso tiene un <b>máximo</b>: lo que se produce con el almacén lleno se pierde. Además, el almacén <b>esconde</b> una parte de cada recurso que nadie puede robar ni quemar (ni piratas, ni saqueadores, ni saboteadores). Logística sube el máximo un 10 % por nivel.</p>
+      <p>Cada recurso tiene un <b>máximo</b>: lo que se produce con el almacén lleno se pierde. Logística sube el máximo un 10 % por nivel.</p>
+      <p>De cada recurso, <b>${fmtNum(protectedAmount())}</b> están siempre a salvo: nadie los puede robar ni quemar (ni piratas, ni saqueadores, ni saboteadores). Lo demás se lo puede llevar quien te venza, por grande que sea tu almacén: lo que no gastes, defiéndelo.</p>
       ${storageTable()}
       <h5>La comida</h5>
       <p>Las tropas y los barcos <b>comen</b> cada hora, estén en casa o en el mar. Si la comida llega a cero hay <b>hambruna</b>: el resto de la producción cae a la mitad. La taberna reduce lo que comen (−4 % por nivel, hasta −40 %). Casi todas, además, cobran una ${see('unidades', 'paga en oro')} (la milicia no; la élite, más).</p>
@@ -373,7 +383,9 @@ const TOPICS = {
       ${shipTable()}
       <p><b>${RESOURCES.oro.icon} Paga</b>: las tropas y los barcos, además de comer, cobran una <b>paga en oro</b> cada hora, estén en casa o en el mar. La <b>milicia</b> (Milicia con lanza y Hondero miliciano) no cobra, pero come el doble. Si el oro se acaba, desertan los que más cobran hasta que la paga cuadre.</p>
       <p><b>⭐ Tropas de élite</b>: mucho más fuertes, pero cobran bastante más. Se desbloquean con <b>Táctica militar</b>. La caballería pide <b>Equitación 2</b> y los elefantes, la <b>Doma de elefantes</b> (que se investiga con Equitación 4).</p>
-      ${tip('Los mercantes no combaten, pero llevan muchas tropas y mucho botín. Los botes son rápidos y solo sirven para explorar, espiar y sabotear.')}`,
+      ${tip('Los mercantes no combaten, pero llevan muchas tropas y mucho botín. Los botes son rápidos y solo sirven para explorar, espiar y sabotear.')}
+      <h5>${UNITS.kleptes.icon} Kleptes y pecios</h5>
+      <p>Cada batalla en el mar deja frente a la isla un <b>pecio</b> con el ${pct(WRECK.share)} de lo que costaban los barcos hundidos, de los dos bandos. Flota ${WRECK.hours} h y lo puede recoger <b>cualquiera</b> que mande <b>Kleptes</b> (barcos de rescate que no combaten ni llevan tropas), también quien no luchó. En el mapa, la isla lleva «🪝 Pecio». Quien llega antes se lo lleva.</p>`,
   },
   combate: {
     icon: '⚔️',
@@ -407,10 +419,12 @@ const TOPICS = {
           [`${RESEARCH.herreria.icon} ${RESEARCH.herreria.name} (investigación)`, '+5 % de ataque por nivel'],
           [`${BUILDINGS.forja.icon} ${BUILDINGS.forja.name}`, '+3 % de ataque por nivel'],
           [`${RESEARCH.armaduras.icon} ${RESEARCH.armaduras.name} (investigación)`, '+5 % de vida por nivel'],
-          [`${RESEARCH.tactica.icon} ${RESEARCH.tactica.name} (investigación)`, '+3 % de ataque y de vida por nivel'],
-          ['🏰 Muralla (al defender)', '+10 % de vida y 10 de daño de sus torres por nivel'],
-          ['👁️ Torre de vigía (al defender)', '8 de daño de sus arqueros por nivel'],
+          [`${RESEARCH.tactica.icon} ${RESEARCH.tactica.name} (investigación)`, '+3 % de vida por nivel'],
+          ['🏰 Muralla (al defender)', `+${pct(DEFENSE.wallHp)} de vida, para un ${pct(DEFENSE.wallAbsorb)} del ataque de los que desembarcan (hasta un ${pct(DEFENSE.wallAbsorbMax)}) y ${DEFENSE.towers} de daño de sus torres por nivel`],
+          ['👁️ Torre de vigía (al defender)', `+${pct(DEFENSE.watch)} de ataque y vida a tus honderos y arqueros por nivel (hasta un ${pct(DEFENSE.watchMax)})`],
           ['🪔 Faro (al defender)', '+4 % de vida de tus barcos por nivel'],
+          [`${RESEARCH.fosos.icon} ${RESEARCH.fosos.name} (investigación, al defender)`, `El ${pct(DEFENSE.traps)} por nivel de los que desembarcan cae antes de luchar`],
+          [`${RESEARCH.cadena.icon} ${RESEARCH.cadena.name} (investigación, al defender)`, `−${pct(DEFENSE.chain)} de ataque por nivel a los barcos que atacan tu ciudad`],
           [`${POWERS.rayo.icon} ${POWERS.rayo.name} (${see('templo', 'poder del templo')})`, POWERS.rayo.description],
           ['☄️ Catapultas (al atacar)', 'Cada una resta un 6 % de vida a la muralla o fortificación enemiga (en ciudades e islas; las torres siguen disparando)'],
           [`🎖️ ${see('almirante', 'Almirante')}, 🏺 ${see('reliquias', 'reliquias')} y ${see('continentes', 'maravillas')}`, 'Más ataque, vida, carga o velocidad'],
@@ -427,10 +441,11 @@ const TOPICS = {
       <h5>Cómo prepararte</h5>
       ${list([
         'Ten en casa tropas que aguanten (hoplitas, espartanos) y algunos barcos de guerra.',
-        'Sube la <b>muralla</b>, la <b>torre de vigía</b> y el <b>faro</b>.',
+        'Sube la <b>muralla</b>, la <b>torre de vigía</b> y el <b>faro</b>, e investiga los <b>fosos</b> y la <b>cadena del puerto</b>.',
+        `Si no puedes con ellos, esconde tus tropas en el <b>refugio</b> (investigación ${RESEARCH.refugio.icon} ${RESEARCH.refugio.name}, ${DEFENSE.shelter} plazas por nivel; desde el cuartel): no defienden, pero tampoco mueren.`,
         `Invoca la <b>Égida</b> (+50 % de vida a los defensores durante 3 h) (ver ${see('templo', 'Templo')}).`,
         `Pide <b>tropas de apoyo</b> a tu ${see('alianzas', 'alianza')} o contrata ${see('mercenarios', 'mercenarios')}.`,
-        'Sube el almacén: lo que esconde no se lo lleva nadie.',
+        `Gasta lo que te sobra: solo ${fmtNum(protectedAmount())} de cada recurso están a salvo, y lo demás se lo puede llevar quien te venza.`,
       ])}
       <p>Mientras tengas menos de <b>${fmtNum(NEWBIE_POINTS)} puntos</b>, y como mucho tus primeros <b>${NEWBIE_DAYS} días</b>, tienes <b>protección de novato</b>: ningún jugador te puede atacar (los piratas, sí). Después, nadie te puede atacar si tienes menos del ${pct(PROTECTION.weakRatio)} de sus puntos (ni siquiera en guerra), salvo si le atacaste tú antes.</p>
       ${tip(`Si te bloquean el puerto o te ocupan la ciudad, mira ${see('invasiones', 'Invasiones y ocupación')}.`)}`,
@@ -461,8 +476,10 @@ const TOPICS = {
       ${missionsTable()}
       <h5>Viajes</h5>
       ${list([
-        'La flota va a la velocidad de su <b>barco más lento</b>. Navegación (+5 % por nivel), el faro (+4 %), el puerto (+2 %), el almirante, las reliquias y el Templo de Poseidón la aceleran. El poder <b>Viento favorable</b> dura hora y media: ahorra media travesía a las flotas que ya navegan, y las que zarpan mientras dura van y vuelven al doble de rápido.',
+        'La flota va a la velocidad de su <b>barco más lento</b>. Navegación (+5 % por nivel) y el faro (+4 %) la aceleran, y además el almirante, las reliquias y el Templo de Poseidón. El poder <b>Viento favorable</b> dura hora y media: ahorra media travesía a las flotas que ya navegan, y las que zarpan mientras dura van y vuelven al doble de rápido.',
         'El <b>puerto</b> limita cuántas flotas tienes en el mar a la vez: una por nivel.',
+        `<b>Provisiones</b>: zarpar cuesta comida de travesía, ${FLEET_COST.ship} por barco y ${String(FLEET_COST.seat).replace('.', ',')} por plaza de tropas a bordo cada ${FLEET_COST.per} leguas (ida y vuelta). Explorar con botes es gratis.`,
+        '<b>Marcha</b>: al mandar la flota puedes ir más despacio (hasta la mitad de velocidad) para llegar a la hora que quieras: se gasta menos comida y la vuelta va igual de despacio. Abajo ves a qué hora llegará.',
         'Puedes <b>retirar</b> una flota que aún no ha llegado: deshace lo andado (salvo los convoyes de un trato del mercado). Las tropas de apoyo, los bloqueos y las ocupaciones se retiran cuando quieras.',
         'Las islas que no conoces hay que <b>explorarlas</b> primero con un bote.',
       ])}
@@ -472,9 +489,10 @@ const TOPICS = {
     icon: '🗺️',
     title: 'El archipiélago',
     body: () => `<p>Cada jugador nuevo abre un <b>sector</b> con su isla y una docena de islas neutrales alrededor. Entre los sectores hay ${see('continentes', 'continentes')}.</p>
+      <p>🌐 <b>El mapa da la vuelta</b>: lo que sale por un borde entra por el de enfrente, así que nadie queda en una esquina, lejos de todo. Las distancias, los viajes y el mapa del mundo cuentan siempre el camino más corto, también cruzando la costura (que cae siempre en mar abierto).</p>
       ${islandsTable()}
       <p>Los campamentos, las fortalezas y las ciudades bárbaras <b>se rearman con el tiempo</b> y van acumulando botín. Solo te lo llevas si acabas con toda su guarnición; si no queda nadie, la isla queda arrasada: <b>se están reconstruyendo</b> y nadie puede atacarla hasta que se rearman del todo. Lo que tienen solo lo sabes por tu último bote explorador (o tu último ataque): envía otro para ver cómo están ahora.</p>
-      <p>📈 Todas ellas (salvo el propio Kraken) <b>crecen con tu ciudad</b>: cuanto más producen tus edificios, más guerreros y más botín ves en ellas, así que siempre merece la pena saquearlas. Cada jugador las ve a su medida; si alguien las arrasa, quedan arrasadas para todos. Al rearmarse vuelven con la mitad de su botín.</p>
+      <p>📈 Todas ellas (salvo el propio Kraken) <b>crecen con tu ciudad</b>: cuantos más puntos tienes (todo lo que has invertido, en edificios, investigaciones o tropas), más guerreros y más botín ves en ellas, así que siempre merece la pena saquearlas. Cada jugador las ve a su medida; si alguien las arrasa, quedan arrasadas para todos. Al rearmarse vuelven con la mitad de su botín.</p>
       <h5>🐙 El Kraken</h5>
       ${list([
         'Solo hay <b>un Kraken</b> en todos los mares. Despierta en una de las fosas que no estén arrasadas, y nadie sabe cuándo ni en cuál: en el chat se avisa, resaltado, con unas <b>coordenadas aproximadas</b> (pulsa en ellas para verlas en el mapa), y mientras siga despierto sale su icono 🐙 arriba.',
@@ -553,6 +571,9 @@ const TOPICS = {
         `<b>Ataques conjuntos</b>: hasta ${JOINT_MAX} aliados pueden sumar su flota al ataque de otro y combatir como un solo ejército. El botín se reparte según la bodega de cada uno.`,
         'El defensor ve venir tu flota: aviso arriba, la flota en su mapa y ⚔️ en el título de su pestaña.',
         `<b>Límite de ataques</b>: como mucho ${PROTECTION.attacksPerDay} ataques, invasiones o bloqueos contra el mismo jugador cada 24 h, para que nadie acose a otro sin descanso. Entre alianzas en guerra no hay límite. En el panel de su ciudad ves cuántos llevas.`,
+        `<b>Botín menguante</b>: si saqueas al mismo jugador otra vez en 24 h, te llevas cada vez menos (${ANTI_BULLY.lootDecay.map(pct).join(', ')} de lo que podrías). En guerra, no.`,
+        `<b>Honor</b>: las bajas que causas cuentan para tu clasificación militar según el tamaño del rival: contra alguien mucho más pequeño, solo un ${pct(ANTI_BULLY.honor.min)}; contra alguien más grande, hasta un ${pct(ANTI_BULLY.honor.max)}.`,
+        `<b>Arrasado</b>: quien pierde al menos el ${pct(ANTI_BULLY.crush.share)} de su ejército en un ataque queda ${ANTI_BULLY.crush.hours} h a salvo de ataques, bloqueos e invasiones (salvo en guerra), hasta que ataque él.`,
       ])}
       ${tip(`No hace falta espiar para atacar, pero a ciegas puedes llevarte un susto: espía antes (${see('espionaje', 'Espionaje y sabotaje')}) y usa el simulador. Para quedarte con su ciudad, mira ${see('invasiones', 'Invasiones')}.`)}`,
   },
@@ -611,6 +632,24 @@ const TOPICS = {
       `<b>Diplomacia</b>: el líder puede proponer un <b>pacto de no agresión</b> (no os podéis atacar) o declarar la <b>guerra</b> (${pct(DIPLOMACY.warLoot)} más de botín y un marcador de bajas y botín de cada bando).`,
       '<b>Amigos</b> 👥 y <b>correo</b> ✉️: añade amigos de cualquier alianza y escribe a quien quieras. En el chat puedes compartir tus informes de batalla.',
     ])}`,
+  },
+
+  foro: {
+    icon: '🏛️',
+    title: 'Foro de la comunidad',
+    body: () => `<p>El foro es la plaza de todos los que juegan a Aegium. Se abre con el botón <b>🏛️ Foro</b> de la barra de abajo (en el móvil, en «Más») y desde la portada, con «Foro de la comunidad»: <b>se puede leer sin cuenta</b>. Tiene estas secciones:</p>
+      ${table(
+        ['Sección', 'Para qué'],
+        Object.values(BOARD_SECTIONS).map((x) => [`${x.icon} <b>${x.name}</b>`, `${x.text}${x.modOnly ? ' <span class="muted small">(solo escriben los moderadores)</span>' : ''}`]),
+      )}
+      ${list([
+        'Con tu cuenta abres temas y respondes. Un número en el botón te dice cuántos temas tienen mensajes nuevos.',
+        'Los anuncios nuevos se avisan también en el chat, con un botón para leerlos.',
+        'Puedes borrar tus mensajes y <b>denunciar</b> 🚩 los que insulten, molesten o hagan trampas: les llega un aviso a los moderadores.',
+        'Los moderadores fijan 📌, cierran 🔒, mueven y borran temas, y pueden silenciar a alguien: quien está silenciado no escribe ni en el chat ni en el foro.',
+        `Cada sección guarda como mucho ${BOARD.threads} temas: al abrir más, se van los más viejos que no estén fijados.`,
+      ])}
+      ${tip('Para compartir el foro con alguien que aún no juega, pásale el enlace del juego con <b>#foro</b> al final: se abre directamente.')}`,
   },
 
   gestas: {
@@ -778,6 +817,7 @@ const TOPICS = {
       'Si olvidas la contraseña, pulsa «¿Has olvidado tu contraseña?» en la pantalla de inicio y te llegará un enlace para poner otra.',
       'El correo y la contraseña se cambian en ⚙ → Cuenta y contraseña.',
       'En ⚙ también puedes activar los <b>avisos del navegador</b> para enterarte de los ataques con la pestaña en segundo plano.',
+      '🤖 <b>Nada de bots</b>: está prohibido usar programas que jueguen por ti. Si el juego nota señales de uno (jugar casi todas las horas del día, un ritmo demasiado regular o demasiadas acciones por minuto), te pedirá de vez en cuando una comprobación sencilla y tus acciones irán más despacio. Los moderadores pueden suspender la cuenta.',
     ])}`,
   },
   atajos: {
@@ -805,7 +845,7 @@ const CHAPTERS = [
   { title: 'Economía', topics: ['recursos', 'trabajadores', 'edificios', 'investigacion', 'comercio'] },
   { title: 'Ejército', topics: ['unidades', 'combate', 'defensa', 'almirante', 'mercenarios'] },
   { title: 'El mar', topics: ['flotas', 'archipielago', 'expediciones', 'colonias', 'continentes'] },
-  { title: 'Otros jugadores', topics: ['jugadores', 'espionaje', 'bloqueos', 'invasiones', 'alianzas', 'gestas'] },
+  { title: 'Otros jugadores', topics: ['jugadores', 'espionaje', 'bloqueos', 'invasiones', 'alianzas', 'gestas', 'foro'] },
   { title: 'Más', topics: ['templo', 'reliquias', 'eventos', 'visitantes', 'competicion', 'perfil', 'vacaciones', 'cuenta', 'atajos'] },
 ];
 

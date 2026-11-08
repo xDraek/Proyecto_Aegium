@@ -66,6 +66,13 @@ function render(s) {
       ? `<p class="muted small">${fmtNum(s.gone)} jugadores no entran desde hace más de 3 días. La misión que tenían pendiente:</p>
         <table class="stats-table"><thead><tr><th>Misión</th><th>Jugadores</th><th>Parte</th></tr></thead><tbody>${drop}</tbody></table>`
       : '<p class="muted small">Nadie ha dejado de entrar todavía.</p>'}
+    <h4>🤖 Posibles bots</h4>
+    ${s.bots?.length
+      ? `<table class="stats-table"><thead><tr><th>Jugador</th><th>Señales</th><th>Comprobación</th></tr></thead><tbody>${s.bots
+          .map((b) => `<tr><td translate="no"><button class="link" data-action="profile" data-name="${escapeHtml(b.name)}">${escapeHtml(b.name)}</button></td><td>${b.reasons.map(escapeHtml).join(' · ')}</td><td>${b.passed ? '✅ superada' : '⏳ pendiente'}${b.fails ? ` · ${b.fails} fallos` : ''}</td></tr>`)
+          .join('')}</tbody></table>`
+      : '<p class="muted small">Nadie da señales de jugar con un programa ahora mismo.</p>'}
+    <p class="muted small">Señales: actividad casi todas las horas del día, un ritmo demasiado regular entre acciones o demasiadas acciones por minuto. A quien las da se le pide una comprobación sencilla de vez en cuando y sus acciones van más despacio. Si sigue, suspende la cuenta desde su perfil (⛔ Suspender).</p>
     <h4>${resIcons('🌅')} Fundadores</h4>
     <p class="small">${fmtNum(s.founders.count)} fundadores. Quien se registre hasta el día indicado (incluido) recibe el título de Fundador; los que ya lo tienen no lo pierden.</p>
     <form class="inline-form stats-founder"><label>Fundadores hasta <input type="date" name="until" value="${until}" required /></label><button class="primary small">Guardar</button></form>

@@ -4,9 +4,9 @@ import { assault, battle, combineGroups, count, hasCombat, shareSurvivors, split
 import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, forgeBonus, forgeGoal, forgeHours, forgeRoom, pledgeEmpires, relicDuel, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
 import { Game, krakenText, newState, rebuilding } from '../src/game/Game.js';
 import { fmtEs } from '../src/game/num.js';
-import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, PVP_RANGE, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
+import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, BOARD, BOARD_SECTIONS, BOT_CHECK, WRECK, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, PVP_RANGE, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
 import { playerCombat, tradeShips, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
-import { BARBARIAN_ARCHERS, BARBARIAN_GARRISONS, CAMP_LOOT, LAIR_GUARDS, coordsOf, fixPlaceName, freshPlaceName, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
+import { BARBARIAN_ARCHERS, BARBARIAN_GARRISONS, CAMP_LOOT, LAIR_GUARDS, coordsOf, distance, nearestImage, wrapRingFor, fixPlaceName, freshPlaceName, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { hashPassword, newRecoveryCode, newSecret, normalizeCode, verifyPassword } from './auth.js';
 
@@ -182,6 +182,8 @@ export class WorldServer {
     this.meta.alliances ??= {};
     this.meta.diplomacy ??= {};
     this.meta.forums ??= {};
+    this.meta.board ??= { threads: [] };
+    this.meta.wrecks ??= {};
     // Amigos (mutuos) y solicitudes pendientes: id → lista de ids
     this.meta.friends ??= {};
     this.meta.friendRequests ??= {};
@@ -199,6 +201,8 @@ export class WorldServer {
       this.#respaceSectors();
       this.meta.layout = ISLAND_LAYOUT;
     }
+    // El mapa da la vuelta: un anillo más que el último ocupado
+    universe.wrap = wrapRingFor(this.meta.sectors);
     // Mundos de antes de los continentes: se añaden donde quepan
     for (let s = 0; s < this.meta.sectors; s++) this.#addContinents(s, clock.now());
     this.#refreshWonders();
@@ -270,6 +274,7 @@ export class WorldServer {
   /** Cada jugador nuevo (o cada cuenta tras un wipe) abre un sector del archipiélago con su ciudad. */
   #settle(id, username, city) {
     const sector = this.meta.sectors++;
+    universe.wrap = wrapRingFor(this.meta.sectors);
     const now = clock.now();
     const home = homeIsland(sector, id, city);
     const c = sectorCenter(sector);
@@ -347,7 +352,9 @@ export class WorldServer {
     const out = [];
     for (const isl of this.islands.values()) {
       if (isl.land) continue; // los asentamientos van dentro de su continente
-      if (Math.hypot(isl.x - x, isl.z - z) <= radius) out.push({ id: isl.id, x: isl.x, z: isl.z, r: footprint(isl), type: isl.type });
+      // (en su copia más cercana: el mapa da la vuelta)
+      const p = nearestImage(isl, { x, z });
+      if (Math.hypot(p.x - x, p.z - z) <= radius) out.push({ id: isl.id, x: p.x, z: p.z, r: footprint(isl), type: isl.type });
     }
     return out;
   }
@@ -716,6 +723,7 @@ export class WorldServer {
       gone: gone.length,
       dropoff,
       founders: { until: this.meta.founderUntil, count: players.filter((p) => p.s.founder).length },
+      bots: this.#botSuspects(now),
     };
   }
 
@@ -786,6 +794,8 @@ export class WorldServer {
       // Recién liberada: a salvo de bloqueos e invasiones desde `shieldFrom` hasta `shield`
       shield: game.state.shieldUntil || null,
       shieldFrom: game.state.shieldFrom ?? 0,
+      // Arrasada por un ataque: a salvo de todo ataque hasta entonces (salvo en guerra)
+      crush: game.state.crushUntil || null,
       // Estatua de una gesta ganada (tema y hasta cuándo)
       statue: game.state.statue ?? null,
     };
@@ -879,7 +889,7 @@ export class WorldServer {
     if (!home) return [];
     const out = [];
     for (const isl of this.islands.values()) {
-      const d = Math.hypot(isl.x - home.x, isl.z - home.z);
+      const d = distance(isl, home);
       if (d <= radius) out.push({ ...isl, d });
     }
     return out.sort((a, b) => a.d - b.d);
@@ -1086,7 +1096,7 @@ export class WorldServer {
   #summonFeats(cyc, now) {
     let pool = [...this.games.values()].filter((g) => this.#featCandidate(g, now));
     const homeOf = (g) => this.islands.get(g.state.home);
-    const dist = (g, c) => Math.hypot(homeOf(g).x - c.x, homeOf(g).z - c.z);
+    const dist = (g, c) => distance(homeOf(g), c);
     const reach = (g, c) => g.researchLevel('cartas') >= 1 || dist(g, c) <= PVP_RANGE;
     const sites = new Map();
     const busy = (c) => {
@@ -1205,7 +1215,7 @@ export class WorldServer {
     }
     const me = this.islands.get(this.games.get(adminId)?.state.home) ?? { x: 0, z: 0 };
     const free = [...this.islands.values()].filter((c) => c.type === 'continente' && (!site || c.id === site || c.name === site));
-    free.sort((a, b) => Math.hypot(a.x - me.x, a.z - me.z) - Math.hypot(b.x - me.x, b.z - me.z));
+    free.sort((a, b) => distance(a, me) - distance(b, me));
     const cont = free.find((c) => {
       const rt = this.islandStates.get(c.id);
       return rt && !rt.horde && !(rt.feat && rt.feat.stage !== 'fin');
@@ -1213,7 +1223,7 @@ export class WorldServer {
     if (!cont) throw new UserError('No hay ningún continente libre para la gesta.');
     const now = clock.now();
     // (todos los que no estén ya en otra ni de vacaciones y la tengan a su alcance)
-    const reach = (g) => g.researchLevel('cartas') >= 1 || Math.hypot(this.islands.get(g.state.home).x - cont.x, this.islands.get(g.state.home).z - cont.z) <= PVP_RANGE;
+    const reach = (g) => g.researchLevel('cartas') >= 1 || distance(this.islands.get(g.state.home), cont) <= PVP_RANGE;
     const players = [...this.games.values()].filter((g) => !g.state.vacation && !this.#inFeat(g.userId) && reach(g)).map((g) => g.userId);
     const omen = now;
     const start = omen + Math.round(omenMinutes != null ? (Math.max(1, Number(omenMinutes) || 1) * 60_000) / universe.speed : featHours(FEATS.omenHours));
@@ -2150,7 +2160,7 @@ export class WorldServer {
     const lands = [...colonists.keys()]
       .map((id) => this.islands.get(id))
       .filter((c) => c && (!site || c.id === site || nameKey(c.name) === nameKey(site)))
-      .sort((a, b) => Math.hypot(a.x - me.x, a.z - me.z) - Math.hypot(b.x - me.x, b.z - me.z));
+      .sort((a, b) => distance(a, me) - distance(b, me));
     const cont = lands.find((c) => {
       const rt = this.islandStates.get(c.id);
       return rt && !rt.horde && !(rt.feat && rt.feat.stage !== 'fin');
@@ -2475,7 +2485,8 @@ export class WorldServer {
     if (!target || target.state.vacation) return null;
     // Que el defensor llegue al momento del ataque (si no está ya ocupado)
     target.update(t);
-    const res = target.receiveAttack(payload, t);
+    const war = payload.attackerId != null && this.relation(payload.attackerId, ownerId) === 'guerra';
+    const res = target.receiveAttack({ ...payload, war }, t);
     target.dirty = true;
     // En guerra entre alianzas se lleva la cuenta de bajas y botín de cada bando
     if (res && payload.attackerId != null && this.relation(payload.attackerId, ownerId) === 'guerra') {
@@ -2741,6 +2752,8 @@ export class WorldServer {
       serverTime: now,
       speed: universe.speed,
       eventSeed: universe.eventSeed,
+      // El mapa da la vuelta: de cuántos anillos de sectores es el mosaico
+      wrap: universe.wrap,
       eventOverride: universe.eventOverride,
       userId,
       username: user.username,
@@ -2748,9 +2761,11 @@ export class WorldServer {
       admin: this.isAdmin(userId),
       mailUnread: (mail ?? []).filter((m) => m.box === 'in' && !m.read).length,
       forumUnread: this.#forumUnread(userId),
+      boardUnread: this.#boardUnread(userId),
       applications: a && this.#canManage(a, userId) ? (a.applications ?? []).length : 0,
       friendRequests: (this.meta.friendRequests[userId] ?? []).length,
       kraken: this.#krakenAwake(),
+      wrecks: this.#wrecks(clock.now()),
       state,
       world: { islands: knownRev === rev ? null : islands, rev, states, statesRev: this.statesRev(), full: since < 0, players },
       incoming: this.incoming(game.state.home, game.level('torre'), now, game.state.colonies.map((c) => c.id)),
@@ -2831,7 +2846,7 @@ export class WorldServer {
   #traffic(userId, homeId) {
     const home = this.islands.get(homeId);
     if (!home) return [];
-    const near = (isl) => isl && Math.hypot(isl.x - home.x, isl.z - home.z) <= VIEW_RADIUS;
+    const near = (isl) => isl && distance(isl, home) <= VIEW_RADIUS;
     const out = [];
     for (const [uid, g] of this.games) {
       if (uid === userId) continue;
@@ -2886,7 +2901,7 @@ export class WorldServer {
         if (!targets.has(m.target) || m.phase !== 'ida' || !HOSTILE.has(m.type)) continue;
         const home = this.islands.get(m.target);
         const from = this.islands.get(m.from ?? other.state.home);
-        const dist = from && home ? Math.hypot(from.x - home.x, from.z - home.z) : 0;
+        const dist = from && home ? distance(from, home) : 0;
         const revealAt = Math.round(m.arrive - (m.arrive - m.depart) * Math.min(1, range / Math.max(1, dist)));
         const seen = now >= revealAt;
         const units = seen ? Object.fromEntries(Object.entries(m.units).filter(([, n]) => n > 0)) : null;
@@ -3405,6 +3420,286 @@ export class WorldServer {
     for (const uid of a.members) this.pendingPush.add(uid);
   }
 
+  // ── Contra los bots ────────────────────────────────────────────────────────
+  // De cada jugador se apunta (en memoria) cuándo hace cada acción: las horas del día en que juega,
+  // el ritmo entre acciones y cuántas hace por minuto. Ver BOT_CHECK.
+
+  /** Apunta una acción y dice si a este jugador hay que pedirle la comprobación antes de seguir. */
+  botAction(userId, now = Date.now()) {
+    this.bots ??= new Map();
+    const b = this.bots.get(userId) ?? { times: [], hours: new Map(), passedUntil: 0, challenge: null, fails: 0 };
+    this.bots.set(userId, b);
+    b.times.push(now);
+    if (b.times.length > 200) b.times.splice(0, b.times.length - 200);
+    b.hours.set(Math.floor(now / 3_600_000), true);
+    for (const h of b.hours.keys()) if (h < Math.floor(now / 3_600_000) - 24) b.hours.delete(h);
+    return !!this.botSuspect(userId, now) && b.passedUntil <= now;
+  }
+
+  /** Por qué parece un programa (o null): las señales de BOT_CHECK. */
+  botSuspect(userId, now = Date.now()) {
+    const b = this.bots?.get(userId);
+    if (!b || this.isAdmin(userId)) return null;
+    const reasons = [];
+    if (b.hours.size >= BOT_CHECK.hours) reasons.push(`activo ${b.hours.size} de las últimas 24 h`);
+    const minute = b.times.filter((t) => t > now - 60_000).length;
+    if (minute >= BOT_CHECK.perMinute) reasons.push(`${minute} acciones en un minuto`);
+    // El ritmo: entre acciones seguidas de una misma sesión (menos de 10 minutos entre una y otra)
+    const gaps = [];
+    for (let i = 1; i < b.times.length; i++) {
+      const g = b.times[i] - b.times[i - 1];
+      if (g > 0 && g < 600_000) gaps.push(g);
+    }
+    const last = gaps.slice(-BOT_CHECK.sample);
+    if (last.length >= BOT_CHECK.sample) {
+      const mean = last.reduce((a, g) => a + g, 0) / last.length;
+      const sd = Math.sqrt(last.reduce((a, g) => a + (g - mean) ** 2, 0) / last.length);
+      if (sd / mean < BOT_CHECK.steady) reasons.push(`ritmo muy regular (variación ${Math.round((sd / mean) * 100)} %)`);
+    }
+    return reasons.length ? reasons : null;
+  }
+
+  /** Una comprobación sencilla: pulsar el dibujo que se pide entre varios. */
+  botChallenge(userId) {
+    const b = this.bots?.get(userId);
+    if (!b) return null;
+    const pool = ['🐙', '⚓', '🏺', '🦅', '🌋', '🛡️', '🐫', '🔱'];
+    const options = pool.sort(() => Math.random() - 0.5).slice(0, 4);
+    const answer = options[Math.floor(Math.random() * options.length)];
+    const names = { '🐙': 'el pulpo', '⚓': 'el ancla', '🏺': 'el ánfora', '🦅': 'el águila', '🌋': 'el volcán', '🛡️': 'el escudo', '🐫': 'el camello', '🔱': 'el tridente' };
+    b.challenge = { id: Math.random().toString(36).slice(2, 10), answer };
+    return { id: b.challenge.id, question: `Para seguir jugando, pulsa ${names[answer]}.`, options };
+  }
+
+  /** La respuesta a la comprobación: si acierta, puede seguir unas horas sin que se le vuelva a pedir. */
+  botAnswer(userId, id, answer, now = Date.now()) {
+    const b = this.bots?.get(userId);
+    if (!b?.challenge || b.challenge.id !== id) throw new UserError('Esa comprobación ya no vale: vuelve a intentarlo.');
+    const ok = answer === b.challenge.answer;
+    b.challenge = null;
+    if (ok) {
+      b.passedUntil = now + BOT_CHECK.passHours * 3_600_000;
+      b.fails = 0;
+    } else b.fails++;
+    return ok;
+  }
+
+  /** Los que parecen programas, para los moderadores. */
+  #botSuspects(now) {
+    const out = [];
+    for (const [uid] of this.bots ?? []) {
+      const reasons = this.botSuspect(uid, now);
+      if (!reasons) continue;
+      const b = this.bots.get(uid);
+      out.push({ name: this.users.get(uid)?.username ?? '?', reasons, fails: b.fails, passed: b.passedUntil > now });
+    }
+    return out;
+  }
+
+  // ── Pecios ─────────────────────────────────────────────────────────────────
+  // Lo que queda de los barcos hundidos frente a una isla, hasta que se hunde del todo o lo recogen.
+
+  /** Una batalla en el mar deja (o engorda) el pecio de la isla `islandId`. */
+  addWreck(islandId, bag, t) {
+    if (!Object.values(bag).some((n) => n > 0)) return;
+    const w = this.wreckAt(islandId, t) ?? { res: {}, until: 0 };
+    for (const [r, n] of Object.entries(bag)) if (n > 0) w.res[r] = (w.res[r] ?? 0) + Math.floor(n);
+    w.until = Math.max(w.until, t + WRECK.hours * 3_600_000);
+    this.meta.wrecks[islandId] = w;
+  }
+
+  /** El pecio que hay ahora frente a una isla, o null. */
+  wreckAt(islandId, t = clock.now()) {
+    const w = this.meta.wrecks[islandId];
+    if (!w) return null;
+    if (w.until <= t || !Object.values(w.res).some((n) => n > 0)) {
+      delete this.meta.wrecks[islandId];
+      return null;
+    }
+    return w;
+  }
+
+  /** Unos Kleptes recogen del pecio lo que cabe en `capacity` (de cada recurso, en proporción). */
+  takeWreck(islandId, capacity, t) {
+    const w = this.wreckAt(islandId, t);
+    if (!w || capacity <= 0) return {};
+    const total = Object.values(w.res).reduce((a, n) => a + n, 0);
+    const k = Math.min(1, capacity / total);
+    const taken = {};
+    for (const [r, n] of Object.entries(w.res)) {
+      const got = Math.floor(n * k);
+      if (got > 0) taken[r] = got;
+      w.res[r] = n - got;
+    }
+    this.wreckAt(islandId, t);
+    return taken;
+  }
+
+  /** Los pecios a flote (para el estado de cada jugador). */
+  #wrecks(t) {
+    const out = {};
+    for (const id of Object.keys(this.meta.wrecks)) {
+      const w = this.wreckAt(id, t);
+      if (w) out[id] = w;
+    }
+    return out;
+  }
+
+  // ── Foro de la comunidad ───────────────────────────────────────────────────
+  // Público: se lee sin cuenta (`userId` null) y escriben los jugadores. Quien está silenciado en
+  // el chat tampoco escribe aquí; en los anuncios solo escriben los moderadores.
+
+  #boardUnread(userId) {
+    const seen = this.games.get(userId)?.state.boardSeen ?? {};
+    const me = this.users.get(userId)?.username;
+    return this.meta.board.threads.filter((th) => th.lastBy !== me && th.last > (seen[th.id] ?? 0)).length;
+  }
+
+  /** Las secciones con cuántos temas tienen y, la de `section`, sus temas (los fijados primero). */
+  boardList(userId, section = null) {
+    const threads = this.meta.board.threads;
+    const seen = (userId != null && this.games.get(userId)?.state.boardSeen) || {};
+    const me = userId != null ? this.users.get(userId)?.username : null;
+    const unread = (th) => me != null && th.lastBy !== me && th.last > (seen[th.id] ?? 0);
+    const sections = Object.fromEntries(
+      Object.keys(BOARD_SECTIONS).map((id) => {
+        const list = threads.filter((th) => th.section === id);
+        const last = list.reduce((a, th) => (th.last > (a?.last ?? 0) ? th : a), null);
+        return [id, { threads: list.length, unread: list.filter(unread).length, last: last ? { title: last.title, by: last.lastBy, t: last.last } : null }];
+      }),
+    );
+    const out = { sections, me, canModerate: userId != null && this.isAdmin(userId) };
+    if (section && Object.hasOwn(BOARD_SECTIONS, section)) {
+      out.section = section;
+      out.threads = threads
+        .filter((th) => th.section === section)
+        .map((th) => ({ id: th.id, title: th.title, author: th.author, t: th.t, last: th.last, lastBy: th.lastBy, count: th.posts.length, pinned: !!th.pinned, locked: !!th.locked, unread: unread(th) }))
+        .sort((x, y) => Number(y.pinned) - Number(x.pinned) || y.last - x.last);
+    }
+    return out;
+  }
+
+  /** Un tema entero; si lo lee un jugador, queda marcado como leído. */
+  boardThread(userId, id) {
+    const threads = this.meta.board.threads;
+    const th = threads.find((x) => x.id === id);
+    if (!th) throw new UserError('Ese tema ya no existe.');
+    const game = userId != null ? this.games.get(userId) : null;
+    if (game) {
+      game.state.boardSeen ??= {};
+      game.state.boardSeen[th.id] = th.last;
+      for (const key of Object.keys(game.state.boardSeen)) if (!threads.some((x) => x.id === Number(key))) delete game.state.boardSeen[key];
+      game.dirty = true;
+    }
+    const me = game ? this.users.get(userId).username : null;
+    const mod = userId != null && this.isAdmin(userId);
+    return {
+      id: th.id,
+      section: th.section,
+      title: th.title,
+      author: th.author,
+      t: th.t,
+      pinned: !!th.pinned,
+      locked: !!th.locked,
+      // (las denuncias solo las ven los moderadores)
+      posts: th.posts.map((p) => ({ id: p.id, author: p.author, t: p.t, text: p.text, mine: p.author === me, ...(mod && p.reports?.length ? { reports: p.reports.length } : {}) })),
+      me,
+      canModerate: mod,
+      canReply: !!me && (!th.locked || mod) && (!BOARD_SECTIONS[th.section]?.modOnly || mod),
+    };
+  }
+
+  /** Abre un tema (`threadId` null, en `section`) o responde en uno. */
+  boardPost(userId, { section, threadId, title, text }) {
+    const mod = this.isAdmin(userId);
+    const muted = this.meta.mod[userId]?.mutedUntil ?? 0;
+    if (muted > Date.now()) throw new UserError('Estás silenciado: no puedes escribir en el chat ni en el foro por ahora.');
+    text = String(text ?? '').trim().slice(0, BOARD.text);
+    if (!text) throw new UserError('Escribe el mensaje.');
+    const author = this.users.get(userId).username;
+    const now = Date.now();
+    const post = { id: (this.meta.boardPostSeq = (this.meta.boardPostSeq ?? 0) + 1), author, t: now, text };
+    const threads = this.meta.board.threads;
+    let th;
+    if (threadId == null) {
+      if (!Object.hasOwn(BOARD_SECTIONS, section)) throw new UserError('Esa sección no existe.');
+      if (BOARD_SECTIONS[section].modOnly && !mod) throw new UserError('En los anuncios solo escriben los moderadores.');
+      title = String(title ?? '').replace(/\s+/g, ' ').trim().slice(0, BOARD.title);
+      if (title.length < 3) throw new UserError('El título debe tener al menos 3 letras.');
+      th = { id: (this.meta.boardThreadSeq = (this.meta.boardThreadSeq ?? 0) + 1), section, title, author, t: now, last: now, lastBy: author, pinned: false, locked: false, posts: [post] };
+      threads.push(th);
+      // Si en la sección hay demasiados, se va el más viejo sin fijar
+      const mine = threads.filter((x) => x.section === section);
+      if (mine.length > BOARD.threads) {
+        const old = mine.filter((x) => !x.pinned).sort((x, y) => x.last - y.last)[0];
+        if (old) threads.splice(threads.indexOf(old), 1);
+      }
+      if (BOARD_SECTIONS[section].modOnly) this.announce(`📢 Nuevo anuncio en el foro: «${title}»`, 'global', { board: th.id });
+    } else {
+      th = threads.find((x) => x.id === threadId);
+      if (!th) throw new UserError('Ese tema ya no existe.');
+      if (BOARD_SECTIONS[th.section]?.modOnly && !mod) throw new UserError('En los anuncios solo escriben los moderadores.');
+      if (th.locked && !mod) throw new UserError('Este tema está cerrado.');
+      th.posts.push(post);
+      if (th.posts.length > BOARD.posts) th.posts.splice(1, th.posts.length - BOARD.posts);
+      // (siempre más tarde que lo ya leído, aunque llegue en el mismo milisegundo)
+      th.last = Math.max(now, th.last + 1);
+      th.lastBy = author;
+    }
+    return this.boardThread(userId, th.id);
+  }
+
+  /**
+   * Moderar: fijar, cerrar, mover o borrar un tema, o borrar un mensaje (los moderadores). Quien
+   * escribió un mensaje también lo puede borrar (si es el primero y el único, se va el tema).
+   */
+  boardModerate(userId, op, { id, postId, section } = {}) {
+    const threads = this.meta.board.threads;
+    const th = threads.find((x) => x.id === id);
+    if (!th) throw new UserError('Ese tema ya no existe.');
+    const mod = this.isAdmin(userId);
+    const me = this.users.get(userId).username;
+    if (op === 'delete-post') {
+      const post = th.posts.find((p) => p.id === postId);
+      if (!post) throw new UserError('Ese mensaje ya no existe.');
+      if (!mod && post.author !== me) throw new UserError('Solo puedes borrar tus propios mensajes.');
+      if (th.posts.length === 1 || (th.posts[0] === post && !mod)) {
+        if (th.posts[0] === post && th.posts.length > 1) throw new UserError('El primer mensaje de un tema con respuestas solo lo borran los moderadores.');
+        threads.splice(threads.indexOf(th), 1);
+        return { deleted: true };
+      }
+      th.posts.splice(th.posts.indexOf(post), 1);
+      const lastPost = th.posts.at(-1);
+      th.last = lastPost.t;
+      th.lastBy = lastPost.author;
+      return { thread: this.boardThread(userId, th.id) };
+    }
+    if (!mod) throw new UserError('Solo para moderadores.');
+    if (op === 'pin') th.pinned = !th.pinned;
+    else if (op === 'lock') th.locked = !th.locked;
+    else if (op === 'move') {
+      if (!Object.hasOwn(BOARD_SECTIONS, section)) throw new UserError('Esa sección no existe.');
+      th.section = section;
+    } else if (op === 'delete') {
+      threads.splice(threads.indexOf(th), 1);
+      return { deleted: true };
+    } else throw new UserError('Esa acción no existe.');
+    return { thread: this.boardThread(userId, th.id) };
+  }
+
+  /** Denunciar un mensaje: les llega un aviso a los moderadores (una vez por jugador y mensaje). */
+  boardReport(userId, threadId, postId) {
+    const th = this.meta.board.threads.find((x) => x.id === threadId);
+    const post = th?.posts.find((p) => p.id === postId);
+    if (!post) throw new UserError('Ese mensaje ya no existe.');
+    const me = this.users.get(userId).username;
+    if (post.author === me) throw new UserError('No puedes denunciar tus propios mensajes.');
+    post.reports ??= [];
+    if (post.reports.includes(userId)) throw new UserError('Ya has denunciado este mensaje.');
+    post.reports.push(userId);
+    for (const [uid] of this.games) if (this.isAdmin(uid)) this.hostNews(uid, `🚩 ${me} denuncia un mensaje de ${post.author} en el foro: «${th.title}»`);
+  }
+
   // ── Diplomacia entre alianzas ──────────────────────────────────────────────
 
   /** Pactos, guerras y propuestas de una alianza, vistos desde ella. */
@@ -3665,7 +3960,7 @@ export class WorldServer {
     const id = this.#target(adminId, name);
     const m = Math.max(0, Math.min(60 * 24 * 30, Math.floor(Number(minutes) || 0)));
     this.meta.mod[id] = { ...this.meta.mod[id], mutedUntil: m ? Date.now() + m * 60_000 : 0 };
-    this.announce(m ? `🔇 ${this.users.get(id).username} ha sido silenciado en el chat` : `🔈 ${this.users.get(id).username} puede volver a escribir`);
+    this.announce(m ? `🔇 ${this.users.get(id).username} ha sido silenciado en el chat y el foro` : `🔈 ${this.users.get(id).username} puede volver a escribir`);
   }
 
   ban(adminId, name, reason, banned = true) {

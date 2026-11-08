@@ -289,7 +289,8 @@ export function assault(attacker, defender, { rand = Math.random, needLanding = 
   let dSeaLeft = { ...D.sea };
   if (hasCombat(D.sea)) {
     naval = battle(
-      { units: A.sea, atkMul, hpMul },
+      // (la cadena del puerto: sus barcos entran a trompicones)
+      { units: A.sea, atkMul: atkMul * (1 - (defender.chain ?? 0)), hpMul },
       { units: D.sea, atkMul: dAtk, hpMul: dHp + (defender.navalHpMul ?? 0), boost: defender.boost },
       rand,
     );
@@ -297,7 +298,19 @@ export function assault(attacker, defender, { rand = Math.random, needLanding = 
     dSeaLeft = naval.def.left;
   }
   const seaWon = !hasCombat(dSeaLeft);
-  const { aboard, drowned } = keepAboard(A.land, seatsOf(seaLeft));
+  const kept = keepAboard(A.land, seatsOf(seaLeft));
+  const { drowned } = kept;
+  let aboard = kept.aboard;
+  // Los fosos y las estacas: una parte de los que desembarcan cae antes de luchar
+  let trapped = 0;
+  if (seaWon && defender.traps > 0 && count(aboard) > 0) {
+    const after = {};
+    for (const [id, n] of Object.entries(aboard)) {
+      after[id] = Math.round(n * (1 - defender.traps));
+      trapped += n - after[id];
+    }
+    aboard = after;
+  }
 
   // 2. En tierra
   let land = null;
@@ -307,7 +320,8 @@ export function assault(attacker, defender, { rand = Math.random, needLanding = 
   if (landed && count(D.land) > 0) {
     const support = power(seaLeft, atkMul) * NAVAL_SUPPORT;
     land = battle(
-      { units: aboard, atkMul, hpMul, extraAtk: support },
+      // (la muralla para una parte de su ataque)
+      { units: aboard, atkMul: atkMul * (1 - (defender.absorb ?? 0)), hpMul, extraAtk: support },
       { units: D.land, atkMul: dAtk, hpMul: dHp + (defender.wallHp ?? 0), extraAtk: defender.extraAtk ?? 0, extraOnlyAlive: defender.extraOnlyAlive, boost: defender.boost },
       rand,
     );
@@ -333,6 +347,7 @@ export function assault(attacker, defender, { rand = Math.random, needLanding = 
     naval,
     land,
     drowned,
+    trapped,
     seaWon,
     landed,
   };

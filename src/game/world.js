@@ -1,3 +1,4 @@
+import { universe } from '../config.js';
 // Generación del mundo compartido. El archipiélago crece por sectores: cada
 // jugador nuevo recibe un sector con su isla en el centro y una docena de islas
 // neutrales alrededor (bárbaros, ruinas, tierras libres, piratas, niebla…).
@@ -380,6 +381,64 @@ export function freshIslandState(isl, t) {
   return { garrison: { ...(isl.garrison ?? {}) }, garrisonAt: t, stock, stockAt: t, looted: false, colonizedBy: null };
 }
 
+/** En qué anillo de la espiral está el sector `index` (0 el del centro). */
+export function hexRing(index) {
+  let ring = 0;
+  let first = 1;
+  while (index >= first) {
+    ring++;
+    first += 6 * ring;
+  }
+  return ring;
+}
+
+/**
+ * El mapa da la vuelta por los bordes: es un mosaico de hexágonos de `universe.wrap` anillos de
+ * sectores que se repite (quien sale por un lado entra por el de enfrente). Es un anillo más que el
+ * último ocupado, así que la costura cae siempre en mar abierto y nada queda encima de nada.
+ */
+export function wrapRingFor(sectors) {
+  return sectors > 0 ? hexRing(sectors - 1) + 1 : 0;
+}
+
+/** Los dos vectores con los que se repite el mosaico de radio R (en leguas). */
+function wrapVectors(R) {
+  const S = SECTOR_SPACING;
+  const h = Math.sqrt(3) / 2;
+  return [
+    { x: S * (1.5 * R + 1), z: -S * R * h },
+    { x: S * (1.5 * R + 0.5), z: S * (R + 1) * h },
+  ];
+}
+
+/** La diferencia de posición más corta, contando que el mapa da la vuelta. */
+export function wrapDelta(dx, dz, R = universe.wrap ?? 0) {
+  if (!(R > 0)) return { dx, dz };
+  const [a, b] = wrapVectors(R);
+  let best = { dx, dz };
+  let bd = dx * dx + dz * dz;
+  for (let i = -2; i <= 2; i++) {
+    for (let j = -2; j <= 2; j++) {
+      const x = dx + i * a.x + j * b.x;
+      const z = dz + i * a.z + j * b.z;
+      const d = x * x + z * z;
+      if (d < bd - 1e-6) {
+        bd = d;
+        best = { dx: x, dz: z };
+      }
+    }
+  }
+  return best;
+}
+
+/** Distancia en leguas entre dos puntos (por el camino más corto, también cruzando la costura). */
 export function distance(a, b) {
-  return Math.hypot(a.x - b.x, a.z - b.z);
+  const d = wrapDelta(b.x - a.x, b.z - a.z);
+  return Math.hypot(d.dx, d.dz);
+}
+
+/** Dónde se ve `p` desde `from`: su copia más cercana (puede estar al otro lado de la costura). */
+export function nearestImage(p, from) {
+  const d = wrapDelta(p.x - from.x, p.z - from.z);
+  return { x: from.x + d.dx, z: from.z + d.dz };
 }

@@ -4,6 +4,7 @@ import { BUILDING_KEYS, BUILDINGS, CANCEL_REFUND, FAVOR_ICON, FEAT_THEMES, FEATS
 import { HOUR_MS, canAfford, colonyYield, multiplyCost, upcomingWorldEvents } from '../game/rules.js';
 import { featAt, featCycle } from '../game/feats.js';
 import { api } from '../net/api.js';
+import { distance } from '../game/world.js';
 import { armyHtml, armySummary, featWait } from './army.js';
 import { buildingPanel } from './buildingPanel.js';
 import { bag, costItems, escapeHtml, fmtAmount, fmtNum, fmtRate, fmtShort, fmtTiny, fmtTime, linkCoords, resIcons, richText, unitList } from './format.js';
@@ -18,6 +19,8 @@ import { openStats } from './stats.js';
 import { reportsHtml, playReplay, sharedReportHtml } from './reports.js';
 import { Social } from './social.js';
 
+// El foro de la comunidad, aparte (también se abre desde la portada, sin cuenta)
+const loadBoard = () => import('./board.js');
 // La guía y las novedades (mucho texto) se descargan aparte: la guía al abrirla, y las novedades
 // justo después de entrar, sin retrasar la carga del juego
 const loadGuide = () => import('./guide.js');
@@ -110,6 +113,8 @@ export class Hud {
     this.menu = $('#menu');
     this.mailBtn = $('#mail-btn');
     this.allianceBtn = $('#alliance-btn');
+    this.boardBtn = $('#board-btn');
+    this.boardBtn.addEventListener('click', () => this.openBoard());
     this.vacationEl = $('#vacation');
     this.social = new Social(this);
     this.worldMap = new WorldMap(this);
@@ -344,6 +349,11 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
         return;
       }
       // Una oferta anunciada: al mercado, con la lista recién pedida
+      const board = e.target.closest('[data-board]');
+      if (board) {
+        this.openBoard({ thread: Number(board.dataset.board) });
+        return;
+      }
       if (e.target.closest('[data-offer]')) {
         this.onSelect('mercado');
         this.social.refreshOffers(true).then(() => this.panel.querySelector('.offers, .offer-form')?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
@@ -658,6 +668,10 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     const armyBadge = this.armyBtn.querySelector('.badge');
     armyBadge.hidden = !this.game.missions.length;
     armyBadge.textContent = this.game.missions.length;
+    const boardUnread = this.game.boardUnread ?? 0;
+    const bBadge = this.boardBtn.querySelector('.badge');
+    bBadge.hidden = !boardUnread;
+    bBadge.textContent = boardUnread > 9 ? '9+' : boardUnread;
     const forum = (this.game.forumUnread ?? 0) + (this.game.allianceApplications ?? 0);
     const fBadge = this.allianceBtn.querySelector('.badge');
     fBadge.hidden = !forum;
@@ -805,7 +819,8 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     const ev = this.game.worldEvent();
     const left = fmtTime(Math.max(0, (ev.end - this.game.now()) / 1000));
     // (el icono de la temporada puede ser el de un recurso: 💎, 🪙… van con su imagen)
-    const html = ev.event ? `${resIcons(ev.event.icon)} ${left}` : `🌤️ ${left}`;
+    // (el tiempo, aparte: en el móvil solo se ve el icono)
+    const html = `${ev.event ? resIcons(ev.event.icon) : '🌤️'}<span class="pill-text"> ${left}</span>`;
     if (this.eventHtml !== html) {
       this.eventHtml = html;
       this.eventEl.innerHTML = html;
@@ -831,6 +846,13 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
   /** El icono del Kraken, solo mientras está despierto. */
   #updateKraken() {
     if (this.krakenEl.hidden === !!this.game.kraken) this.krakenEl.hidden = !this.game.kraken;
+  }
+
+  /** El foro de la comunidad (en una sección o un tema, si se dice). Al cerrarlo se pone al día el contador. */
+  async openBoard(where = {}) {
+    const { Board } = await loadBoard();
+    this.board ??= new Board({ onChange: () => this.game.sync?.() });
+    await this.board.show(where);
   }
 
   openGuide(topic) {
@@ -886,7 +908,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     const show = game.level('templo') > 0;
     this.favorEl.hidden = !show;
     if (!show) return;
-    const html = `${FAVOR_ICON} ${fmtNum(game.favor)}`;
+    const html = `${FAVOR_ICON}<span class="pill-text"> ${fmtNum(game.favor)}</span>`;
     if (this.favorHtml !== html) {
       this.favorHtml = html;
       this.favorEl.innerHTML = html;
@@ -921,7 +943,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       const views = game.world
         .islands()
         .filter((i) => i.id !== home)
-        .map((i) => ({ i, d: Math.hypot(i.x - at.x, i.z - at.z) }))
+        .map((i) => ({ i, d: distance(i, at) }))
         .sort((a, b) => a.d - b.d)
         .slice(0, 40)
         .map(({ i }) => game.island(i.id))
@@ -1231,6 +1253,12 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
         await this.#run(btn, () => game.heroSkill(btn.dataset.skill), null, 'magic');
         break;
       }
+      case 'shelter':
+        await this.#run(btn, () => game.shelter(), null, 'success');
+        break;
+      case 'unshelter':
+        await this.#run(btn, () => game.unshelter(), null, 'success');
+        break;
       case 'hero-reset': {
         const h = game.hero;
         if (!h) break;
@@ -1604,7 +1632,7 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
         ].join('');
         const highlight = m.highlight ?? (m.kraken ? 'kraken' : null);
         return m.system
-          ? `<div class="msg system${highlight ? ` hl hl-${highlight}` : ''}${m.kraken?.near ? ' kraken-wake' : ''}"><span>${richText(m.text)}</span>${m.offer ? ` <button class="link small" data-offer="${m.offer}">Ver ofertas ▶</button>` : ''}${kraken}<time>${time}</time></div>`
+          ? `<div class="msg system${highlight ? ` hl hl-${highlight}` : ''}${m.kraken?.near ? ' kraken-wake' : ''}"><span>${richText(m.text)}</span>${m.offer ? ` <button class="link small" data-offer="${m.offer}">Ver ofertas ▶</button>` : ''}${m.board ? ` <button class="link small" data-board="${m.board}">Leer el anuncio ▶</button>` : ''}${kraken}<time>${time}</time></div>`
           : `<div class="msg${m.name === this.game.username ? ' mine' : ''}"><b data-profile="${escapeHtml(m.name)}" translate="no">${escapeHtml(m.name)}</b>${m.title ? `<em class="msg-title">${escapeHtml(m.title)}</em>` : ''} <span translate="no">${linkCoords(escapeHtml(m.text))}</span>${
               m.report ? `<button class="link small" data-shared="${m.id}">Ver informe ▶</button>` : ''
             }<time>${time}</time>${

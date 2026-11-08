@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BLOCKADE, COLONY, COLONY_RAID, FEATS, FEAT_THEMES, ISLAND_TYPES, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, PVP_RANGE, RESOURCES, RESOURCE_KEYS, SPY_TIERS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
+import { BLOCKADE, COLONY, COLONY_RAID, DEFENSE, FEATS, FLEET_COST, FEAT_THEMES, ISLAND_TYPES, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, PVP_RANGE, RESOURCES, RESOURCE_KEYS, SPY_TIERS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
 import { colonyUpgrade, colonyYield, navalDefense, playerCombat, spyRisk, wallBonus } from '../game/rules.js';
 import { featCoop, forceOf, forgeBonus } from '../game/feats.js';
 import { krakenText, NEWBIE_POINTS, neutralsOf } from '../game/Game.js';
@@ -23,6 +23,7 @@ function playerSection(game, view) {
   else if (view.inactive) lines.push('<p class="hint">💤 Lleva más de una semana sin aparecer por su ciudad.</p>');
   if (view.protected) lines.push(`<p class="hint ok">🛡️ Protección de novato: con menos de ${fmtNum(NEWBIE_POINTS)} puntos y en sus primeros días nadie puede atacar esta ciudad.</p>`);
   else if (!ally && game.tooWeak(view)) lines.push('<p class="hint ok">🛡️ Tiene menos del 20 % de tus puntos: no le puedes atacar, ni siquiera en guerra (salvo si te ataca él).</p>');
+  if (view.crush) lines.push(`<p class="hint ok">🛡️ Acaba de perder casi todo su ejército: nadie la puede atacar, bloquear ni invadir en <span data-until="${view.crush}"></span> (salvo en guerra).</p>`);
   if (view.shield) lines.push(`<p class="hint ok">🛡️ Acaba de librarse de un bloqueo o una ocupación: nadie la puede bloquear ni invadir en <span data-until="${view.shield}"></span>.</p>`);
   // Límite de ataques al mismo jugador (no cuenta entre alianzas en guerra)
   if (!ally && view.relation !== 'pacto') {
@@ -340,7 +341,11 @@ export function citySimPreset(game, view, attacker, withHero = false) {
     defAtkMul: theirs.atkMul,
     defHpMul: theirs.hpMul,
     wall: w.hp,
+    absorb: w.absorb,
     towers: w.towers,
+    ranged: w.ranged,
+    traps: DEFENSE.traps * (d?.fosos ?? 0),
+    chain: DEFENSE.chain * (d?.cadena ?? 0),
     naval: navalDefense(d?.faro ?? 0),
     note: !intel
       ? 'Sin espiar no sabes qué la defiende: aquí cuenta como si no tuviera nada. Manda botes espía para afinar.'
@@ -546,7 +551,7 @@ function infoSectionFor(game, view, t) {
   }[view.type];
   return `<p class="desc">${flavor}</p>${lines.join('')}
     <p class="desc small">Se rearman por completo en unas ${fmtNum(view.regenHours)} h de juego. Solo te llevas el botín si acabas con toda la guarnición.</p>
-    <p class="desc small">📈 Crecen con tu ciudad: cuanto más producen tus edificios, más guerreros y más botín tienen. ${scale > 1 ? `Para ti, ahora mismo: <b>×${fmtDec(scale)}</b>.` : 'Por ahora, a la medida de una ciudad que empieza.'}</p>`;
+    <p class="desc small">📈 Crecen con tu ciudad: cuantos más puntos tienes (todo lo invertido, también en tropas), más guerreros y más botín tienen. ${scale > 1 ? `Para ti, ahora mismo: <b>×${fmtDec(scale)}</b>.` : 'Por ahora, a la medida de una ciudad que empieza.'}</p>`;
 }
 
 function inboundSection(game, view) {
@@ -625,6 +630,8 @@ function fleetForm(hud, game, view) {
   if (view.type === 'jugador' && view.alliance && view.alliance.id === game.alliance?.id) types.push('apoyo');
   if (view.type === 'libre' && view.explored && view.colonizedBy == null) types.push('colonizar');
   if (view.type === 'ciudadela' && view.explored && view.colonizedBy == null) types.push('conquistar');
+  // Un pecio frente a la isla: lo recogen los Kleptes de cualquiera
+  if (view.wreck) types.push('recoger');
   // Desde una ciudad ocupada solo se lanzan ataques y espías
   const allowed = base ? types.filter((t) => OUTPOST_MISSIONS.includes(t)) : types;
 
@@ -654,6 +661,7 @@ function fleetForm(hud, game, view) {
     <div class="fleet">${rows}</div>
     ${game.heroStatus() === 'casa' && !base ? `<label class="hero-toggle"><input type="checkbox" name="with-hero" /> 🎖️ Que vaya ${escapeHtml(game.hero.name)} (Nv ${game.hero.level})</label>` : ''}
     ${jointSelect(game, view)}
+    <label class="pace-pick">⛵ Marcha <select name="pace">${FLEET_COST.paces.map((p) => `<option value="${p}">${p === 1 ? 'A toda vela' : `Al ${Math.round(p * 100)} %`}</option>`).join('')}</select></label>
     <div class="fleet-summary" data-fleet-summary></div>
     ${cargoForm}
     ${colony}
@@ -683,7 +691,8 @@ function jointSelect(game, view) {
 export function readOpts(root) {
   const from = root.querySelector('[name="from"]')?.value;
   const post = root.querySelector('[name="post"]')?.value;
-  return { hero: !!root.querySelector('[name="with-hero"]')?.checked, join: root.querySelector('[name="join"]')?.value || undefined, from: from ? Number(from) : undefined, post: post !== undefined && post !== '' ? Number(post) : undefined };
+  const pace = Number(root.querySelector('[name="pace"]')?.value) || 1;
+  return { hero: !!root.querySelector('[name="with-hero"]')?.checked, join: root.querySelector('[name="join"]')?.value || undefined, from: from ? Number(from) : undefined, post: post !== undefined && post !== '' ? Number(post) : undefined, pace };
 }
 
 const FEAT_FLEET_HINT = {
@@ -757,7 +766,7 @@ function refreshFleet(game, id, root) {
   // Sin elegir nada, «Explorar» manda un bote (fleetFor): que se sepa
   const scout = !any && !!root.querySelector('[data-action="mission"][data-type="explorar"]') && poolFor(game, readOpts(root).from).bote > 0;
   const text = any
-    ? `👥 ${base.used}/${base.capacity} plazas · 📦 ${fmtNum(base.cargo)} de carga${base.seconds ? ` · ⏱ ${fmtTime(base.seconds)} de ida` : ''}`
+    ? `👥 ${base.used}/${base.capacity} plazas · 📦 ${fmtNum(base.cargo)} de carga${base.seconds ? ` · ⏱ ${fmtTime(base.seconds)} de ida (llega a las ${new Date(game.now() + base.seconds * 1000).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })})` : ''}${base.food ? ` · 🌾 ${fmtNum(base.food)} de comida de travesía` : ''}`
     : scout
       ? 'Elige cuántas unidades mandas. Para explorar no hace falta: sale un bote.'
       : 'Elige cuántas unidades mandas.';
