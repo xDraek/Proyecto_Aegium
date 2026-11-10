@@ -7,6 +7,16 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-11e',
+    date: '2026-11-11',
+    title: 'Los carros ya no se atascan',
+    items: ['🐂 Los <b>carros de bueyes</b> y la gente de la avenida del puerto ya no se quedan atascados para siempre en el cruce con la ronda: si llevan unos segundos esperándose unos a otros, uno pasa y el tráfico sigue.'],
+    en: {
+      title: 'Carts no longer get stuck',
+      items: ['🐂 The <b>ox carts</b> and the people on the harbour avenue no longer get stuck forever where it crosses the ring road: if they wait for each other for a few seconds, one goes through and traffic keeps moving.'],
+    },
+  },
+  {
     id: '2026-11-11d',
     date: '2026-11-11',
     title: 'Sonido: menos descargas y quitado en el móvil',

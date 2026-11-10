@@ -73,6 +73,8 @@ const KERBS = ['#e9e0cc', '#ddd2bb', '#e4dac4'];
 const JOINTS = '#a89676';
 const AVENUE_IN = 6.2;
 const CART_TURN_R = 1.75;
+// Segundos que alguien de la avenida o la ronda aguanta parado antes de pasar igual (ver #updateWalkers)
+const STUCK_SECONDS = 3;
 // Lo que tarda en virar en redondo un pesquero
 const BOAT_TURN = 3.2;
 
@@ -1854,11 +1856,13 @@ export class World {
     });
 
     // En un extremo: da la vuelta si el sitio adonde va (o el círculo que barre el carro) está libre
-    const tryTurn = (a, i) => {
+    const tryTurn = (a, i, force = false) => {
       const w = a.w;
       const back = -w.dir;
-      let clear;
-      if (w.cart) {
+      let clear = force;
+      if (force) {
+        // (lleva demasiado esperando: gira igual)
+      } else if (w.cart) {
         // Espera a que el carro que acaba de girar se aparte (los que vienen detrás no estorban)
         const c = onAvenue(w.s, 0);
         clear = state.every((b, k) => k === i || (b.cart ? b.w.dir === w.dir || reach(c, b) > CART_TURN_R : b.pos.distanceTo(c) > CART_TURN_R + b.r));
@@ -1868,6 +1872,7 @@ export class World {
       }
       w.pending = !clear;
       if (clear) {
+        w.waitTurn = 0;
         w.dir = back;
         w.turnTime = w.cart ? 2.4 : 0.8;
         w.turn = w.turnTime;
@@ -1882,8 +1887,11 @@ export class World {
       w.lane += THREE.MathUtils.clamp(laneOf(w) - w.lane, -rate, rate);
       let moving = false;
       if (w.turn > 0) w.turn = Math.max(0, w.turn - dt);
-      else if (w.pending) tryTurn(a, i);
-      else {
+      else if (w.pending) {
+        // Si no le dejan sitio para dar la vuelta en un buen rato, la da igual (nunca se queda ahí)
+        w.waitTurn = (w.waitTurn ?? 0) + dt;
+        tryTurn(a, i, w.waitTurn > STUCK_SECONDS + 1);
+      } else {
         let go = blocker[i].j < 0 || pass.has(i) ? blocker[i].slow : 0;
         if (!w.avenue && claims.length) {
           const x = ringX(w);
@@ -1891,6 +1899,18 @@ export class World {
           const halt = (c) => line >= c.lo && line <= c.hi && (w.dir > 0 ? x < c.x0 && x > c.x0 - 0.7 : x > c.x1 && x < c.x1 + 0.7);
           if (claims.some(halt)) go = 0;
         }
+        // Atascos: si lleva unos segundos sin poder avanzar (se esperan unos a otros en el cruce), pasa un
+        // momento aunque roce al de delante; así nunca se quedan quietos para siempre
+        if (w.ghost > 0) {
+          w.ghost -= dt;
+          go = Math.max(go, 0.8);
+        } else if (go === 0) {
+          w.still = (w.still ?? 0) + dt;
+          if (w.still > STUCK_SECONDS + (i % 5) * 0.3) {
+            w.still = 0;
+            w.ghost = w.cart ? 2.2 : 1.4;
+          }
+        } else w.still = 0;
         if (w.cart) {
           // Cerca del cruce: si no puede pasar en un momento, pide paso hasta haber cruzado
           const front = w.s + w.dir * 1.1;
