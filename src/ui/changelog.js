@@ -7,6 +7,16 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-11d',
+    date: '2026-11-11',
+    title: 'Sonido: menos descargas y quitado en el móvil',
+    items: ['🔇 Con el <b>sonido quitado</b>, el juego ya no descarga la música ni los sonidos de ambiente (antes se bajaban y sonaban en silencio). Con la <b>música quitada</b>, tampoco se descarga el tema: se baja en el momento en que la activas.', '📱 En el <b>móvil</b>, el sonido y la música empiezan quitados (casi todos los quitan); en el ordenador, puestos. Si los cambias, se queda lo que elijas.'],
+    en: {
+      title: 'Sound: fewer downloads, off on mobile',
+      items: ['🔇 With <b>sound off</b>, the game no longer downloads the music or the ambient sounds (before, they were downloaded and played silently). With <b>music off</b>, the theme isn’t downloaded either: it downloads the moment you turn it on.', '📱 On <b>mobile</b>, sound and music start off (almost everyone turns them off); on desktop, on. If you change them, your choice is kept.'],
+    },
+  },
+  {
     id: '2026-11-11c',
     date: '2026-11-11',
     title: 'El mapa del mundo, una bola',

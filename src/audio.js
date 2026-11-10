@@ -1,7 +1,8 @@
 // Sonido con Web Audio: la música de fondo, el ambiente de la isla, las gaviotas y la lluvia son
 // pistas grabadas (public/audio); los truenos y los efectos se sintetizan al momento.
 // El navegador no deja sonar nada hasta que el jugador interactúa, así que el
-// contexto se crea en el primer clic o tecla.
+// contexto se crea en el primer clic o tecla. Las pistas solo se descargan cuando van a sonar: con
+// el sonido quitado no se baja nada, y la música solo si está puesta (al activarla, se descarga).
 
 const MUTE_KEY = 'aegium.muted';
 const MUSIC_KEY = 'aegium.music';
@@ -9,6 +10,12 @@ const MUSIC_VOLUME_KEY = 'aegium.musicVolume';
 const AMBIENT_VOLUME_KEY = 'aegium.ambientVolume';
 // Volumen de la música a tope (el deslizador va de 0 a 1 sobre esto)
 const MUSIC_MAX = 0.65;
+
+/**
+ * En el móvil (pantalla táctil, sin ratón) el sonido y la música empiezan quitados: casi todos los
+ * quitan, y así no se descargan. En el ordenador, puestos. Lo que elija cada jugador manda siempre.
+ */
+const MOBILE = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches;
 
 let ctx = null;
 let master = null;
@@ -18,9 +25,10 @@ let muted = readMuted();
 
 function readMuted() {
   try {
-    return localStorage.getItem(MUTE_KEY) === '1';
+    const v = localStorage.getItem(MUTE_KEY);
+    return v === null ? MOBILE : v === '1';
   } catch {
-    return false;
+    return MOBILE;
   }
 }
 
@@ -35,11 +43,26 @@ function ensure() {
   ambientBus = ctx.createGain();
   ambientBus.gain.value = ambientVolume();
   ambientBus.connect(master);
+  startSounds();
+  return ctx;
+}
+
+/** Lo que suena de fondo (y lo que hay que tener descargado), si el sonido no está quitado. */
+function startSounds() {
+  if (muted || !ctx) return;
   startIsland();
   if (musicOn()) startMusic();
   // Los efectos grabados, ya descargados para cuando hagan falta
   loadSample('/audio/martillo.mp3');
-  return ctx;
+}
+
+/** Con el sonido quitado, las pistas se paran del todo (no siguen descargándose ni sonando en silencio). */
+function pauseTracks() {
+  for (const t of [island, music, gullTrack, rain]) {
+    if (!t) continue;
+    t.el.pause();
+    t.playing = false;
+  }
 }
 
 export function unlockAudio() {
@@ -59,7 +82,13 @@ export function setMuted(value) {
     // sin almacenamiento: no pasa nada
   }
   if (master) master.gain.setTargetAtTime(muted ? 0 : 0.6, ctx.currentTime, 0.1);
+  if (!ctx) return;
+  if (muted) {
+    clearTimeout(muteTimer);
+    muteTimer = setTimeout(() => muted && pauseTracks(), 600);
+  } else startSounds();
 }
+let muteTimer = null;
 
 // ── Ambiente ─────────────────────────────────────────────────────────────────
 
@@ -105,6 +134,7 @@ let island = null;
 let islandLevel = 1;
 
 function startIsland() {
+  if (muted) return;
   island ??= track('/audio/sonido_fondo_isla.mp3', 0.09, ambientBus);
   if (!document.hidden) fade(island, island.volume * islandLevel, 3);
 }
@@ -115,7 +145,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     island.el.pause();
     island.playing = false;
-  } else fade(island, island.volume * islandLevel, 1.5);
+  } else if (!muted) fade(island, island.volume * islandLevel, 1.5);
 });
 
 // ── Gaviotas: la pista suena más o menos según las que pasen sobre la isla ────
@@ -147,7 +177,7 @@ function fade(t, level, seconds) {
  * la isla cerca de donde miras. En el mapa, 0.
  */
 export function setGulls(k) {
-  if (!ctx || document.hidden) return;
+  if (!ctx || document.hidden || muted) return;
   gullTrack ??= track('/audio/gaviotas.mp3', 0.55, ambientBus);
   const level = Math.max(0, Math.min(1, k)) * gullTrack.volume;
   fade(gullTrack, level, 1.2);
@@ -193,9 +223,10 @@ export function setMusicVolume(v) {
 
 export function musicOn() {
   try {
-    return localStorage.getItem(MUSIC_KEY) !== '0';
+    const v = localStorage.getItem(MUSIC_KEY);
+    return v === null ? !MOBILE : v !== '0';
   } catch {
-    return true;
+    return !MOBILE;
   }
 }
 
@@ -212,7 +243,7 @@ export function setMusic(on) {
 }
 
 function startMusic() {
-  if (!ctx) return;
+  if (!ctx || muted) return;
   music ??= track('/audio/tema.mp3', musicVolume() * MUSIC_MAX);
   fade(music, music.volume, 2);
 }
@@ -235,7 +266,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     music.el.pause();
     music.playing = false;
-  } else if (musicOn()) fade(music, music.volume, 1);
+  } else if (musicOn() && !muted) fade(music, music.volume, 1);
 });
 
 // ── Lluvia y truenos ─────────────────────────────────────────────────────────
@@ -248,6 +279,11 @@ let rain = null;
  */
 export function setRain(k) {
   if (!ctx) return;
+  // (con el sonido quitado, ni se descarga)
+  if (muted) {
+    if (rain) rain.level = 0;
+    return;
+  }
   rain ??= track('/audio/lluvia.mp3', 0.32, ambientBus);
   // Los restos de un chaparrón que ya se va cuentan como nada
   const level = k < 0.05 ? 0 : Math.min(1, k) * rain.volume;
@@ -271,7 +307,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     rain.el.pause();
     rain.playing = false;
-  } else if (rain.level > 0) fade(rain, rain.level, 1);
+  } else if (rain.level > 0 && !muted) fade(rain, rain.level, 1);
 });
 
 /** Un trueno lejano: un golpe grave de ruido que se apaga despacio. */
@@ -359,6 +395,7 @@ function loadSample(url) {
 }
 
 function sample(url, start, vol) {
+  if (muted) return;
   const entry = loadSample(url);
   const go = () => {
     if (!entry.buffer || muted) return;
