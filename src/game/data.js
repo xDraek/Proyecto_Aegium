@@ -1378,12 +1378,12 @@ export const BOT_CHECK = { hours: 20, steady: 0.15, sample: 60, perMinute: 45, p
 // escriben los moderadores.
 
 export const BOARD_SECTIONS = {
-  anuncios: { icon: '📢', name: 'Anuncios', text: 'Novedades y avisos del equipo de Aegium.', modOnly: true },
-  sugerencias: { icon: '💡', name: 'Sugerencias', text: 'Ideas para mejorar el juego.' },
-  errores: { icon: '🐞', name: 'Errores', text: 'Algo que no funciona como debería.' },
-  estrategia: { icon: '⚔️', name: 'Estrategia y guías', text: 'Consejos, tácticas y guías para jugar mejor.' },
-  comercio: { icon: '⚖️', name: 'Comercio y diplomacia', text: 'Tratos, alianzas que buscan miembros y pactos.' },
-  general: { icon: '💬', name: 'General', text: 'De todo un poco.' },
+  anuncios: { icon: '📢', name: 'Anuncios', text: 'Novedades y avisos del equipo de Aegium.', modOnly: true, color: '#e2b343' },
+  sugerencias: { icon: '💡', name: 'Sugerencias', text: 'Ideas para mejorar el juego.', color: '#5fbf8f' },
+  errores: { icon: '🐞', name: 'Errores', text: 'Algo que no funciona como debería.', color: '#e2725b' },
+  estrategia: { icon: '⚔️', name: 'Estrategia y guías', text: 'Consejos, tácticas y guías para jugar mejor.', color: '#6f9fe0' },
+  comercio: { icon: '⚖️', name: 'Comercio y diplomacia', text: 'Tratos, alianzas que buscan miembros y pactos.', color: '#b98ee0' },
+  general: { icon: '💬', name: 'General', text: 'De todo un poco.', color: '#a7b1ba' },
 };
 /** Temas por sección (sobran los más viejos sin fijar), mensajes por tema y largo del título y del texto. */
 export const BOARD = { threads: 100, posts: 300, title: 80, text: 3000 };

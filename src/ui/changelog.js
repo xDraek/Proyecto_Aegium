@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-10e',
+    date: '2026-11-10',
+    title: 'Un foro más claro',
+    items: [
+      '🏛️ El <b>foro</b> se renueva: cada sección tiene su color y su medallón, con sus temas y mensajes a la derecha. Los temas salen en columnas (quién lo abrió, respuestas y último mensaje), con los fijados y los cerrados bien marcados.',
+      '💬 En cada tema, los mensajes llevan el medallón de su autor, si es del equipo o quien abrió el tema, y su número. Arriba, unas migas de pan («Foro › Sección») para volver, y los botones de tema nuevo y de responder en su sitio.',
+    ],
+    en: {
+      title: 'A clearer forum',
+      items: [
+        '🏛️ The <b>forum</b> gets a makeover: each section has its own colour and medallion, with its topics and posts on the right. Topics are shown in columns (who started it, replies and last post), with pinned and locked ones clearly marked.',
+        '💬 In each topic, posts show their author’s medallion, whether they’re from the team or who started the topic, and their number. At the top, breadcrumbs («Forum › Section») to go back, and the new-topic and reply buttons where they belong.',
+      ],
+    },
+  },
+  {
     id: '2026-11-10d',
     date: '2026-11-10',
     title: 'Ciudades abandonadas: llegan los macedonios',

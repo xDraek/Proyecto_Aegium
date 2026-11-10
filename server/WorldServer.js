@@ -3676,7 +3676,8 @@ export class WorldServer {
       Object.keys(BOARD_SECTIONS).map((id) => {
         const list = threads.filter((th) => th.section === id);
         const last = list.reduce((a, th) => (th.last > (a?.last ?? 0) ? th : a), null);
-        return [id, { threads: list.length, unread: list.filter(unread).length, last: last ? { title: last.title, by: last.lastBy, t: last.last } : null }];
+        const posts = list.reduce((a, th) => a + th.posts.length, 0);
+        return [id, { threads: list.length, posts, unread: list.filter(unread).length, last: last ? { title: last.title, by: last.lastBy, t: last.last } : null }];
       }),
     );
     const out = { sections, me, canModerate: userId != null && this.isAdmin(userId) };
@@ -3713,7 +3714,8 @@ export class WorldServer {
       pinned: !!th.pinned,
       locked: !!th.locked,
       // (las denuncias solo las ven los moderadores)
-      posts: th.posts.map((p) => ({ id: p.id, author: p.author, t: p.t, text: p.text, mine: p.author === me, ...(mod && p.reports?.length ? { reports: p.reports.length } : {}) })),
+      // (`staff`: lo escribe alguien del equipo de Aegium)
+      posts: th.posts.map((p) => ({ id: p.id, author: p.author, t: p.t, text: p.text, mine: p.author === me, ...(this.admins.has(p.author.toLowerCase()) ? { staff: true } : {}), ...(mod && p.reports?.length ? { reports: p.reports.length } : {}) })),
       me,
       canModerate: mod,
       canReply: !!me && (!th.locked || mod) && (!BOARD_SECTIONS[th.section]?.modOnly || mod),

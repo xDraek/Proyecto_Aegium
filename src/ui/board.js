@@ -9,6 +9,15 @@ import { escapeHtml, fmtAgo } from './format.js';
 
 const text = (s) => escapeHtml(s).replace(/\n/g, '<br />');
 
+/** La inicial de un jugador para su medallón, y un color propio (siempre el mismo para cada nombre). */
+const initial = (name) => [...String(name ?? '?').trim()][0]?.toUpperCase() ?? '?';
+const AVATAR_COLORS = ['#b5542f', '#2f7a8a', '#6a8a2f', '#8a4f9e', '#a8862c', '#3f6fb0', '#9e3f5c', '#4f7f5f'];
+function nameColor(name) {
+  let h = 0;
+  for (const ch of String(name ?? '')) h = (h * 31 + ch.charCodeAt(0)) | 0;
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+
 export class Board {
   /** `onChange`: avisa al HUD cuando se ha leído algo (para el contador de no leídos). */
   constructor({ onChange = null } = {}) {
@@ -44,6 +53,9 @@ export class Board {
     root.innerHTML = '<div class="modal-card board-card" role="dialog" aria-modal="true" aria-label="Foro de Aegium"></div>';
     root.addEventListener('click', (e) => this.#click(e));
     root.addEventListener('submit', (e) => this.#submit(e));
+    root.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.matches?.('li[data-action]')) e.target.click();
+    });
     this.keys = (e) => {
       // (con un diálogo abierto encima, el Escape es suyo)
       if (e.key === 'Escape' && !document.querySelector('.dialog')) {
@@ -80,11 +92,18 @@ export class Board {
     const rows = Object.entries(BOARD_SECTIONS)
       .map(([id, s]) => {
         const info = data.sections[id];
-        const last = info.last ? `<span class="muted small board-last">Último: <span translate="no">«${escapeHtml(info.last.title)}»</span> · ${escapeHtml(info.last.by)}, ${fmtAgo(info.last.t)}</span>` : '<span class="muted small board-last">Aún no hay temas</span>';
-        return `<li class="board-section${info.unread ? ' unread' : ''}" data-action="board-section" data-section="${id}">
-          <span class="board-icon">${s.icon}</span>
-          <span class="board-info"><b>${s.name}</b>${info.unread ? ` <span class="badge-inline">${info.unread}</span>` : ''}<span class="small">${s.text}</span>${last}</span>
-          <span class="muted small">${info.threads} ${info.threads === 1 ? 'tema' : 'temas'}</span></li>`;
+        const last = info.last
+          ? `<span class="board-last"><span class="muted">Último:</span> <b translate="no">${escapeHtml(info.last.title)}</b> <span class="muted">· ${escapeHtml(info.last.by)}, ${fmtAgo(info.last.t)}</span></span>`
+          : '<span class="board-last muted">Aún no hay temas: ¡abre el primero!</span>';
+        return `<li class="board-section${info.unread ? ' unread' : ''}" style="--sec: ${s.color}" data-action="board-section" data-section="${id}" tabindex="0">
+          <span class="board-medal">${s.icon}</span>
+          <span class="board-info">
+            <span class="board-name"><b>${s.name}</b>${info.unread ? ` <span class="badge-inline" title="Temas con mensajes nuevos">${info.unread} ${info.unread === 1 ? 'nuevo' : 'nuevos'}</span>` : ''}${s.modOnly ? ' <span class="board-tag">Solo el equipo</span>' : ''}</span>
+            <span class="board-desc">${s.text}</span>
+            ${last}
+          </span>
+          <span class="board-stats"><b>${info.threads}</b><span>${info.threads === 1 ? 'tema' : 'temas'}</span><b>${info.posts ?? 0}</b><span>${(info.posts ?? 0) === 1 ? 'mensaje' : 'mensajes'}</span></span>
+        </li>`;
       })
       .join('');
     this.#render(`<ul class="board-sections">${rows}</ul>${this.#loginHint()}`);
@@ -97,30 +116,41 @@ export class Board {
     this.view = { kind: 'section', section };
     const s = BOARD_SECTIONS[section];
     const canWrite = this.#loggedIn && (!s.modOnly || data.canModerate);
-    const rows = (data.threads ?? [])
+    const threads = data.threads ?? [];
+    const rows = threads
       .map(
-        (th) => `<li data-action="board-thread" data-id="${th.id}" class="${th.unread ? 'unread' : ''}">
-          <span class="who" translate="no">${th.pinned ? '📌 ' : ''}${th.locked ? '🔒 ' : ''}${escapeHtml(th.title)}</span>
-          <span class="muted small">${th.count} ${th.count === 1 ? 'mensaje' : 'mensajes'} · ${escapeHtml(th.lastBy)}, ${fmtAgo(th.last)}</span></li>`,
+        (th) => `<li class="board-thread${th.unread ? ' unread' : ''}${th.pinned ? ' pinned' : ''}" data-action="board-thread" data-id="${th.id}" tabindex="0">
+          <span class="bt-main">
+            <span class="bt-title">${th.pinned ? '<span class="board-tag pin">📌 Fijado</span>' : ''}${th.locked ? '<span class="board-tag lock">🔒 Cerrado</span>' : ''}<span translate="no">${escapeHtml(th.title)}</span></span>
+            <span class="bt-by muted small">por <b translate="no">${escapeHtml(th.author)}</b> · ${fmtAgo(th.t)}</span>
+          </span>
+          <span class="bt-count" title="Respuestas">💬 ${Math.max(0, th.count - 1)}</span>
+          <span class="bt-last small"><b translate="no">${escapeHtml(th.lastBy)}</b><span class="muted">${fmtAgo(th.last)}</span></span>
+        </li>`,
       )
       .join('');
+    const compose = canWrite ? '<button class="primary small" data-action="board-compose">✏️ Tema nuevo</button>' : '';
     const form = canWrite
-      ? `<details class="new-thread" ${rows ? '' : 'open'}>
-          <summary>✏️ Abrir un tema nuevo</summary>
-          <form class="stack" data-form="board-new">
-            <input name="title" maxlength="${BOARD.title}" minlength="3" placeholder="Título" required />
-            <textarea name="text" rows="5" maxlength="${BOARD.text}" placeholder="¿Qué quieres contar?" required></textarea>
-            <button class="primary small auto">Publicar</button>
-          </form>
-        </details>`
+      ? `<form class="board-compose stack" data-form="board-new" ${threads.length ? 'hidden' : ''}>
+          <input name="title" maxlength="${BOARD.title}" minlength="3" placeholder="Título del tema" required />
+          <textarea name="text" rows="5" maxlength="${BOARD.text}" placeholder="¿Qué quieres contar?" required></textarea>
+          <div class="board-actions">${threads.length ? '<button type="button" class="ghost small" data-action="board-compose">Cancelar</button>' : ''}<button class="primary small">Publicar el tema</button></div>
+        </form>`
       : s.modOnly && this.#loggedIn
-        ? '<p class="muted small">En los anuncios solo escriben los moderadores.</p>'
+        ? '<p class="muted small">En los anuncios solo escribe el equipo de Aegium.</p>'
         : '';
+    const list = threads.length
+      ? `<div class="board-cols small muted"><span>Tema</span><span>Respuestas</span><span>Último mensaje</span></div><ul class="board-threads">${rows}</ul>`
+      : '<p class="board-empty muted">Todavía no hay ningún tema en esta sección.</p>';
     this.#render(
-      `<div class="thread-head"><button class="ghost small" data-action="board-home">← Secciones</button><h4>${s.icon} ${s.name}</h4></div>
-      <p class="desc small">${s.text}</p>
+      `${this.#crumbs([['board-home', null, 'Foro'], [null, null, `${s.icon} ${s.name}`]])}
+      <header class="board-hero" style="--sec: ${s.color}">
+        <span class="board-medal">${s.icon}</span>
+        <div><h4>${s.name}</h4><p class="small">${s.text}</p></div>
+        ${compose}
+      </header>
       ${form}
-      ${rows ? `<ul class="mail-list forum-list">${rows}</ul>` : '<p class="muted">Todavía no hay ningún tema.</p>'}
+      ${list}
       ${this.#loginHint()}`,
     );
   }
@@ -139,43 +169,66 @@ export class Board {
     const posts = th.posts
       .map((p, i) => {
         const tools = [
-          p.mine || mod ? `<button class="link small" data-action="board-delete-post" data-post="${p.id}" title="Borrar el mensaje">🗑️</button>` : '',
-          th.me && !p.mine ? `<button class="link small" data-action="board-report" data-post="${p.id}" title="Denunciar el mensaje">🚩</button>` : '',
-          mod && !p.mine ? `<button class="link small" data-action="board-mute" data-name="${escapeHtml(p.author)}" title="Silenciar a ${escapeHtml(p.author)} en el chat y el foro">🔇</button>` : '',
+          th.me && !p.mine ? `<button class="post-tool" data-action="board-report" data-post="${p.id}" title="Denunciar el mensaje">🚩</button>` : '',
+          mod && !p.mine ? `<button class="post-tool" data-action="board-mute" data-name="${escapeHtml(p.author)}" title="Silenciar a ${escapeHtml(p.author)} en el chat y el foro">🔇</button>` : '',
+          p.mine || mod ? `<button class="post-tool" data-action="board-delete-post" data-post="${p.id}" title="Borrar el mensaje">🗑️</button>` : '',
         ].join('');
         const reports = p.reports ? `<span class="board-reports" title="Denuncias">🚩 ${p.reports}</span>` : '';
-        return `<article class="post${i === 0 ? ' first' : ''}"><div class="post-head"><b translate="no">${escapeHtml(p.author)}</b><span class="muted small">${fmtAgo(p.t)} ${reports}${tools}</span></div><p translate="no">${text(p.text)}</p></article>`;
+        const tags = [
+          p.staff ? '<span class="board-tag staff">Equipo</span>' : '',
+          p.author === th.author && i > 0 ? '<span class="board-tag">Autor del tema</span>' : '',
+          p.mine ? '<span class="board-tag">Tú</span>' : '',
+        ].join('');
+        return `<article class="post${i === 0 ? ' first' : ''}" style="--who: ${nameColor(p.author)}">
+          <span class="post-avatar" aria-hidden="true">${escapeHtml(initial(p.author))}</span>
+          <div class="post-body">
+            <div class="post-head"><b translate="no">${escapeHtml(p.author)}</b>${tags}<span class="post-meta">${reports}<span class="muted small">${i === 0 ? 'Abrió el tema' : `#${i + 1}`} · ${fmtAgo(p.t)}</span>${tools ? `<span class="post-tools">${tools}</span>` : ''}</span></div>
+            <p translate="no">${text(p.text)}</p>
+          </div>
+        </article>`;
       })
       .join('');
     const modTools = mod
-      ? `<div class="row-actions board-mod">
-          <button class="ghost small" data-action="board-pin">${th.pinned ? 'Desfijar' : '📌 Fijar'}</button>
+      ? `<div class="board-mod" role="group" aria-label="Moderación">
+          <span class="muted small">Moderar:</span>
+          <button class="ghost small" data-action="board-pin">${th.pinned ? '📌 Desfijar' : '📌 Fijar'}</button>
           <button class="ghost small" data-action="board-lock">${th.locked ? '🔓 Abrir' : '🔒 Cerrar'}</button>
           <button class="ghost small" data-action="board-move">↪ Mover</button>
-          <button class="ghost small" data-action="board-delete" title="Borrar el tema">🗑️ Borrar</button>
+          <button class="ghost small danger" data-action="board-delete" title="Borrar el tema">🗑️ Borrar</button>
         </div>`
       : '';
     const reply = th.canReply
-      ? `<form class="stack" data-form="board-reply">
+      ? `<form class="board-reply stack" data-form="board-reply">
           <textarea name="text" rows="3" maxlength="${BOARD.text}" placeholder="Escribe tu respuesta…" required></textarea>
-          <button class="primary small auto">Responder</button>
+          <div class="board-actions"><button class="primary small">Responder</button></div>
         </form>`
       : th.me && th.locked
-        ? '<p class="muted small">🔒 Este tema está cerrado.</p>'
+        ? '<p class="board-empty muted small">🔒 Este tema está cerrado: ya no admite respuestas.</p>'
         : th.me
           ? ''
           : this.#loginHint();
+    const replies = th.posts.length - 1;
     this.#render(
-      `<div class="thread-head"><button class="ghost small" data-action="board-section" data-section="${th.section}">← ${s.icon} ${s.name}</button></div>
-      <h4 class="board-title">${th.pinned ? '📌 ' : ''}${th.locked ? '🔒 ' : ''}<span translate="no">${escapeHtml(th.title)}</span></h4>
-      ${modTools}
+      `${this.#crumbs([['board-home', null, 'Foro'], ['board-section', th.section, `${s.icon} ${s.name}`]])}
+      <header class="board-topic" style="--sec: ${s.color}">
+        <h4 class="board-title">${th.pinned ? '<span class="board-tag pin">📌 Fijado</span>' : ''}${th.locked ? '<span class="board-tag lock">🔒 Cerrado</span>' : ''}<span translate="no">${escapeHtml(th.title)}</span></h4>
+        <p class="muted small">Abierto por <b translate="no">${escapeHtml(th.author)}</b> ${fmtAgo(th.t)} · ${replies} ${replies === 1 ? 'respuesta' : 'respuestas'}</p>
+        ${modTools}
+      </header>
       <div class="posts">${posts}</div>
       ${reply}`,
     );
   }
 
+  /** Las migas de pan: Foro › Sección (› Tema). */
+  #crumbs(items) {
+    return `<nav class="board-crumbs small">${items
+      .map(([action, section, label]) => (action ? `<button class="link" data-action="${action}"${section ? ` data-section="${section}"` : ''}>${label}</button>` : `<span>${label}</span>`))
+      .join('<span class="muted">›</span>')}</nav>`;
+  }
+
   #loginHint() {
-    return getToken() && this.data?.me != null ? '' : '<p class="muted small board-login">Para escribir, entra con tu cuenta de Aegium (o créala gratis).</p>';
+    return getToken() && this.data?.me != null ? '' : '<p class="muted small board-login">🔑 Para escribir, entra con tu cuenta de Aegium (o créala gratis).</p>';
   }
 
   #render(body) {
@@ -213,6 +266,14 @@ export class Board {
     switch (btn.dataset.action) {
       case 'board-close':
         return this.close();
+      case 'board-compose': {
+        // Abre (o cierra) el formulario del tema nuevo
+        const form = this.card.querySelector('.board-compose');
+        if (!form) return;
+        form.hidden = !form.hidden;
+        if (!form.hidden) form.querySelector('input')?.focus();
+        return;
+      }
       case 'board-home':
         return this.#openSections();
       case 'board-section':
