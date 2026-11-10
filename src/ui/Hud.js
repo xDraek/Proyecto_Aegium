@@ -320,6 +320,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       await this.social.onModalClick(e);
     });
     this.modal.addEventListener('submit', (e) => this.social.onModalSubmit(e));
+    this.modal.addEventListener('change', (e) => this.social.onModalChange(e));
     $('#alliance-btn').addEventListener('click', () => this.social.openAlliance());
     this.dailyBtn = $('#daily-btn');
     this.dailyBtn.addEventListener('click', () => this.social.openDaily());

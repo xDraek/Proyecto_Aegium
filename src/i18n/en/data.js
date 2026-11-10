@@ -491,4 +491,10 @@ export default {
   "Kleptes": "Kleptes",
   "Barco de rescate con grúa, garfios y redes: recoge los pecios que dejan las batallas en el mar, sean de quien sean. No combate ni lleva tropas.": "Salvage ship with a crane, grappling hooks and nets: it collects the wrecks sea battles leave behind, whoever they belonged to. It doesn't fight or carry troops.",
   "Recoger el pecio": "Collect the wreck",
+  "Fundador de la alianza": "Founder of the alliance",
+  "General y ministro de guerra": "General and minister of war",
+  "Diplomático": "Diplomat",
+  "Miembro de la alianza": "Alliance member",
+  "Ministro de guerra": "Minister of war",
+  "Sin rango": "No rank",
 }

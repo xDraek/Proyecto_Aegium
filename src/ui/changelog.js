@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-10f',
+    date: '2026-11-10',
+    title: 'Rangos de la alianza y su foro, renovado',
+    items: [
+      '🏛️ Las alianzas tienen <b>rangos</b>, que reparte quien la fundó desde la lista de miembros: <b>🏛️ Oikistes</b> (fundador: lo puede todo y reparte los rangos), <b>👑 Hegemon</b> (líder: solicitudes, expulsiones, foro y diplomacia), <b>⚔️ Strategos</b> (ministro de guerra: declara la guerra y negocia la paz) y <b>🕊️ Presbeis</b> (diplomático: pactos y paz). Los oficiales de antes son ahora Hegemones.',
+      '🗂️ El <b>foro de la alianza</b> se pone al día con el del juego: temas en columnas, botón de tema nuevo en su sitio y mensajes con el medallón y el rango de cada autor. El Oikistes y los Hegemones lo <b>administran</b>: fijar, cerrar, renombrar y borrar temas y mensajes.',
+    ],
+    en: {
+      title: 'Alliance ranks and a renewed forum',
+      items: [
+        '🏛️ Alliances now have <b>ranks</b>, handed out by their founder from the member list: <b>🏛️ Oikistes</b> (founder: can do everything and hands out ranks), <b>👑 Hegemon</b> (leader: applications, kicks, forum and diplomacy), <b>⚔️ Strategos</b> (minister of war: declares war and negotiates peace) and <b>🕊️ Presbeis</b> (diplomat: pacts and peace). The former officers are now Hegemons.',
+        '🗂️ The <b>alliance forum</b> catches up with the game’s forum: topics in columns, the new-topic button where it belongs and posts with each author’s medallion and rank. The Oikistes and Hegemons <b>manage</b> it: pin, lock, rename and delete topics and posts.',
+      ],
+    },
+  },
+  {
     id: '2026-11-10e',
     date: '2026-11-10',
     title: 'Un foro más claro',

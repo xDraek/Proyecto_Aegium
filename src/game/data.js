@@ -1377,6 +1377,22 @@ export const BOT_CHECK = { hours: 20, steady: 0.15, sample: 60, perMinute: 45, p
 // Público: lo lee cualquiera (también sin cuenta) y escriben los jugadores. En los anuncios solo
 // escriben los moderadores.
 
+/**
+ * Los rangos de una alianza. El Oikistes es quien la fundó (solo uno) y reparte los demás rangos;
+ * `can`: lo que puede hacer cada uno — `manage` (solicitudes, expulsar, la descripción y si se entra
+ * sin solicitud), `forum` (administrar el foro: fijar, cerrar, renombrar y borrar temas y mensajes),
+ * `war` (declarar la guerra y negociar la paz), `pact` (pactos de no agresión y la paz) y `roles`
+ * (repartir los rangos y ceder la fundación). `rank`: solo se puede expulsar a quien tiene menos.
+ * `short`: lo que es, en dos palabras, para ponerlo junto al nombre griego.
+ */
+export const ALLIANCE_ROLES = {
+  oikistes: { icon: '🏛️', name: 'Oikistes', short: 'Fundador', title: 'Fundador de la alianza', rank: 4, can: ['manage', 'forum', 'war', 'pact', 'roles'] },
+  hegemon: { icon: '👑', name: 'Hegemon', short: 'Líder', title: 'Líder', rank: 3, can: ['manage', 'forum', 'war', 'pact'] },
+  strategos: { icon: '⚔️', name: 'Strategos', short: 'Ministro de guerra', title: 'General y ministro de guerra', rank: 2, can: ['war'] },
+  presbeis: { icon: '🕊️', name: 'Presbeis', short: 'Diplomático', title: 'Diplomático', rank: 2, can: ['pact'] },
+  miembro: { icon: '', name: 'Miembro', short: 'Sin rango', title: 'Miembro de la alianza', rank: 1, can: [] },
+};
+
 export const BOARD_SECTIONS = {
   anuncios: { icon: '📢', name: 'Anuncios', text: 'Novedades y avisos del equipo de Aegium.', modOnly: true, color: '#e2b343' },
   sugerencias: { icon: '💡', name: 'Sugerencias', text: 'Ideas para mejorar el juego.', color: '#5fbf8f' },

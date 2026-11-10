@@ -3033,6 +3033,10 @@ input[type='text'] {
   margin: 0 6px 0 0;
 }
 
+.board-tag.officer {
+  color: #8a5a10;
+}
+
 .board-tag.staff {
   color: #fff;
   background: #8a5a10;
@@ -3349,12 +3353,12 @@ input[type='text'] {
   color: var(--bad);
 }
 
-.board-card .posts {
+:is(.board-card, .ally-forum) .posts {
   display: grid;
   gap: 10px;
 }
 
-.board-card .post {
+:is(.board-card, .ally-forum) .post {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr);
   gap: 12px;
@@ -3363,11 +3367,11 @@ input[type='text'] {
   border-radius: 10px;
 }
 
-.board-card .post.first {
+:is(.board-card, .ally-forum) .post.first {
   box-shadow: inset 4px 0 0 var(--who);
 }
 
-.board-card .post-avatar {
+:is(.board-card, .ally-forum) .post-avatar {
   display: grid;
   place-items: center;
   width: 40px;
@@ -3381,30 +3385,36 @@ input[type='text'] {
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6), 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
-.board-card .post-body {
+:is(.board-card, .ally-forum) .post-body {
   min-width: 0;
 }
 
-.board-card .post-head {
+.ally-forum .post-author {
+  padding: 0;
+  font-weight: 700;
+  color: inherit;
+}
+
+:is(.board-card, .ally-forum) .post-head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 2px 0;
 }
 
-.board-card .post-meta {
+:is(.board-card, .ally-forum) .post-meta {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   margin-left: auto;
 }
 
-.board-card .post-tools {
+:is(.board-card, .ally-forum) .post-tools {
   display: inline-flex;
   gap: 2px;
 }
 
-.board-card .post-tool {
+:is(.board-card, .ally-forum) .post-tool {
   width: 26px;
   height: 26px;
   padding: 0;
@@ -3417,13 +3427,13 @@ input[type='text'] {
   transition: opacity 0.15s, background 0.15s;
 }
 
-.board-card .post-tool:hover,
-.board-card .post-tool:focus-visible {
+:is(.board-card, .ally-forum) .post-tool:hover,
+:is(.board-card, .ally-forum) .post-tool:focus-visible {
   opacity: 1;
   background: rgba(0, 0, 0, 0.08);
 }
 
-.board-card .post p {
+:is(.board-card, .ally-forum) .post p {
   margin: 6px 0 0;
   line-height: 1.55;
   white-space: normal;
@@ -3506,18 +3516,18 @@ input[type='text'] {
     flex: 1 1 100%;
   }
 
-  .board-card .post {
+  :is(.board-card, .ally-forum) .post {
     grid-template-columns: 32px minmax(0, 1fr);
     gap: 10px;
   }
 
-  .board-card .post-avatar {
+  :is(.board-card, .ally-forum) .post-avatar {
     width: 32px;
     height: 32px;
     font-size: 0.95rem;
   }
 
-  .board-card .post-meta {
+  :is(.board-card, .ally-forum) .post-meta {
     margin-left: 0;
     width: 100%;
   }
@@ -7173,4 +7183,86 @@ kbd {
 
 #alert [data-go]:hover {
   background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Rangos de la alianza ── */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.6;
+  white-space: nowrap;
+  vertical-align: 1px;
+  color: #1b140c;
+  background: #c9b48a;
+}
+
+.role-badge.role-oikistes {
+  background: linear-gradient(180deg, #f2c94c, #c48b22);
+}
+
+.role-badge.role-hegemon {
+  background: #e0b86a;
+}
+
+.role-badge.role-strategos {
+  color: #fff;
+  background: #a8432f;
+}
+
+.role-badge.role-presbeis {
+  color: #fff;
+  background: #3f7f9e;
+}
+
+.role-select {
+  width: auto;
+  padding: 3px 6px;
+  font-size: 0.8rem;
+}
+
+.roles-help {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+}
+
+.roles-help summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--gold);
+}
+
+.roles-help ul {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 2px;
+  padding: 0;
+  list-style: none;
+}
+
+.roles-help li {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.roles-help li .role-badge {
+  justify-self: start;
+  margin: 0;
+}
+
+.roles-help li.mine .small {
+  font-weight: 600;
+}
+
+.role-gloss {
+  white-space: nowrap;
 }

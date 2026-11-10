@@ -10,9 +10,9 @@ import { escapeHtml, fmtAgo } from './format.js';
 const text = (s) => escapeHtml(s).replace(/\n/g, '<br />');
 
 /** La inicial de un jugador para su medallón, y un color propio (siempre el mismo para cada nombre). */
-const initial = (name) => [...String(name ?? '?').trim()][0]?.toUpperCase() ?? '?';
+export const initial = (name) => [...String(name ?? '?').trim()][0]?.toUpperCase() ?? '?';
 const AVATAR_COLORS = ['#b5542f', '#2f7a8a', '#6a8a2f', '#8a4f9e', '#a8862c', '#3f6fb0', '#9e3f5c', '#4f7f5f'];
-function nameColor(name) {
+export function nameColor(name) {
   let h = 0;
   for (const ch of String(name ?? '')) h = (h * 31 + ch.charCodeAt(0)) | 0;
   return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];

@@ -4,7 +4,7 @@ import { assault, battle, combineGroups, count, hasCombat, shareSurvivors, split
 import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, forgeBonus, forgeGoal, forgeHours, forgeRoom, pledgeEmpires, relicDuel, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
 import { Game, krakenText, newState, rebuilding } from '../src/game/Game.js';
 import { fmtEs } from '../src/game/num.js';
-import { ABANDON, ACHIEVEMENTS, BASIC_RELIC_CHANCE, BOARD, BOARD_SECTIONS, BOT_CHECK, WRECK, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, PVP_RANGE, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
+import { ABANDON, ACHIEVEMENTS, ALLIANCE_ROLES, BASIC_RELIC_CHANCE, BOARD, BOARD_SECTIONS, BOT_CHECK, WRECK, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, PVP_RANGE, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
 import { merchantCargo, playerCombat, tradeShips, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
 import { BARBARIAN_ARCHERS, BARBARIAN_GARRISONS, CAMP_LOOT, LAIR_GUARDS, coordsOf, distance, nearestImage, wrapRingFor, fixPlaceName, freshPlaceName, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, macedonianCity, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
@@ -199,6 +199,12 @@ export class WorldServer {
     this.#grantFounders();
     this.memberOf = new Map();
     for (const a of Object.values(this.meta.alliances)) for (const uid of a.members) this.memberOf.set(uid, a.id);
+    // Los rangos: los oficiales de antes son ahora Hegemones
+    for (const a of Object.values(this.meta.alliances)) {
+      a.roles ??= {};
+      for (const uid of a.officers ?? []) if (a.members.includes(uid) && uid !== a.founder) a.roles[uid] = 'hegemon';
+      delete a.officers;
+    }
     // Islas de antes, con poco mar entre ellas: se recolocan una vez con el reparto de ahora
     if ((this.meta.layout ?? 1) < ISLAND_LAYOUT) {
       this.#respaceSectors();
@@ -3167,7 +3173,7 @@ export class WorldServer {
     const members = a.members
       .map((uid) => {
         const info = this.playerInfo(uid);
-        const role = uid === a.founder ? 'lider' : (a.officers ?? []).includes(uid) ? 'oficial' : 'miembro';
+        const role = this.#roleOf(a, uid);
         return { id: uid, name: info?.name, city: this.islands.get(this.games.get(uid)?.state.home)?.name, island: this.games.get(uid)?.state.home, points: info?.score ?? 0, online: this.seesOnline(userId, uid) ? info?.online : null, founder: uid === a.founder, role };
       })
       .sort((x, y) => y.points - x.points);
@@ -3179,6 +3185,9 @@ export class WorldServer {
       founder: a.founder,
       isFounder: a.founder === userId,
       canManage: this.#canManage(a, userId),
+      // Tu rango y lo que te deja hacer (ver ALLIANCE_ROLES)
+      role: this.#roleOf(a, userId),
+      can: Object.fromEntries(['manage', 'forum', 'war', 'pact', 'roles'].map((p) => [p, this.#can(a, userId, p)])),
       open: !!a.open,
       points: this.#alliancePoints(a),
       members,
@@ -3201,16 +3210,28 @@ export class WorldServer {
     if (all.some((a) => a.name.toLowerCase() === name.toLowerCase())) throw new UserError('Ya hay una alianza con ese nombre.');
     if (all.some((a) => a.tag === tag)) throw new UserError('Esa etiqueta ya está cogida.');
     const id = (this.meta.allianceSeq = (this.meta.allianceSeq ?? 0) + 1);
-    this.meta.alliances[id] = { id, name, tag, founder: userId, members: [userId], description: '', created: Date.now() };
+    this.meta.alliances[id] = { id, name, tag, founder: userId, members: [userId], roles: {}, description: '', created: Date.now() };
     this.memberOf.set(userId, id);
     this.rankingCache = null;
     this.announce(`🤝 ${this.users.get(userId).username} funda la alianza ${name} [${tag}]`);
     return this.allianceDetail(userId);
   }
 
-  /** Líder u oficial: puede aceptar solicitudes, expulsar y moderar. */
+  /** El rango de un miembro: el Oikistes es quien la fundó; los demás, el que les ha dado (o miembro). */
+  #roleOf(a, userId) {
+    if (a.founder === userId) return 'oikistes';
+    const role = a.roles?.[userId];
+    return ALLIANCE_ROLES[role] ? role : 'miembro';
+  }
+
+  /** Si su rango le deja hacer `perm` (ver ALLIANCE_ROLES). */
+  #can(a, userId, perm) {
+    return !!a?.members.includes(userId) && ALLIANCE_ROLES[this.#roleOf(a, userId)].can.includes(perm);
+  }
+
+  /** Quien gobierna la alianza (Oikistes y Hegemones): solicitudes, expulsar y la descripción. */
   #canManage(a, userId) {
-    return a.founder === userId || (a.officers ?? []).includes(userId);
+    return this.#can(a, userId, 'manage');
   }
 
   /** Pedir entrar: en una alianza abierta se entra directamente; si no, queda la solicitud. */
@@ -3311,7 +3332,7 @@ export class WorldServer {
     if (a.applications.length >= 30) throw new UserError('Esa alianza tiene demasiadas solicitudes pendientes.');
     a.applications.push({ uid: userId, t: Date.now(), text: String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, 200) });
     this.announce(`📨 ${this.users.get(userId).username} pide entrar en la alianza`, `a:${a.id}`);
-    for (const uid of [a.founder, ...(a.officers ?? [])]) this.pendingPush.add(uid);
+    for (const uid of a.members) if (this.#canManage(a, uid)) this.pendingPush.add(uid);
     return null;
   }
 
@@ -3324,7 +3345,7 @@ export class WorldServer {
   /** Aceptar o rechazar a quien pide entrar (líder u oficiales). */
   answerApplication(userId, targetId, accept) {
     const a = this.allianceOf(userId);
-    if (!a || !this.#canManage(a, userId)) throw new UserError('Solo el líder y los oficiales pueden responder a las solicitudes.');
+    if (!a || !this.#canManage(a, userId)) throw new UserError('Solo el Oikistes y los Hegemones pueden responder a las solicitudes.');
     const app = (a.applications ?? []).find((x) => x.uid === targetId);
     if (!app) throw new UserError('Esa solicitud ya no está.');
     a.applications = a.applications.filter((x) => x !== app);
@@ -3340,26 +3361,37 @@ export class WorldServer {
     return this.allianceDetail(userId);
   }
 
-  /** El líder nombra o quita oficiales. */
-  setOfficer(userId, targetId, on) {
+  /** El Oikistes da un rango a un miembro (Hegemon, Strategos, Presbeis) o se lo quita (miembro). */
+  setRole(userId, targetId, role) {
     const a = this.allianceOf(userId);
-    if (!a || a.founder !== userId) throw new UserError('Solo el líder nombra oficiales.');
+    if (!a || !this.#can(a, userId, 'roles')) throw new UserError('Solo el Oikistes reparte los rangos de la alianza.');
     if (!a.members.includes(targetId) || targetId === userId) throw new UserError('Ese jugador no está en tu alianza.');
-    a.officers = (a.officers ?? []).filter((uid) => uid !== targetId);
-    if (on) a.officers.push(targetId);
+    if (!ALLIANCE_ROLES[role] || role === 'oikistes') throw new UserError('Ese rango no existe.');
+    a.roles ??= {};
+    if (role === 'miembro') delete a.roles[targetId];
+    else a.roles[targetId] = role;
     const name = this.users.get(targetId).username;
-    this.announce(on ? `⭐ ${name} es ahora oficial de la alianza` : `${name} deja de ser oficial`, `a:${a.id}`);
+    const r = ALLIANCE_ROLES[role];
+    this.announce(role === 'miembro' ? `${name} vuelve a ser miembro de la alianza, sin rango` : `${r.icon} ${name} es ahora ${r.name} de la alianza`, `a:${a.id}`);
+    this.pendingPush.add(targetId);
     return this.allianceDetail(userId);
   }
 
-  /** El líder cede el mando a otro miembro (y pasa a ser oficial). */
+  /** Compatibilidad: nombrar «oficial» es dar el rango de Hegemon. */
+  setOfficer(userId, targetId, on) {
+    return this.setRole(userId, targetId, on ? 'hegemon' : 'miembro');
+  }
+
+  /** El Oikistes cede la fundación a otro miembro (y pasa a ser Hegemon). */
   transferLeadership(userId, targetId) {
     const a = this.allianceOf(userId);
-    if (!a || a.founder !== userId) throw new UserError('Solo el líder puede ceder el mando.');
+    if (!a || a.founder !== userId) throw new UserError('Solo el Oikistes puede ceder la alianza.');
     if (!a.members.includes(targetId) || targetId === userId) throw new UserError('Ese jugador no está en tu alianza.');
+    a.roles ??= {};
     a.founder = targetId;
-    a.officers = [...(a.officers ?? []).filter((uid) => uid !== targetId), userId];
-    this.announce(`👑 ${this.users.get(targetId).username} lidera ahora la alianza`, `a:${a.id}`);
+    delete a.roles[targetId];
+    a.roles[userId] = 'hegemon';
+    this.announce(`🏛️ ${this.users.get(targetId).username} es ahora el Oikistes de la alianza`, `a:${a.id}`);
     for (const uid of a.members) this.pendingPush.add(uid);
     return this.allianceDetail(userId);
   }
@@ -3367,7 +3399,7 @@ export class WorldServer {
   /** Abierta (entra quien quiera) o con solicitud. */
   setAllianceOpen(userId, open) {
     const a = this.allianceOf(userId);
-    if (!a || a.founder !== userId) throw new UserError('Solo el líder decide cómo se entra en la alianza.');
+    if (!a || !this.#canManage(a, userId)) throw new UserError('Solo el Oikistes y los Hegemones deciden cómo se entra en la alianza.');
     a.open = !!open;
     return this.allianceDetail(userId);
   }
@@ -3390,7 +3422,7 @@ export class WorldServer {
     const a = this.allianceOf(userId);
     if (!a) throw new UserError('No estás en ninguna alianza.');
     a.members = a.members.filter((uid) => uid !== userId);
-    a.officers = (a.officers ?? []).filter((uid) => uid !== userId);
+    if (a.roles) delete a.roles[userId];
     this.memberOf.delete(userId);
     const name = this.users.get(userId).username;
     if (!a.members.length) {
@@ -3398,10 +3430,12 @@ export class WorldServer {
       delete this.meta.forums[a.id];
       for (const key of Object.keys(this.meta.diplomacy)) if (key.split('-').includes(String(a.id))) delete this.meta.diplomacy[key];
     } else {
-      // Si se va el líder, manda el oficial más antiguo (o el miembro más antiguo)
+      // Si se va el Oikistes, le sucede el de más rango (y, entre iguales, el más antiguo)
       if (a.founder === userId) {
-        a.founder = a.officers[0] ?? a.members[0];
-        a.officers = a.officers.filter((uid) => uid !== a.founder);
+        const rank = (uid) => ALLIANCE_ROLES[this.#roleOf(a, uid)].rank;
+        a.founder = [...a.members].sort((x, y) => rank(y) - rank(x))[0];
+        if (a.roles) delete a.roles[a.founder];
+        this.announce(`🏛️ ${this.users.get(a.founder)?.username ?? '¿?'} es ahora el Oikistes de la alianza`, `a:${a.id}`);
       }
       this.announce(kickedBy ? `🤝 ${name} ha sido expulsado de la alianza` : `🤝 ${name} deja la alianza`, `a:${a.id}`);
     }
@@ -3411,9 +3445,9 @@ export class WorldServer {
 
   kickMember(userId, targetId) {
     const a = this.allianceOf(userId);
-    if (!a || !this.#canManage(a, userId)) throw new UserError('Solo el líder y los oficiales pueden expulsar.');
+    if (!a || !this.#canManage(a, userId)) throw new UserError('Solo el Oikistes y los Hegemones pueden expulsar.');
     if (targetId === userId || !a.members.includes(targetId)) throw new UserError('Ese jugador no está en tu alianza.');
-    if (targetId === a.founder || (a.founder !== userId && (a.officers ?? []).includes(targetId))) throw new UserError('No puedes expulsar a alguien de tu mismo rango o superior.');
+    if (ALLIANCE_ROLES[this.#roleOf(a, targetId)].rank >= ALLIANCE_ROLES[this.#roleOf(a, userId)].rank) throw new UserError('No puedes expulsar a alguien de tu mismo rango o superior.');
     this.leaveAlliance(targetId, { kickedBy: userId });
     return this.allianceDetail(userId);
   }
@@ -3450,7 +3484,7 @@ export class WorldServer {
     const seen = this.games.get(userId).state.forumSeen ?? {};
     const me = this.users.get(userId).username;
     return {
-      canModerate: this.#canManage(a, userId),
+      canModerate: this.#can(a, userId, 'forum'),
       threads: threads
         .map((th) => ({
           id: th.id,
@@ -3461,6 +3495,7 @@ export class WorldServer {
           lastBy: th.lastBy,
           count: th.posts.length,
           pinned: !!th.pinned,
+          locked: !!th.locked,
           unread: th.lastBy !== me && th.last > (seen[th.id] ?? 0),
         }))
         .sort((x, y) => Number(y.pinned) - Number(x.pinned) || y.last - x.last),
@@ -3479,7 +3514,8 @@ export class WorldServer {
     for (const key of Object.keys(game.state.forumSeen)) if (!threads.some((x) => x.id === Number(key))) delete game.state.forumSeen[key];
     game.dirty = true;
     const me = this.users.get(userId).username;
-    return { ...th, canModerate: this.#canManage(a, userId), mine: th.author === me };
+    const mod = this.#can(a, userId, 'forum');
+    return { ...th, locked: !!th.locked, canModerate: mod, canReply: !th.locked || mod, mine: th.author === me };
   }
 
   forumPost(userId, threadId, title, text) {
@@ -3504,6 +3540,7 @@ export class WorldServer {
     } else {
       th = threads.find((x) => x.id === threadId);
       if (!th) throw new UserError('Ese tema ya no existe.');
+      if (th.locked && !this.#can(a, userId, 'forum')) throw new UserError('Este tema está cerrado: ya no admite respuestas.');
       th.posts.push(post);
       if (th.posts.length > MAX_POSTS) th.posts.splice(1, th.posts.length - MAX_POSTS);
       th.last = now;
@@ -3513,22 +3550,55 @@ export class WorldServer {
     return this.forumThread(userId, th.id);
   }
 
-  /** Fijar o borrar un tema: quien lidera (o quien lo abrió, para borrarlo). */
-  forumModerate(userId, threadId, op) {
+  /**
+   * Administrar el foro (quien tiene el permiso `forum`: el Oikistes y los Hegemones): fijar, cerrar,
+   * renombrar o borrar un tema y borrar mensajes. Cada uno puede borrar sus propios temas y mensajes.
+   * Devuelve el tema como queda (o null si ya no está).
+   */
+  forumModerate(userId, threadId, op, { postId = null, title = null } = {}) {
     const { a, threads } = this.#forum(userId);
     const th = threads.find((x) => x.id === threadId);
     if (!th) throw new UserError('Ese tema ya no existe.');
-    const leader = this.#canManage(a, userId);
+    const mod = this.#can(a, userId, 'forum');
+    const me = this.users.get(userId).username;
+    const only = (text) => {
+      if (!mod) throw new UserError(text);
+    };
+    let gone = false;
     if (op === 'pin') {
-      if (!leader) throw new UserError('Solo quien lidera la alianza puede fijar temas.');
+      only('Solo el Oikistes y los Hegemones pueden fijar temas.');
       th.pinned = !th.pinned;
+    } else if (op === 'lock') {
+      only('Solo el Oikistes y los Hegemones pueden cerrar temas.');
+      th.locked = !th.locked;
+    } else if (op === 'rename') {
+      only('Solo el Oikistes y los Hegemones pueden cambiar el título de un tema.');
+      title = String(title ?? '').replace(/\s+/g, ' ').trim().slice(0, 80);
+      if (title.length < 3) throw new UserError('El título debe tener al menos 3 letras.');
+      th.title = title;
     } else if (op === 'delete') {
-      if (!leader && th.author !== this.users.get(userId).username) throw new UserError('Solo puedes borrar los temas que has abierto tú.');
+      if (!mod && th.author !== me) throw new UserError('Solo puedes borrar los temas que has abierto tú.');
       threads.splice(threads.indexOf(th), 1);
+      gone = true;
+    } else if (op === 'delete-post') {
+      const i = th.posts.findIndex((p) => p.id === postId);
+      if (i < 0) throw new UserError('Ese mensaje ya no está.');
+      if (!mod && th.posts[i].author !== me) throw new UserError('Solo puedes borrar tus propios mensajes.');
+      // Borrar el primero es borrar el tema entero
+      if (i === 0) {
+        threads.splice(threads.indexOf(th), 1);
+        gone = true;
+      } else {
+        th.posts.splice(i, 1);
+        const last = th.posts.at(-1);
+        th.last = last.t;
+        th.lastBy = last.author;
+      }
     } else {
       throw new UserError('Esa acción no existe.');
     }
     for (const uid of a.members) this.pendingPush.add(uid);
+    return gone ? null : this.forumThread(userId, th.id);
   }
 
   // ── Contra los bots ────────────────────────────────────────────────────────
@@ -3846,11 +3916,17 @@ export class WorldServer {
    */
   diplomacy(userId, otherId, op) {
     const a = this.allianceOf(userId);
-    if (!a || a.founder !== userId) throw new UserError('Solo quien lidera la alianza lleva la diplomacia.');
+    if (!a) throw new UserError('No estás en ninguna alianza.');
     const b = this.meta.alliances[Number(otherId)];
     if (!b || b.id === a.id) throw new UserError('Esa alianza no existe.');
     const key = pairKey(a.id, b.id);
     const rec = this.meta.diplomacy[key];
+    // La guerra, el Strategos; los pactos, el Presbeis; la paz, cualquiera de los dos (y el Oikistes y los Hegemones, todo)
+    const peace = rec?.type === 'guerra' && (op === 'paz' || op === 'aceptar' || op === 'rechazar');
+    const need = op === 'guerra' ? ['war'] : peace ? ['war', 'pact'] : ['pact'];
+    if (!need.some((p) => this.#can(a, userId, p))) {
+      throw new UserError(op === 'guerra' ? 'Solo el Oikistes, los Hegemones y los Strategos pueden declarar la guerra.' : peace ? 'La paz la negocian el Oikistes, los Hegemones, los Strategos y los Presbeis.' : 'Los pactos los llevan el Oikistes, los Hegemones y los Presbeis.');
+    }
     const now = Date.now();
     const us = `${a.name} [${a.tag}]`;
     const them = `${b.name} [${b.tag}]`;
@@ -3910,7 +3986,7 @@ export class WorldServer {
 
   describeAlliance(userId, text) {
     const a = this.allianceOf(userId);
-    if (!a || !this.#canManage(a, userId)) throw new UserError('Solo el líder y los oficiales pueden cambiar la descripción.');
+    if (!a || !this.#canManage(a, userId)) throw new UserError('Solo el Oikistes y los Hegemones pueden cambiar la descripción.');
     a.description = String(text ?? '').trim().slice(0, 500);
     return this.allianceDetail(userId);
   }

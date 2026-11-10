@@ -1,10 +1,37 @@
 import { universe } from '../config.js';
-import { ACHIEVEMENTS, BANNER_COLORS, BANNER_EMBLEMS, DAILY_REWARDS, FAVOR_ICON, RESOURCES, UNITS, VACATION } from '../game/data.js';
+import { ACHIEVEMENTS, ALLIANCE_ROLES, BANNER_COLORS, BANNER_EMBLEMS, DAILY_REWARDS, FAVOR_ICON, RESOURCES, UNITS, VACATION } from '../game/data.js';
 import { merchantCargo, tradeShips } from '../game/rules.js';
 import { recentErrors } from '../errors.js';
 import { api, setToken } from '../net/api.js';
 import { bag, escapeHtml, fmtAgo, fmtDec, fmtNum, fmtTime } from './format.js';
 import { askConfirm, askPrompt } from './dialog.js';
+import { initial, nameColor } from './board.js';
+
+/** Los rangos que el Oikistes puede dar (ver ALLIANCE_ROLES). */
+const ROLE_CHOICES = ['hegemon', 'strategos', 'presbeis', 'miembro'];
+
+/** El rango de un miembro, junto a su nombre. */
+function roleBadge(role) {
+  const r = ALLIANCE_ROLES[role];
+  return r && role !== 'miembro' ? ` <span class="role-badge role-${role}" title="${r.title}">${r.icon} ${r.name}</span> <span class="role-gloss muted small">${r.short}</span>` : '';
+}
+
+/** Qué hace cada rango (y cuál es el tuyo). */
+function rolesHelp(a) {
+  const rows = ['oikistes', 'hegemon', 'strategos', 'presbeis']
+    .map((id) => {
+      const r = ALLIANCE_ROLES[id];
+      const what = {
+        oikistes: 'Lo puede todo, reparte los rangos y puede ceder la alianza a otro.',
+        hegemon: 'Acepta solicitudes, expulsa, administra el foro y lleva la diplomacia y la guerra.',
+        strategos: 'Declara la guerra y negocia la paz.',
+        presbeis: 'Propone, acepta y rompe pactos de no agresión, y negocia la paz.',
+      }[id];
+      return `<li class="${a.role === id ? 'mine' : ''}"><span class="role-badge role-${id}">${r.icon} ${r.name}</span><span class="small"><b>${r.short}</b>. ${what}</span></li>`;
+    })
+    .join('');
+  return `<details class="roles-help"><summary>🏛️ ¿Qué es cada rango?${a.role && a.role !== 'miembro' ? ` · el tuyo: <b>${ALLIANCE_ROLES[a.role].name}</b> (${ALLIANCE_ROLES[a.role].short.toLowerCase()})` : ''}</summary><ul>${rows}</ul></details>`;
+}
 import { resPicker } from './resPicker.js';
 import { runSimulation, simulatorHtml, syncKrakenLevel } from './simulator.js';
 
@@ -68,18 +95,18 @@ export class Social {
     const rows = a.members
       .map(
         (m) => `<tr>
-          <td>${m.online == null ? '' : `<span class="dot ${m.online ? 'on' : ''}"></span>`}<button class="link" data-action="profile" data-name="${escapeHtml(m.name)}">${escapeHtml(m.name)}</button>${m.role === 'lider' ? ' <span title="Líder">👑</span>' : m.role === 'oficial' ? ' <span title="Oficial">⭐</span>' : ''}<div class="muted small">${escapeHtml(m.city ?? '')}</div></td>
+          <td>${m.online == null ? '' : `<span class="dot ${m.online ? 'on' : ''}"></span>`}<button class="link" data-action="profile" data-name="${escapeHtml(m.name)}">${escapeHtml(m.name)}</button>${roleBadge(m.role)}<div class="muted small">${escapeHtml(m.city ?? '')}</div></td>
           <td>${fmtNum(m.points)}</td>
           <td class="row-actions">
             ${m.island ? `<button class="ghost small" data-action="goto" data-island="${m.island}" title="Ver en el mapa">🗺️</button>` : ''}
             ${m.name !== this.game.username ? `<button class="ghost small" data-action="mail-to" data-name="${escapeHtml(m.name)}" title="Mensaje">✉️</button>` : ''}
-            ${a.isFounder && !m.founder ? `<button class="ghost small" data-action="officer" data-user="${m.id}" data-on="${m.role === 'oficial' ? 0 : 1}" title="${m.role === 'oficial' ? 'Quitar de oficial' : 'Nombrar oficial'}">${m.role === 'oficial' ? '☆' : '⭐'}</button><button class="ghost small" data-action="transfer" data-user="${m.id}" data-name="${escapeHtml(m.name)}" title="Cederle el liderazgo">👑</button>` : ''}
-            ${a.canManage && !m.founder && m.name !== this.game.username && (a.isFounder || m.role !== 'oficial') ? `<button class="ghost small" data-action="kick" data-user="${m.id}" title="Expulsar">✕</button>` : ''}
+            ${a.can?.roles && !m.founder ? `<select class="role-select" data-action="set-role" data-user="${m.id}" title="Su rango en la alianza">${ROLE_CHOICES.map((r) => `<option value="${r}" ${m.role === r ? 'selected' : ''}>${r === 'miembro' ? 'Miembro (sin rango)' : `${ALLIANCE_ROLES[r].icon} ${ALLIANCE_ROLES[r].name} (${ALLIANCE_ROLES[r].short})`}</option>`).join('')}</select><button class="ghost small" data-action="transfer" data-user="${m.id}" data-name="${escapeHtml(m.name)}" title="Cederle la alianza (será el Oikistes)">🏛️</button>` : ''}
+            ${a.canManage && !m.founder && m.name !== this.game.username && (ALLIANCE_ROLES[m.role]?.rank ?? 1) < (ALLIANCE_ROLES[a.role]?.rank ?? 1) ? `<button class="ghost small" data-action="kick" data-user="${m.id}" title="Expulsar">✕</button>` : ''}
           </td>
         </tr>`,
       )
       .join('');
-    const description = a.isFounder
+    const description = a.canManage
       ? `<form class="stack" data-form="description"><textarea name="text" maxlength="500" rows="3" placeholder="Mensaje para los miembros…">${escapeHtml(a.description ?? '')}</textarea>
           <button class="ghost small">Guardar descripción</button></form>`
       : a.description
@@ -103,7 +130,8 @@ export class Social {
         <button class="ghost small" data-action="leave">Dejar la alianza</button>
       </div>
       ${this.#applicationsHtml(a)}
-      ${a.isFounder ? `<label class="toggle-row"><input type="checkbox" data-action="alliance-open" ${a.open ? 'checked' : ''} /> Alianza abierta: entra quien quiera, sin solicitud</label>` : ''}
+      ${a.canManage ? `<label class="toggle-row"><input type="checkbox" data-action="alliance-open" ${a.open ? 'checked' : ''} /> Alianza abierta: entra quien quiera, sin solicitud</label>` : ''}
+      ${rolesHelp(a)}
       ${this.#diplomacyHtml(a)}`
       }
     </div>`;
@@ -126,41 +154,87 @@ export class Social {
   #forumHtml() {
     if (!this.forum) return '<p class="muted">Cargando el foro…</p>';
     const text = (s) => escapeHtml(s).replace(/\n/g, '<br />');
+    const a = this.alliance;
+    const roles = new Map((a?.members ?? []).map((m) => [m.name, m.role]));
+    const roleTag = (name) => {
+      const role = roles.get(name);
+      const r = ALLIANCE_ROLES[role];
+      return r && role !== 'miembro' ? `<span class="board-tag ${role === 'oikistes' || role === 'hegemon' ? 'staff' : 'officer'}" title="${r.title}">${r.icon} ${r.name} · ${r.short}</span>` : '';
+    };
+    const crumbs = (items) =>
+      `<nav class="board-crumbs small">${items.map(([action, label]) => (action ? `<button class="link" data-action="${action}">${label}</button>` : `<span>${label}</span>`)).join('<span class="muted">›</span>')}</nav>`;
+    const forumName = `🗂️ Foro de ${a ? `[${escapeHtml(a.tag)}]` : 'la alianza'}`;
     if (this.thread) {
       const th = this.thread;
       const posts = th.posts
-        .map((p) => `<article class="post"><div class="post-head"><button class="link" data-action="profile" data-name="${escapeHtml(p.author)}">${escapeHtml(p.author)}</button><span class="muted small">${fmtAgo(p.t)}</span></div><p translate="no">${text(p.text)}</p></article>`)
+        .map((p, i) => {
+          const tags = [roleTag(p.author), p.author === th.author && i > 0 ? '<span class="board-tag">Autor del tema</span>' : '', p.author === this.game.username ? '<span class="board-tag">Tú</span>' : ''].join('');
+          const del = th.canModerate || p.author === this.game.username ? `<span class="post-tools"><button class="post-tool" data-action="forum-delete-post" data-id="${th.id}" data-post="${p.id}" title="${i === 0 ? 'Borrar el tema entero' : 'Borrar el mensaje'}">🗑️</button></span>` : '';
+          return `<article class="post${i === 0 ? ' first' : ''}" style="--who: ${nameColor(p.author)}">
+            <span class="post-avatar" aria-hidden="true">${escapeHtml(initial(p.author))}</span>
+            <div class="post-body">
+              <div class="post-head"><button class="link post-author" data-action="profile" data-name="${escapeHtml(p.author)}" translate="no">${escapeHtml(p.author)}</button>${tags}<span class="post-meta"><span class="muted small">${i === 0 ? 'Abrió el tema' : `#${i + 1}`} · ${fmtAgo(p.t)}</span>${del}</span></div>
+              <p translate="no">${text(p.text)}</p>
+            </div>
+          </article>`;
+        })
         .join('');
-      return `<div class="thread-head">
-          <button class="ghost small" data-action="forum-back">← Temas</button>
-          <h4>${th.pinned ? '📌 ' : ''}<span translate="no">${escapeHtml(th.title)}</span></h4>
-          <div class="row-actions">
-            ${th.canModerate ? `<button class="ghost small" data-action="forum-pin" data-id="${th.id}">${th.pinned ? 'Desfijar' : '📌 Fijar'}</button>` : ''}
-            ${th.canModerate || th.mine ? `<button class="ghost small" data-action="forum-delete" data-id="${th.id}" title="Borrar el tema">🗑️</button>` : ''}
-          </div>
-        </div>
+      const replies = th.posts.length - 1;
+      const tools = [
+        th.canModerate ? '<span class="muted small">Administrar:</span>' : '',
+        th.canModerate ? `<button class="ghost small" data-action="forum-pin" data-id="${th.id}">${th.pinned ? '📌 Desfijar' : '📌 Fijar'}</button>` : '',
+        th.canModerate ? `<button class="ghost small" data-action="forum-lock" data-id="${th.id}">${th.locked ? '🔓 Abrir' : '🔒 Cerrar'}</button>` : '',
+        th.canModerate ? `<button class="ghost small" data-action="forum-rename" data-id="${th.id}" data-title="${escapeHtml(th.title)}">✏️ Renombrar</button>` : '',
+        th.canModerate || th.mine ? `<button class="ghost small danger" data-action="forum-delete" data-id="${th.id}" title="Borrar el tema">🗑️ Borrar</button>` : '',
+      ].join('');
+      return `<div class="ally-forum board-body">
+        ${crumbs([['forum-back', forumName], [null, 'Tema']])}
+        <header class="board-topic" style="--sec: var(--gold)">
+          <h4 class="board-title">${th.pinned ? '<span class="board-tag pin">📌 Fijado</span>' : ''}${th.locked ? '<span class="board-tag lock">🔒 Cerrado</span>' : ''}<span translate="no">${escapeHtml(th.title)}</span></h4>
+          <p class="muted small">Abierto por <b translate="no">${escapeHtml(th.author)}</b> ${fmtAgo(th.t)} · ${replies} ${replies === 1 ? 'respuesta' : 'respuestas'}</p>
+          ${tools ? `<div class="board-mod">${tools}</div>` : ''}
+        </header>
         <div class="posts">${posts}</div>
-        <form class="stack" data-form="forum-reply" data-id="${th.id}">
+        ${
+          th.canReply === false
+            ? '<p class="board-empty muted small">🔒 Este tema está cerrado: ya no admite respuestas.</p>'
+            : `<form class="board-reply stack" data-form="forum-reply" data-id="${th.id}">
           <textarea name="text" rows="3" maxlength="3000" placeholder="Escribe tu respuesta…" required></textarea>
-          <button class="primary small auto">Responder</button>
-        </form>`;
+          <div class="board-actions"><button class="primary small">Responder</button></div>
+        </form>`
+        }
+      </div>`;
     }
-    const rows = this.forum.threads
+    const threads = this.forum.threads;
+    const rows = threads
       .map(
-        (th) => `<li data-action="forum-open" data-id="${th.id}" class="${th.unread ? 'unread' : ''}">
-          <span class="who" translate="no">${th.pinned ? '📌 ' : ''}${escapeHtml(th.title)}</span>
-          <span class="muted small">${th.count} ${th.count === 1 ? 'mensaje' : 'mensajes'} · ${escapeHtml(th.lastBy)}, ${fmtAgo(th.last)}</span></li>`,
+        (th) => `<li class="board-thread${th.unread ? ' unread' : ''}${th.pinned ? ' pinned' : ''}" data-action="forum-open" data-id="${th.id}" tabindex="0">
+          <span class="bt-main">
+            <span class="bt-title">${th.pinned ? '<span class="board-tag pin">📌 Fijado</span>' : ''}${th.locked ? '<span class="board-tag lock">🔒 Cerrado</span>' : ''}<span translate="no">${escapeHtml(th.title)}</span></span>
+            <span class="bt-by muted small">por <b translate="no">${escapeHtml(th.author)}</b> · ${fmtAgo(th.t)}</span>
+          </span>
+          <span class="bt-count" title="Respuestas">💬 ${Math.max(0, th.count - 1)}</span>
+          <span class="bt-last small"><b translate="no">${escapeHtml(th.lastBy)}</b><span class="muted">${fmtAgo(th.last)}</span></span>
+        </li>`,
       )
       .join('');
-    return `<details class="new-thread" ${this.forum.threads.length ? '' : 'open'}>
-        <summary>✏️ Abrir un tema nuevo</summary>
-        <form class="stack" data-form="forum-new">
-          <input name="title" maxlength="80" minlength="3" placeholder="Título" required />
-          <textarea name="text" rows="4" maxlength="3000" placeholder="¿Qué quieres contar a la alianza?" required></textarea>
-          <button class="primary small auto">Publicar</button>
-        </form>
-      </details>
-      ${rows ? `<ul class="mail-list forum-list">${rows}</ul>` : '<p class="muted">Todavía no hay ningún tema. Abre el primero: planes de ataque, quién necesita recursos, reglas de la alianza…</p>'}`;
+    return `<div class="ally-forum board-body">
+      <header class="board-hero" style="--sec: var(--gold)">
+        <span class="board-medal">🗂️</span>
+        <div><h4>Foro de la alianza</h4><p class="small">Solo lo leen los miembros de la alianza: planes de ataque, quién necesita recursos, reglas…</p></div>
+        <button class="primary small" data-action="forum-compose">✏️ Tema nuevo</button>
+      </header>
+      <form class="board-compose stack" data-form="forum-new" ${threads.length ? 'hidden' : ''}>
+        <input name="title" maxlength="80" minlength="3" placeholder="Título del tema" required />
+        <textarea name="text" rows="4" maxlength="3000" placeholder="¿Qué quieres contar a la alianza?" required></textarea>
+        <div class="board-actions">${threads.length ? '<button type="button" class="ghost small" data-action="forum-compose">Cancelar</button>' : ''}<button class="primary small">Publicar el tema</button></div>
+      </form>
+      ${
+        threads.length
+          ? `<div class="board-cols small muted"><span>Tema</span><span>Respuestas</span><span>Último mensaje</span></div><ul class="board-threads">${rows}</ul>`
+          : '<p class="board-empty muted">Todavía no hay ningún tema. Abre el primero: planes de ataque, quién necesita recursos, reglas de la alianza…</p>'
+      }
+    </div>`;
   }
 
   #applicationsHtml(a) {
@@ -176,7 +250,10 @@ export class Social {
 
   #diplomacyHtml(a) {
     const since = (t) => new Date(t).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-    const btn = (op, id, text, cls = 'ghost') => (a.isFounder ? `<button class="${cls} small" data-action="diplo" data-op="${op}" data-id="${id}">${text}</button>` : '');
+    // Quién puede cada cosa: la guerra, el Strategos; los pactos, el Presbeis; la paz, los dos
+    const can = a.can ?? {};
+    const allowed = (op, d) => (op === 'guerra' ? can.war : d?.type === 'guerra' ? can.war || can.pact : can.pact);
+    const btn = (op, id, text, cls = 'ghost', d = null) => (allowed(op, d) ? `<button class="${cls} small" data-action="diplo" data-op="${op}" data-id="${id}">${text}</button>` : '');
     const rows = a.diplomacy
       .map((d) => {
         const name = `${escapeHtml(d.name)} <span class="tag">[${escapeHtml(d.tag)}]</span>`;
@@ -186,9 +263,9 @@ export class Social {
           const w = d.war;
           status = `<span class="rel war">⚔️ En guerra</span> desde el ${since(d.since)}${w.declaredByUs ? ' (la declarasteis vosotros)' : ''}
             <div class="war-score"><span>🗡️ Abatidos <b>${fmtNum(w.kills)}</b></span><span>💀 Perdidos <b>${fmtNum(w.losses)}</b></span><span>💰 Saqueado <b>${fmtNum(w.loot)}</b></span><span>🏚️ Os han robado <b>${fmtNum(w.lootLost)}</b></span></div>`;
-          if (d.proposal?.mine) actions = `<span class="muted small">Habéis ofrecido la paz</span>${btn('rechazar', d.id, 'Retirar')}`;
-          else if (d.proposal) actions = `<span class="muted small">Os ofrecen la paz</span>${btn('aceptar', d.id, '🕊️ Firmar la paz', 'primary')}${btn('rechazar', d.id, 'Rechazar')}`;
-          else actions = btn('paz', d.id, '🕊️ Ofrecer la paz');
+          if (d.proposal?.mine) actions = `<span class="muted small">Habéis ofrecido la paz</span>${btn('rechazar', d.id, 'Retirar', 'ghost', d)}`;
+          else if (d.proposal) actions = `<span class="muted small">Os ofrecen la paz</span>${btn('aceptar', d.id, '🕊️ Firmar la paz', 'primary', d)}${btn('rechazar', d.id, 'Rechazar', 'ghost', d)}`;
+          else actions = btn('paz', d.id, '🕊️ Ofrecer la paz', 'ghost', d);
         } else if (d.type === 'pacto') {
           status = `<span class="rel pact">🕊️ Pacto de no agresión</span> desde el ${since(d.since)}`;
           actions = `${btn('romper', d.id, 'Romper el pacto')}${btn('guerra', d.id, '⚔️ Declarar la guerra')}`;
@@ -202,18 +279,18 @@ export class Social {
     const busy = new Set(a.diplomacy.map((d) => d.id));
     const others = this.alliances.filter((x) => x.id !== a.id && !busy.has(x.id));
     const form =
-      a.isFounder && others.length
+      (can.pact || can.war) && others.length
         ? `<form class="inline-form" data-form="diplo">
             <select name="id">${others.map((x) => `<option value="${x.id}">${escapeHtml(x.name)} [${escapeHtml(x.tag)}] · ${fmtNum(x.points)} pts</option>`).join('')}</select>
-            <button class="ghost small" name="op" value="pacto">🕊️ Proponer pacto</button>
-            <button class="ghost small danger" name="op" value="guerra">⚔️ Declarar la guerra</button>
+            ${can.pact ? '<button class="ghost small" name="op" value="pacto">🕊️ Proponer pacto</button>' : ''}
+            ${can.war ? '<button class="ghost small danger" name="op" value="guerra">⚔️ Declarar la guerra</button>' : ''}
           </form>`
         : '';
     if (!rows && !form) return '';
     return `<h4>Diplomacia</h4>
       ${rows || '<p class="muted small">Sin pactos ni guerras.</p>'}
       ${form}
-      <p class="muted small">Con un pacto de no agresión no podéis atacaros. En guerra, vuestros barcos cargan un 20 % más de botín cuando saqueáis al enemigo, y se lleva la cuenta de cada batalla. ${a.isFounder ? '' : 'La diplomacia la lleva quien lidera la alianza.'}</p>`;
+      <p class="muted small">Con un pacto de no agresión no podéis atacaros. En guerra, vuestros barcos cargan un 20 % más de botín cuando saqueáis al enemigo, y se lleva la cuenta de cada batalla. ${can.pact || can.war ? '' : 'La diplomacia la llevan el Oikistes y los Hegemones, la guerra los Strategos y los pactos los Presbeis.'}</p>`;
   }
 
   #noAllianceHtml() {
@@ -229,7 +306,7 @@ export class Social {
       .join('');
     return `<div class="modal-card">
       ${head('🤝', 'Alianzas', 'Juntos sois más fuertes: no os atacáis y tenéis chat propio', 'alianzas')}
-      <p class="muted small">En las alianzas con solicitud, el líder o un oficial tiene que aceptarte. Puedes pedir entrar en varias a la vez.</p>
+      <p class="muted small">En las alianzas con solicitud, el Oikistes o un Hegemon tiene que aceptarte. Puedes pedir entrar en varias a la vez.</p>
       <h4>Fundar una alianza</h4>
       <form class="inline-form" data-form="create">
         <input name="name" maxlength="30" placeholder="Nombre de la alianza" />
@@ -633,6 +710,17 @@ export class Social {
   // ── Acciones de los botones ────────────────────────────────────────────────
 
   /** Clic dentro de una ventana de alianza o correo. Devuelve true si lo ha gestionado. */
+  /** Cambios en la ventana: el rango de un miembro (el Oikistes, con su selector). */
+  async onModalChange(e) {
+    const sel = e.target.closest?.('select[data-action="set-role"]');
+    if (!sel) return false;
+    sel.disabled = true;
+    const data = await this.#call('POST', '/api/alliance/role', { userId: Number(sel.dataset.user), role: sel.value });
+    if (data) this.alliance = data.alliance;
+    this.renderAlliance();
+    return true;
+  }
+
   async onModalClick(e) {
     const btn = e.target.closest('[data-action]');
     if (!btn) return false;
@@ -642,7 +730,7 @@ export class Social {
         const open = btn.dataset.open === '1';
         const text = open ? '' : await askPrompt('¿Quieres decirles algo? (opcional)', { title: 'Pedir entrar en la alianza', icon: '🤝', placeholder: 'Un saludo, de dónde eres…', ok: 'Enviar solicitud' });
         if (text === null) return true;
-        const data = await this.#call('POST', '/api/alliance/join', { id: btn.dataset.id, text }, open ? '🤝 Te has unido a la alianza' : '📨 Solicitud enviada: el líder o un oficial te responderá');
+        const data = await this.#call('POST', '/api/alliance/join', { id: btn.dataset.id, text }, open ? '🤝 Te has unido a la alianza' : '📨 Solicitud enviada: el Oikistes o un Hegemon te responderá');
         if (data?.alliance) {
           this.alliance = data.alliance;
           this.renderAlliance();
@@ -657,7 +745,7 @@ export class Social {
       case 'answer':
       case 'officer':
       case 'transfer': {
-        if (action === 'transfer' && !(await askConfirm(`¿Ceder el liderazgo a ${btn.dataset.name}? Pasarás a ser oficial.`, { title: 'Ceder el liderazgo', icon: '👑', ok: 'Ceder' }))) return true;
+        if (action === 'transfer' && !(await askConfirm(`¿Ceder la alianza a ${btn.dataset.name}? Será el nuevo Oikistes y tú pasarás a ser Hegemon.`, { title: 'Ceder la alianza', icon: '🏛️', ok: 'Ceder' }))) return true;
         const path = { answer: '/api/alliance/answer', officer: '/api/alliance/officer', transfer: '/api/alliance/transfer' }[action];
         const data = await this.#call('POST', path, { userId: Number(btn.dataset.user), accept: btn.dataset.accept === '1', on: btn.dataset.on === '1' });
         if (data) {
@@ -699,24 +787,42 @@ export class Social {
       case 'forum-open':
         await this.#openThread(Number(btn.dataset.id));
         return true;
+      case 'forum-compose': {
+        // Abre (o cierra) el formulario del tema nuevo
+        const form = this.hud.modal.querySelector('.board-compose');
+        if (form) {
+          form.hidden = !form.hidden;
+          if (!form.hidden) form.querySelector('input')?.focus();
+        }
+        return true;
+      }
       case 'forum-back':
         this.thread = null;
         await this.#loadForum();
         this.renderAlliance();
         return true;
       case 'forum-pin':
-      case 'forum-delete': {
-        const op = action === 'forum-pin' ? 'pin' : 'delete';
+      case 'forum-lock':
+      case 'forum-rename':
+      case 'forum-delete':
+      case 'forum-delete-post': {
+        // Administrar el foro: fijar, cerrar, renombrar y borrar temas o mensajes
+        const op = action.slice(6);
+        const body = { id: Number(btn.dataset.id) };
         if (op === 'delete' && !(await askConfirm('¿Borrar este tema con todas sus respuestas?', { title: 'Borrar el tema', icon: '🗑️', ok: 'Borrar', danger: true }))) return true;
-        const data = await this.#call('POST', `/api/forum/${op}`, { id: Number(btn.dataset.id) });
-        if (!data) return true;
-        if (op === 'delete') {
-          this.thread = null;
-          this.forum = data;
-        } else {
-          await this.#openThread(Number(btn.dataset.id));
-          return true;
+        if (op === 'delete-post') {
+          if (!(await askConfirm('¿Borrar este mensaje? No se puede deshacer.', { title: 'Borrar el mensaje', icon: '🗑️', ok: 'Borrar', danger: true }))) return true;
+          body.post = Number(btn.dataset.post);
         }
+        if (op === 'rename') {
+          const title = await askPrompt('El nuevo título del tema:', { title: 'Renombrar el tema', icon: '✏️', value: btn.dataset.title ?? '', ok: 'Guardar' });
+          if (title == null) return true;
+          body.title = title;
+        }
+        const data = await this.#call('POST', `/api/forum/${op}`, body);
+        if (!data) return true;
+        this.forum = { canModerate: data.canModerate, threads: data.threads };
+        this.thread = data.thread ?? null;
         this.renderAlliance();
         return true;
       }

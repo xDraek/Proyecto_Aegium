@@ -489,6 +489,7 @@ async function api(req, res, url) {
       else if (sub === '/cancel') world.cancelApplication(uid, int(body.id));
       else if (sub === '/answer') world.answerApplication(uid, int(body.userId), body.accept === true);
       else if (sub === '/officer') world.setOfficer(uid, int(body.userId), body.on === true);
+      else if (sub === '/role') world.setRole(uid, int(body.userId), String(body.role ?? ''));
       else if (sub === '/transfer') world.transferLeadership(uid, int(body.userId));
       else if (sub === '/open') world.setAllianceOpen(uid, body.open === true);
       else if (sub === '/leave') world.leaveAlliance(uid);
@@ -531,9 +532,9 @@ async function api(req, res, url) {
         const thread = world.forumPost(uid, sub === '' ? null : int(body.id), body.title, body.text);
         return send(res, 200, { thread, snapshot: world.snapshot(uid, rev, srev) });
       }
-      if (sub === '/pin' || sub === '/delete') {
-        world.forumModerate(uid, int(body.id), sub.slice(1));
-        return send(res, 200, world.forumList(uid));
+      if (['/pin', '/lock', '/rename', '/delete', '/delete-post'].includes(sub)) {
+        const thread = world.forumModerate(uid, int(body.id), sub.slice(1), { postId: int(body.post), title: body.title });
+        return send(res, 200, { ...world.forumList(uid), thread });
       }
       return send(res, 404, { error: 'No existe.' });
     }
