@@ -33,7 +33,7 @@ test('cualquiera lo recoge con Kleptes; solo Kleptes, y se acaba', async () => {
   Object.assign(C.state.units, { kleptes: 2, mercante: 1 });
   assert.match(C.planMission('recoger', B.state.home, { kleptes: 2, mercante: 1 }).reason, /solo Kleptes/);
   assert.match(C.planMission('atacar', A.state.home, { kleptes: 2 }).reason ?? '', /.+/);
-  // C (un tercero) carga lo que cabe: 2 × 1500
+  // C (un tercero) carga lo que cabe: 2 × 1000
   const before = C.state.resources.madera;
   const m = sendAndArrive(env, C, 'recoger', B.state.home, { kleptes: 2 });
   assert.equal(total(m.cargo), 2 * UNITS.kleptes.cargo);

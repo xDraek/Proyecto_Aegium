@@ -458,7 +458,7 @@ export const UNITS = {
     upkeep: 1,
     pay: 0.4,
     speed: 0.9,
-    cargo: 1500,
+    cargo: 1000,
     capacity: 0,
     requires: { puerto: 4, navegacion: 2 },
   },
@@ -635,9 +635,10 @@ export const FLEET_COST = { per: 100, ship: 2, seat: 0.5, paces: [1, 0.9, 0.8, 0
  * `wallAbsorb` del ataque de los que desembarcan (hasta `wallAbsorbMax`) y sus torres hacen
  * `towers` de daño por asalto; la torre de vigía da `watch` de ataque y vida a los honderos y
  * arqueros que defienden (hasta `watchMax`); los fosos tumban `traps` de los que desembarcan; la
- * cadena quita `chain` de ataque a los barcos que atacan; y el refugio esconde `shelter` plazas.
+ * cadena quita `chain` de ataque a los barcos que atacan; y el refugio esconde `shelter` plazas en el
+ * nivel 1 y `shelterStep` más por cada nivel siguiente.
  */
-export const DEFENSE = { wallHp: 0.1, wallAbsorb: 0.02, wallAbsorbMax: 0.4, towers: 25, watch: 0.04, watchMax: 0.8, traps: 0.04, chain: 0.06, shelter: 150 };
+export const DEFENSE = { wallHp: 0.1, wallAbsorb: 0.02, wallAbsorbMax: 0.4, towers: 25, watch: 0.04, watchMax: 0.8, traps: 0.04, chain: 0.06, shelter: 50, shelterStep: 20 };
 
 for (const [id, cls] of Object.entries({
   lancero: 'lanza', hoplita: 'lanza', espartano: 'lanza',
@@ -658,6 +659,9 @@ export const LAND_UNITS = PLAYER_UNITS.filter((id) => UNITS[id].kind === 'tierra
 export const SHIP_UNITS = PLAYER_UNITS.filter((id) => UNITS[id].kind === 'barco');
 
 // ── Investigaciones ──────────────────────────────────────────────────────────
+
+/** Bodegas ampliadas: cada nivel, +`per` de carga por mercante (de 500 a 1.000 en `levels` niveles). */
+export const MERCHANT_HOLD = { per: 100, levels: 5 };
 
 export const RESEARCH = {
   silvicultura: {
@@ -788,6 +792,16 @@ export const RESEARCH = {
     baseTime: 220,
     requires: { academia: 2, puerto: 2 },
   },
+  bodegas: {
+    name: 'Bodegas ampliadas',
+    icon: '📦',
+    description: 'Cascos más anchos, ánforas mejor estibadas y redes de carga. Cada nivel deja que tus barcos mercantes carguen más recursos.',
+    effect: (n) => `Mercantes: ${UNITS.mercante.cargo + n * MERCHANT_HOLD.per} de carga (+${n * MERCHANT_HOLD.per})`,
+    baseCost: { madera: 400, piedra: 150, cristal: 200, oro: 60 },
+    baseTime: 300,
+    maxLevel: MERCHANT_HOLD.levels,
+    requires: { academia: 3, puerto: 3 },
+  },
   cartografia: {
     name: 'Cartografía',
     icon: '🗺️',
@@ -832,7 +846,7 @@ export const RESEARCH = {
     name: 'Refugios',
     icon: '🛖',
     description: 'Cuevas y sótanos donde esconder a tus tropas de tierra: las que metas en el refugio (desde el cuartel) no defienden la ciudad, pero tampoco mueren ni se pueden mandar. Siguen comiendo y cobrando.',
-    effect: (n) => `Sitio para ${n * 150} plazas de tropas`,
+    effect: (n) => `Sitio para ${n > 0 ? DEFENSE.shelter + DEFENSE.shelterStep * (n - 1) : 0} plazas de tropas`,
     baseCost: { madera: 600, piedra: 600, comida: 300 },
     baseTime: 300,
     maxLevel: 5,

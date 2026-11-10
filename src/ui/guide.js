@@ -58,6 +58,7 @@ import {
   WONDERS,
   WORLD_EVENT_HOURS,
   WORLD_EVENTS,
+  MERCHANT_HOLD,
 } from '../game/data.js';
 import { mercenaryCost, producerOutput, protectedAmount, storageCapacity } from '../game/rules.js';
 import { bag, escapeHtml, fmtDec, fmtNum, glyphs, resIcons } from './format.js';
@@ -365,7 +366,7 @@ const TOPICS = {
     title: 'Mercado y comercio',
     body: () => `${list([
       '<b>Cambiar en el mercado</b>: cambias un recurso por otro al momento. Cada recurso vale distinto (el oro y el cristal valen más) y el mercader se queda una comisión: empiezas recibiendo una cuarta parte de lo justo; cada nivel de mercado mejora el cambio un 2 % y cada nivel de Comercio un 0,5 %, hasta el 60 %. La Gran feria lo mejora otro 15 %. <b>Comprar oro</b>, que escasea, sale a la mitad: como mucho, un 30 %. Con otros jugadores no hay impuestos.',
-      `<b>Ofertas entre jugadores</b>: en el mercado publicas qué das y qué pides (hasta 5 ofertas, que caducan a los 3 días). Lo que ofreces queda apartado hasta que alguien acepta o la retiras, y también los <b>mercantes</b> que lo llevarán (uno por cada ${fmtNum(UNITS.mercante.cargo)} de carga).`,
+      `<b>Ofertas entre jugadores</b>: en el mercado publicas qué das y qué pides (hasta 5 ofertas, que caducan a los 3 días). Lo que ofreces queda apartado hasta que alguien acepta o la retiras, y también los <b>mercantes</b> que lo llevarán (uno por cada ${fmtNum(UNITS.mercante.cargo)} de carga, hasta ${fmtNum(UNITS.mercante.cargo + MERCHANT_HOLD.per * MERCHANT_HOLD.levels)} con <b>Bodegas ampliadas</b>).`,
       '<b>Al aceptar un trato</b>, cada uno manda lo suyo en sus mercantes, como en un transporte: los recursos llegan cuando atracan los barcos, y los mercantes no se pueden usar hasta que vuelven a casa. Estos convoyes no ocupan flota en el mar y no se pueden retirar.',
       '<b>Transportes</b>: manda mercantes con recursos a la ciudad de cualquier jugador. Si no eliges barcos, salen los que hagan falta.',
       `<b>Mercader ambulante</b>: de vez en cuando atraca uno que compra lo que te sobra y paga mejor que el mercado (ver ${see('visitantes', 'Visitantes')}).`,
@@ -443,7 +444,7 @@ const TOPICS = {
       ${list([
         'Ten en casa tropas que aguanten (hoplitas, espartanos) y algunos barcos de guerra.',
         'Sube la <b>muralla</b>, la <b>torre de vigía</b> y el <b>faro</b>, e investiga los <b>fosos</b> y la <b>cadena del puerto</b>.',
-        `Si no puedes con ellos, esconde tus tropas en el <b>refugio</b> (investigación ${RESEARCH.refugio.icon} ${RESEARCH.refugio.name}, ${DEFENSE.shelter} plazas por nivel; desde el cuartel): no defienden, pero tampoco mueren.`,
+        `Si no puedes con ellos, esconde tus tropas en el <b>refugio</b> (investigación ${RESEARCH.refugio.icon} ${RESEARCH.refugio.name}, ${DEFENSE.shelter} plazas en el nivel 1 y ${DEFENSE.shelterStep} más por nivel; desde el cuartel): no defienden, pero tampoco mueren.`,
         `Invoca la <b>Égida</b> (+50 % de vida a los defensores durante 3 h) (ver ${see('templo', 'Templo')}).`,
         `Pide <b>tropas de apoyo</b> a tu ${see('alianzas', 'alianza')} o contrata ${see('mercenarios', 'mercenarios')}.`,
         `Gasta lo que te sobra: solo ${fmtNum(protectedAmount())} de cada recurso están a salvo, y lo demás se lo puede llevar quien te venza.`,

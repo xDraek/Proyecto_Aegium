@@ -103,6 +103,8 @@ import {
   sum,
   tradeRate,
   travelSeconds,
+  unitCargo,
+  merchantHold,
   unitSeconds,
   wallBonus,
   navalDefense,
@@ -1332,7 +1334,7 @@ export class Game extends EventTarget {
       if (u.kind === 'barco') {
         ships += n;
         capacity += n * u.capacity;
-        cargo += n * u.cargo;
+        cargo += n * unitCargo(id, merchantHold(this.state));
         speed = Math.min(speed, u.speed);
       } else {
         used += n * u.size;
@@ -1687,7 +1689,7 @@ export class Game extends EventTarget {
 
   /** Tus Kleptes llegan a un pecio y cargan lo que cabe (si no hay nada, vuelven vacíos). */
   #arriveWreck(m, isl, t) {
-    const room = Math.max(0, cargoOf(m.units) - count(m.cargo));
+    const room = Math.max(0, cargoOf(m.units, merchantHold(this.state)) - count(m.cargo));
     const taken = this.world.takeWreck?.(isl.id, room, t) ?? {};
     for (const [r, n] of Object.entries(taken)) m.cargo[r] = (m.cargo[r] ?? 0) + n;
     const got = fmtBag(taken);
@@ -1706,6 +1708,7 @@ export class Game extends EventTarget {
     const room = shelterRoom(s);
     if (!room) return this.#fail('Investiga los Refugios en la academia.');
     s.sheltered ??= {};
+    this.#trimShelter();
     let free = room - seatsUsed(s.sheltered);
     const want = units ?? Object.fromEntries(LAND_UNITS.map((id) => [id, s.units[id] ?? 0]));
     const order = Object.keys(want).filter((id) => LAND_UNITS.includes(id)).sort((a, b) => (UNITS[b].size ?? 1) - (UNITS[a].size ?? 1));
@@ -1722,6 +1725,22 @@ export class Game extends EventTarget {
     if (!moved) return this.#fail(free <= 0 ? 'El refugio está lleno.' : 'No tienes tropas de tierra en casa para esconder.');
     this.#note(`🛖 ${moved} ${moved === 1 ? 'soldado se esconde' : 'soldados se esconden'} en el refugio`, 'success');
     return this.#done();
+  }
+
+  /** Si en el refugio hay más de lo que cabe (el refugio se hizo más pequeño), las que sobran salen. */
+  #trimShelter() {
+    const s = this.state;
+    let over = seatsUsed(s.sheltered ?? {}) - shelterRoom(s);
+    if (over <= 0) return;
+    for (const id of Object.keys(s.sheltered).sort((a, b) => (UNITS[a].size ?? 1) - (UNITS[b].size ?? 1))) {
+      const size = UNITS[id].size ?? 1;
+      const n = Math.min(s.sheltered[id], Math.ceil(over / size));
+      s.sheltered[id] -= n;
+      s.units[id] = (s.units[id] ?? 0) + n;
+      if (!s.sheltered[id]) delete s.sheltered[id];
+      over -= n * size;
+      if (over <= 0) break;
+    }
   }
 
   /** Saca a todas las tropas del refugio. */
@@ -2090,13 +2109,13 @@ export class Game extends EventTarget {
    * Otro jugador ataca tu isla en el instante `t`. Defienden tus tropas en casa
    * y la muralla; si ganan los atacantes se llevan recursos (salvo lo protegido).
    */
-  receiveAttack({ attackerId = null, attackerName, units, atkMul, hpMul, cargoMul = 1, islandName, joint = false, war = false }, t) {
+  receiveAttack({ attackerId = null, attackerName, units, atkMul, hpMul, cargoMul = 1, hold = 0, islandName, joint = false, war = false }, t) {
     const s = this.state;
     const { result, wall } = this.#defend({ units, atkMul, hpMul }, t, attackerName);
 
     let stolen = null;
     let cargo = 0;
-    for (const [id, n] of Object.entries(result.att.left)) cargo += n * (UNITS[id].cargo ?? 0);
+    for (const [id, n] of Object.entries(result.att.left)) cargo += n * unitCargo(id, hold);
     cargo = Math.floor(cargo * cargoMul);
     const outcome = result.winner === 'att' ? 'derrota' : result.winner === 'def' ? 'victoria' : 'empate';
     // Quien te saquea otra vez el mismo día se lleva cada vez menos (salvo en guerra)
@@ -2419,6 +2438,7 @@ export class Game extends EventTarget {
     this.busy = true;
     try {
       this.#ensureTasks(now);
+      this.#trimShelter();
       for (let guard = 0; guard < 20000; guard++) {
         const ev = this.#nextEvent();
         if (!ev || ev.t > now) break;
@@ -2914,7 +2934,7 @@ export class Game extends EventTarget {
     const names = allies.map((a) => a.name);
     const res = this.world.attackPlayer?.(
       isl.owner,
-      { attackerId: this.userId, attackerName: names.length ? `${[this.state.name, ...names].slice(0, -1).join(', ')} y ${names.at(-1)}` : this.state.name, joint: names.length > 0, units: army.units, atkMul: army.atkMul, hpMul: army.hpMul, cargoMul, islandName: this.homeIsland?.name },
+      { attackerId: this.userId, attackerName: names.length ? `${[this.state.name, ...names].slice(0, -1).join(', ')} y ${names.at(-1)}` : this.state.name, joint: names.length > 0, units: army.units, atkMul: army.atkMul, hpMul: army.hpMul, cargoMul, hold: merchantHold(this.state), islandName: this.homeIsland?.name },
       t,
     );
     if (!res) {
@@ -2927,7 +2947,7 @@ export class Game extends EventTarget {
     // Honor: abatir a alguien mucho más pequeño cuenta poco para la clasificación militar
     const honor = war ? 1 : pvpHonor(this.score(), this.world.playerInfo?.(isl.owner)?.score ?? this.score());
     const lefts = shareSurvivors(groups.map((g) => g.units), result.att.left);
-    const loots = splitBag(stolen, lefts.map(cargoOf));
+    const loots = splitBag(stolen, lefts.map((u) => cargoOf(u, merchantHold(this.state))));
     const killed = count(result.def.lost);
     const outcome = result.winner === 'att' ? 'victoria' : result.winner === 'def' ? 'derrota' : 'empate';
     const enemy = this.world.playerInfo(isl.owner)?.name ?? isl.name;
@@ -3132,7 +3152,7 @@ export class Game extends EventTarget {
     if (!m) return this.#fail('Ya no ocupas esa ciudad.');
     if (now < (m.plunderAt ?? 0)) return this.#fail('Tus tropas aún no pueden volver a saquear la ciudad.');
     const isl = this.world.island(m.target);
-    const capacity = Math.floor(cargoOf(m.units) * (1 + relicBonus(this.state, 'botin')));
+    const capacity = Math.floor(cargoOf(m.units, merchantHold(this.state)) * (1 + relicBonus(this.state, 'botin')));
     const res = this.world.plunderCity?.(isl?.owner, { name: this.state.name, capacity }, now);
     if (!res) return this.#fail('No se puede saquear ahora.');
     // También lo que ya llevaban encima las tropas (el botín del asalto y de sus ataques)
@@ -3243,7 +3263,7 @@ export class Game extends EventTarget {
     const { atkMul, hpMul } = playerCombat(this.state, { mission: m, t });
     const war = rel === 'guerra';
     const cargoMul = (m.hero ? 1 + this.heroBonus('botin') : 1) * (war ? 1 + DIPLOMACY.warLoot : 1) * (1 + relicBonus(this.state, 'botin'));
-    const res = this.world.raidColony?.(owner, isl.id, { attackerId: this.userId, attackerName: this.state.name, units: { ...m.units }, atkMul: atkMul + (m.hero ? this.heroBonus('ataque') : 0), hpMul, cargoMul }, t);
+    const res = this.world.raidColony?.(owner, isl.id, { attackerId: this.userId, attackerName: this.state.name, units: { ...m.units }, atkMul: atkMul + (m.hero ? this.heroBonus('ataque') : 0), hpMul, cargoMul, hold: merchantHold(this.state) }, t);
     if (!res) {
       this.#report({ t, kind: 'ataque', island: isl.id, islandName: isl.name, title: `Nada que saquear en ${isl.name}`, text: 'Ya no es una colonia. La flota vuelve a casa.' });
       return;
@@ -3276,7 +3296,7 @@ export class Game extends EventTarget {
    * se lleva unas horas de lo que produce y la colonia deja de producir un tiempo (ver COLONY_RAID).
    * Devuelve { result, stolen, raidedUntil } o null si ya no es tu colonia.
    */
-  receiveColonyRaid(id, { attackerName, units, atkMul, hpMul, cargoMul = 1 }, t) {
+  receiveColonyRaid(id, { attackerName, units, atkMul, hpMul, cargoMul = 1, hold = 0 }, t) {
     const col = this.colony(id);
     if (!col) return null;
     const posts = this.garrisons().filter((g) => g.target === id);
@@ -3294,7 +3314,7 @@ export class Game extends EventTarget {
     let raidedUntil = null;
     if (result.winner === 'att') {
       let cargo = 0;
-      for (const [u, n] of Object.entries(result.att.left)) cargo += n * (UNITS[u].cargo ?? 0);
+      for (const [u, n] of Object.entries(result.att.left)) cargo += n * unitCargo(u, hold);
       const take = Math.min(Math.floor(cargo * cargoMul), Math.floor(colonyYield(col) * COLONY_RAID.lootHours));
       if (take > 0) stolen = { [col.specialty]: take };
       raidedUntil = t + hours(COLONY_RAID.stopHours);
@@ -3390,7 +3410,7 @@ export class Game extends EventTarget {
     let loot = null;
     if (result.winner === 'att' && result.landed) {
       let capacity = 0;
-      for (const [id, n] of Object.entries(m.units)) capacity += n * (UNITS[id].cargo ?? 0);
+      for (const [id, n] of Object.entries(m.units)) capacity += n * unitCargo(id, merchantHold(this.state));
       if (m.hero) capacity = Math.floor(capacity * (1 + this.heroBonus('botin')));
       capacity = Math.floor(capacity * (1 + relicBonus(this.state, 'botin')));
       loot = takeLoot(stock, capacity);
@@ -3533,7 +3553,7 @@ export class Game extends EventTarget {
     let capacity = 0;
     let power = 0;
     for (const [id, n] of Object.entries(m.units)) {
-      capacity += n * (UNITS[id].cargo ?? 0);
+      capacity += n * unitCargo(id, merchantHold(this.state));
       power += n * UNITS[id].atk;
     }
     const roll = Math.random();
@@ -3994,8 +4014,8 @@ function clean(units) {
   return Object.fromEntries(Object.entries(units ?? {}).filter(([, n]) => n > 0));
 }
 
-function cargoOf(units) {
-  return Object.entries(units).reduce((s, [id, n]) => s + n * (UNITS[id].cargo ?? 0), 0);
+function cargoOf(units, hold = 0) {
+  return Object.entries(units).reduce((s, [id, n]) => s + n * unitCargo(id, hold), 0);
 }
 
 /**

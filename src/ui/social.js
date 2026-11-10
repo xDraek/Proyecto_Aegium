@@ -1,6 +1,6 @@
 import { universe } from '../config.js';
 import { ACHIEVEMENTS, BANNER_COLORS, BANNER_EMBLEMS, DAILY_REWARDS, FAVOR_ICON, RESOURCES, UNITS, VACATION } from '../game/data.js';
-import { tradeShips } from '../game/rules.js';
+import { merchantCargo, tradeShips } from '../game/rules.js';
 import { recentErrors } from '../errors.js';
 import { api, setToken } from '../net/api.js';
 import { bag, escapeHtml, fmtAgo, fmtDec, fmtNum, fmtTime } from './format.js';
@@ -607,7 +607,7 @@ export class Social {
         const ratio = (wn * RESOURCES[wr].value) / (gn * RESOURCES[gr].value);
         const deal = ratio < 0.85 ? 'good' : ratio > 1.2 ? 'bad' : '';
         // Lo que pide lo llevan tus mercantes: cuántos hacen falta (y si los tienes libres en el puerto)
-        const ships = tradeShips(o.want);
+        const ships = tradeShips(o.want, this.game.state);
         const free = this.game.units.mercante ?? 0;
         const fleet = o.mine ? `🛥 ${o.ships ?? 0} esperando en tu puerto` : o.closed ? '⛓️ su puerto está cerrado' : `${free < ships ? '⚠️ ' : ''}llevas el pago en ${ships} 🛥`;
         const blocked = closed || (o.closed && !o.mine);
@@ -621,7 +621,7 @@ export class Social {
       })
       .join('');
     return `<h4>Mercado del archipiélago</h4>
-      <p class="desc small">Ofertas de otros jugadores, sin impuestos. Lo que ofreces queda apartado, con los barcos mercantes que lo llevarán (uno por cada ${fmtNum(UNITS.mercante.cargo)}), hasta que alguien acepta o caduca a los 3 días. Al cerrar el trato, los mercaderes de cada uno zarpan con su parte: la carga llega cuando atracan y los barcos vuelven después.</p>
+      <p class="desc small">Ofertas de otros jugadores, sin impuestos. Lo que ofreces queda apartado, con los barcos mercantes que lo llevarán (uno por cada ${fmtNum(merchantCargo(this.game.state))}), hasta que alguien acepta o caduca a los 3 días. Al cerrar el trato, los mercaderes de cada uno zarpan con su parte: la carga llega cuando atracan y los barcos vuelven después.</p>
       <div class="offer-form">
         <label>Doy ${resPicker('o-give', 'madera', 'Recurso que das')}<input type="number" name="o-give-n" min="1" value="500" inputmode="numeric" /></label>
         <label>Pido ${resPicker('o-want', 'cristal', 'Recurso que pides')}<input type="number" name="o-want-n" min="1" value="200" inputmode="numeric" /></label>

@@ -7,6 +7,24 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-10b',
+    date: '2026-11-10',
+    title: 'Bodegas ampliadas',
+    items: [
+      '🛖 <b>Refugios</b> más pequeños: 50 plazas en el nivel 1 y 20 más por cada nivel (130 en el nivel 5), en vez de 150 por nivel. Si tenías escondidas más tropas de las que caben ahora, las que sobran vuelven al cuartel.',
+      '🪝 Los <b>Kleptes</b> cargan 1.000 recursos cada uno, en vez de 1.500.',
+      '📦 Nueva investigación en la academia: <b>Bodegas ampliadas</b> (con academia 3 y puerto 3). Cada nivel suma 100 de carga a tus barcos mercantes, de 500 a <b>1.000</b> en el nivel 5. Sirve para transportes, saqueos, expediciones y las ofertas del mercado, que necesitan menos barcos.',
+    ],
+    en: {
+      title: 'Enlarged holds',
+      items: [
+        '🛖 Smaller <b>Shelters</b>: 50 places at level 1 and 20 more for each level (130 at level 5), instead of 150 per level. If you had more troops hidden than now fit, the extra ones return to the barracks.',
+        '🪝 <b>Kleptes</b> carry 1,000 resources each, instead of 1,500.',
+        '📦 New research at the academy: <b>Enlarged holds</b> (with academy 3 and port 3). Each level adds 100 cargo to your merchant ships, from 500 up to <b>1,000</b> at level 5. It helps with transports, raids, expeditions and market offers, which need fewer ships.',
+      ],
+    },
+  },
+  {
     id: '2026-11-10a',
     date: '2026-11-10',
     title: 'Kleptes más útiles y avisos',

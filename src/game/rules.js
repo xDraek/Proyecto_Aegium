@@ -36,6 +36,7 @@ import {
   WORLD_EVENT_CHANCE,
   WORLD_EVENT_HOURS,
   WORK,
+  MERCHANT_HOLD,
 } from './data.js';
 
 // Fórmulas puras. Reciben el estado de la partida (o partes) y no lo modifican.
@@ -204,7 +205,8 @@ export function wallBonus(level, watch = 0) {
 
 /** Plazas de tropas que caben en el refugio. */
 export function shelterRoom(state) {
-  return DEFENSE.shelter * (state.research?.refugio ?? 0);
+  const n = state.research?.refugio ?? 0;
+  return n > 0 ? DEFENSE.shelter + DEFENSE.shelterStep * (n - 1) : 0;
 }
 
 /** Comida que se ahorran las tropas gracias a la taberna (0 a 0,4). */
@@ -212,10 +214,25 @@ export function tavernSaving(state) {
   return Math.min(0.4, 0.04 * lvl(state, 'taberna'));
 }
 
+/** Carga de más de cada mercante gracias a las Bodegas ampliadas. */
+export function merchantHold(state) {
+  return MERCHANT_HOLD.per * Math.min(MERCHANT_HOLD.levels, state?.research?.bodegas ?? 0);
+}
+
+/** Lo que carga un mercante de este jugador. */
+export function merchantCargo(state) {
+  return UNITS.mercante.cargo + merchantHold(state);
+}
+
+/** Lo que carga una tropa o barco (`hold`: lo de más de los mercantes, ver merchantHold). */
+export function unitCargo(id, hold = 0) {
+  return (UNITS[id]?.cargo ?? 0) + (id === 'mercante' ? hold : 0);
+}
+
 /** Barcos mercantes que hacen falta para llevar un lado de un trato del mercado. */
-export function tradeShips(bag) {
+export function tradeShips(bag, state = null) {
   const total = Object.values(bag ?? {}).reduce((a, n) => a + n, 0);
-  return Math.max(1, Math.ceil(total / UNITS.mercante.cargo));
+  return Math.max(1, Math.ceil(total / merchantCargo(state)));
 }
 
 /** Lo que cuesta contratar `count` soldados de la compañía `m` de la taberna (ver MERC_PRICE). */

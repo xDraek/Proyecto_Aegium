@@ -146,6 +146,8 @@ export default {
   "Navegación": "Navigation",
   "Brújulas y velas latinas. Nivel 2: trirremes. Nivel 4: expediciones al Mar de las Brumas. Nivel 6: quinquerremes y liburnas. Nivel 8: dromones.": "Compasses and lateen sails. Level 2: triremes. Level 4: expeditions to the Sea of Mists. Level 6: quinqueremes and liburnians. Level 8: dromons.",
   "Flotas un {0} % más rápidas": "Fleets {0} % faster",
+  "Cascos más anchos, ánforas mejor estibadas y redes de carga. Cada nivel deja que tus barcos mercantes carguen más recursos.": "Wider hulls, better-stowed amphorae and cargo nets. Each level lets your merchant ships carry more resources.",
+  "Mercantes: {0} de carga (+{1})": "Merchant ships: {0} cargo (+{1})",
   "Cartografía": "Cartography",
   "Mapas de las islas y sus fondeaderos. Cada nivel te deja fundar una colonia más.": "Maps of the islands and their anchorages. Each level lets you found one more colony.",
   "{0} {1} como máximo": "{0} {1} at most",

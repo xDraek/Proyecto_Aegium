@@ -5,7 +5,7 @@ import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, feat
 import { Game, krakenText, newState, rebuilding } from '../src/game/Game.js';
 import { fmtEs } from '../src/game/num.js';
 import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, BOARD, BOARD_SECTIONS, BOT_CHECK, WRECK, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, PVP_RANGE, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
-import { playerCombat, tradeShips, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
+import { merchantCargo, playerCombat, tradeShips, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
 import { BARBARIAN_ARCHERS, BARBARIAN_GARRISONS, CAMP_LOOT, LAIR_GUARDS, coordsOf, distance, nearestImage, wrapRingFor, fixPlaceName, freshPlaceName, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { hashPassword, newRecoveryCode, newSecret, normalizeCode, verifyPassword } from './auth.js';
@@ -4190,8 +4190,8 @@ export class WorldServer {
     if (game.level('mercado') < 1) throw new UserError('Necesitas un mercado para comerciar.');
     if (this.meta.offers.filter((o) => o.seller === userId).length >= MAX_OFFERS) throw new UserError(`Como mucho ${MAX_OFFERS} ofertas a la vez.`);
     // Los mercantes que llevarán lo que das se quedan esperando en el puerto con la carga
-    const ships = tradeShips(give);
-    if (!game.holdShips(ships)) throw new UserError(`Para llevar tu oferta necesitas ${ships} ${ships === 1 ? 'barco mercante libre' : 'barcos mercantes libres'} en el puerto (cada uno carga ${fmtEs(UNITS.mercante.cargo)}).`);
+    const ships = tradeShips(give, game.state);
+    if (!game.holdShips(ships)) throw new UserError(`Para llevar tu oferta necesitas ${ships} ${ships === 1 ? 'barco mercante libre' : 'barcos mercantes libres'} en el puerto (cada uno carga ${fmtEs(merchantCargo(game.state))}).`);
     if (!game.takeResources(give)) {
       game.releaseShips(ships);
       throw new UserError('No tienes esos recursos.');
@@ -4233,12 +4233,12 @@ export class WorldServer {
     // Cada uno manda su parte en sus mercantes: la carga llega al atracar y los barcos vuelven luego
     const name = this.users.get(userId).username;
     const sellerName = this.users.get(o.seller)?.username ?? '¿?';
-    const sent = buyer.sendTrade({ to: owner.state.home, partner: sellerName, cargo: o.want, ships: tradeShips(o.want), pay: true });
+    const sent = buyer.sendTrade({ to: owner.state.home, partner: sellerName, cargo: o.want, ships: tradeShips(o.want, buyer.state), pay: true });
     if (!sent.ok) throw new UserError(sent.reason);
     this.meta.offers = this.meta.offers.filter((x) => x !== o);
     // (las ofertas de antes de los barcos no apartaron mercantes: salen los que tenga libres)
     const held = o.ships != null;
-    const ships = held ? o.ships : Math.min(owner.state.units.mercante ?? 0, tradeShips(o.give));
+    const ships = held ? o.ships : Math.min(owner.state.units.mercante ?? 0, tradeShips(o.give, owner.state));
     owner.sendTrade({ to: buyer.state.home, partner: name, cargo: o.give, ships, held });
     owner.receiveNews(null, `⚖️ ${name} ha aceptado tu oferta del mercado: tus mercaderes zarpan hacia su ciudad`, 'success');
     for (const g of [buyer, owner]) g.state.stats.trades = (g.state.stats.trades ?? 0) + 1;

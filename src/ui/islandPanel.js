@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCKADE, COLONY, COLONY_RAID, DEFENSE, FEATS, FLEET_COST, FEAT_THEMES, ISLAND_TYPES, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, PVP_RANGE, RESOURCES, RESOURCE_KEYS, SPY_TIERS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
-import { colonyUpgrade, colonyYield, navalDefense, playerCombat, spyRisk, wallBonus } from '../game/rules.js';
+import { colonyUpgrade, colonyYield, merchantCargo, navalDefense, playerCombat, spyRisk, wallBonus } from '../game/rules.js';
 import { featCoop, forceOf, forgeBonus } from '../game/feats.js';
 import { krakenText, NEWBIE_POINTS, neutralsOf } from '../game/Game.js';
 import { coordsOf, fmtCoords } from '../game/world.js';
@@ -752,7 +752,7 @@ export function fleetFor(game, type, units, payload = {}, from) {
   if ((type === 'explorar' || type === 'sabotaje') && pool.bote > 0) return { bote: 1 };
   if (type === 'transporte' && pool.mercante > 0) {
     const total = Object.values(payload).reduce((a, b) => a + b, 0);
-    const need = Math.max(1, Math.ceil(total / UNITS.mercante.cargo));
+    const need = Math.max(1, Math.ceil(total / merchantCargo(game.state)));
     return { mercante: Math.min(need, pool.mercante) };
   }
   return units;
