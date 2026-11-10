@@ -84,6 +84,22 @@ function template({ title, preheader, lines, button, link, foot }) {
 }
 
 export const MAILS = {
+  // A los 30 días sin entrar: tu ciudad quedará abandonada si no vuelves (ver ABANDON)
+  abandono: ({ username, city, days, left, link }) => ({
+    subject: `Tu ciudad de ${city} quedará abandonada`,
+    ...template({
+      title: `Hola, ${username}`,
+      preheader: `Llevas ${days} días sin entrar en Aegium. Si no vuelves en ${left} días, tu ciudad pasará a manos de los macedonios.`,
+      lines: [
+        `Llevas <b>${days} días</b> sin aparecer por <b>${escapeHtml(city)}</b>.`,
+        `Si no entras en los próximos <b>${left} días</b>, tu ciudad quedará abandonada: la ocuparán los macedonios y se convertirá en una ciudad neutral que los demás podrán saquear. Tus colonias quedarán libres.`,
+        'Basta con que entres una vez para que no pase nada. Tu cuenta se conserva en cualquier caso: si vuelves más tarde, podrás fundar una ciudad nueva.',
+      ],
+      button: 'Volver a Aegium',
+      link,
+      foot: 'Recibes este aviso porque tienes una cuenta en Aegium y llevas tiempo sin entrar.',
+    }),
+  }),
   // Aviso a todos los jugadores: el fin del mantenimiento y el wipe (ver /correo-reapertura)
   reapertura: ({ username, link }) => ({
     subject: 'Aegium vuelve el domingo 25 a las 18:00, con un mundo nuevo',

@@ -158,6 +158,7 @@ function siteIcon(look) {
   if (k === 'barbaros' || k === 'piratas') return ISLAND_TYPES[k].icon;
   if (k.startsWith('kraken')) return ISLAND_TYPES.kraken.icon;
   if (k.startsWith('ciudadela')) return ISLAND_TYPES.ciudadela.icon;
+  if (k === 'macedonia') return ISLAND_TYPES.macedonia.icon;
   if (k.startsWith('ciudad-')) return ISLAND_TYPES.jugador.icon;
   return null;
 }

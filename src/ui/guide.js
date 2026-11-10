@@ -59,6 +59,7 @@ import {
   WORLD_EVENT_HOURS,
   WORLD_EVENTS,
   MERCHANT_HOLD,
+  ABANDON,
 } from '../game/data.js';
 import { mercenaryCost, producerOutput, protectedAmount, storageCapacity } from '../game/rules.js';
 import { bag, escapeHtml, fmtDec, fmtNum, glyphs, resIcons } from './format.js';
@@ -192,7 +193,8 @@ function islandsTable() {
     ['brumas', 'El Mar de las Brumas: solo se va de expedición.'],
     ['ciudadela', 'Ciudades bárbaras amuralladas de los continentes: mucho botín, y se pueden conquistar.'],
     ['continente', 'Tierras grandes entre sectores, con ciudades bárbaras, valles para colonizar y una maravilla.'],
-    ['jugador', 'La ciudad de otro jugador.'],
+    ['jugador', 'La ciudad de otro jugador. Si lleva una semana sin entrar sale como inactivo (💤).'],
+    ['macedonia', `La ciudad de un jugador que lleva más de ${ABANDON.abandonDays} días sin entrar: la ocupan los macedonios, con un gran ejército de tropas y barcos como los tuyos, muralla y mucho botín. Se rearma con el tiempo y no se puede conquistar.`],
   ];
   return table(
     ['Isla', 'Qué hay'],

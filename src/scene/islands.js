@@ -450,6 +450,8 @@ export function createIslandFeature(isl, fullLook) {
     niebla: () => mist(g, R, rand),
     barbaros: () => camp(g, R, rand, isl.tier ?? 1),
     ciudadela: () => citadel(g, R, rand),
+    // La ciudad abandonada de un jugador, que ahora ocupan los macedonios
+    macedonia: () => city(g, isl, R, rand, 3),
     'ciudadela-propia': () => citadel(g, R, rand, isl.bannerColor ?? C.cloth[0]),
     'ciudadela-otro': () => citadel(g, R, rand, ownerColor(isl)),
     piratas: () => fort(g, isl, R, rand),

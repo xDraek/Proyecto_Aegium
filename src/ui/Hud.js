@@ -1549,6 +1549,7 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
 
   toggleChat(open = this.chatEl.hidden, channel = this.chatChannel) {
     this.chatEl.hidden = !open;
+    if (!open) this.chatMark = null;
     if (open) {
       this.menu.hidden = true;
       if (!this.modal.hidden) this.closeModal();
@@ -1558,6 +1559,8 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
     this.#syncActive();
     if (!open) return;
     this.chatChannel = (channel === 'alianza' && !this.game.alliance) || (channel === 'gesta' && !this.#featChatOpen()) ? 'global' : channel;
+    // Hasta dónde habías leído al abrir el canal: la raya de «nuevos» se queda ahí mientras siga abierto
+    if (this.chatMark?.ch !== this.chatChannel) this.chatMark = { ch: this.chatChannel, id: this.chatRead[this.chatChannel] ?? 0 };
     this.#renderChat(true);
     // En el móvil no: sacaría el teclado nada más abrir el chat (sale al tocar el campo)
     if (matchMedia('(pointer: fine)').matches) this.chatEl.querySelector('input').focus();
@@ -1625,9 +1628,13 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
       ch === 'alianza' ? `Solo para ${this.game.alliance?.name ?? 'tu alianza'}` : ch === 'gesta' ? `Los convocados contra ${feat?.enemy ?? 'la bestia'} en ${feat?.name ?? 'su continente'}` : 'Todo el archipiélago lo lee';
     const log = this.chatEl.querySelector('.chat-log');
     const atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 30;
-    log.innerHTML = this.chatMessages
-      .filter((m) => (m.channel ?? 'global') === ch)
+    const shown = this.chatMessages.filter((m) => (m.channel ?? 'global') === ch);
+    // La raya roja antes del primer mensaje que no habías leído (de otros: los tuyos ya los has visto)
+    const mark = this.chatMark?.ch === ch && this.chatMark.id > 0 ? this.chatMark.id : Infinity;
+    const firstNew = shown.find((m) => m.id > mark && (m.system || m.name !== this.game.username))?.id;
+    log.innerHTML = shown
       .map((m) => {
+        const divider = m.id === firstNew ? '<div class="chat-new"><span>Nuevos</span></div>' : '';
         const time = new Date(m.t).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
         // Los avisos importantes van resaltados, cada clase de su color (el Kraken, las gestas, las
         // hordas, las temporadas); el despertar del Kraken, con un botón a la zona donde lo han visto
@@ -1638,16 +1645,19 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
           ...(m.zones ?? []).filter(Boolean).map((z) => zone(z.at, z.name ? escapeHtml(z.name) : 'Ver en el mapa')),
         ].join('');
         const highlight = m.highlight ?? (m.kraken ? 'kraken' : null);
-        return m.system
+        return divider + (m.system
           ? `<div class="msg system${highlight ? ` hl hl-${highlight}` : ''}${m.kraken?.near ? ' kraken-wake' : ''}"><span>${richText(m.text)}</span>${m.offer ? ` <button class="link small" data-offer="${m.offer}">Ver ofertas ▶</button>` : ''}${m.board ? ` <button class="link small" data-board="${m.board}">Leer el anuncio ▶</button>` : ''}${kraken}<time>${time}</time></div>`
           : `<div class="msg${m.name === this.game.username ? ' mine' : ''}"><b data-profile="${escapeHtml(m.name)}" translate="no">${escapeHtml(m.name)}</b>${m.title ? `<em class="msg-title">${escapeHtml(m.title)}</em>` : ''} <span translate="no">${linkCoords(escapeHtml(m.text))}</span>${
               m.report ? `<button class="link small" data-shared="${m.id}">Ver informe ▶</button>` : ''
             }<time>${time}</time>${
               this.game.admin ? `<button class="msg-del" data-delete="${m.id}" title="Borrar mensaje">✕</button>` : ''
-            }</div>`;
+            }</div>`);
       })
       .join('');
-    if (scroll || atBottom) log.scrollTop = log.scrollHeight;
+    const line = scroll ? log.querySelector('.chat-new') : null;
+    // Al abrirlo con mensajes nuevos, va a la raya (si no caben todos); si no, al final
+    if (line) log.scrollTop += line.getBoundingClientRect().top - log.getBoundingClientRect().top - 8;
+    else if (scroll || atBottom) log.scrollTop = log.scrollHeight;
     if (!this.chatEl.hidden) this.#markChatRead(ch);
 
     // Mensajes sin leer de otros jugadores, por canal y en total

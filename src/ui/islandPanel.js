@@ -617,7 +617,7 @@ function fleetForm(hud, game, view) {
   else if (view.type !== 'continente') types.push('explorar');
   // Sin explorar, lo único que se puede hacer es mandar un bote a mirar
   const known = view.explored;
-  const hostile = known && (['barbaros', 'ciudadela', 'piratas', 'kraken', 'jugador'].includes(view.type) || (view.type === 'continente' && (!!view.horde || !!feat)));
+  const hostile = known && (['barbaros', 'ciudadela', 'piratas', 'kraken', 'macedonia', 'jugador'].includes(view.type) || (view.type === 'continente' && (!!view.horde || !!feat)));
   if (view.type !== 'brumas' && view.colonizedBy == null && hostile) types.push('atacar');
   // La colonia de otro jugador se puede saquear
   if (known && view.colonizedBy != null && !view.colonized) types.push('atacar');

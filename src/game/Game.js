@@ -1113,7 +1113,7 @@ export class Game extends EventTarget {
       typeName: isl.land && isl.type === 'libre' ? 'Tierra libre' : ISLAND_TYPES[isl.type].name,
       dist: this.distanceTo(id),
       // Las ciudades de los jugadores están a la vista: se pueden atacar sin espiarlas antes
-      explored: isl.type === 'brumas' || isl.type === 'continente' || isl.type === 'jugador' || isl.owner === this.userId || !!known?.explored,
+      explored: isl.type === 'brumas' || isl.type === 'continente' || isl.type === 'jugador' || isl.type === 'macedonia' || isl.owner === this.userId || !!known?.explored,
       intel: known?.intel ?? null,
       // El pecio que hay frente a ella (lo recogen los Kleptes)
       wreck: this.world.wreckAt?.(id, t) ?? null,

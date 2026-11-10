@@ -91,6 +91,26 @@ const PIRATE_LORD = {
  * La fosa del Kraken: la guardan los tritones y sus hipocampos. El Kraken (solo hay uno en todos los mares) no
  * forma parte de la guarnición: despierta de vez en cuando en una de las fosas (WorldServer).
  */
+/**
+ * La ciudad de un jugador que lleva más de un mes sin aparecer (ver ABANDON) la ocupan los macedonios:
+ * un ejército de las mismas tropas y barcos que los jugadores, con muralla y mucho botín. Como las
+ * demás islas neutrales, crece con quien la mira, se rearma con el tiempo y no se puede conquistar.
+ */
+export const MACEDONIAN_CITY = {
+  tier: 6,
+  garrison: { lancero: 60, hondero: 30, arquero: 40, espadachin: 30, hoplita: 40, caballero: 10, catapulta: 4, trirreme: 10, galeon: 3 },
+  wall: 0.4,
+  regenHours: 24,
+  loot: { max: 40000, rate: 1500, mix: { madera: 0.2, piedra: 0.2, hierro: 0.2, cristal: 0.2, oro: 0.2 } },
+};
+
+/** Convierte en macedonia la isla de la ciudad de un jugador (la deja sin dueño). */
+export function macedonianCity(isl) {
+  const { owner, ...rest } = isl;
+  // (con las banderas púrpura de los reyes de Macedonia)
+  return { ...rest, ...MACEDONIAN_CITY, type: 'macedonia', bannerColor: '#6e2a8a', garrison: { ...MACEDONIAN_CITY.garrison }, loot: { ...MACEDONIAN_CITY.loot, mix: { ...MACEDONIAN_CITY.loot.mix } } };
+}
+
 export const KRAKEN_LAIR = { garrison: { triton: 130, hipocampo: 26 }, wall: 0.4, regenHours: 36 };
 /** Quiénes guardaban antes las fosas y quiénes las guardan ahora (para los mundos de antes). */
 export const LAIR_GUARDS = { pirata: 'triton', corsario: 'hipocampo' };

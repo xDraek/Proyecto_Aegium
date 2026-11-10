@@ -7,6 +7,38 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-10d',
+    date: '2026-11-10',
+    title: 'Ciudades abandonadas: llegan los macedonios',
+    items: [
+      '☀️ Quien lleva <b>más de 30 días</b> sin entrar recibe un correo avisando de que su ciudad quedará abandonada. Si a los <b>37 días</b> sigue sin aparecer, la ocupan los <b>macedonios</b>: una ciudad neutral con un gran ejército de tropas y barcos como los vuestros (milicias con lanza, honderos, arqueros, espadachines, hoplitas, jinetes, catapultas, trirremes y quinquerremes), muralla y mucho botín. Crece con tus puntos, se rearma con el tiempo y no se puede conquistar.',
+      '💤 Como hasta ahora, quien lleva una semana sin entrar sale como inactivo. Los que están de vacaciones no cuentan.',
+      '🏛️ Si el jugador vuelve, conserva su cuenta y funda una ciudad nueva. Sus colonias quedan libres y sale de su alianza.',
+    ],
+    en: {
+      title: 'Abandoned cities: the Macedonians arrive',
+      items: [
+        '☀️ Anyone who hasn’t logged in for <b>more than 30 days</b> gets an email warning that their city will be abandoned. If they still haven’t shown up after <b>37 days</b>, the <b>Macedonians</b> occupy it: a neutral city with a large army of troops and ships like yours (spear militia, slingers, archers, swordsmen, hoplites, horsemen, catapults, triremes and quinqueremes), a wall and plenty of loot. It grows with your points, rearms over time and can’t be conquered.',
+        '💤 As before, anyone who hasn’t logged in for a week shows as inactive. Players on vacation don’t count.',
+        '🏛️ If the player comes back, they keep their account and found a new city. Their colonies become free and they leave their alliance.',
+      ],
+    },
+  },
+  {
+    id: '2026-11-10c',
+    date: '2026-11-10',
+    title: 'Mensajes nuevos en el chat',
+    items: [
+      '💬 Al abrir el chat, una <b>raya roja</b> marca dónde empiezan los mensajes que aún no habías leído, y el chat se abre ahí para que no se pierdan entre los avisos.',
+    ],
+    en: {
+      title: 'New messages in the chat',
+      items: [
+        '💬 When you open the chat, a <b>red line</b> marks where the messages you hadn’t read yet begin, and the chat opens there so they don’t get lost among the notices.',
+      ],
+    },
+  },
+  {
     id: '2026-11-10b',
     date: '2026-11-10',
     title: 'Bodegas ampliadas',

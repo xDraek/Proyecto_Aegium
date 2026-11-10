@@ -1913,6 +1913,25 @@ body.landing-mode #chat {
   padding-right: 4px;
 }
 
+/* Raya de «a partir de aquí, sin leer» */
+.chat-new {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--bad);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.chat-new::before,
+.chat-new::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--bad);
+}
+
 .msg {
   line-height: 1.4;
   word-break: break-word;

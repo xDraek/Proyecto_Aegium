@@ -172,6 +172,7 @@ export default {
   "Mar abierto": "Open sea",
   "Ciudad": "City",
   "Ciudad bárbara": "Barbarian city",
+  "Ciudad macedonia": "Macedonian city",
   "Continente": "Continent",
   "Recursos, muralla y ayuntamiento": "Resources, wall and town hall",
   "Los barcos que tiene en el puerto": "The ships in its port",

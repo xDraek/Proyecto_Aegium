@@ -85,6 +85,12 @@ export class FileStore {
     await this.#write();
   }
 
+  /** Borra las partidas de estos jugadores (sus ciudades quedaron abandonadas); las cuentas se quedan. */
+  async deletePlayers(ids) {
+    for (const id of ids) delete this.data.players[id];
+    await this.#write();
+  }
+
   /** Wipe: borra partidas, islas, chat y lo de `meta` que no esté en `keep`; las cuentas se quedan. */
   async wipe(keep = WIPE_KEEP) {
     this.data.players = {};
@@ -206,6 +212,11 @@ export class PgStore {
     } finally {
       client.release();
     }
+  }
+
+  /** Borra las partidas de estos jugadores (sus ciudades quedaron abandonadas); las cuentas se quedan. */
+  async deletePlayers(ids) {
+    await this.pool.query('delete from players where user_id = any($1::int[])', [ids]);
   }
 
   /** Wipe: borra partidas, islas, chat y lo de `meta` que no esté en `keep`; las cuentas se quedan. Todo o nada. */

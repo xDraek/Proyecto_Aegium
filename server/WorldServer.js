@@ -4,9 +4,9 @@ import { assault, battle, combineGroups, count, hasCombat, shareSurvivors, split
 import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, featHours, featRewards, forceOf, forgeBonus, forgeGoal, forgeHours, forgeRoom, pledgeEmpires, relicDuel, rewardBag, splitWar, unitsValue } from '../src/game/feats.js';
 import { Game, krakenText, newState, rebuilding } from '../src/game/Game.js';
 import { fmtEs } from '../src/game/num.js';
-import { ACHIEVEMENTS, BASIC_RELIC_CHANCE, BOARD, BOARD_SECTIONS, BOT_CHECK, WRECK, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, PVP_RANGE, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
+import { ABANDON, ACHIEVEMENTS, BASIC_RELIC_CHANCE, BOARD, BOARD_SECTIONS, BOT_CHECK, WRECK, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, PVP_RANGE, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
 import { merchantCargo, playerCombat, tradeShips, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
-import { BARBARIAN_ARCHERS, BARBARIAN_GARRISONS, CAMP_LOOT, LAIR_GUARDS, coordsOf, distance, nearestImage, wrapRingFor, fixPlaceName, freshPlaceName, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
+import { BARBARIAN_ARCHERS, BARBARIAN_GARRISONS, CAMP_LOOT, LAIR_GUARDS, coordsOf, distance, nearestImage, wrapRingFor, fixPlaceName, freshPlaceName, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, macedonianCity, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { hashPassword, newRecoveryCode, newSecret, normalizeCode, verifyPassword } from './auth.js';
 
@@ -117,6 +117,8 @@ export class WorldServer {
     this.rankingCache = null;
     this.sockets = new Map(); // id → Set de conexiones en vivo
     this.pendingPush = new Set(); // jugadores cuyo estado ha cambiado y hay que avisar
+    this.deletedPlayers = []; // partidas que hay que borrar del almacén (ciudades abandonadas)
+    this.abandonMails = []; // avisos por correo de que la ciudad quedará abandonada (los manda index.js)
     this.admins = new Set(String(process.env.ADMINS ?? '').split(',').map((n) => n.trim().toLowerCase()).filter(Boolean));
   }
 
@@ -184,6 +186,7 @@ export class WorldServer {
     this.meta.forums ??= {};
     this.meta.board ??= { threads: [] };
     this.meta.wrecks ??= {};
+    this.meta.abandoned ??= {};
     // Amigos (mutuos) y solicitudes pendientes: id → lista de ids
     this.meta.friends ??= {};
     this.meta.friendRequests ??= {};
@@ -277,6 +280,8 @@ export class WorldServer {
     universe.wrap = wrapRingFor(this.meta.sectors);
     const now = clock.now();
     const home = homeIsland(sector, id, city);
+    // (si su ciudad de antes quedó abandonada, su isla sigue ahí, ahora macedonia)
+    if (this.islands.has(home.id)) home.id = `${home.id}-${now.toString(36)}`;
     const c = sectorCenter(sector);
     const neutrals = generateSector(sector, this.meta.seed, this.#landsNear(c.x, c.z, 520), this.#takenNames());
     for (const isl of [home, ...neutrals]) this.#addIsland(isl, now);
@@ -288,6 +293,13 @@ export class WorldServer {
     if (this.meta.contest) this.meta.contest.base[id] = this.#contestStats(game);
     this.rankingCache = null;
     this.announce(`⚓ ${username} funda la ciudad de ${city}`);
+  }
+
+  /** Por qué una cuenta no tiene ciudad: tras un wipe o porque la suya quedó abandonada. */
+  needCityText(userId) {
+    const a = this.meta.abandoned?.[userId];
+    if (a) return `Tu ciudad de ${a.city} quedó abandonada tras más de ${ABANDON.abandonDays} días sin entrar, y ahora la ocupan los macedonios. Funda una ciudad nueva para volver a jugar.`;
+    return 'El mundo ha empezado de cero: funda tu ciudad nueva.';
   }
 
   /** Una cuenta sin ciudad (tras un wipe): le falta fundarla para jugar. */
@@ -303,6 +315,7 @@ export class WorldServer {
     if (!NAME_RE.test(city)) throw new UserError('El nombre de la ciudad debe tener entre 3 y 20 letras o números.');
     if (this.#cityTaken(city)) throw new UserError('Ya hay una ciudad con ese nombre: elige otro.');
     this.#settle(userId, username, city);
+    delete this.meta.abandoned[userId];
     await this.persist(true);
   }
 
@@ -725,6 +738,97 @@ export class WorldServer {
       founders: { until: this.meta.founderUntil, count: players.filter((p) => p.s.founder).length },
       bots: this.#botSuspects(now),
     };
+  }
+
+  /** Cuándo entró por última vez (o cuándo creó la cuenta, si nunca ha vuelto). */
+  lastSeenOf(userId) {
+    const g = this.games.get(userId);
+    const u = this.users.get(userId);
+    return Math.max(g?.state.lastSeen ?? 0, u?.lastSeen ?? 0) || u?.created || 0;
+  }
+
+  /**
+   * A los ABANDON.warnDays días sin entrar se avisa por correo (una vez) de que la ciudad quedará
+   * abandonada; a los ABANDON.abandonDays, y si han pasado al menos ABANDON.graceDays desde el aviso,
+   * la ciudad pasa a ser macedonia. Si vuelve a entrar antes, el aviso se olvida.
+   */
+  checkAbandoned(now = clock.now(), wall = Date.now()) {
+    const day = 86_400_000;
+    for (const [uid, g] of [...this.games]) {
+      const s = g.state;
+      const last = this.lastSeenOf(uid);
+      if (s.abandonWarn && last > s.abandonWarn) {
+        delete s.abandonWarn;
+        g.dirty = true;
+      }
+      if (s.vacation) continue;
+      const idle = wall - last;
+      if (idle < ABANDON.warnDays * day) continue;
+      if (!s.abandonWarn) {
+        s.abandonWarn = wall;
+        g.dirty = true;
+        const u = this.users.get(uid);
+        if (u?.email && !this.isBanned(uid)) {
+          this.abandonMails.push({ email: u.email, username: u.username, city: this.islands.get(s.home)?.name ?? '', days: Math.floor(idle / day), left: Math.max(ABANDON.graceDays, ABANDON.abandonDays - Math.floor(idle / day)) });
+        }
+        continue;
+      }
+      if (idle >= ABANDON.abandonDays * day && wall - s.abandonWarn >= ABANDON.graceDays * day) this.abandonCity(uid, now);
+    }
+  }
+
+  /**
+   * La ciudad de un jugador que no vuelve pasa a ser macedonia: la isla se queda sin dueño, con su
+   * guarnición y su botín; sus colonias quedan libres, sale de su alianza y su partida se borra (la
+   * cuenta sigue y puede fundar otra ciudad). Las flotas que iban hacia ella dan media vuelta.
+   */
+  abandonCity(userId, now = clock.now()) {
+    const g = this.games.get(userId);
+    const home = g && this.islands.get(g.state.home);
+    if (!home || home.type !== 'jugador') return false;
+    const name = this.users.get(userId)?.username ?? '¿?';
+    // Las flotas de los demás que iban hacia ella (o estaban en ella) vuelven a casa
+    for (const [uid, other] of this.games) {
+      if (uid === userId) continue;
+      other.update(now);
+      let changed = false;
+      for (const m of [...other.state.missions]) {
+        if (m.target !== home.id || m.phase === 'vuelta' || m.type === 'comercio') continue;
+        if (other.recall(m.id, now)?.ok !== false) changed = true;
+      }
+      // Lo que sabían de la ciudad (sus tropas, sus recursos) ya no vale
+      if (other.state.known?.[home.id]) {
+        delete other.state.known[home.id];
+        changed = true;
+      }
+      if (changed) {
+        other.dirty = true;
+        this.pendingPush.add(uid);
+      }
+    }
+    // Sus propios bloqueos y ocupaciones se levantan
+    g.update(now);
+    for (const m of [...g.state.missions]) if (m.phase === 'estacionada' && (m.type === 'bloquear' || m.type === 'invadir')) g.endStation(m, now, 'tiempo');
+    for (const c of [...(g.state.colonies ?? [])]) this.decolonize(c.id, userId, now);
+    if (this.allianceOf(userId)) this.leaveAlliance(userId);
+    this.meta.offers = this.meta.offers.filter((o) => o.seller !== userId);
+    if (this.meta.contest?.base) delete this.meta.contest.base[userId];
+    // La isla, macedonia
+    const city = macedonianCity(home);
+    this.islands.set(home.id, city);
+    this.islandStates.set(home.id, freshIslandState(city, now));
+    this.dirtyIslands.add(home.id);
+    this.touch(home.id);
+    this.#islandsChanged();
+    this.newIslands.push(city);
+    this.mapCache = null;
+    // La partida, fuera (la cuenta se queda: al volver, funda otra ciudad)
+    this.games.delete(userId);
+    this.deletedPlayers.push(userId);
+    this.meta.abandoned[userId] = { at: Date.now(), city: home.name };
+    this.rankingCache = null;
+    this.announce(`☀️ ${name} lleva más de un mes sin aparecer: su ciudad de ${home.name} queda abandonada y la ocupan los macedonios`);
+    return true;
   }
 
   isInactive(userId) {
@@ -2661,6 +2765,11 @@ export class WorldServer {
     this.#updateFeats(now);
     this.#updateKraken(now);
     this.#checkStations(now);
+    // Jugadores que no entran: el aviso por correo y, después, su ciudad abandonada (cada hora)
+    if (Date.now() - (this.abandonSweep ?? 0) > 3_600_000) {
+      this.abandonSweep = Date.now();
+      this.checkAbandoned(now);
+    }
     // Enlaces de correo caducados (cada diez minutos)
     if (Date.now() - (this.tokenSweep ?? 0) > 600_000) {
       this.tokenSweep = Date.now();
@@ -2685,6 +2794,8 @@ export class WorldServer {
   }
 
   async persist(force = false) {
+    // Las partidas de las ciudades abandonadas, fuera del almacén
+    if (this.deletedPlayers.length) await this.store.deletePlayers(this.deletedPlayers.splice(0));
     const players = [];
     for (const [userId, game] of this.games) {
       if (game.dirty || force) {

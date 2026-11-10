@@ -951,6 +951,7 @@ export const ISLAND_TYPES = {
   brumas: { name: 'Mar abierto', icon: '🌫️' },
   jugador: { name: 'Ciudad', icon: '🏰' },
   ciudadela: { name: 'Ciudad bárbara', icon: '🏯' },
+  macedonia: { name: 'Ciudad macedonia', icon: '☀️' },
   continente: { name: 'Continente', icon: '🗺️' },
 };
 
@@ -1459,6 +1460,14 @@ export const WONDER_RESOURCES = ['madera', 'piedra', 'cristal'];
 // trabajadores produce; los demás comercian y pagan impuestos en oro: la mitad
 // de lo que valdría lo que dejan de producir.
 export const WORK = { step: 10, taxShare: 0.5 };
+
+/**
+ * Jugadores que no entran: a los `warnDays` días sin aparecer se les avisa por correo de que su ciudad
+ * quedará abandonada; si a los `abandonDays` (y al menos `graceDays` después del aviso) sigue sin
+ * entrar, su ciudad pasa a ser macedonia y la cuenta se queda sin ciudad (puede fundar otra). Los
+ * que están de vacaciones no cuentan.
+ */
+export const ABANDON = { warnDays: 30, abandonDays: 37, graceDays: 7 };
 
 export const VACATION = {
   minHours: 48,

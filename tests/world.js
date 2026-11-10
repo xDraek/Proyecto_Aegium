@@ -16,6 +16,7 @@ class MemoryStore {
     return this.next++;
   }
   async save() {}
+  async deletePlayers() {}
   async updatePassword() {}
   async updateEmail() {}
   async updateUsername() {}

@@ -37,6 +37,26 @@ setInterval(() => {
   world.tick();
   world.flushPush();
 }, 1000);
+
+// Los avisos por correo de que una ciudad quedará abandonada (los apunta world.checkAbandoned)
+setInterval(async () => {
+  const list = world.abandonMails.splice(0);
+  if (!list.length) return;
+  let link;
+  try {
+    link = publicUrl({ headers: {} });
+  } catch (err) {
+    console.error('No se pueden mandar los avisos de abandono:', err.message);
+    return;
+  }
+  for (const m of list) {
+    try {
+      await sendMail(m.email, MAILS.abandono({ ...m, link }));
+    } catch (err) {
+      console.error(`No se pudo mandar el aviso de abandono a ${m.username}:`, err.message);
+    }
+  }
+}, 60_000);
 let saving = false;
 setInterval(async () => {
   if (saving) return;
@@ -314,7 +334,7 @@ async function api(req, res, url) {
           await world.foundCity(acc, city);
           return send(res, 200, { ok: true });
         }
-        return send(res, 409, { error: 'El mundo ha empezado de cero: funda tu ciudad nueva.', needCity: true });
+        return send(res, 409, { error: world.needCityText(acc), needCity: true });
       }
       // Una sesión de antes del correo: que vuelva a entrar para añadirlo
       const raw = sessionUser(String(req.headers.authorization ?? '').replace(/^Bearer /, ''));
