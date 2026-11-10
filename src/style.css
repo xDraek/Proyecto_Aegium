@@ -2976,9 +2976,9 @@ input[type='text'] {
   z-index: 100;
 }
 
+/* (crece con su contenido: lo que se desplaza es el fondo, como en las demás ventanas) */
 .modal-card.board-card {
   width: min(760px, 100%);
-  max-height: calc(100dvh - 32px);
 }
 
 .board-body {
@@ -5466,9 +5466,11 @@ body.landing-mode #cam-controls {
   background: rgba(242, 201, 76, 0.3);
 }
 
-/* Las ventanas crecen con su contenido y lo que se desplaza es el fondo oscuro de detrás */
-#modal {
+/* Las ventanas crecen con su contenido y lo que se desplaza es el fondo oscuro de detrás (también el foro) */
+#modal,
+.board-overlay {
   overflow-y: auto;
+  overscroll-behavior: contain;
   place-items: start center;
   padding: 64px 36px 44px;
 }
@@ -5518,7 +5520,8 @@ body.landing-mode #cam-controls {
     width: auto;
   }
 
-  #modal {
+  #modal,
+  .board-overlay {
     padding: 44px 16px 28px;
   }
 }

@@ -7,6 +7,16 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-11a',
+    date: '2026-11-11',
+    title: 'El foro, en el móvil',
+    items: ['📱 En el móvil, el <b>foro</b> ya se puede desplazar hasta abajo: antes la última sección (General) quedaba cortada y no se podía llegar a ella.'],
+    en: {
+      title: 'The forum on mobile',
+      items: ['📱 On mobile, the <b>forum</b> can now be scrolled all the way down: before, the last section (General) was cut off and couldn’t be reached.'],
+    },
+  },
+  {
     id: '2026-11-10f',
     date: '2026-11-10',
     title: 'Rangos de la alianza y su foro, renovado',
