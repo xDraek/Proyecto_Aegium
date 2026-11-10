@@ -200,4 +200,8 @@ export default {
   "Las tropas escondidas no defienden la ciudad, pero tampoco mueren ni se pueden mandar. Siguen comiendo y cobrando.": "Hidden troops don't defend the city, but they don't die and can't be sent either. They still eat and get paid.",
   "🛖 Esconder a las que quepan": "🛖 Hide as many as fit",
   "Sacarlas a todas": "Bring them all out",
+  "🪝 Pecio frente a tu puerto": "🪝 Wreck off your port",
+  "{0} · se hunde en": "{0} · sinks in",
+  "🪝 Recogerlo con {0} {1}": "🪝 Collect it with {0} {1}",
+  "Bota algún Kleptes para recogerlo antes de que se hunda o se lo lleve otro.": "Launch some Kleptes to collect it before it sinks or someone else takes it.",
 }

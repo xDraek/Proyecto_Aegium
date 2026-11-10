@@ -173,7 +173,7 @@ function missionsTable() {
     ['colonizar', 'Un mercante y los recursos de la colonia', 'Funda una colonia en una isla libre explorada.'],
     ['conquistar', 'Tropas, un mercante y los recursos', 'Asalta una ciudad bárbara y, si cae entera, la gobiernas.'],
     ['expedicion', 'Lo que quieras', 'Se adentra en el Mar de las Brumas: tesoros, barcos perdidos… o monstruos.'],
-    ['recoger', 'Solo Kleptes', 'Recoge el pecio que ha dejado una batalla en el mar frente a una isla, sea de quien sea.'],
+    ['recoger', 'Solo Kleptes', `Recoge el pecio que ha dejado una batalla en el mar frente a una isla, sea de quien sea. Se pueden mandar aunque aún no lo haya, detrás de tu ataque: si llegan y no hay nada, vuelven vacíos.`],
   ];
   return table(
     ['Misión', 'Qué mandas', 'Qué pasa'],
@@ -385,7 +385,8 @@ const TOPICS = {
       <p><b>⭐ Tropas de élite</b>: mucho más fuertes, pero cobran bastante más. Se desbloquean con <b>Táctica militar</b>. La caballería pide <b>Equitación 2</b> y los elefantes, la <b>Doma de elefantes</b> (que se investiga con Equitación 4).</p>
       ${tip('Los mercantes no combaten, pero llevan muchas tropas y mucho botín. Los botes son rápidos y solo sirven para explorar, espiar y sabotear.')}
       <h5>${UNITS.kleptes.icon} Kleptes y pecios</h5>
-      <p>Cada batalla en el mar deja frente a la isla un <b>pecio</b> con el ${pct(WRECK.share)} de lo que costaban los barcos hundidos, de los dos bandos. Flota ${WRECK.hours} h y lo puede recoger <b>cualquiera</b> que mande <b>Kleptes</b> (barcos de rescate que no combaten ni llevan tropas), también quien no luchó. En el mapa, la isla lleva «🪝 Pecio». Quien llega antes se lo lleva.</p>`,
+      <p>Cada batalla en el mar deja frente a la isla un <b>pecio</b> con el ${pct(WRECK.share)} de lo que costaban los barcos hundidos, de los dos bandos. Flota ${WRECK.hours} h y lo puede recoger <b>cualquiera</b> que mande <b>Kleptes</b> (barcos de rescate que no combaten ni llevan tropas), también quien no luchó. En el mapa, la isla lleva «🪝 Pecio». Quien llega antes se lo lleva.</p>
+      ${tip('Manda tus Kleptes a la vez que tu ataque, con una marcha algo más lenta, para que lleguen justo después de la batalla: si se adelantan y aún no hay pecio, vuelven vacíos.')}`,
   },
   combate: {
     icon: '⚔️',

@@ -6685,3 +6685,13 @@ kbd {
 .info-row.edge span:first-child {
   color: var(--gold);
 }
+
+/* Cada aviso de la banda lleva a lo suyo */
+#alert [data-go] {
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+#alert [data-go]:hover {
+  background: rgba(255, 255, 255, 0.08);
+}

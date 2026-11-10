@@ -184,6 +184,20 @@ export function unitPortrait(id) {
   return portrait(u.kind === 'barco' ? 'ship' : 'unit', id, { width: 120, height: 120 });
 }
 
+/**
+ * Como unitIcon, pero sin dibujar nada en el momento: el retrato si ya está hecho y, si no, el emoji
+ * (y el retrato se prepara poco a poco para la próxima vez). Para las ventanas con muchas tropas a la
+ * vez, como el simulador: dibujarlas todas de golpe tumbaba la pestaña en los iPhone.
+ */
+export function quickUnitIcon(id, cls = 'u-mini') {
+  const u = UNITS[id];
+  const kind = u?.kind === 'barco' ? 'ship' : 'unit';
+  const key = `${kind}|${id}|1|120x120`;
+  if (cache.has(key) || !u || NO_MODEL.has(id)) return unitIcon(id, cls);
+  warmPortraits([[kind, id, { width: 120, height: 120 }]]);
+  return `<span class="${cls} u-emoji" title="${u.name}">${u.icon ?? '?'}</span>`;
+}
+
 /** Retrato pequeño de una tropa para listas y tablas (o su emoji, si no tiene). */
 export function unitIcon(id, cls = 'u-mini') {
   const url = unitPortrait(id);

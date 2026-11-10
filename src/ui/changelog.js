@@ -7,6 +7,28 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-10a',
+    date: '2026-11-10',
+    title: 'Kleptes más útiles y avisos',
+    items: [
+      '🏴‍☠️ Cada fortaleza, ciudad y campamento tiene ahora su carácter: su guarnición y su botín varían un poco (hasta un 15 %, tropa a tropa y recurso a recurso) de las demás del mismo tipo. Antes dos fortalezas iguales eran calcadas.',
+      '🪝 El pecio que queda frente a tu propia ciudad tras una batalla ya se puede recoger: en el panel del puerto sale el pecio, con lo que tiene y cuándo se hunde, y un botón para mandar tus Kleptes a por él.',
+      '⚓ Los Kleptes se pueden mandar <b>sin que haya pecio</b>, detrás de tu ataque y con una marcha algo más lenta, para recoger lo que deje la batalla. Si llegan y no hay nada, vuelven vacíos.',
+      '🚨 Con varios avisos a la vez arriba (una gesta, piratas, un ataque…), cada uno lleva ahora a lo suyo al pulsarlo: antes todos llevaban al mismo sitio.',
+      '📱 El simulador de combate ya no cierra el juego en algunos iPhone: dibujaba de golpe los retratos de todas las tropas y Safari se quedaba sin memoria. Ahora salen sus iconos y los retratos se van preparando poco a poco.',
+    ],
+    en: {
+      title: 'More useful Kleptes and notices',
+      items: [
+        '🏴‍☠️ Every fortress, city and camp now has its own character: its garrison and loot vary a little (up to 15%, unit by unit and resource by resource) from others of the same type. Before, two fortresses of the same kind were identical.',
+        '🪝 The wreck left off your own city after a battle can now be collected: the port panel shows it, with what it holds and when it sinks, and a button to send your Kleptes for it.',
+        '⚓ Kleptes can be sent <b>without a wreck</b>, behind your attack and at a slightly slower pace, to collect what the battle leaves. If they arrive and there’s nothing, they come back empty.',
+        '🚨 With several notices at once at the top (a feat, pirates, an attack…), each one now takes you to its own place when pressed: before, they all went to the same one.',
+        '📱 The combat simulator no longer closes the game on some iPhones: it drew every unit portrait at once and Safari ran out of memory. Now their icons show and the portraits are prepared little by little.',
+      ],
+    },
+  },
+  {
     id: '2026-11-08d',
     date: '2026-11-08',
     title: 'La gran actualización: foro, equilibrio y un mundo sin esquinas',

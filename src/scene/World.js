@@ -2769,6 +2769,11 @@ export class World {
    * separa a la salida y a la llegada las flotas que van al mismo sitio, para que no se monten.
    */
   #routeTo(target, lane = 1) {
+    // (a tu propio puerto, p. ej. los Kleptes a por un pecio: salen un poco y vuelven)
+    if (target === this.game.state.home) {
+      const a0 = GATE_ANGLE + (lane - 1) * 4;
+      return new Route([polar(this.coast(a0) + 12, a0), polar(this.coast(a0) + 34, a0 + 10)]);
+    }
     const entry = this.islands[target];
     const pos = entry ? entry.pos.clone().setY(0) : new THREE.Vector3(0, 0, 200);
     // Más allá del muelle y del faro del puerto

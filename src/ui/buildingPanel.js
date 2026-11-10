@@ -220,6 +220,21 @@ function trainingQueue(game, building) {
   return `<h4>${building === 'puerto' ? 'Botándose' : 'En entrenamiento'}</h4><ul class="train-queue">${rows}</ul>`;
 }
 
+/** El pecio que ha quedado frente a tu puerto tras una batalla: lo recogen tus Kleptes sin salir de casa. */
+function homeWreck(game) {
+  const wreck = game.island(game.state.home)?.wreck;
+  if (!wreck) return '';
+  const kleptes = game.units.kleptes ?? 0;
+  const plan = kleptes ? game.planMission('recoger', game.state.home, { kleptes }) : null;
+  return `<div class="port-box">
+    <h4>🪝 Pecio frente a tu puerto</h4>
+    <p class="small">${bag(wreck.res)} · se hunde en <span data-until="${wreck.until}"></span></p>
+    ${kleptes
+      ? `<button class="primary small" data-action="wreck-home" ${plan?.ok ? '' : `disabled title="${escapeHtml(plan?.reason ?? '')}"`}>🪝 Recogerlo con ${kleptes} ${kleptes === 1 ? 'Kleptes' : 'Kleptes'}</button>`
+      : '<p class="muted small">Bota algún Kleptes para recogerlo antes de que se hunda o se lo lleve otro.</p>'}
+  </div>`;
+}
+
 /** El refugio: cuántas tropas caben y quién está escondido, con los botones para esconderlas o sacarlas. */
 function shelterSection(game) {
   const room = shelterRoom(game.state);
@@ -244,7 +259,7 @@ function recruitSection(game, building) {
   const ids = UNIT_KEYS.filter((id) => UNITS[id].building === building);
   let extra = '';
   if (building === 'puerto') {
-    extra = `${port}<div class="effect"><span>⛵ Flotas en el mar</span><b>${game.fleetsAtSea()} / ${game.fleetSlots()}</b></div>
+    extra = `${port}${homeWreck(game)}<div class="effect"><span>⛵ Flotas en el mar</span><b>${game.fleetsAtSea()} / ${game.fleetSlots()}</b></div>
       <button class="ghost wide" data-action="open-map">🗺️ Abrir el mapa del archipiélago</button>`;
   }
   if (building === 'cuartel') extra += shelterSection(game);

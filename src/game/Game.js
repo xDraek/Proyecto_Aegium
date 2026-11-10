@@ -1354,7 +1354,8 @@ export class Game extends EventTarget {
     const pendingColonies = s.missions.filter((m) => m.type === 'colonizar' || m.type === 'conquistar').length;
     let cost = null;
 
-    if (target === s.home) reason ||= 'Es tu propia isla.';
+    // (salvo para recoger el pecio que ha quedado frente a tu propio puerto)
+    if (target === s.home && type !== 'recoger') reason ||= 'Es tu propia isla.';
     if (base) {
       const colonyBase = base.type === 'guarnicion';
       const where = colonyBase ? 'una colonia' : 'una ciudad ocupada';
@@ -1374,7 +1375,7 @@ export class Game extends EventTarget {
     const feat = rt?.feat && (rt.feat.stage === 'presagio' || rt.feat.stage === 'lucha') ? rt.feat : null;
     // Recoger un pecio: solo con Kleptes, y que quede algo
     if (type === 'recoger') {
-      if (!view.wreck) reason ||= 'Aquí no hay ningún pecio que recoger.';
+      // (sin pecio también: van detrás de un ataque a por lo que deje la batalla)
       if (!sent.kleptes || Object.keys(sent).some((id) => id !== 'kleptes')) reason ||= 'Para recoger un pecio envía solo Kleptes.';
     } else if (isl.type === 'continente' && feat) {
       const fth = FEAT_THEMES[feat.theme];
@@ -1684,7 +1685,7 @@ export class Game extends EventTarget {
     if (Object.keys(bag).length) this.world.addWreck?.(islandId, bag, t);
   }
 
-  /** Tus Kleptes llegan a un pecio y cargan lo que cabe. */
+  /** Tus Kleptes llegan a un pecio y cargan lo que cabe (si no hay nada, vuelven vacíos). */
   #arriveWreck(m, isl, t) {
     const room = Math.max(0, cargoOf(m.units) - count(m.cargo));
     const taken = this.world.takeWreck?.(isl.id, room, t) ?? {};
@@ -3380,7 +3381,7 @@ export class Game extends EventTarget {
     if (m.hero) this.#heroXp(result.def.lost, t);
     this.state.stats.kills += count(result.def.lost);
 
-    rt.garrison = unscaled(result.def.left, scale);
+    rt.garrison = unscaled(result.def.left, scale, isl);
     rt.garrisonAt = t;
     m.units = result.att.left;
     this.#mercsLost(result.att.lost);
@@ -3397,7 +3398,7 @@ export class Game extends EventTarget {
         stock[res] -= n;
         m.cargo[res] = (m.cargo[res] ?? 0) + n;
       }
-      rt.stock = unscaled(stock, scale);
+      rt.stock = unscaled(stock, scale, isl);
       rt.stockAt = t;
     }
     // Sin nadie que la defienda, la isla queda arrasada: lo que no cabía en las bodegas se pierde y
@@ -3876,12 +3877,24 @@ export function krakenText(level) {
 // si alguien la arrasa, está arrasada para todos.
 const EPS = 1e-6;
 
+/**
+ * Cada isla tiene su carácter: su guarnición y su botín varían un poco (±VARY) de las demás del mismo
+ * tipo, tropa a tropa y recurso a recurso, para que dos fortalezas no sean calcadas. Es fijo por isla
+ * (sale de su id), así que todos la ven igual y no cambia de una visita a otra.
+ */
+const VARY = 0.15;
+export function islandVary(islId, key) {
+  let h = 2166136261;
+  for (const ch of `${islId}|${key}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return 1 + VARY * (((h >>> 0) / 4294967295) * 2 - 1);
+}
+
 export function garrisonAt(isl, rt, t, scale = 1) {
   const out = {};
   if (rt.colonizedBy != null) return out; // conquistada: ya no hay bárbaros
   const regen = hours(isl.regenHours ?? 1);
   for (const [id, full] of Object.entries(isl.garrison ?? {})) {
-    const n = Math.min(full, (rt.garrison?.[id] ?? 0) + (full * Math.max(0, t - rt.garrisonAt)) / regen) * scale + EPS;
+    const n = Math.min(full, (rt.garrison?.[id] ?? 0) + (full * Math.max(0, t - rt.garrisonAt)) / regen) * scale * islandVary(isl.id, id) + EPS;
     if (n >= 1) out[id] = Math.floor(n);
   }
   // El Kraken no se rearma con la fosa (ni crece con tu ciudad): está (si ha despertado en ella) o no está
@@ -3894,15 +3907,15 @@ export function stockAt(isl, rt, t, scale = 1) {
   if (!isl.loot) return out;
   const h = Math.max(0, t - rt.stockAt) / HOUR_MS;
   for (const [res, k] of Object.entries(isl.loot.mix)) {
-    out[res] = Math.floor(Math.min(isl.loot.max * k, (rt.stock?.[res] ?? 0) + isl.loot.rate * k * universe.speed * h) * scale + EPS);
+    out[res] = Math.floor(Math.min(isl.loot.max * k, (rt.stock?.[res] ?? 0) + isl.loot.rate * k * universe.speed * h) * scale * islandVary(isl.id, res) + EPS);
   }
   return out;
 }
 
 /** Lo que queda en la isla, a la medida de una ciudad que empieza (para guardarlo en su estado). */
-function unscaled(bag, scale) {
+function unscaled(bag, scale, isl) {
   const out = {};
-  for (const [id, n] of Object.entries(bag)) out[id] = n / scale;
+  for (const [id, n] of Object.entries(bag)) out[id] = n / (scale * islandVary(isl.id, id));
   return out;
 }
 

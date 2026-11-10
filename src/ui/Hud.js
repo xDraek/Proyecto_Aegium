@@ -163,7 +163,9 @@ export class Hud {
         this.alertDismissed.clear();
         return this.#renderAlert();
       }
-      this.onSelect(this.alertTarget ?? 'muralla');
+      // Cada aviso lleva a lo suyo (la gesta a su continente, los piratas a la muralla…)
+      const line = e.target.closest('[data-go]');
+      this.onSelect(line?.dataset.go ?? this.alertTarget ?? 'muralla');
     });
     this.viewBtn.addEventListener('click', () => this.onView(this.view === 'isla' ? 'mapa' : 'isla'));
     this.actionbar = $('#actionbar');
@@ -1253,6 +1255,9 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
         await this.#run(btn, () => game.heroSkill(btn.dataset.skill), null, 'magic');
         break;
       }
+      case 'wreck-home':
+        await this.#run(btn, () => game.sendMission('recoger', game.state.home, { kleptes: game.units.kleptes ?? 0 }), null, 'sail');
+        break;
       case 'shelter':
         await this.#run(btn, () => game.shelter(), null, 'success');
         break;
@@ -1464,14 +1469,14 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
     }
     this.alertTarget = port ? 'puerto' : raid || incoming.length ? 'muralla' : hordes.length ? hordes[0].id : feat.site;
     const lines = [];
-    if (s.occupied) lines.push(`<div><b>🦅 ¡${escapeHtml(port.name)} ocupa tu ciudad!</b> Se llevan parte de lo que produces · se irán en <span data-until="${port.until}"></span></div>`);
-    else if (s.blockade) lines.push(`<div><b>⛓️ ¡${escapeHtml(port.name)} bloquea tu puerto!</b> No zarpa ni entra nadie · como mucho <span data-until="${port.until}"></span></div>`);
+    if (s.occupied) lines.push(`<div data-go="puerto"><b>🦅 ¡${escapeHtml(port.name)} ocupa tu ciudad!</b> Se llevan parte de lo que produces · se irán en <span data-until="${port.until}"></span></div>`);
+    else if (s.blockade) lines.push(`<div data-go="puerto"><b>⛓️ ¡${escapeHtml(port.name)} bloquea tu puerto!</b> No zarpa ni entra nadie · como mucho <span data-until="${port.until}"></span></div>`);
     for (const x of hordes) {
       const left = Object.values(x.h.garrison).reduce((a, b) => a + b, 0);
-      lines.push(`<div><b>🔥 ¡Horda en ${escapeHtml(x.isl.name)}!</b> ${fmtNum(left)} bárbaros · arrasará tus colonias en <span data-until="${x.h.deadline}"></span></div>`);
+      lines.push(`<div data-go="${escapeHtml(x.id)}"><b>🔥 ¡Horda en ${escapeHtml(x.isl.name)}!</b> ${fmtNum(left)} bárbaros · arrasará tus colonias en <span data-until="${x.h.deadline}"></span></div>`);
     }
-    if (feat) lines.push(`<div><b>${feat.icon} ${escapeHtml(feat.title)}</b> ${feat.text} <span data-until="${feat.until}"></span></div>`);
-    if (raid) lines.push(`<div><b>¡Piratas a la vista!</b> Llegan en <span data-until="${raid.arrival}"></span> · ${unitList(raid.army)}</div>`);
+    if (feat) lines.push(`<div data-go="${escapeHtml(feat.site)}"><b>${feat.icon} ${escapeHtml(feat.title)}</b> ${feat.text} <span data-until="${feat.until}"></span></div>`);
+    if (raid) lines.push(`<div data-go="muralla"><b>¡Piratas a la vista!</b> Llegan en <span data-until="${raid.arrival}"></span> · ${unitList(raid.army)}</div>`);
     for (const m of incoming.slice(0, 3)) {
       const what = { invadir: 'Invasión', bloquear: 'Bloqueo' }[m.type] ?? 'Ataque';
       // Qué traen solo se sabe cuando la torre de vigía los distingue
@@ -1479,9 +1484,11 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
         ? unitList(m.units)
         : `fuerza desconocida (la torre de vigía la verá en <span data-until="${m.revealAt}"></span>)`;
       const where = m.colony != null ? ` contra tu colonia ${escapeHtml(m.colony)}` : '';
-      lines.push(`<div><b>¡${what} de ${escapeHtml(m.from)}${where}!</b> Desde ${escapeHtml(m.fromIsland ?? '')} · llegan en <span data-until="${m.arrive}"></span><br>${force}</div>`);
+      lines.push(`<div data-go="muralla"><b>¡${what} de ${escapeHtml(m.from)}${where}!</b> Desde ${escapeHtml(m.fromIsland ?? '')} · llegan en <span data-until="${m.arrive}"></span><br>${force}</div>`);
     }
-    const tip = port
+    const tip = lines.length > 1
+      ? 'Pulsa en cada aviso para ir a él'
+      : port
       ? 'Pulsa para ver tu puerto y echarlos, o pide tropas de apoyo a tu alianza'
       : raid || incoming.length
         ? 'Defiende con tropas en casa, la muralla y la Égida del templo'

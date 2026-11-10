@@ -618,7 +618,8 @@ export const COMBAT = { rearCover: 0.5, charge: 0.25, volley: 0.5 };
 
 /**
  * Los pecios: cada batalla en el mar deja frente a la isla `share` de lo que costaban los barcos que
- * se hunden (de los dos bandos) durante `hours` h. Los recogen los Kleptes de quien llegue antes.
+ * se hunden (de los dos bandos) durante `hours` h. Los recogen los Kleptes de quien llegue antes; si
+ * llegan y no hay nada (van detrás de un ataque y se adelantan), vuelven vacíos.
  */
 export const WRECK = { share: 0.3, hours: 48 };
 

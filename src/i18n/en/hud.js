@@ -173,4 +173,5 @@ export default {
   "recuperas su punto para asignarlo": "you get back their point to assign it",
   "recuperas sus {0} puntos para asignarlos": "you get back their {0} points to assign them",
   "Repartir de nuevo": "Reassign",
+  "Pulsa en cada aviso para ir a él": "Press each notice to go to it",
 }

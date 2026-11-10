@@ -43,5 +43,32 @@ test('cualquiera lo recoge con Kleptes; solo Kleptes, y se acaba', async () => {
   // Al acabarse el plazo, se hunde del todo
   env.advance(WRECK.hours * 3_600_000);
   assert.equal(W.wreckAt(B.state.home), null);
-  assert.match(C.planMission('recoger', B.state.home, { kleptes: 2 }).reason, /ningún pecio/);
+  // (sin pecio también se puede ir)
+  assert.ok(C.planMission('recoger', B.state.home, { kleptes: 2 }).ok);
+});
+
+test('sin pecio se puede ir, pero si llegan y no hay nada, vuelven vacíos', async () => {
+  const env = await makeWorld();
+  const [A, B] = env.players;
+  Object.assign(A.state.units, { kleptes: 1 });
+  const m = sendAndArrive(env, A, 'recoger', B.state.home, { kleptes: 1 });
+  assert.equal(m.phase, 'vuelta', 'no esperan');
+  assert.equal(total(m.cargo), 0);
+});
+
+test('el pecio frente a tu propio puerto también lo recogen tus Kleptes', async () => {
+  const env = await makeWorld();
+  const { world: W, players } = env;
+  const [A] = players;
+  W.addWreck(A.state.home, { madera: 800 }, clock.now());
+  Object.assign(A.state.units, { kleptes: 1 });
+  const plan = A.planMission('recoger', A.state.home, { kleptes: 1 });
+  assert.ok(plan.ok, plan.reason);
+  const before = A.state.resources.madera;
+  const m = sendAndArrive(env, A, 'recoger', A.state.home, { kleptes: 1 });
+  assert.equal(total(m.cargo), 800);
+  env.until(m.back);
+  assert.ok(A.state.resources.madera >= before + 800 - 1);
+  // Atacar tu propia isla, en cambio, sigue sin poderse
+  assert.match(A.planMission('atacar', A.state.home, { kleptes: 1 }).reason, /propia isla/);
 });
