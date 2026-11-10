@@ -263,7 +263,7 @@ export default {
   "💤 Inactivo": "💤 Inactive",
   "⛓️ Puerto bloqueado": "⛓️ Port blockaded",
   "🦅 Ocupada": "🦅 Occupied",
-  "Arrastra para moverte, usa la rueda para acercarte y pulsa una ciudad para ver quién vive en ella.": "Drag to move, use the wheel to zoom and tap a city to see who lives there.",
+  "Arrastra para girar el globo, usa la rueda para acercarte y pulsa una ciudad para ver quién vive en ella.": "Drag to spin the globe, use the wheel to zoom in and press a city to see who lives there.",
   "Buscar jugador o ciudad…": "Search player or city…",
   "Ir a unas coordenadas": "Go to coordinates",
   "Coordenada x": "x coordinate",

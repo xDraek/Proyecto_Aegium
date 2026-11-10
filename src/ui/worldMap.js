@@ -1,7 +1,7 @@
-import { clock } from '../config.js';
 import { ISLAND_TYPES, MISSION_TYPES, PVP_RANGE, UNITS } from '../game/data.js';
 import { travelSeconds } from '../game/rules.js';
-import { COORD_CELL, coordsCenter, coordsOf, distance, fmtCoords, wrapDelta } from '../game/world.js';
+import { clock, universe } from '../config.js';
+import { COORD_CELL, coordsCenter, coordsOf, distance, fmtCoords, wrapDelta, wrapVectors } from '../game/world.js';
 import { escapeHtml, fmtNum, fmtTime, unitList } from './format.js';
 
 // Mapa de todo el archipiélago: las ciudades de todos los jugadores y las
@@ -149,7 +149,7 @@ export class WorldMap {
           <span><i class="line"></i>Tus flotas en el mar</span><span><i class="line enemy"></i>Flotas enemigas hacia ti</span>
           ${reach}<span>🏖️ De vacaciones</span><span>💤 Inactivo</span><span>⛓️ Puerto bloqueado</span><span>🦅 Ocupada</span><span><i class="ring novice"></i>Protección de novato</span>
         </div></details>
-        <div class="wm-info"><p class="muted small">Arrastra para moverte, usa la rueda para acercarte y pulsa una ciudad para ver quién vive en ella.</p></div>
+        <div class="wm-info"><p class="muted small">Arrastra para girar el globo, usa la rueda para acercarte y pulsa una ciudad para ver quién vive en ella.</p></div>
       </div>`,
     );
     const root = this.hud.modal.querySelector('.worldmap');
@@ -222,6 +222,10 @@ export class WorldMap {
 
   /** Lleva la vista poco a poco hasta (x, z) con la escala `scale`. */
   #flyTo(x, z, scale = this.scale) {
+    // (por el camino corto: el mundo da la vuelta)
+    const d = wrapDelta(x - this.cx, z - this.cz);
+    x = this.cx + d.dx;
+    z = this.cz + d.dz;
     const from = { cx: this.cx, cz: this.cz, scale: this.scale };
     const t0 = performance.now();
     const fly = (this.flying = { scale });
@@ -318,43 +322,79 @@ export class WorldMap {
     this.canvas.height = Math.round(this.h * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (!this.scale) this.scale = Math.min(this.w, this.h) / 1500;
+    this.scale = this.#clampScale(this.scale);
     this.#draw();
   }
 
   // ── Coordenadas ─────────────────────────────────────────────────────────────
 
-  #toScreen(x, z) {
-    return [(x - this.cx) * this.scale + this.w / 2, (z - this.cz) * this.scale + this.h / 2];
+  // El mapa del mundo es una bola: lo que miras, en el centro y a su tamaño; hacia el borde se curva
+  // y encoge como en un globo, y lo que queda en la cara de atrás no se ve. Como el mundo da la vuelta,
+  // cada cosa se pinta en su copia más cercana a lo que miras, y así nunca se ve dos veces.
+  // (es una proyección para verlo: en el centro las distancias son las de verdad)
+
+  /** El radio de la bola, en leguas: lo más lejos que puede estar algo es la otra cara (π radios). */
+  get #globeR() {
+    const R = universe.wrap ?? 0;
+    if (!(R > 0)) return 3000;
+    const [a, b] = wrapVectors(R);
+    const len = (v) => Math.hypot(v.x, v.z);
+    const far = Math.max(len(a), len(b), Math.hypot(a.x - b.x, a.z - b.z)) / Math.sqrt(3);
+    return far / Math.PI;
+  }
+
+  /** Radio de la bola en la pantalla. */
+  get #globePx() {
+    return this.#globeR * this.scale;
   }
 
   /**
-   * Dónde se pinta en pantalla algo del mundo: el mapa da la vuelta, así que en su copia más cercana
-   * a lo que miras (al moverte, lo del otro lado de la costura va apareciendo).
+   * Proyecta una distancia desde el centro de la vista (en leguas) a la pantalla. Devuelve
+   * [x, y] con `k`: lo de frente que está (1 en el centro, 0 en el borde), o [NaN, NaN] si queda detrás.
    */
+  #project(dx, dz) {
+    const R = this.#globeR;
+    const dist = Math.hypot(dx, dz);
+    const th = dist / R;
+    if (th >= Math.PI / 2) return Object.assign([NaN, NaN], { k: 0 });
+    const s = dist > 1e-6 ? (R * this.scale * Math.sin(th)) / dist : this.scale;
+    return Object.assign([this.w / 2 + dx * s, this.h / 2 + dz * s], { k: Math.cos(th) });
+  }
+
+  /** Dónde se pinta en pantalla algo del mundo (en su copia más cercana a lo que miras). */
   #spot(x, z) {
     const d = wrapDelta(x - this.cx, z - this.cz);
-    return this.#toScreen(this.cx + d.dx, this.cz + d.dz);
+    return this.#project(d.dx, d.dz);
   }
 
+  /** El punto del mundo bajo (px, py), o null si es el espacio de fuera de la bola. */
   #toWorld(px, py) {
-    return [(px - this.w / 2) / this.scale + this.cx, (py - this.h / 2) / this.scale + this.cz];
+    const G = this.#globePx;
+    const vx = (px - this.w / 2) / G;
+    const vy = (py - this.h / 2) / G;
+    const rho = Math.hypot(vx, vy);
+    if (rho >= 1) return null;
+    if (rho < 1e-9) return [this.cx, this.cz];
+    const dist = Math.asin(rho) * this.#globeR;
+    return [this.cx + (vx / rho) * dist, this.cz + (vy / rho) * dist];
   }
 
+  /** De la bola entera (un poco más pequeña que la ventana) a muy de cerca. */
   #clampScale(s) {
-    let ext = 1500;
-    for (const c of this.data.cities) {
-      const d = wrapDelta(c.x - this.home.x, c.z - this.home.z);
-      ext = Math.max(ext, Math.abs(d.dx), Math.abs(d.dz));
-    }
-    return Math.min(1.2, Math.max(this.w / (ext * 2.6), s));
+    const min = (0.46 * Math.min(this.w || 600, this.h || 600)) / this.#globeR;
+    return Math.min(1.2, Math.max(min, s));
   }
 
   #zoomAt(factor, px = this.w / 2, py = this.h / 2) {
-    const [wx, wz] = this.#toWorld(px, py);
+    const at = this.#toWorld(px, py);
+    const old = this.scale;
     this.scale = this.#clampScale(this.scale * factor);
-    // Que el punto bajo el ratón siga en el mismo sitio
-    this.cx = wx - (px - this.w / 2) / this.scale;
-    this.cz = wz - (py - this.h / 2) / this.scale;
+    // Que el punto bajo el ratón se acerque al centro lo justo para seguir más o menos en su sitio
+    if (at) {
+      const k = 1 - old / this.scale;
+      this.cx += (at[0] - this.cx) * k;
+      this.cz += (at[1] - this.cz) * k;
+    }
     this.#draw();
   }
 
@@ -417,6 +457,7 @@ export class WorldMap {
         const dy = e.offsetY - drag.y;
         if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
         if (drag.moved) {
+          // (girar la bola: un radio de pantalla es un radio de bola)
           this.cx = drag.cx - dx / this.scale;
           this.cz = drag.cz - dy / this.scale;
           this.tip.hidden = true;
@@ -488,7 +529,8 @@ export class WorldMap {
   }
 
   #hover(px, py) {
-    this.pos.textContent = fmtCoords(coordsOf(...this.#toWorld(px, py)));
+    const here = this.#toWorld(px, py);
+    if (here) this.pos.textContent = fmtCoords(coordsOf(...here));
     const hit = this.#hit(px, py);
     this.canvas.style.cursor = hit ? 'pointer' : 'grab';
     if (!hit) {
@@ -576,76 +618,181 @@ export class WorldMap {
   #draw() {
     if (!this.canvas?.isConnected || !this.w) return;
     const { ctx, w, h, scale } = this;
-    const sea = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.7);
-    sea.addColorStop(0, '#1f5f86');
-    sea.addColorStop(1, '#0d2f47');
+    const G = this.#globePx;
+    const [gx, gy] = [w / 2, h / 2];
+    // El espacio de alrededor, con unas estrellas que no se mueven
+    ctx.fillStyle = '#070d16';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    for (let i = 0; i < 70; i++) {
+      const sx = ((i * 7919) % 1000) / 1000;
+      const sy = ((i * 104729) % 997) / 997;
+      ctx.globalAlpha = 0.15 + ((i * 31) % 10) / 20;
+      ctx.fillRect(sx * w, sy * h, 1.3, 1.3);
+    }
+    ctx.globalAlpha = 1;
+    // La atmósfera: un halo azul alrededor de la bola
+    const halo = ctx.createRadialGradient(gx, gy, G * 0.96, gx, gy, G * 1.12);
+    halo.addColorStop(0, 'rgba(120, 190, 255, 0.45)');
+    halo.addColorStop(1, 'rgba(120, 190, 255, 0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(gx, gy, G * 1.12, 0, Math.PI * 2);
+    ctx.fill();
+    // El mar de la bola, más claro hacia donde le da el sol (arriba a la izquierda)
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(gx, gy, G, 0, Math.PI * 2);
+    ctx.clip();
+    const sea = ctx.createRadialGradient(gx - G * 0.35, gy - G * 0.4, G * 0.05, gx, gy, G);
+    sea.addColorStop(0, '#2a77a3');
+    sea.addColorStop(0.65, '#175079');
+    sea.addColorStop(1, '#0b2c46');
     ctx.fillStyle = sea;
     ctx.fillRect(0, 0, w, h);
 
-    // Cuadrícula de coordenadas: casillas de COORD_CELL leguas (de cinco en cinco, o más, al alejarse)
+    // Cuadrícula de coordenadas: casillas de COORD_CELL leguas (de cinco en cinco, o más, al alejarse),
+    // curvada con la bola
     const cellPx = COORD_CELL * scale;
     const cells = cellPx >= 28 ? 1 : cellPx >= 6 ? 5 : cellPx >= 2.5 ? 10 : 20;
     const step = cells * COORD_CELL;
-    const [x0, z0] = this.#toWorld(0, 0);
-    const [x1, z1] = this.#toWorld(w, h);
-    const [cx0, cy0] = coordsOf(x0, z0);
-    const [cx1, cy1] = coordsOf(x1, z1);
-    const xs = [];
-    const ys = [];
-    for (let k = Math.floor(cx0 / cells) * cells; k <= cx1 + 1; k += cells) xs.push([k, this.#toScreen(coordsCenter(k, 0).x - COORD_CELL / 2, 0)[0]]);
-    for (let k = Math.floor(cy0 / cells) * cells; k <= cy1 + 1; k += cells) ys.push([k, this.#toScreen(0, coordsCenter(0, k).z - COORD_CELL / 2)[1]]);
-    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+    const reach = this.#globeR * (Math.PI / 2) * 0.999;
+    // (hasta donde se ve: el horizonte de la bola, o el borde de la ventana si está muy cerca)
+    const corners = [[0, 0], [w, 0], [0, h], [w, h]].map(([px, py]) => this.#toWorld(px, py));
+    const span = corners.every(Boolean) ? Math.max(...corners.map(([x, z]) => Math.max(Math.abs(x - this.cx), Math.abs(z - this.cz)))) * 1.05 : reach;
+    const lim = Math.min(span, reach);
+    const [cx0, cy0] = coordsOf(this.cx - lim, this.cz - lim);
+    const [cx1, cy1] = coordsOf(this.cx + lim, this.cz + lim);
+    const line = (pts) => {
+      let pen = false;
+      for (const [x, z] of pts) {
+        const dx = x - this.cx;
+        const dz = z - this.cz;
+        if (Math.hypot(dx, dz) >= reach) {
+          pen = false;
+          continue;
+        }
+        const [sx, sy] = this.#project(dx, dz);
+        if (pen) ctx.lineTo(sx, sy);
+        else ctx.moveTo(sx, sy);
+        pen = true;
+      }
+    };
+    const samples = 48;
+    const labelsX = [];
+    const labelsY = [];
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    for (const [, sx] of xs) {
-      ctx.moveTo(sx, 0);
-      ctx.lineTo(sx, h);
+    for (let k = Math.floor(cx0 / cells) * cells; k <= cx1 + 1; k += cells) {
+      const x = coordsCenter(k, 0).x - COORD_CELL / 2;
+      line(Array.from({ length: samples + 1 }, (_, i) => [x, this.cz - lim + (2 * lim * i) / samples]));
+      labelsX.push([k, x]);
     }
-    for (const [, sy] of ys) {
-      ctx.moveTo(0, sy);
-      ctx.lineTo(w, sy);
+    for (let k = Math.floor(cy0 / cells) * cells; k <= cy1 + 1; k += cells) {
+      const z = coordsCenter(0, k).z - COORD_CELL / 2;
+      line(Array.from({ length: samples + 1 }, (_, i) => [this.cx - lim + (2 * lim * i) / samples, z]));
+      labelsY.push([k, z]);
     }
     ctx.stroke();
-    // Los números de las casillas, arriba y a la izquierda
-    ctx.font = '10px Inter, system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.textAlign = 'left';
-    for (const [k, sx] of xs) if (sx > 18) ctx.fillText(k, sx + 3, 11);
-    for (const [k, sy] of ys) if (sy > 18 && sy < h - 40) ctx.fillText(k, 3, sy + 11);
+    // Los números de las casillas, de cerca: arriba y a la izquierda (donde las líneas cortan la ventana)
+    if (corners.every(Boolean)) {
+      ctx.font = '10px Inter, system-ui, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.textAlign = 'left';
+      const top = this.#toWorld(w / 2, 8);
+      const left = this.#toWorld(8, h / 2);
+      for (const [k, x] of labelsX) {
+        const [sx] = this.#project(x - this.cx, top[1] - this.cz);
+        if (sx > 18 && sx < w - 10) ctx.fillText(k, sx + 3, 11);
+      }
+      for (const [k, z] of labelsY) {
+        const [, sy] = this.#project(left[0] - this.cx, z - this.cz);
+        if (sy > 18 && sy < h - 40) ctx.fillText(k, 3, sy + 11);
+      }
+    }
 
     // La casilla buscada
     if (this.mark) {
       const c = coordsCenter(...this.mark);
-      const [mx, my] = this.#spot(c.x, c.z);
-      const [sx, sy] = [mx - (COORD_CELL / 2) * this.scale, my - (COORD_CELL / 2) * this.scale];
-      ctx.strokeStyle = 'rgba(242,201,76,0.9)';
-      ctx.fillStyle = 'rgba(242,201,76,0.12)';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 4]);
-      ctx.fillRect(sx, sy, cellPx, cellPx);
-      ctx.strokeRect(sx, sy, cellPx, cellPx);
-      ctx.setLineDash([]);
+      const d = wrapDelta(c.x - this.cx, c.z - this.cz);
+      const half = COORD_CELL / 2;
+      const pts = [[-half, -half], [half, -half], [half, half], [-half, half]].map(([ox, oz]) => this.#project(d.dx + ox, d.dz + oz));
+      if (pts.every((p) => Number.isFinite(p[0]))) {
+        ctx.strokeStyle = 'rgba(242,201,76,0.9)';
+        ctx.fillStyle = 'rgba(242,201,76,0.12)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        pts.forEach(([sx, sy], i) => (i ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy)));
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
     }
 
-    // Hasta donde llegan tus flotas de guerra (sin Cartas náuticas)
+    // Hasta donde llegan tus flotas de guerra (sin Cartas náuticas), curvado con la bola
     if (!this.charts) {
-      const [hx, hy] = this.#spot(this.home.x, this.home.z);
+      const d = wrapDelta(this.home.x - this.cx, this.home.z - this.cz);
       ctx.setLineDash([6, 6]);
       ctx.strokeStyle = 'rgba(242,201,76,0.45)';
       ctx.beginPath();
-      ctx.arc(hx, hy, PVP_RANGE * scale, 0, Math.PI * 2);
+      line(Array.from({ length: 65 }, (_, i) => [this.cx + d.dx + PVP_RANGE * Math.cos((i / 64) * Math.PI * 2), this.cz + d.dz + PVP_RANGE * Math.sin((i / 64) * Math.PI * 2)]));
       ctx.stroke();
       ctx.setLineDash([]);
     }
 
+    // En el móvil (donde cuesta más ubicarse), tu casilla de la cuadrícula resaltada con un halo dorado
+    if (matchMedia('(pointer: coarse)').matches || w < 700) {
+      const cell = coordsOf(this.home.x, this.home.z);
+      const c = coordsCenter(...cell);
+      const d = wrapDelta(c.x - this.cx, c.z - this.cz);
+      // (de lejos la casilla es diminuta: como poco, un cuadrado de 18 px alrededor)
+      const half = Math.max(COORD_CELL / 2, 9 / Math.max(scale, 1e-6));
+      const pts = [];
+      for (const [ax, az, bx, bz] of [[-1, -1, 1, -1], [1, -1, 1, 1], [1, 1, -1, 1], [-1, 1, -1, -1]]) {
+        for (let t = 0; t < 8; t++) pts.push([this.cx + d.dx + half * (ax + ((bx - ax) * t) / 8), this.cz + d.dz + half * (az + ((bz - az) * t) / 8)]);
+      }
+      pts.push(pts[0]);
+      ctx.save();
+      ctx.beginPath();
+      line(pts);
+      ctx.fillStyle = 'rgba(242, 201, 76, 0.12)';
+      ctx.fill();
+      ctx.shadowColor = 'rgba(242, 201, 76, 0.95)';
+      ctx.shadowBlur = 14;
+      ctx.strokeStyle = 'rgba(242, 201, 76, 0.9)';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.restore();
+      // (y sus coordenadas, debajo)
+      const below = this.#project(d.dx, d.dz + half);
+      if (Number.isFinite(below[1]) && below.k > 0.3) {
+        const text = fmtCoords(cell);
+        ctx.font = '700 11px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(8,20,30,0.85)';
+        ctx.strokeText(text, below[0], below[1] + 14);
+        ctx.fillStyle = '#f2c94c';
+        ctx.fillText(text, below[0], below[1] + 14);
+      }
+    }
+
     const inView = (x, y, m = 40) => x > -m && y > -m && x < w + m && y < h + m;
+    // Hacia el borde de la bola, las cosas encogen y se desvanecen
+    const shrink = (k) => 0.4 + 0.6 * k;
+    const fade = (k) => Math.min(1, k * 3.5);
 
     // Continentes (debajo de todo)
     for (const [x, z, type, , size] of this.data.islands) {
       if (type !== 'continente') continue;
-      const [sx, sy] = this.#spot(x, z);
-      const cr = Math.max(4, size * scale);
+      const p = this.#spot(x, z);
+      const [sx, sy] = p;
+      const cr = Math.max(4, size * scale) * shrink(p.k);
       if (!inView(sx, sy, cr + 20)) continue;
+      ctx.globalAlpha = fade(p.k);
       const seed = Math.imul(x, 73856093) ^ Math.imul(z, 19349663);
       ctx.fillStyle = 'rgba(120, 200, 215, 0.12)';
       blob(ctx, sx, sy, cr * 1.4, seed, 12);
@@ -657,6 +804,7 @@ export class WorldMap {
       blob(ctx, sx, sy, cr * 0.95, seed, 12);
       ctx.fill();
     }
+    ctx.globalAlpha = 1;
 
     // Gestas en marcha: anillos de lava que laten sobre su continente
     const beat = (Math.sin(performance.now() / 400) + 1) / 2;
@@ -674,7 +822,8 @@ export class WorldMap {
     }
 
     // Islas de los sectores: de cerca, con su costa, sus bajíos y su icono
-    const r = Math.max(1.6, 24 * scale);
+    const r0 = Math.max(1.6, 24 * scale);
+    const r = r0;
     const shapes = r >= 4;
     const icons = r >= 10;
     const islands = this.hidden.has('islas') ? [] : this.data.islands.filter(([x, z, type]) => type !== 'continente' && inView(...this.#spot(x, z)));
@@ -682,14 +831,17 @@ export class WorldMap {
       ctx.fillStyle = 'rgba(120, 200, 215, 0.12)';
       for (const [x, z, type] of islands) {
         if (type === 'brumas') continue;
-        const [sx, sy] = this.#spot(x, z);
+        const p = this.#spot(x, z);
         ctx.beginPath();
-        ctx.arc(sx, sy, r * 1.9, 0, Math.PI * 2);
+        ctx.arc(p[0], p[1], r * 1.9 * shrink(p.k), 0, Math.PI * 2);
         ctx.fill();
       }
     }
     for (const [x, z, type, colonist] of islands) {
-      const [sx, sy] = this.#spot(x, z);
+      const p = this.#spot(x, z);
+      const [sx, sy] = p;
+      const r = r0 * shrink(p.k);
+      ctx.globalAlpha = fade(p.k);
       if (type === 'brumas') {
         const mist = ctx.createRadialGradient(sx, sy, 0, sx, sy, r * 1.8);
         mist.addColorStop(0, 'rgba(205, 220, 230, 0.5)');
@@ -711,11 +863,11 @@ export class WorldMap {
         ctx.fill();
       } else {
         ctx.fillStyle = color;
-        ctx.globalAlpha = 0.85;
+        ctx.globalAlpha *= 0.85;
         ctx.beginPath();
         ctx.arc(sx, sy, r, 0, Math.PI * 2);
         ctx.fill();
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha = fade(p.k);
       }
       if (colonist) {
         const owner = this.byUid.get(colonist);
@@ -733,6 +885,7 @@ export class WorldMap {
         ctx.textBaseline = 'alphabetic';
       }
     }
+    ctx.globalAlpha = 1;
 
     // Las rutas de las flotas: lo ya navegado, tenue; lo que falta, con rayas que avanzan
     const fleets = this.#fleets();
@@ -741,28 +894,28 @@ export class WorldMap {
     for (const f of fleets) {
       if (f.parked) continue;
       const color = f.mine ? (HOSTILE.has(f.m.type) ? '#ff9a8a' : f.m.type === 'tributo' ? '#ffd27a' : '#ffffff') : '#ff5a4a';
-      // (la ruta, alrededor de donde va el barco: si cruza la costura, por el camino corto)
-      const [fx, fy] = this.#spot(...f.at);
+      // (la ruta, por el camino corto y curvada con la bola, alrededor de donde va el barco)
+      const from = this.cx + wrapDelta(f.at[0] - this.cx, f.at[1] - this.cz).dx;
+      const fromZ = this.cz + wrapDelta(f.at[0] - this.cx, f.at[1] - this.cz).dz;
       const toward = (p) => {
         const d = wrapDelta(p[0] - f.at[0], p[1] - f.at[1]);
-        return [fx + d.dx * this.scale, fy + d.dz * this.scale];
+        return [from + d.dx, fromZ + d.dz];
       };
-      const [ax, ay] = toward(f.a);
-      const [bx, by] = toward(f.b);
-      const [ex, ey] = f.back ? [ax, ay] : [bx, by];
+      const seg = (p0, p1) => Array.from({ length: 25 }, (_, i) => [p0[0] + ((p1[0] - p0[0]) * i) / 24, p0[1] + ((p1[1] - p0[1]) * i) / 24]);
+      const a = toward(f.a);
+      const b = toward(f.b);
+      const end = f.back ? a : b;
       ctx.strokeStyle = color;
       ctx.globalAlpha = 0.25;
       ctx.setLineDash([]);
       ctx.beginPath();
-      ctx.moveTo(ax, ay);
-      ctx.lineTo(bx, by);
+      line(seg(a, b));
       ctx.stroke();
       ctx.globalAlpha = f.mine ? 0.8 : 0.95;
       ctx.setLineDash([7, 5]);
       ctx.lineDashOffset = -now / 50;
       ctx.beginPath();
-      ctx.moveTo(fx, fy);
-      ctx.lineTo(ex, ey);
+      line(seg([from, fromZ], end));
       ctx.stroke();
     }
     ctx.setLineDash([]);
@@ -770,18 +923,20 @@ export class WorldMap {
     ctx.globalAlpha = 1;
 
     // Ciudades
-    const cr = Math.max(3.5, 28 * scale);
+    const cr0 = Math.max(3.5, 28 * scale);
     const labels = scale > 0.09;
     ctx.font = '600 11px Inter, system-ui, sans-serif';
     ctx.textAlign = 'center';
     for (const c of this.data.cities) {
-      const [sx, sy] = this.#spot(c.x, c.z);
+      const p = this.#spot(c.x, c.z);
+      const [sx, sy] = p;
       if (!inView(sx, sy, 80)) continue;
       const rel = this.#relation(c.uid, c.aid);
       if (rel !== 'yo' && this.hidden.has(rel)) continue;
       const color = REL[rel].color;
       const selected = this.selected?.kind === 'city' && this.selected.item === c;
-      ctx.globalAlpha = c.inactive || c.vacation ? 0.5 : 1;
+      const cr = cr0 * shrink(p.k);
+      ctx.globalAlpha = (c.inactive || c.vacation ? 0.5 : 1) * fade(p.k);
       ctx.fillStyle = color;
       ctx.shadowColor = color;
       ctx.shadowBlur = rel === 'otro' ? 0 : 10;
@@ -833,7 +988,8 @@ export class WorldMap {
         ctx.textBaseline = 'alphabetic';
         ctx.font = '600 11px Inter, system-ui, sans-serif';
       }
-      if ((labels && !this.hidden.has('nombres')) || selected || rel === 'yo') {
+      if (((labels && !this.hidden.has('nombres')) || selected || rel === 'yo') && p.k > 0.25) {
+        ctx.globalAlpha = fade(p.k);
         const text = `${c.tag ? `[${c.tag}] ` : ''}${c.name}${c.vacation ? ' 🏖️' : c.inactive ? ' 💤' : ''}`;
         ctx.lineWidth = 3;
         ctx.strokeStyle = 'rgba(8,20,30,0.85)';
@@ -841,6 +997,7 @@ export class WorldMap {
         ctx.fillStyle = rel === 'otro' ? '#f3ead8' : color;
         ctx.fillText(text, sx, sy - cr - 6);
       }
+      ctx.globalAlpha = 1;
     }
 
     // El icono de cada gesta, encima de todo (junto al borde de su anillo)
@@ -881,6 +1038,23 @@ export class WorldMap {
       ctx.textBaseline = 'middle';
       ctx.fillText(f.back ? '⚓' : (MISSION_TYPES[f.m.type]?.icon ?? '⛵'), x, y + 1);
       ctx.textBaseline = 'alphabetic';
+    }
+
+    // La sombra de la bola: más oscura hacia el borde y hacia el lado contrario al sol
+    const shade = ctx.createRadialGradient(gx - G * 0.3, gy - G * 0.35, G * 0.2, gx, gy, G);
+    shade.addColorStop(0, 'rgba(255, 245, 220, 0.06)');
+    shade.addColorStop(0.7, 'rgba(0, 0, 0, 0)');
+    shade.addColorStop(1, 'rgba(0, 8, 20, 0.55)');
+    ctx.fillStyle = shade;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+    // El borde de la bola
+    if (G < Math.hypot(w, h) / 2) {
+      ctx.strokeStyle = 'rgba(170, 215, 255, 0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(gx, gy, G, 0, Math.PI * 2);
+      ctx.stroke();
     }
 
     // Rosa de los vientos

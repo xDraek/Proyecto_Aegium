@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-11c',
+    date: '2026-11-11',
+    title: 'El mapa del mundo, una bola',
+    items: [
+      '🌍 El <b>mapa del mundo</b> es ahora un globo: lo que miras, en el centro y a su tamaño; hacia el borde, las islas se curvan y encogen, y lo de la cara de atrás no se ve. Arrastra para girarlo: el mundo sigue dando la vuelta, pero ya nunca verás el mismo archipiélago dos veces.',
+      '📱 En el móvil, tu <b>casilla de la cuadrícula</b> sale resaltada con un halo dorado y sus coordenadas, para ubicarte de un vistazo.',
+    ],
+    en: {
+      title: 'The world map, a globe',
+      items: [
+        '🌍 The <b>world map</b> is now a globe: what you’re looking at sits in the centre at its true size; towards the edge, islands curve and shrink, and the far side is hidden. Drag to spin it: the world still wraps around, but you’ll never see the same archipelago twice.',
+        '📱 On mobile, your <b>grid square</b> is highlighted with a golden halo and its coordinates, so you can find yourself at a glance.',
+      ],
+    },
+  },
+  {
     id: '2026-11-11b',
     date: '2026-11-11',
     title: 'Me gusta y no me gusta en los foros',

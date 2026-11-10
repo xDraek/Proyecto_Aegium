@@ -422,7 +422,7 @@ export function wrapRingFor(sectors) {
 }
 
 /** Los dos vectores con los que se repite el mosaico de radio R (en leguas). */
-function wrapVectors(R) {
+export function wrapVectors(R) {
   const S = SECTOR_SPACING;
   const h = Math.sqrt(3) / 2;
   return [
