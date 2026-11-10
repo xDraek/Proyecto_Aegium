@@ -7,6 +7,16 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-11b',
+    date: '2026-11-11',
+    title: 'Me gusta y no me gusta en los foros',
+    items: ['👍 Los mensajes del <b>foro</b> y del <b>foro de la alianza</b> se pueden votar con <b>me gusta</b> 👍 o <b>no me gusta</b> 👎, y cada uno muestra cuántos tiene. Un voto por jugador: se cambia pulsando el otro y se quita pulsando el mismo. Los tuyos no se votan.'],
+    en: {
+      title: 'Likes and dislikes in the forums',
+      items: ['👍 Posts in the <b>forum</b> and the <b>alliance forum</b> can be voted with <b>like</b> 👍 or <b>dislike</b> 👎, and each one shows how many it has. One vote per player: change it by pressing the other one and remove it by pressing the same one. You can’t vote on your own.'],
+    },
+  },
+  {
     id: '2026-11-11a',
     date: '2026-11-11',
     title: 'El foro, en el móvil',

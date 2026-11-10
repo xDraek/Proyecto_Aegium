@@ -516,6 +516,10 @@ async function api(req, res, url) {
         const thread = world.boardPost(uid, sub === '' ? { section: String(body.section ?? ''), title: body.title, text: body.text } : { threadId: int(body.id), text: body.text });
         return send(res, 200, { thread });
       }
+      if (sub === '/react') {
+        if (limited(`react:${uid}`, 60, 60_000)) return send(res, 429, { error: 'Vas demasiado rápido.' });
+        return send(res, 200, { thread: world.boardReact(uid, int(body.id), int(body.post), int(body.vote)) });
+      }
       if (sub === '/report') {
         if (limited(`board-report:${uid}`, 10, 3_600_000)) return send(res, 429, { error: 'Has denunciado muchos mensajes esta hora.' });
         world.boardReport(uid, int(body.id), int(body.post));
@@ -531,6 +535,10 @@ async function api(req, res, url) {
         if (limited(`forum:${uid}`, 6, 60_000)) return send(res, 429, { error: 'Escribes muy deprisa. Espera un minuto.' });
         const thread = world.forumPost(uid, sub === '' ? null : int(body.id), body.title, body.text);
         return send(res, 200, { thread, snapshot: world.snapshot(uid, rev, srev) });
+      }
+      if (sub === '/react') {
+        if (limited(`react:${uid}`, 60, 60_000)) return send(res, 429, { error: 'Vas demasiado rápido.' });
+        return send(res, 200, { thread: world.forumReact(uid, int(body.id), int(body.post), int(body.vote)) });
       }
       if (['/pin', '/lock', '/rename', '/delete', '/delete-post'].includes(sub)) {
         const thread = world.forumModerate(uid, int(body.id), sub.slice(1), { postId: int(body.post), title: body.title });

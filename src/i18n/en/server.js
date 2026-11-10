@@ -322,4 +322,5 @@ export default {
   "La paz la negocian el Oikistes, los Hegemones, los Strategos y los Presbeis.": "Peace is negotiated by the Oikistes, the Hegemons, the Strategoi and the Presbeis.",
   "Los pactos los llevan el Oikistes, los Hegemones y los Presbeis.": "Pacts are handled by the Oikistes, the Hegemons and the Presbeis.",
   "Solo el Oikistes y los Hegemones pueden cambiar la descripción.": "Only the Oikistes and the Hegemons can change the description.",
+  "No puedes votar tus propios mensajes.": "You can't vote on your own posts.",
 }

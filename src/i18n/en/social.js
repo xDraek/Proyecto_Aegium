@@ -335,4 +335,9 @@ export default {
   "Renombrar el tema": "Rename the topic",
   "Miembro (sin rango)": "Member (no rank)",
   "🏛️ ¿Qué es cada rango?{0}": "🏛️ What is each rank?{0}",
+  "No puedes votar tus propios mensajes": "You can't vote on your own posts",
+  "Entra con tu cuenta para votar": "Log in with your account to vote",
+  "Me gusta": "Like",
+  "No me gusta": "Dislike",
+  "Quitar tu «{0}»": "Remove your «{0}»",
 }

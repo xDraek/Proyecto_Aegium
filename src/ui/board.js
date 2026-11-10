@@ -12,6 +12,18 @@ const text = (s) => escapeHtml(s).replace(/\n/g, '<br />');
 /** La inicial de un jugador para su medallón, y un color propio (siempre el mismo para cada nombre). */
 export const initial = (name) => [...String(name ?? '?').trim()][0]?.toUpperCase() ?? '?';
 const AVATAR_COLORS = ['#b5542f', '#2f7a8a', '#6a8a2f', '#8a4f9e', '#a8862c', '#3f6fb0', '#9e3f5c', '#4f7f5f'];
+/**
+ * Los botones de me gusta y no me gusta de un mensaje, con cuántos tiene cada uno. `can`: si quien
+ * lo mira puede votar (con cuenta y si no es suyo); `action`: la acción de los botones.
+ */
+export function reactionsHtml(p, { can, action }) {
+  const btn = (vote, icon, n, label) => {
+    const on = p.myVote === vote;
+    return `<button class="react${vote > 0 ? ' like' : ' dislike'}${on ? ' on' : ''}" data-action="${action}" data-post="${p.id}" data-vote="${vote}" ${can ? '' : 'disabled'} title="${can ? (on ? `Quitar tu «${label}»` : label) : p.mine ? 'No puedes votar tus propios mensajes' : 'Entra con tu cuenta para votar'}" aria-pressed="${on}">${icon}<span>${n ?? 0}</span></button>`;
+  };
+  return `<div class="post-react">${btn(1, '👍', p.likes, 'Me gusta')}${btn(-1, '👎', p.dislikes, 'No me gusta')}</div>`;
+}
+
 export function nameColor(name) {
   let h = 0;
   for (const ch of String(name ?? '')) h = (h * 31 + ch.charCodeAt(0)) | 0;
@@ -184,6 +196,7 @@ export class Board {
           <div class="post-body">
             <div class="post-head"><b translate="no">${escapeHtml(p.author)}</b>${tags}<span class="post-meta">${reports}<span class="muted small">${i === 0 ? 'Abrió el tema' : `#${i + 1}`} · ${fmtAgo(p.t)}</span>${tools ? `<span class="post-tools">${tools}</span>` : ''}</span></div>
             <p translate="no">${text(p.text)}</p>
+            ${reactionsHtml(p, { can: !!th.me && !p.mine, action: 'board-react' })}
           </div>
         </article>`;
       })
@@ -218,6 +231,13 @@ export class Board {
       <div class="posts">${posts}</div>
       ${reply}`,
     );
+  }
+
+  /** Vuelve a pintar sin que la ventana salte arriba (al votar un mensaje de abajo, por ejemplo). */
+  #keepScroll(paint) {
+    const top = this.root?.scrollTop ?? 0;
+    paint();
+    if (this.root) this.root.scrollTop = top;
   }
 
   /** Las migas de pan: Foro › Sección (› Tema). */
@@ -307,6 +327,13 @@ export class Board {
         const res = await this.#post('/api/board/delete-post', { id: th.id, post: Number(btn.dataset.post) });
         if (res?.deleted) await this.#openSection(th.section);
         else if (res?.thread) this.#showThread(res.thread);
+        return;
+      }
+      case 'board-react': {
+        btn.disabled = true;
+        const res = await this.#post('/api/board/react', { id: th.id, post: Number(btn.dataset.post), vote: Number(btn.dataset.vote) });
+        if (res?.thread) this.#keepScroll(() => this.#showThread(res.thread));
+        else btn.disabled = false;
         return;
       }
       case 'board-report': {

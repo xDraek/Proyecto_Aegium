@@ -5,7 +5,7 @@ import { recentErrors } from '../errors.js';
 import { api, setToken } from '../net/api.js';
 import { bag, escapeHtml, fmtAgo, fmtDec, fmtNum, fmtTime } from './format.js';
 import { askConfirm, askPrompt } from './dialog.js';
-import { initial, nameColor } from './board.js';
+import { initial, nameColor, reactionsHtml } from './board.js';
 
 /** Los rangos que el Oikistes puede dar (ver ALLIANCE_ROLES). */
 const ROLE_CHOICES = ['hegemon', 'strategos', 'presbeis', 'miembro'];
@@ -175,6 +175,7 @@ export class Social {
             <div class="post-body">
               <div class="post-head"><button class="link post-author" data-action="profile" data-name="${escapeHtml(p.author)}" translate="no">${escapeHtml(p.author)}</button>${tags}<span class="post-meta"><span class="muted small">${i === 0 ? 'Abrió el tema' : `#${i + 1}`} · ${fmtAgo(p.t)}</span>${del}</span></div>
               <p translate="no">${text(p.text)}</p>
+              ${reactionsHtml(p, { can: p.author !== this.game.username, action: 'forum-react' })}
             </div>
           </article>`;
         })
@@ -787,6 +788,19 @@ export class Social {
       case 'forum-open':
         await this.#openThread(Number(btn.dataset.id));
         return true;
+      case 'forum-react': {
+        btn.disabled = true;
+        const thread = this.thread;
+        const data = await this.#call('POST', '/api/forum/react', { id: thread.id, post: Number(btn.dataset.post), vote: Number(btn.dataset.vote) });
+        if (data?.thread) {
+          // (sin que la ventana salte arriba)
+          const top = this.hud.modal.scrollTop;
+          this.thread = data.thread;
+          this.renderAlliance();
+          this.hud.modal.scrollTop = top;
+        } else btn.disabled = false;
+        return true;
+      }
       case 'forum-compose': {
         // Abre (o cierra) el formulario del tema nuevo
         const form = this.hud.modal.querySelector('.board-compose');

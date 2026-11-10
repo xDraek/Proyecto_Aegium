@@ -92,6 +92,28 @@ function renameGuards(garrison, names = LAIR_GUARDS) {
 }
 const TAG_RE = /^[\p{L}\p{N}]{2,5}$/u;
 
+/** Los «me gusta» y «no me gusta» de un mensaje del foro, y lo que ha votado quien lo mira (1, -1 o 0). */
+function votesOf(post, userId) {
+  let likes = 0;
+  let dislikes = 0;
+  for (const v of Object.values(post.votes ?? {})) {
+    if (v > 0) likes++;
+    else dislikes++;
+  }
+  return { likes, dislikes, myVote: userId != null ? (post.votes?.[userId] ?? 0) : 0 };
+}
+
+/** Vota un mensaje (1 me gusta, -1 no me gusta); votar lo mismo otra vez lo quita. Los tuyos no. */
+function castVote(post, userId, me, vote) {
+  if (!post) throw new UserError('Ese mensaje ya no existe.');
+  if (post.author === me) throw new UserError('No puedes votar tus propios mensajes.');
+  vote = Math.sign(Number(vote)) || 0;
+  post.votes ??= {};
+  if (!vote || post.votes[userId] === vote) delete post.votes[userId];
+  else post.votes[userId] = vote;
+  if (!Object.keys(post.votes).length) delete post.votes;
+}
+
 export class WorldServer {
   constructor(store) {
     this.store = store;
@@ -3515,7 +3537,17 @@ export class WorldServer {
     game.dirty = true;
     const me = this.users.get(userId).username;
     const mod = this.#can(a, userId, 'forum');
-    return { ...th, locked: !!th.locked, canModerate: mod, canReply: !th.locked || mod, mine: th.author === me };
+    const posts = th.posts.map(({ votes, ...p }) => ({ ...p, ...votesOf({ votes }, userId) }));
+    return { ...th, posts, locked: !!th.locked, canModerate: mod, canReply: !th.locked || mod, mine: th.author === me };
+  }
+
+  /** Me gusta o no me gusta en un mensaje del foro de la alianza. Devuelve el tema como queda. */
+  forumReact(userId, threadId, postId, vote) {
+    const { threads } = this.#forum(userId);
+    const th = threads.find((x) => x.id === threadId);
+    if (!th) throw new UserError('Ese tema ya no existe.');
+    castVote(th.posts.find((p) => p.id === postId), userId, this.users.get(userId).username, vote);
+    return this.forumThread(userId, threadId);
   }
 
   forumPost(userId, threadId, title, text) {
@@ -3785,7 +3817,7 @@ export class WorldServer {
       locked: !!th.locked,
       // (las denuncias solo las ven los moderadores)
       // (`staff`: lo escribe alguien del equipo de Aegium)
-      posts: th.posts.map((p) => ({ id: p.id, author: p.author, t: p.t, text: p.text, mine: p.author === me, ...(this.admins.has(p.author.toLowerCase()) ? { staff: true } : {}), ...(mod && p.reports?.length ? { reports: p.reports.length } : {}) })),
+      posts: th.posts.map((p) => ({ id: p.id, author: p.author, t: p.t, text: p.text, mine: p.author === me, ...votesOf(p, game ? userId : null), ...(this.admins.has(p.author.toLowerCase()) ? { staff: true } : {}), ...(mod && p.reports?.length ? { reports: p.reports.length } : {}) })),
       me,
       canModerate: mod,
       canReply: !!me && (!th.locked || mod) && (!BOARD_SECTIONS[th.section]?.modOnly || mod),
@@ -3871,6 +3903,14 @@ export class WorldServer {
   }
 
   /** Denunciar un mensaje: les llega un aviso a los moderadores (una vez por jugador y mensaje). */
+  /** Me gusta o no me gusta en un mensaje del foro. Devuelve el tema como queda. */
+  boardReact(userId, threadId, postId, vote) {
+    const th = this.meta.board.threads.find((x) => x.id === threadId);
+    if (!th) throw new UserError('Ese tema ya no existe.');
+    castVote(th.posts.find((p) => p.id === postId), userId, this.users.get(userId).username, vote);
+    return this.boardThread(userId, threadId);
+  }
+
   boardReport(userId, threadId, postId) {
     const th = this.meta.board.threads.find((x) => x.id === threadId);
     const post = th?.posts.find((p) => p.id === postId);
