@@ -21,6 +21,20 @@ function inputs(prefix, ids, values) {
 }
 
 /**
+ * Las tropas de un bando: primero las que trae el combate (o unas pocas de siempre, si no trae
+ * ninguna) y el resto, plegadas en «Todas las tropas». Así la ventana no es kilométrica (en el iPhone,
+ * una ventana tan alta dejaba a Safari sin memoria y cerraba el juego).
+ */
+function unitInputs(prefix, ids, values, basic) {
+  const used = ids.filter((id) => (values[id] ?? 0) > 0);
+  const first = used.length ? used : ids.filter((id) => basic.includes(id));
+  const rest = ids.filter((id) => !first.includes(id));
+  return `${inputs(prefix, first, values)}${rest.length ? `<details class="sim-more"><summary>➕ Todas las tropas (${rest.length} más)</summary>${inputs(prefix, rest, values)}</details>` : ''}`;
+}
+const BASIC_ATTACKERS = ['lancero', 'hondero', 'arquero', 'espadachin', 'hoplita', 'trirreme', 'mercante'];
+const BASIC_DEFENDERS = ['lancero', 'arquero', 'hoplita', 'barbaro', 'arquero_barbaro', 'pirata', 'trirreme'];
+
+/**
  * `landing`: si hace falta desembarcar para ganar (contra una ciudad); sin él, se deduce del defensor.
  * `kraken`: el nivel del Kraken del defensor (cada nivel le suma ataque y vida).
  * @param {{ attacker?: object, defender?: object, wall?: number, atkMul?: number, hpMul?: number, defAtkMul?: number, defHpMul?: number, towers?: number, naval?: number, kraken?: number, landing?: boolean, title?: string, note?: string }} preset
@@ -31,11 +45,11 @@ export function simulatorHtml(preset = {}) {
       <div class="panel-lvl">${preset.title ?? 'Prueba un ataque antes de mandarlo'}</div></div>
       <button class="icon-btn" data-action="close-modal" title="Cerrar">✕</button></div>
     <form class="sim" data-form="sim"${preset.landing === undefined ? '' : ` data-landing="${preset.landing ? 1 : 0}"`}>
-      <fieldset><legend>Atacante</legend>${inputs('a', ATTACKERS, preset.attacker ?? {})}
+      <fieldset><legend>Atacante</legend>${unitInputs('a', ATTACKERS, preset.attacker ?? {}, BASIC_ATTACKERS)}
         <label><span>⚔️ Bono de ataque %</span><input type="number" name="a-atk" value="${Math.round(((preset.atkMul ?? 1) - 1) * 100)}" /></label>
         <label><span>❤️ Bono de vida %</span><input type="number" name="a-hp" value="${Math.round(((preset.hpMul ?? 1) - 1) * 100)}" /></label>
       </fieldset>
-      <fieldset><legend>Defensor</legend>${inputs('d', DEFENDERS, preset.defender ?? {})}
+      <fieldset><legend>Defensor</legend>${unitInputs('d', DEFENDERS, preset.defender ?? {}, BASIC_DEFENDERS)}
         <label><span>⚔️ Bono de ataque %</span><input type="number" name="d-atk" value="${Math.round(((preset.defAtkMul ?? 1) - 1) * 100)}" /></label>
         <label><span>❤️ Bono de vida % (y coraza)</span><input type="number" name="d-hp" value="${Math.round(((preset.defHpMul ?? 1) - 1) * 100)}" /></label>
         <label><span>🏰 Muralla / fortificación % (en tierra; las catapultas la rebajan)</span><input type="number" name="d-wall" value="${Math.round((preset.wall ?? 0) * 100)}" /></label>

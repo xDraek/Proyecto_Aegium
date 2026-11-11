@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-13b',
+    date: '2026-11-13',
+    title: 'El simulador, más corto y ligero',
+    items: [
+      '🎲 El <b>simulador de combate</b> enseña ahora solo las tropas del combate que simulas (o unas pocas de siempre); el resto, plegadas en «➕ Todas las tropas». La ventana es mucho más corta.',
+      '📱 En el móvil, las ventanas ya no desenfocan el fondo: en el iPhone, con una ventana tan larga como la del simulador, Safari se quedaba sin memoria y cerraba el juego.',
+    ],
+    en: {
+      title: 'A shorter, lighter simulator',
+      items: [
+        '🎲 The <b>combat simulator</b> now only shows the units in the battle you’re simulating (or a few common ones); the rest are folded under «➕ All units». The window is much shorter.',
+        '📱 On mobile, windows no longer blur the background: on iPhone, with a window as long as the simulator’s, Safari ran out of memory and closed the game.',
+      ],
+    },
+  },
+  {
     id: '2026-11-13a',
     date: '2026-11-13',
     title: 'El simulador, en el iPhone',

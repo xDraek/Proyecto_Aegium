@@ -7340,3 +7340,37 @@ kbd {
   border-color: rgba(242, 201, 76, 0.75);
   box-shadow: 0 0 14px rgba(242, 201, 76, 0.25);
 }
+
+/* El simulador: el resto de tropas, plegadas */
+.sim-more {
+  grid-column: 1 / -1;
+  margin: 4px 0;
+}
+
+.sim-more summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--gold);
+  padding: 4px 0;
+}
+
+.sim-more[open] {
+  display: contents;
+}
+
+.sim-more[open] summary {
+  grid-column: 1 / -1;
+}
+
+/*
+ * En las pantallas táctiles, sin desenfoques de fondo: Safari en el iPhone los calcula sobre todo el
+ * alto de la ventana y, con una larga (el simulador), se quedaba sin memoria y cerraba el juego.
+ */
+@media (pointer: coarse) {
+  *,
+  *::before,
+  *::after {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}

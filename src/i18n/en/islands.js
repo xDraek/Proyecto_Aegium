@@ -318,4 +318,5 @@ export default {
   "🔗 Cadena del puerto: ataque que pierden tus barcos %": "🔗 Harbour chain: attack your ships lose %",
   "🪤 Fosos · 🔗 Cadena del puerto": "🪤 Ditches · 🔗 Harbour chain",
   "· 🪝 Pecio": "· 🪝 Wreck",
+  "➕ Todas las tropas ({0} más)": "➕ All units ({0} more)",
 }
