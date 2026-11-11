@@ -7334,3 +7334,9 @@ kbd {
   margin: 4px 0 6px;
   line-height: 1.45;
 }
+
+/* El poder del dios del templo y los dioses a los que se consagra */
+.card.blessed {
+  border-color: rgba(242, 201, 76, 0.75);
+  box-shadow: 0 0 14px rgba(242, 201, 76, 0.25);
+}

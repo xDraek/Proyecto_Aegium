@@ -128,6 +128,7 @@ const ACTIONS = {
     return g.shelter(clean);
   },
   unshelter: (g) => g.unshelter(),
+  consecrate: (g, [god]) => (typeof god === 'string' ? g.consecrate(god) : bad()),
   recall: (g, [id]) => g.recall(int(id)),
   plunder: (g, [id]) => (int(id) >= 0 ? g.plunder(int(id)) : bad()),
   breakPort: (g) => g.breakPort(),

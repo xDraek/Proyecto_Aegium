@@ -571,4 +571,13 @@ export default {
   "Los macedonios de {0} se retiran": "The Macedonians of {0} withdraw",
   "Los macedonios de {0} saquean tu ciudad": "The Macedonians of {0} sack your city",
   "☀️ {0}{1}": "☀️ {0}{1}",
+  "Ese dios no existe.": "That god doesn't exist.",
+  "El templo se consagra a un dios a partir del nivel {0}.": "The temple can be consecrated to a god from level {0}.",
+  "El templo ya se está consagrando a {0}.": "The temple is already being consecrated to {0}.",
+  "El templo ya está consagrado a {0}.": "The temple is already consecrated to {0}.",
+  "No tienes el oro, el cristal y el bronce que pide la consagración.": "You don't have the gold, crystal and bronze the consecration requires.",
+  "{0} Los sacerdotes empiezan a consagrar el templo a {1}": "{0} The priests begin consecrating the temple to {1}",
+  "El templo queda consagrado a {0}": "The temple is consecrated to {0}",
+  "{0} Los poderes de los demás dioses, algo más flojos.": "{0} The other gods’ powers, somewhat weaker.",
+  "{0} El templo queda consagrado a {1}: {2} más fuerte": "{0} The temple is consecrated to {1}: {2} stronger",
 }

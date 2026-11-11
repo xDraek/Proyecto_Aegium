@@ -207,6 +207,10 @@ export class ClientGame extends Game {
     return this.#act('shelter', units ?? null);
   }
 
+  consecrate(god) {
+    return this.#act('consecrate', god);
+  }
+
   unshelter() {
     return this.#act('unshelter');
   }

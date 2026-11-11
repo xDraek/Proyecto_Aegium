@@ -1290,6 +1290,23 @@ export const POWERS = {
 
 export const POWER_KEYS = Object.keys(POWERS);
 
+/**
+ * Con el templo a nivel `level` se puede consagrar a un dios: su poder queda bendecido para siempre
+ * (×`bless` de lo que hace) y los de los demás dioses, algo más flojos (×`curse`). Consagrarlo tarda
+ * `time` veces lo que subir el templo un nivel más (el nivel `level` + 1) y cuesta `cost`; cambiar
+ * de dios después cuesta `change` veces más.
+ */
+export const CONSECRATION = { level: 10, bless: 1.5, curse: 0.75, time: 16, change: 2, cost: { oro: 60000, cristal: 60000, hierro: 80000 } };
+
+/** Los dioses a los que se puede consagrar el templo, y el poder de cada uno. */
+export const GODS = {
+  demeter: { name: 'Deméter', icon: '🌾', power: 'cosecha', title: 'diosa de la cosecha', text: 'Campos dorados: la Cosecha abundante da más.' },
+  apolo: { name: 'Apolo', icon: '☀️', power: 'inspiracion', title: 'dios de las artes y la luz', text: 'Sus musas inspiran: la Inspiración acorta más las obras, las investigaciones y el reclutamiento.' },
+  poseidon: { name: 'Poseidón', icon: '🔱', power: 'viento', title: 'señor de los mares', text: 'El mar le obedece: el Viento favorable dura mucho más.' },
+  atenea: { name: 'Atenea', icon: '🦉', power: 'egida', title: 'diosa de la sabiduría y la guerra', text: 'Su escudo te cubre: la Égida protege más a tus defensores.' },
+  zeus: { name: 'Zeus', icon: '⚡', power: 'rayo', title: 'padre de los dioses', text: 'Su rayo arma tu brazo: la Furia de Zeus da más ataque.' },
+};
+
 // ── Misiones (objetivos con recompensa) ──────────────────────────────────────
 // goal(game) → [actual, objetivo]. Se muestran en orden, unas pocas a la vez.
 

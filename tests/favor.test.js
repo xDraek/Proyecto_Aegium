@@ -30,9 +30,10 @@ test('de nivel 6 en adelante, cada nivel del templo da la mitad de favor', async
   const { players } = await makeWorld();
   const [A] = players;
   const rate = (templo) => favorRate({ ...A.state, buildings: { ...A.state.buildings, templo } }, 0);
-  assert.equal(rate(5) - rate(4), rate(1));
-  assert.equal(rate(6) - rate(5), rate(1) / 2);
-  assert.equal(rate(10), rate(5) * 1.5);
+  const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} ≈ ${b}`);
+  near(rate(5) - rate(4), rate(1));
+  near(rate(6) - rate(5), rate(1) / 2);
+  near(rate(10), rate(5) * 1.5);
 });
 
 test('los poderes se desbloquean con el nivel del templo', async () => {

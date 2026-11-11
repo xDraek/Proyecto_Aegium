@@ -7,6 +7,24 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-12c',
+    date: '2026-11-12',
+    title: 'Consagra tu templo a un dios',
+    items: [
+      '🏛️ Con el <b>templo a nivel 10</b> se puede <b>consagrar a un dios</b>: su poder queda bendecido para siempre (un 50 % más fuerte) y los de los demás dioses, un 25 % más flojos. Los sacerdotes tardan unas 12 horas (con el ayuntamiento a nivel 10; con menos, más), y cuesta 60.000 de oro, 60.000 de cristal y 80.000 de bronce. Cambiar de dios después cuesta el doble.',
+      '🌾 <b>Deméter</b>, la Cosecha abundante · ☀️ <b>Apolo</b>, la Inspiración · 🔱 <b>Poseidón</b>, el Viento favorable · 🦉 <b>Atenea</b>, la Égida · ⚡ <b>Zeus</b>, la Furia de Zeus. Cada uno le da al templo su aspecto: tejado de su color, sus estatuas y su símbolo (el trigo, el sol, el tridente y un estanque, la lechuza y los olivos, el águila y el rayo).',
+      '🙏 El templo da un poco menos de <b>favor</b> por hora (un 20 % menos).',
+    ],
+    en: {
+      title: 'Consecrate your temple to a god',
+      items: [
+        '🏛️ With the <b>temple at level 10</b> you can <b>consecrate it to a god</b>: their power is blessed forever (50% stronger) and the other gods’ powers, 25% weaker. The priests take about 12 hours (with the town hall at level 10; longer with less), and it costs 60,000 gold, 60,000 crystal and 80,000 bronze. Switching gods afterwards costs twice as much.',
+        '🌾 <b>Demeter</b>, Bountiful harvest · ☀️ <b>Apollo</b>, Inspiration · 🔱 <b>Poseidon</b>, Fair wind · 🦉 <b>Athena</b>, Aegis · ⚡ <b>Zeus</b>, Wrath of Zeus. Each gives the temple its own look: a roof in their colour, their statues and their symbol (wheat, the sun, the trident and a pool, the owl and olive trees, the eagle and the thunderbolt).',
+        '🙏 The temple gives a little less <b>favour</b> per hour (20% less).',
+      ],
+    },
+  },
+  {
     id: '2026-11-12b',
     date: '2026-11-12',
     title: 'Los macedonios atacan',

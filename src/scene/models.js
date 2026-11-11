@@ -239,7 +239,8 @@ export function hipRoof(w, d, h, color = C.roofRed, x = 0, y = 0, z = 0) {
  */
 export function pedimentRoof(w, h, d, x = 0, y = 0, z = 0, roof = C.roofRed) {
   const g = new THREE.Group();
-  g.add(tiledGable(w, h, d, 0, 0, 0, roof === C.gold ? TILE_GOLD : TILE));
+  // (`roof` puede ser también los colores de las tejas: los templos consagrados)
+  g.add(tiledGable(w, h, d, 0, 0, 0, typeof roof === 'object' ? roof : roof === C.gold ? TILE_GOLD : TILE));
   for (const s of [-1, 1]) {
     // Marco de mármol, tímpano pintado de azul y acroterias doradas en las esquinas
     g.add(gableRoof(w * 0.96, h * 0.92, 0.05, C.marble, 0, 0.02, s * (d / 2 + 0.02)));
@@ -2332,7 +2333,138 @@ function puerto(level) {
   return g;
 }
 
-function templo(level) {
+/**
+ * Cómo se ve el templo consagrado a cada dios: el color del tejado y de las estatuas, y su símbolo en
+ * lo alto (y algo más alrededor): Deméter, haces de trigo; Apolo, el sol y laureles; Poseidón, el
+ * tridente y un estanque; Atenea, la lechuza y olivos; Zeus, el águila y el rayo.
+ */
+const GOD_LOOK = {
+  demeter: { roof: { base: '#7a5a1c', rib: '#d9a83a', rib2: '#c9962e', line: '#9a7424', end: '#b8892c' }, statue: '#e2b843' },
+  apolo: { roof: C.gold, statue: C.gold },
+  poseidon: { roof: { base: '#1f4f6e', rib: '#3f8fbf', rib2: '#347fb0', line: '#2a6690', end: '#3a86b5' }, statue: '#4f9a8a' },
+  atenea: { roof: { base: '#4f5a64', rib: '#a9b4bd', rib2: '#9aa5ae', line: '#7d8892', end: '#8f9aa3' }, statue: '#c9ced6' },
+  zeus: { roof: { base: '#a89d88', rib: '#f4efe4', rib2: '#e6dfd0', line: '#cfc6b2', end: '#ddd3c0' }, statue: C.gold },
+};
+const GOLD_METAL = { metalness: 0.6, roughness: 0.35 };
+
+/** El símbolo del dios del templo, en lo alto, y lo que lo acompaña abajo. */
+function templeOfGod(g, god, base, d) {
+  const top = base + 2.28;
+  if (god === 'demeter') {
+    // Haces de trigo dorado a los lados de la escalinata y uno grande en lo alto
+    const sheaf = (x, y, z, s = 1) => {
+      const h = new THREE.Group();
+      h.add(cyl(0.09 * s, 0.07 * s, 0.32 * s, 8, '#d9b45a', 0, 0, 0));
+      h.add(cyl(0.1 * s, 0.1 * s, 0.03 * s, 8, '#8a5a2b', 0, 0.12 * s, 0));
+      for (let k = 0; k < 7; k++) {
+        const a = (k / 7) * Math.PI * 2;
+        const ear = mesh(new THREE.ConeGeometry(0.03 * s, 0.14 * s, 4), '#e8c35a');
+        ear.position.set(Math.cos(a) * 0.06 * s, 0.38 * s, Math.sin(a) * 0.06 * s);
+        ear.rotation.set(Math.sin(a) * 0.3, 0, -Math.cos(a) * 0.3);
+        h.add(ear);
+      }
+      h.position.set(x, y, z);
+      g.add(h);
+    };
+    for (const x of [-1.3, -0.9, 0.9, 1.3]) sheaf(x, 0, 1.55);
+    sheaf(0, top - 0.05, 0, 2);
+  } else if (god === 'apolo') {
+    // El sol de Apolo, de oro, mirando al frente, y laureles a los lados
+    const sun = new THREE.Group();
+    const disc = mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.05, 16), C.gold, GOLD_METAL);
+    disc.rotation.x = Math.PI / 2;
+    sun.add(disc);
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * Math.PI * 2;
+      const ray = mesh(new THREE.ConeGeometry(0.04, 0.16, 4), C.gold, GOLD_METAL);
+      ray.position.set(Math.cos(a) * 0.28, Math.sin(a) * 0.28, 0);
+      ray.rotation.z = a - Math.PI / 2;
+      sun.add(ray);
+    }
+    sun.position.set(0, top + 0.3, 0.2);
+    sun.scale.setScalar(1.5);
+    g.add(sun);
+    for (const x of [-1.45, 1.45]) {
+      g.add(cyl(0.04, 0.05, 0.4, 5, C.woodDark, x, 0, 1.2));
+      const leaves = mesh(new THREE.SphereGeometry(0.28, 8, 6), '#4f7f3a');
+      leaves.position.set(x, 0.55, 1.2);
+      leaves.scale.y = 1.25;
+      g.add(leaves);
+    }
+  } else if (god === 'poseidon') {
+    // El tridente en lo alto y un estanque de agua azul delante, con el altar en medio
+    const tri = new THREE.Group();
+    const bronze = '#4f9a8a';
+    tri.add(cyl(0.025, 0.025, 0.7, 6, bronze, 0, 0, 0), box(0.36, 0.04, 0.04, bronze, 0, 0.7, 0));
+    for (const x of [-0.16, 0, 0.16]) {
+      tri.add(cyl(0.02, 0.02, 0.16, 5, bronze, x, 0.7, 0));
+      const tip = mesh(new THREE.ConeGeometry(0.035, 0.1, 4), bronze);
+      tip.position.set(x, 0.92, 0);
+      tri.add(tip);
+    }
+    tri.position.set(0, top - 0.15, 0);
+    tri.scale.setScalar(1.5);
+    g.add(tri);
+    const pool = mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.08, 20), C.marbleDark);
+    pool.position.set(0, 0.04, 2.15);
+    const water = mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.02, 20), '#3fa9d9', { roughness: 0.2, metalness: 0.1 });
+    water.position.set(0, 0.085, 2.15);
+    g.add(pool, water);
+  } else if (god === 'atenea') {
+    // La lechuza de Atenea en lo alto y dos olivos de hojas plateadas
+    const owl = new THREE.Group();
+    const grey = '#a9b0b8';
+    const body = mesh(new THREE.SphereGeometry(0.17, 9, 7), grey);
+    body.scale.set(1, 1.25, 0.9);
+    owl.add(body);
+    const head = mesh(new THREE.SphereGeometry(0.13, 9, 7), grey);
+    head.position.y = 0.24;
+    owl.add(head);
+    for (const x of [-0.055, 0.055]) {
+      const eye = mesh(new THREE.SphereGeometry(0.035, 6, 5), C.gold, GOLD_METAL);
+      eye.position.set(x, 0.26, 0.11);
+      const ear = mesh(new THREE.ConeGeometry(0.03, 0.09, 4), grey);
+      ear.position.set(x * 1.4, 0.37, 0);
+      owl.add(eye, ear);
+    }
+    owl.position.set(0, top + 0.2, 0);
+    owl.scale.setScalar(1.6);
+    g.add(owl);
+    for (const x of [-1.45, 1.45]) {
+      g.add(cyl(0.05, 0.07, 0.45, 5, '#6b5a44', x, 0, 1.25));
+      const crown = mesh(new THREE.SphereGeometry(0.32, 8, 6), '#8a9a6a');
+      crown.position.set(x, 0.6, 1.25);
+      crown.scale.set(1.2, 0.85, 1.2);
+      g.add(crown);
+    }
+  } else if (god === 'zeus') {
+    // El águila de oro con las alas abiertas en lo alto, y el rayo en el frontón
+    const eagle = new THREE.Group();
+    eagle.add(box(0.14, 0.26, 0.14, C.gold, 0, 0, 0, GOLD_METAL));
+    const head = mesh(new THREE.SphereGeometry(0.07, 7, 5), C.gold, GOLD_METAL);
+    head.position.set(0, 0.17, 0.04);
+    eagle.add(head);
+    for (const sx of [-1, 1]) {
+      const wing = box(0.38, 0.05, 0.16, C.gold, sx * 0.24, 0.08, 0, GOLD_METAL);
+      wing.rotation.z = sx * 0.45;
+      eagle.add(wing);
+    }
+    eagle.position.set(0, top + 0.2, 0);
+    eagle.scale.setScalar(1.7);
+    g.add(eagle);
+    const bolt = new THREE.Group();
+    [[0, 0.12, 0.5], [0.06, 0, -0.5], [0, -0.12, 0.5]].forEach(([x, y, r]) => {
+      const seg = box(0.05, 0.16, 0.03, C.gold, x, y, 0, GOLD_METAL);
+      seg.rotation.z = r;
+      bolt.add(seg);
+    });
+    bolt.position.set(0, base + 1.85, d / 2 + 0.18);
+    g.add(bolt);
+  }
+}
+
+function templo(level, { god = null } = {}) {
+  const look = GOD_LOOK[god];
   const g = new THREE.Group();
   const base = stylobate(g, 3.6, 2.8, 3, 0, 0, 0.16);
   const w = 2.6;
@@ -2347,16 +2479,20 @@ function templo(level) {
   frieze(g, w + 0.3, d + 0.3, base + 1.4, 0.22);
   const gold = level >= 5;
   // Frontones a los lados largos: la cumbrera va a lo ancho, como en los templos griegos
-  const roof = pedimentRoof(d + 0.3, 0.6, w + 0.4, 0, base + 1.62, 0, gold ? C.gold : C.roofRed);
+  // (consagrado a un dios, con su color)
+  const roof = pedimentRoof(d + 0.3, 0.6, w + 0.4, 0, base + 1.62, 0, look?.roof ?? (gold ? C.gold : C.roofRed));
   roof.rotation.y = Math.PI / 2;
   g.add(roof);
   // Altar con fuego sagrado delante del templo
   g.add(box(0.5, 0.45, 0.5, C.marble, 0, 0, 1.75));
   const fire = makeFire(0, 0.455, 1.75, 0.517);
   g.add(fire);
-  // Estatua del dios desde el nivel 3
-  if (level >= 3) g.add(statue(1.55, 1.4, gold ? C.gold : C.marble, 1.0, gold ? { metalness: 0.6, roughness: 0.35 } : undefined));
-  if (level >= 7) g.add(statue(-1.55, 1.4, gold ? C.gold : C.marble, 1.0, gold ? { metalness: 0.6, roughness: 0.35 } : undefined));
+  // Estatua del dios desde el nivel 3 (consagrado, del color de su dios)
+  const color = look?.statue ?? (gold ? C.gold : C.marble);
+  const shine = gold || look ? GOLD_METAL : undefined;
+  if (level >= 3) g.add(statue(1.55, 1.4, color, 1.0, shine));
+  if (level >= 7) g.add(statue(-1.55, 1.4, color, 1.0, shine));
+  if (look) templeOfGod(g, god, base, d);
   return g;
 }
 
@@ -3939,9 +4075,9 @@ function adorn(g, id, level) {
 /** Cuánto mayor se dibuja el Coloso que su modelo. */
 export const COLOSSUS_SCALE = 1.7;
 
-export function createBuilding(id, level) {
+export function createBuilding(id, level, opts = {}) {
   if (level <= 0) return bakeStatic(emptyPlot(id));
-  const model = FACTORIES[id](level);
+  const model = FACTORIES[id](level, opts);
   adorn(model, id, level);
   // Lo que no se mueve se funde en una sola malla: muchas menos llamadas de dibujo
   const g = bakeStatic(model, windowMaterial());

@@ -2358,7 +2358,9 @@ export class World {
       const slot = this.slots[id];
       const level = this.game.level(id);
       const building = q?.id === id;
-      const key = `${level}|${building}|${this.#homeBanner() ?? ''}`;
+      // (el templo, además, según el dios al que esté consagrado)
+      const god = id === 'templo' ? (this.game.state.god ?? '') : '';
+      const key = `${level}|${building}|${this.#homeBanner() ?? ''}|${god}`;
       if (slot.key === key) continue;
       const leveledUp = slot.key !== null && Number(slot.key.split('|')[0]) < level;
       slot.key = key;
@@ -2373,7 +2375,7 @@ export class World {
       slot.extras = null;
       slot.extrasKey = null;
 
-      slot.building = createBuilding(id, level);
+      slot.building = createBuilding(id, level, { god: god || null });
       paintBanner(slot.building, this.#homeBanner());
       slot.building.position.y = id === 'ayuntamiento' ? 0.04 : id === 'puerto' || id === 'muralla' ? 0 : 0.12;
       slot.baseScale = slot.building.scale.x;

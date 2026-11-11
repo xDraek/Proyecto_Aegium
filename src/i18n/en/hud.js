@@ -176,4 +176,7 @@ export default {
   "Pulsa en cada aviso para ir a él": "Press each notice to go to it",
   "Nuevos": "New",
   "☀️ ¡Los macedonios de {0} vienen a por tu ciudad!": "☀️ The Macedonians of {0} are coming for your city!",
+  "¿Consagrar el templo a {0}? {1} Los poderes de los demás dioses serán algo más flojos.": "Consecrate the temple to {0}? {1} The other gods’ powers will be somewhat weaker.",
+  "Consagrar el templo": "Consecrate the temple",
+  "Consagrar": "Consecrate",
 }

@@ -4,7 +4,7 @@ import { bag, escapeHtml, fmtAgo, fmtNum, intelRows, richText, unitList } from '
 
 // Informes de combate, exploración y colonias.
 
-const KIND_ICON = { reliquia: '🏺', ataque: '⚔️', defensa: '🏴‍☠️', exploracion: '🔭', colonia: '🚩', expedicion: '🧭', visita: '🕯️', victoria: '🗽', ocupacion: '🦅', gesta: '🌋' };
+const KIND_ICON = { reliquia: '🏺', ataque: '⚔️', defensa: '🏴‍☠️', exploracion: '🔭', colonia: '🚩', expedicion: '🧭', visita: '🕯️', victoria: '🗽', ocupacion: '🦅', gesta: '🌋', templo: '🛕' };
 
 /** El icono de un informe: el de su tipo (las visitas, el de quien vino: peregrinos o naufragio). */
 const reportIcon = (r) => (r.kind === 'visita' && /naufragio/i.test(r.title ?? '') ? VISITORS.naufragio.icon : KIND_ICON[r.kind] ?? '📜');

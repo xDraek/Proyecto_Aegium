@@ -60,6 +60,8 @@ import {
   WONDER_LEVELS,
   WONDER_RESOURCES,
   WORK,
+  CONSECRATION,
+  GODS,
 } from './data.js';
 import { featHours, featPower, featProd, forgeRoom, forgeValue } from './feats.js';
 import { distance, macedonianArmy, MACEDONIAN_RAID, withoutGold } from './world.js';
@@ -111,6 +113,9 @@ import {
   spyGuard,
   spyRisk,
   spyTier,
+  powerScale,
+  consecrationCost,
+  consecrationSeconds,
 } from './rules.js';
 
 export const SAVE_VERSION = 7;
@@ -167,6 +172,9 @@ export function newState({ now = clock.now(), home, name }) {
     reports: [],
     notes: [],
     favor: 0,
+    // El dios al que está consagrado el templo (ver GODS) y la consagración en curso
+    god: null,
+    consecration: null,
     buffs: {},
     stats: { spent: 0, victories: 0, raidsRepelled: 0, expeditions: 0, powers: 0, treasures: 0, kraken: 0, lairs: 0, pvpWins: 0, trades: 0, transports: 0, kills: 0, loot: 0, conquests: 0, donated: 0, contestWins: 0, trained: 0, explorations: 0, exchanges: 0, upgrades: 0, researched: 0, sabotages: 0, feats: 0, featTop: 0, featHeart: 0, featNavarch: 0, featHydra: 0 },
     daily: { last: null, streak: 0, best: 0 },
@@ -1803,11 +1811,13 @@ export class Game extends EventTarget {
       const qs = [s.queue, s.researchQueue].filter(Boolean);
       const recruiting = Object.values(s.training).filter((q) => q.length);
       if (!qs.length && !recruiting.length) return this.#fail('No hay ninguna obra, investigación ni reclutamiento en curso.');
-      for (const q of qs) q.end = now + (q.end - now) * 0.7;
-      // El reclutamiento, entero: cada unidad que falta (y las tandas que esperan) sale un 30 % antes
+      // (un 30 % antes; consagrado a Apolo, más, y a otro dios, algo menos)
+      const k = Math.max(0.2, 1 - 0.3 * powerScale(s, 'inspiracion'));
+      for (const q of qs) q.end = now + (q.end - now) * k;
+      // El reclutamiento, entero: cada unidad que falta (y las tandas que esperan) sale antes
       for (const q of recruiting) {
-        q[0].start = now + (q[0].start - now) * 0.7;
-        for (const b of q) b.each *= 0.7;
+        q[0].start = now + (q[0].start - now) * k;
+        for (const b of q) b.each *= k;
         // (y las tandas que esperan empiezan cuando acabe la anterior, ya acortada: si no, la cola
         // seguía marcando la hora de antes)
         for (let i = 1; i < q.length; i++) q[i].start = q[i - 1].start + q[i - 1].count * q[i - 1].each;
@@ -1819,7 +1829,8 @@ export class Game extends EventTarget {
         if (m.phase === 'ida') m.arrive = now + (m.arrive - now) * 0.5;
         else m.back = now + (m.back - now) * 0.5;
       }
-      s.buffs.viento = Math.max(s.buffs.viento ?? 0, now) + hours(p.duration);
+      // (consagrado a Poseidón dura más; a otro dios, algo menos)
+      s.buffs.viento = Math.max(s.buffs.viento ?? 0, now) + hours(p.duration * powerScale(s, 'viento'));
     } else {
       s.buffs[id] = Math.max(s.buffs[id] ?? 0, now) + hours(p.duration);
     }
@@ -1829,6 +1840,35 @@ export class Game extends EventTarget {
     // Con cuánto falta para poder volver a invocarla
     this.#note(`${p.icon} ${p.name} · podrás volver a invocarla en ${fmtWait(hours(p.cooldown ?? 0))}`, 'success');
     return this.#done();
+  }
+
+  /**
+   * Consagra el templo a un dios (ver CONSECRATION y GODS): cuesta mucho oro, cristal y bronce y tarda
+   * como subir el templo un nivel más. Al acabar, su poder queda bendecido y los demás, algo más flojos.
+   */
+  consecrate(god, now = this.now()) {
+    this.#advance(now);
+    const s = this.state;
+    const g = GODS[god];
+    if (!g) return this.#fail('Ese dios no existe.');
+    if (this.level('templo') < CONSECRATION.level) return this.#fail(`El templo se consagra a un dios a partir del nivel ${CONSECRATION.level}.`);
+    if (s.consecration) return this.#fail(`El templo ya se está consagrando a ${GODS[s.consecration.god].name}.`);
+    if (s.god === god) return this.#fail(`El templo ya está consagrado a ${g.name}.`);
+    const cost = consecrationCost(s);
+    if (!canAfford(s.resources, cost)) return this.#fail('No tienes el oro, el cristal y el bronce que pide la consagración.');
+    this.#pay(cost, false);
+    s.consecration = { god, start: now, end: now + consecrationSeconds(s) * 1000 };
+    this.#note(`${g.icon} Los sacerdotes empiezan a consagrar el templo a ${g.name}`, 'success');
+    return this.#done();
+  }
+
+  #finishConsecration(t) {
+    const s = this.state;
+    const g = GODS[s.consecration.god];
+    s.god = s.consecration.god;
+    s.consecration = null;
+    this.#report({ t, kind: 'templo', title: `El templo queda consagrado a ${g.name}`, text: `${g.text} Los poderes de los demás dioses, algo más flojos.`, outcome: 'victoria' });
+    this.#note(`${g.icon} El templo queda consagrado a ${g.name}: ${POWERS[g.power].name} más fuerte`, 'success');
   }
 
   acceptVisitor(now = this.now()) {
@@ -2477,6 +2517,7 @@ export class Game extends EventTarget {
       if (m.phase === 'estacionada' || (m.joint && m.phase === 'ida')) continue;
       consider(m.phase === 'ida' ? m.arrive : m.back, (t) => this.#missionEvent(m, t));
     }
+    if (s.consecration) consider(s.consecration.end, (t) => this.#finishConsecration(t));
     if (s.raid) consider(s.raid.arrival, (t) => this.#resolveRaid(t));
     if (s.macedon) consider(s.macedon.arrival, (t) => this.#resolveMacedon(t));
     else if (s.nextRaidAt && !s.vacation) consider(s.nextRaidAt, (t) => this.#spawnRaid(t));
@@ -3693,7 +3734,7 @@ export class Game extends EventTarget {
     const s = this.state;
     const wall = wallBonus(this.level('muralla'), this.level('torre'));
     const mine = playerCombat(s);
-    const aegis = (s.buffs.egida ?? 0) > t ? 0.5 : 0;
+    const aegis = (s.buffs.egida ?? 0) > t ? 0.5 * powerScale(s, 'egida') : 0;
     const pools = [{ units: { ...s.units }, apply: (left) => PLAYER_UNITS.forEach((id) => (s.units[id] = left[id] ?? 0)) }];
     for (const sup of this.world.supportersAt?.(s.home, this.userId) ?? []) {
       pools.push({ units: { ...sup.mission.units }, apply: (left) => sup.apply(left), sup });

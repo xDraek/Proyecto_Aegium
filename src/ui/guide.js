@@ -202,6 +202,13 @@ function islandsTable() {
   );
 }
 
+function godsTable() {
+  return table(
+    ['Dios', 'Bendice', 'Qué hace'],
+    Object.values(GODS).map((g) => [`${g.icon} <b>${g.name}</b><div class="muted small">${g.title}</div>`, `${POWERS[g.power].icon} ${POWERS[g.power].name}`, g.text]),
+  );
+}
+
 function powersTable() {
   return table(
     ['Poder', 'Templo', 'Favor', 'Efecto'],
@@ -774,8 +781,10 @@ const TOPICS = {
   templo: {
     icon: '🛕',
     title: 'Templo y poderes',
-    body: () => `<p>El templo acumula <b>favor</b> de los dioses: 4 por hora por cada nivel hasta el 5 y 2 por cada nivel más, hasta un máximo de ${FAVOR_MAX}, sea cual sea el nivel del templo (que llega al nivel 10; el Festival de Poseidón duplica lo que da por hora). Ni las recompensas lo pasan de ese tope. Lo gastas en poderes, que se van desbloqueando al subir el templo:</p>
+    body: () => `<p>El templo acumula <b>favor</b> de los dioses: 3,2 por hora por cada nivel hasta el 5 y 1,6 por cada nivel más, hasta un máximo de ${FAVOR_MAX}, sea cual sea el nivel del templo (que llega al nivel 10; el Festival de Poseidón duplica lo que da por hora). Ni las recompensas lo pasan de ese tope. Lo gastas en poderes, que se van desbloqueando al subir el templo:</p>
       ${powersTable()}
+      <p><b>Consagración</b>: con el templo a nivel ${CONSECRATION.level} puedes consagrarlo a un dios. Su poder queda <b>bendecido para siempre</b> (un ${Math.round((CONSECRATION.bless - 1) * 100)} % más fuerte) y los de los demás dioses, un ${Math.round((1 - CONSECRATION.curse) * 100)} % más flojos. Tarda ${CONSECRATION.time} veces lo que subir el templo un nivel más, cuesta ${bag(CONSECRATION.cost)} y el templo cambia de aspecto. Cambiar de dios después cuesta el doble:</p>
+      ${godsTable()}
       ${tip('Inspiración rinde más en obras, investigaciones y reclutamientos largos, y Viento favorable cuando vas a mandar varias flotas lejos en la próxima hora y media.')}`,
   },
   reliquias: {

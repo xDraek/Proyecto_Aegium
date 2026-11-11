@@ -1,5 +1,5 @@
-import { BUILDINGS, FAVOR_ICON, HERO, HERO_SKILLS, OCCUPATION, POWER_KEYS, POWERS, RELIC_RARITY, RELIC_SLOTS, RESEARCH, RESEARCH_KEYS, RESOURCES, TRAIN_SPEED, UNIT_KEYS, UNITS, WORK } from '../game/data.js';
-import { favorRate, hasWorkers, producerOutput, requirementName, shelterRoom, storageCapacity, townSpeedup, wallBonus, workShare, workTaxes } from '../game/rules.js';
+import { BUILDINGS, CONSECRATION, FAVOR_ICON, GODS, HERO, HERO_SKILLS, OCCUPATION, POWER_KEYS, POWERS, RELIC_RARITY, RELIC_SLOTS, RESEARCH, RESEARCH_KEYS, RESOURCES, TRAIN_SPEED, UNIT_KEYS, UNITS, WORK } from '../game/data.js';
+import { consecrationCost, consecrationSeconds, favorRate, hasWorkers, producerOutput, requirementName, shelterRoom, storageCapacity, townSpeedup, wallBonus, workShare, workTaxes } from '../game/rules.js';
 import { splitForces } from '../game/combat.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
 import { bag, costList, escapeHtml, fmtDec, fmtNum, fmtTime, glyphs, resIcons, unitList, unitRole } from './format.js';
@@ -372,10 +372,20 @@ function powerCard(game, id) {
       <div class="card-row"><span class="muted small">🔒 Se desbloquea con el templo a nivel ${p.templo}</span><span class="muted small">${FAVOR_ICON} ${p.cost}</span></div>
     </div>`;
   }
-  return `<div class="card${until ? ' active' : ''}">
+  // Lo que cambia por el dios al que está consagrado el templo
+  const god = GODS[game.state.god];
+  const blessed = god && god.power === id;
+  const pct = (k) => Math.round(Math.abs(k - 1) * 100);
+  const divine = god
+    ? blessed
+      ? `<div class="hint ok">${god.icon} Bendecido por ${god.name}: un ${pct(CONSECRATION.bless)} % más fuerte</div>`
+      : `<div class="muted small">${god.icon} El templo es de ${god.name}: este poder, un ${pct(CONSECRATION.curse)} % más flojo</div>`
+    : '';
+  return `<div class="card${until ? ' active' : ''}${blessed ? ' blessed' : ''}">
     <div class="card-head"><span class="card-icon">${p.icon}</span><div class="card-title"><b>${p.name}</b>
       ${until ? '<span class="card-lvl">activo</span>' : ''}
       <div class="card-sub">${p.description}</div></div></div>
+    ${divine}
     ${until ? `<div class="hint ok">Quedan <span data-until="${until}"></span></div>` : ''}
     ${ready ? `<div class="hint">⏳ Se podrá volver a invocar en <span data-until="${ready}"></span></div>` : `<div class="muted small">Tras invocarla hay que esperar ${p.cooldown} h para volver a hacerlo.</div>`}
     <div class="card-row"><span class="muted small">${blocked}</span>
@@ -429,7 +439,37 @@ function templeSection(game) {
   const max = game.favorMax();
   return `<h4>Favor de los dioses</h4>
     <div class="favor-bar"><i data-favor-bar style="width:${Math.min(100, (game.favor / max) * 100)}%"></i><span data-favor-text></span></div>
-    <h4>Poderes divinos</h4><div class="cards">${POWER_KEYS.map((id) => powerCard(game, id)).join('')}</div>`;
+    <h4>Poderes divinos</h4><div class="cards">${POWER_KEYS.map((id) => powerCard(game, id)).join('')}</div>
+    ${consecrationSection(game)}`;
+}
+
+/** Consagrar el templo a un dios (desde el nivel 10): su poder, bendecido para siempre; los demás, algo más flojos. */
+function consecrationSection(game) {
+  const s = game.state;
+  const lvl = game.level('templo');
+  const head = '<h4>🏛️ Consagración</h4>';
+  const pct = (k) => Math.round(Math.abs(k - 1) * 100);
+  const about = `<p class="desc small">Consagra el templo a un dios: su poder queda <b>bendecido para siempre</b> (un ${pct(CONSECRATION.bless)} % más fuerte) y los de los demás dioses, un ${pct(CONSECRATION.curse)} % más flojos. Los sacerdotes tardan ${fmtTime(consecrationSeconds(s))} y el templo cambia de aspecto. Cambiar de dios después cuesta el ${CONSECRATION.change === 2 ? 'doble' : `${CONSECRATION.change} veces más`}.</p>`;
+  if (lvl < CONSECRATION.level) return `${head}<p class="desc small">🔒 Con el templo a nivel ${CONSECRATION.level} podrás consagrarlo a un dios: Deméter, Apolo, Poseidón, Atenea o Zeus.</p>`;
+  if (s.consecration) {
+    const g = GODS[s.consecration.god];
+    return `${head}<div class="card active"><div class="card-head"><span class="card-icon">${g.icon}</span><div class="card-title"><b>Consagrando el templo a ${g.name}</b><div class="card-sub">${g.text}</div></div></div>
+      <div class="hint ok">Termina en <span data-until="${s.consecration.end}"></span></div></div>`;
+  }
+  const cost = consecrationCost(s);
+  const cards = Object.entries(GODS)
+    .map(([id, g]) => {
+      const mine = s.god === id;
+      const power = POWERS[g.power];
+      return `<div class="card god-card${mine ? ' blessed' : ''}">
+        <div class="card-head"><span class="card-icon">${g.icon}</span><div class="card-title"><b>${g.name}</b>${mine ? '<span class="card-lvl">tu dios</span>' : ''}<div class="card-sub">${g.title[0].toUpperCase() + g.title.slice(1)} · ${power.icon} ${power.name}</div></div></div>
+        <p class="muted small">${g.text}</p>
+        ${mine ? '' : `${costList(cost, game.resources)}<button class="primary small" data-action="consecrate" data-god="${id}" data-need='${JSON.stringify(cost)}'>${s.god ? 'Cambiar a ' : 'Consagrar a '}${g.name}</button>`}
+      </div>`;
+    })
+    .join('');
+  const now = GODS[s.god] ? `<p class="hint ok">${GODS[s.god].icon} Tu templo está consagrado a <b>${GODS[s.god].name}</b>.</p>` : '';
+  return `${head}${about}${now}<div class="cards">${cards}</div>`;
 }
 
 function refreshTemple(game, root) {

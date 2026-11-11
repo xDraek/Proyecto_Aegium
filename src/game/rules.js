@@ -37,6 +37,8 @@ import {
   WORLD_EVENT_HOURS,
   WORK,
   MERCHANT_HOLD,
+  CONSECRATION,
+  GODS,
 } from './data.js';
 
 // Fórmulas puras. Reciben el estado de la partida (o partes) y no lo modifican.
@@ -140,13 +142,34 @@ export function unitSeconds(state, id) {
   return Math.max(1, Math.round(u.time / speed / universe.speed));
 }
 
+/** Lo que cuesta consagrar el templo: la primera vez, CONSECRATION.cost; cambiar de dios, `change` veces más. */
+export function consecrationCost(state) {
+  const k = state?.god ? CONSECRATION.change : 1;
+  return Object.fromEntries(Object.entries(CONSECRATION.cost).map(([r, n]) => [r, n * k]));
+}
+
+/** Lo que tarda la consagración: CONSECRATION.time veces subir el templo un nivel más (en segundos). */
+export function consecrationSeconds(state) {
+  return Math.round(buildSeconds(state, 'templo', CONSECRATION.level + 1) * CONSECRATION.time);
+}
+
+/**
+ * Lo fuerte que es un poder según el dios al que está consagrado el templo (ver CONSECRATION): el suyo,
+ * bendecido; los de los demás dioses, algo más flojos; sin consagrar, como siempre.
+ */
+export function powerScale(state, id) {
+  const god = GODS[state?.god];
+  if (!god) return 1;
+  return god.power === id ? CONSECRATION.bless : CONSECRATION.curse;
+}
+
 /** Multiplicadores de combate de tus tropas. */
 /**
  * Ataque y vida de las tropas de un jugador. Con `attack` ({ mission, t }) es una batalla en la que
  * ataca él: la Furia de Zeus suma si está activa en ese momento o si la flota zarpó con ella.
  */
 export function playerCombat(state, attack = null) {
-  const fury = attack && ((state.buffs?.rayo ?? 0) > attack.t || attack.mission?.fury) ? POWERS.rayo.attack : 0;
+  const fury = attack && ((state.buffs?.rayo ?? 0) > attack.t || attack.mission?.fury) ? POWERS.rayo.attack * powerScale(state, 'rayo') : 0;
   return {
     // (el ataque: la Herrería y la Forja; la vida: las Armaduras y la Táctica; lo demás, extras)
     atkMul: 1 + 0.05 * lvl(state, 'herreria') + 0.03 * lvl(state, 'forja') + wonderBonus(state, 'ataque') + relicBonus(state, 'ataque') + fury,
@@ -414,7 +437,7 @@ export function payPerHour(state) {
  */
 export function productionBonus(state, t = state.lastUpdate) {
   let k = 1 + 0.05 * lvl(state, 'coloso');
-  if ((state.buffs?.cosecha ?? 0) > t) k *= 1.25;
+  if ((state.buffs?.cosecha ?? 0) > t) k *= 1 + 0.25 * powerScale(state, 'cosecha');
   if ((state.buffs?.olimpo ?? 0) > t) k *= 1 + FEATS.reward.blessing;
   if ((state.buffs?.ceniza ?? 0) > t) k *= 1 - FEATS.perjury.ash;
   return k;
@@ -505,7 +528,8 @@ export function protectedAmount() {
 /** Favor por hora: 4 por nivel de templo hasta el 5 y 2 por cada nivel más. */
 export function favorRate(state, t = state.lastUpdate) {
   const n = lvl(state, 'templo');
-  return (4 * Math.min(n, 5) + 2 * Math.max(0, n - 5)) * universe.speed * (worldEventAt(t).event?.favor ?? 1) * (1 + relicBonus(state, 'favor'));
+  // (un poco menos que antes: un 20 % menos en cada nivel)
+  return (3.2 * Math.min(n, 5) + 1.6 * Math.max(0, n - 5)) * universe.speed * (worldEventAt(t).event?.favor ?? 1) * (1 + relicBonus(state, 'favor'));
 }
 
 /** El favor que se puede acumular: FAVOR_MAX con cualquier templo (sin templo, nada). */
