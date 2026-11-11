@@ -237,14 +237,14 @@ export function hipRoof(w, d, h, color = C.roofRed, x = 0, y = 0, z = 0) {
  * Tejado a dos aguas con frontón de mármol en los extremos (cumbrera a lo largo de Z):
  * el triángulo de la fachada queda mirando a +Z.
  */
-export function pedimentRoof(w, h, d, x = 0, y = 0, z = 0, roof = C.roofRed) {
+export function pedimentRoof(w, h, d, x = 0, y = 0, z = 0, roof = C.roofRed, tympanum = '#4f6f9e') {
   const g = new THREE.Group();
   // (`roof` puede ser también los colores de las tejas: los templos consagrados)
   g.add(tiledGable(w, h, d, 0, 0, 0, typeof roof === 'object' ? roof : roof === C.gold ? TILE_GOLD : TILE));
   for (const s of [-1, 1]) {
     // Marco de mármol, tímpano pintado de azul y acroterias doradas en las esquinas
     g.add(gableRoof(w * 0.96, h * 0.92, 0.05, C.marble, 0, 0.02, s * (d / 2 + 0.02)));
-    g.add(gableRoof(w * 0.74, h * 0.62, 0.02, '#4f6f9e', 0, 0.09, s * (d / 2 + 0.052)));
+    g.add(gableRoof(w * 0.74, h * 0.62, 0.02, tympanum, 0, 0.09, s * (d / 2 + 0.052)));
     const apex = mesh(new THREE.ConeGeometry(0.07, 0.16, 5), C.gold, { metalness: 0.5, roughness: 0.4 });
     apex.position.set(0, h + 0.06, s * (d / 2 + 0.02));
     g.add(apex);
@@ -2339,37 +2339,155 @@ function puerto(level) {
  * tridente y un estanque; Atenea, la lechuza y olivos; Zeus, el águila y el rayo.
  */
 const GOD_LOOK = {
-  demeter: { roof: { base: '#7a5a1c', rib: '#d9a83a', rib2: '#c9962e', line: '#9a7424', end: '#b8892c' }, statue: '#e2b843' },
-  apolo: { roof: C.gold, statue: C.gold },
-  poseidon: { roof: { base: '#1f4f6e', rib: '#3f8fbf', rib2: '#347fb0', line: '#2a6690', end: '#3a86b5' }, statue: '#4f9a8a' },
-  atenea: { roof: { base: '#4f5a64', rib: '#a9b4bd', rib2: '#9aa5ae', line: '#7d8892', end: '#8f9aa3' }, statue: '#c9ced6' },
-  zeus: { roof: { base: '#a89d88', rib: '#f4efe4', rib2: '#e6dfd0', line: '#cfc6b2', end: '#ddd3c0' }, statue: C.gold },
+  demeter: { roof: { base: '#7a5a1c', rib: '#d9a83a', rib2: '#c9962e', line: '#9a7424', end: '#b8892c' }, statue: '#e2b843', tympanum: '#7a8a3a', cloth: '#c9962e', floor: '#dcc07a' },
+  apolo: { roof: C.gold, statue: C.gold, tympanum: '#b8442f', cloth: '#e8a83a', floor: '#efd98c' },
+  poseidon: { roof: { base: '#1f4f6e', rib: '#3f8fbf', rib2: '#347fb0', line: '#2a6690', end: '#3a86b5' }, statue: '#4f9a8a', tympanum: '#1f5f8a', cloth: '#2f7fa8', floor: '#a9d0e0' },
+  atenea: { roof: { base: '#4f5a64', rib: '#a9b4bd', rib2: '#9aa5ae', line: '#7d8892', end: '#8f9aa3' }, statue: '#c9ced6', tympanum: '#3f4f6a', cloth: '#5a6f9a', floor: '#b9c4b4' },
+  zeus: { roof: { base: '#a89d88', rib: '#f4efe4', rib2: '#e6dfd0', line: '#cfc6b2', end: '#ddd3c0' }, statue: C.gold, tympanum: '#6e2a8a', cloth: '#8a2a6a', floor: '#e4d2b0' },
 };
 const GOLD_METAL = { metalness: 0.6, roughness: 0.35 };
 
-/** El símbolo del dios del templo, en lo alto, y lo que lo acompaña abajo. */
-function templeOfGod(g, god, base, d) {
-  const top = base + 2.28;
+/**
+ * La estatua de un dios sobre su pedestal: túnica larga, el manto cruzado, la cabeza y el brazo en alto
+ * con lo que lo distingue (la antorcha de Deméter, la lira de Apolo, el tridente de Poseidón, la lanza
+ * y el escudo de Atenea, el rayo de Zeus). Mira al frente (+Z).
+ */
+function godStatue(god, x, z, color) {
+  const g = new THREE.Group();
+  const m = GOLD_METAL;
+  g.add(box(0.42, 0.34, 0.42, C.marbleDark, 0, 0, 0), box(0.48, 0.05, 0.48, C.marble, 0, 0.34, 0));
+  g.add(cyl(0.11, 0.17, 0.62, 8, color, 0, 0.39, 0, m));
+  const mantle = box(0.26, 0.42, 0.05, color, 0, 0.58, 0.07, m);
+  mantle.rotation.z = 0.35;
+  g.add(mantle, cyl(0.09, 0.11, 0.2, 8, color, 0, 0.98, 0, m));
+  const head = mesh(new THREE.SphereGeometry(0.085, 9, 7), color, m);
+  head.position.y = 1.27;
+  g.add(head);
+  // El brazo derecho en alto, con su atributo en la mano
+  const arm = box(0.05, 0.36, 0.05, color, 0, 0, 0, m);
+  arm.position.set(0.15, 1.02, 0.02);
+  arm.rotation.z = -0.4;
+  g.add(arm);
+  const hand = new THREE.Vector3(0.24, 1.34, 0.03);
+  const at = (o) => (o.position.add(hand), g.add(o));
   if (god === 'demeter') {
-    // Haces de trigo dorado a los lados de la escalinata y uno grande en lo alto
-    const sheaf = (x, y, z, s = 1) => {
+    // La antorcha y, en la otra mano, un haz de trigo
+    at(cyl(0.02, 0.025, 0.24, 6, C.woodDark, 0, -0.12, 0));
+    at(makeFire(0, 0.12, 0, 0.18));
+    for (let k = 0; k < 5; k++) {
+      const ear = mesh(new THREE.ConeGeometry(0.025, 0.14, 4), '#e8c35a');
+      ear.position.set(-0.17 + k * 0.012, 0.92, 0.1);
+      ear.rotation.z = (k - 2) * 0.15;
+      g.add(ear);
+    }
+  } else if (god === 'apolo') {
+    // La lira de oro
+    const lyre = new THREE.Group();
+    for (const sx of [-1, 1]) {
+      const horn = box(0.025, 0.2, 0.025, C.gold, sx * 0.06, 0, 0, m);
+      horn.rotation.z = sx * -0.25;
+      lyre.add(horn);
+    }
+    lyre.add(box(0.16, 0.025, 0.025, C.gold, 0, 0.19, 0, m), box(0.1, 0.04, 0.04, C.gold, 0, -0.02, 0, m));
+    for (const x of [-0.025, 0, 0.025]) lyre.add(box(0.004, 0.17, 0.004, '#f2ede2', x, 0.02, 0.015));
+    lyre.position.set(-0.17, 0.78, 0.12);
+    g.add(lyre);
+    at(mesh(new THREE.TorusGeometry(0.07, 0.012, 5, 12), '#4f7f3a'));
+  } else if (god === 'poseidon') {
+    // El tridente, alto, y un delfín a sus pies
+    const shaft = cyl(0.018, 0.018, 0.9, 6, color, 0, -0.55, 0, m);
+    at(shaft);
+    at(box(0.2, 0.025, 0.025, color, 0, 0.35, 0, m));
+    for (const x of [-0.09, 0, 0.09]) {
+      const tip = mesh(new THREE.ConeGeometry(0.025, 0.12, 4), color, m);
+      tip.position.set(x, 0.44, 0);
+      at(tip);
+    }
+    const dolphin = mesh(new THREE.TorusGeometry(0.11, 0.035, 5, 10, Math.PI), '#6fa8c0');
+    dolphin.position.set(-0.2, 0.42, 0.12);
+    dolphin.rotation.y = Math.PI / 2;
+    g.add(dolphin);
+  } else if (god === 'atenea') {
+    // Casco con cimera, la lanza en alto y el gran escudo redondo con la Gorgona
+    g.add(box(0.03, 0.08, 0.16, '#a8231a', 0, 1.36, 0));
+    at(cyl(0.015, 0.015, 0.8, 6, C.woodDark, 0, -0.5, 0));
+    const tip = mesh(new THREE.ConeGeometry(0.025, 0.1, 4), color, m);
+    tip.position.y = 0.35;
+    at(tip);
+    const shield = mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.03, 16), color, m);
+    shield.rotation.x = Math.PI / 2;
+    shield.position.set(-0.2, 0.7, 0.12);
+    const gorgon = mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.012, 10), C.gold, m);
+    gorgon.rotation.x = Math.PI / 2;
+    gorgon.position.set(-0.2, 0.7, 0.14);
+    g.add(shield, gorgon);
+  } else if (god === 'zeus') {
+    // El rayo en alto y el cetro con el águila
+    [[0, 0.08, 0.5], [0.04, 0, -0.5], [0, -0.08, 0.5]].forEach(([x, y, r]) => {
+      const seg = box(0.035, 0.12, 0.025, C.gold, x, y, 0, m);
+      seg.rotation.z = r;
+      at(seg);
+    });
+    g.add(cyl(0.015, 0.015, 0.9, 6, C.gold, -0.18, 0.4, 0.06, m));
+    const bird = box(0.1, 0.05, 0.06, C.gold, -0.18, 1.3, 0.06, m);
+    g.add(bird);
+  }
+  g.position.set(x, 0, z);
+  return g;
+}
+
+/** Tela colgada entre columnas, del color del dios, con su franja dorada. */
+function godCloth(g, x, top, z, color) {
+  g.add(box(0.36, 0.62, 0.02, color, x, top - 0.62, z));
+  g.add(box(0.36, 0.05, 0.025, C.gold, x, top - 0.62, z, GOLD_METAL), box(0.36, 0.04, 0.025, C.gold, x, top - 0.08, z, GOLD_METAL));
+}
+
+/**
+ * El recinto sagrado del templo consagrado: el suelo de losas, las telas del dios entre las columnas
+ * de la fachada, sus dos estatuas, el símbolo en lo alto y lo que crece o se alza a su alrededor.
+ */
+function templeOfGod(g, god, base, d, w) {
+  const look = GOD_LOOK[god];
+  const top = base + 2.28;
+  // El suelo sagrado, de su color, con su borde
+  g.add(box(4.3, 0.035, 4.2, look.floor, 0, 0, 0.55), box(4.4, 0.02, 4.3, C.marbleDark, 0, -0.01, 0.55));
+  // Telas entre las columnas de la fachada y las dos estatuas del dios a los lados de la escalinata
+  for (const x of [-w / 2 + 0.43, w / 2 - 0.43]) godCloth(g, x, base + 1.38, d / 2 + 0.05, look.cloth);
+  // (junto a la escalinata, por delante de los braseros de las esquinas)
+  for (const x of [-0.95, 0.95]) g.add(godStatue(god, x, 1.75, look.statue));
+
+  if (god === 'demeter') {
+    // Haces de trigo junto al altar, uno grande en lo alto y dos huertos de trigo a los lados
+    const sheaf = (x, y, z, k = 1) => {
       const h = new THREE.Group();
-      h.add(cyl(0.09 * s, 0.07 * s, 0.32 * s, 8, '#d9b45a', 0, 0, 0));
-      h.add(cyl(0.1 * s, 0.1 * s, 0.03 * s, 8, '#8a5a2b', 0, 0.12 * s, 0));
-      for (let k = 0; k < 7; k++) {
-        const a = (k / 7) * Math.PI * 2;
-        const ear = mesh(new THREE.ConeGeometry(0.03 * s, 0.14 * s, 4), '#e8c35a');
-        ear.position.set(Math.cos(a) * 0.06 * s, 0.38 * s, Math.sin(a) * 0.06 * s);
+      h.add(cyl(0.09 * k, 0.07 * k, 0.32 * k, 8, '#d9b45a', 0, 0, 0), cyl(0.1 * k, 0.1 * k, 0.03 * k, 8, '#8a5a2b', 0, 0.12 * k, 0));
+      for (let n = 0; n < 7; n++) {
+        const a = (n / 7) * Math.PI * 2;
+        const ear = mesh(new THREE.ConeGeometry(0.03 * k, 0.14 * k, 4), '#e8c35a');
+        ear.position.set(Math.cos(a) * 0.06 * k, 0.38 * k, Math.sin(a) * 0.06 * k);
         ear.rotation.set(Math.sin(a) * 0.3, 0, -Math.cos(a) * 0.3);
         h.add(ear);
       }
       h.position.set(x, y, z);
       g.add(h);
     };
-    for (const x of [-1.3, -0.9, 0.9, 1.3]) sheaf(x, 0, 1.55);
+    for (const x of [-0.45, 0.45]) sheaf(x, 0, 2.3);
     sheaf(0, top - 0.05, 0, 2);
+    for (const sx of [-1, 1]) {
+      g.add(box(0.7, 0.06, 1.3, '#8a6a3a', sx * 1.75, 0, -0.55));
+      for (let r = 0; r < 4; r++) g.add(box(0.12, 0.16, 1.2, r % 2 ? '#e2c25a' : '#d4b04a', sx * 1.75 - 0.25 + r * 0.17, 0.06, -0.55));
+    }
+    // Cestas de fruta, la ofrenda de la cosecha
+    for (const x of [-1.45, 1.45]) {
+      g.add(cyl(0.1, 0.07, 0.1, 8, '#8a5a2b', x, 0, 2.15));
+      for (const [dx, dz, c] of [[-0.03, 0, '#c9402f'], [0.03, 0.02, '#e8a83a'], [0, -0.03, '#7a9a3a']]) {
+        const f = mesh(new THREE.SphereGeometry(0.04, 6, 5), c);
+        f.position.set(x + dx, 0.13, 2.15 + dz);
+        g.add(f);
+      }
+    }
   } else if (god === 'apolo') {
-    // El sol de Apolo, de oro, mirando al frente, y laureles a los lados
+    // El sol de oro en lo alto, el trípode de Delfos delante y una arboleda de laureles
     const sun = new THREE.Group();
     const disc = mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.05, 16), C.gold, GOLD_METAL);
     disc.rotation.x = Math.PI / 2;
@@ -2384,17 +2502,32 @@ function templeOfGod(g, god, base, d) {
     sun.position.set(0, top + 0.3, 0.2);
     sun.scale.setScalar(1.5);
     g.add(sun);
-    for (const x of [-1.45, 1.45]) {
-      g.add(cyl(0.04, 0.05, 0.4, 5, C.woodDark, x, 0, 1.2));
-      const leaves = mesh(new THREE.SphereGeometry(0.28, 8, 6), '#4f7f3a');
-      leaves.position.set(x, 0.55, 1.2);
-      leaves.scale.y = 1.25;
+    const tripod = new THREE.Group();
+    for (let k = 0; k < 3; k++) {
+      const a = (k / 3) * Math.PI * 2;
+      const leg = box(0.03, 0.5, 0.03, C.gold, Math.cos(a) * 0.12, 0, Math.sin(a) * 0.12, GOLD_METAL);
+      leg.rotation.set(Math.sin(a) * 0.2, 0, -Math.cos(a) * 0.2);
+      tripod.add(leg);
+    }
+    tripod.add(cyl(0.17, 0.1, 0.1, 10, C.gold, 0, 0.48, 0, GOLD_METAL));
+    tripod.position.set(0, 0, 2.55);
+    g.add(tripod);
+    for (const [x, z] of [[-1.85, -0.9], [1.85, -0.9], [-1.85, 0.3], [1.85, 0.3]]) {
+      g.add(cyl(0.04, 0.05, 0.4, 5, C.woodDark, x, 0, z));
+      const leaves = mesh(new THREE.SphereGeometry(0.3, 8, 6), '#4f7f3a');
+      leaves.position.set(x, 0.58, z);
+      leaves.scale.y = 1.3;
       g.add(leaves);
     }
+    // El sol en mosaico de oro, en el suelo delante del altar
+    const ring = mesh(new THREE.TorusGeometry(0.38, 0.03, 4, 18), C.gold, GOLD_METAL);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.set(0, 0.04, 2.55);
+    g.add(ring);
   } else if (god === 'poseidon') {
-    // El tridente en lo alto y un estanque de agua azul delante, con el altar en medio
+    // El tridente en lo alto y un gran estanque alrededor del altar, con dos delfines que echan agua
     const tri = new THREE.Group();
-    const bronze = '#4f9a8a';
+    const bronze = look.statue;
     tri.add(cyl(0.025, 0.025, 0.7, 6, bronze, 0, 0, 0), box(0.36, 0.04, 0.04, bronze, 0, 0.7, 0));
     for (const x of [-0.16, 0, 0.16]) {
       tri.add(cyl(0.02, 0.02, 0.16, 5, bronze, x, 0.7, 0));
@@ -2405,13 +2538,29 @@ function templeOfGod(g, god, base, d) {
     tri.position.set(0, top - 0.15, 0);
     tri.scale.setScalar(1.5);
     g.add(tri);
-    const pool = mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.08, 20), C.marbleDark);
-    pool.position.set(0, 0.04, 2.15);
-    const water = mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.02, 20), '#3fa9d9', { roughness: 0.2, metalness: 0.1 });
-    water.position.set(0, 0.085, 2.15);
+    const pool = mesh(new THREE.CylinderGeometry(1.0, 1.0, 0.1, 22), C.marbleDark);
+    pool.position.set(0, 0.05, 2.15);
+    const water = mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.02, 22), '#3fa9d9', { roughness: 0.15, metalness: 0.1 });
+    water.position.set(0, 0.1, 2.15);
     g.add(pool, water);
+    for (const sx of [-1, 1]) {
+      const dolphin = mesh(new THREE.TorusGeometry(0.14, 0.045, 6, 12, Math.PI), '#6fa8c0');
+      dolphin.position.set(sx * 0.65, 0.18, 2.15);
+      dolphin.rotation.set(0, Math.PI / 2, 0);
+      g.add(dolphin);
+      const jet = cyl(0.015, 0.03, 0.3, 6, '#cfe8f2', sx * 0.5, 0.1, 2.15, { transparent: true, opacity: 0.7 });
+      jet.rotation.z = sx * 0.6;
+      g.add(jet);
+    }
+    // Caracolas junto al estanque
+    for (const [x, z] of [[-1.1, 2.9], [1.15, 2.85], [0.3, 3.1]]) {
+      const shell = mesh(new THREE.ConeGeometry(0.07, 0.14, 7), '#f0d8c8');
+      shell.position.set(x, 0.05, z);
+      shell.rotation.z = Math.PI / 2;
+      g.add(shell);
+    }
   } else if (god === 'atenea') {
-    // La lechuza de Atenea en lo alto y dos olivos de hojas plateadas
+    // La lechuza en lo alto, un trofeo de lanza y escudo, y el olivar sagrado
     const owl = new THREE.Group();
     const grey = '#a9b0b8';
     const body = mesh(new THREE.SphereGeometry(0.17, 9, 7), grey);
@@ -2430,28 +2579,41 @@ function templeOfGod(g, god, base, d) {
     owl.position.set(0, top + 0.2, 0);
     owl.scale.setScalar(1.6);
     g.add(owl);
-    for (const x of [-1.45, 1.45]) {
-      g.add(cyl(0.05, 0.07, 0.45, 5, '#6b5a44', x, 0, 1.25));
-      const crown = mesh(new THREE.SphereGeometry(0.32, 8, 6), '#8a9a6a');
-      crown.position.set(x, 0.6, 1.25);
-      crown.scale.set(1.2, 0.85, 1.2);
-      g.add(crown);
+    for (const [x, z] of [[-1.85, -0.9], [1.85, -0.9], [-1.9, 0.35], [1.9, 0.35]]) {
+      const t = olive('#8a9a6a');
+      t.position.set(x, 0, z);
+      t.scale.setScalar(0.85);
+      g.add(t);
     }
+    const trophy = new THREE.Group();
+    trophy.add(cyl(0.025, 0.025, 0.8, 6, C.woodDark, 0, 0, 0));
+    const shield = mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.03, 16), look.statue, GOLD_METAL);
+    shield.rotation.x = Math.PI / 2;
+    shield.position.set(0, 0.5, 0.04);
+    const tip = mesh(new THREE.ConeGeometry(0.03, 0.12, 4), look.statue, GOLD_METAL);
+    tip.position.y = 0.86;
+    trophy.add(shield, tip);
+    trophy.position.set(0, 0, 2.6);
+    g.add(trophy);
   } else if (god === 'zeus') {
-    // El águila de oro con las alas abiertas en lo alto, y el rayo en el frontón
-    const eagle = new THREE.Group();
-    eagle.add(box(0.14, 0.26, 0.14, C.gold, 0, 0, 0, GOLD_METAL));
-    const head = mesh(new THREE.SphereGeometry(0.07, 7, 5), C.gold, GOLD_METAL);
-    head.position.set(0, 0.17, 0.04);
-    eagle.add(head);
-    for (const sx of [-1, 1]) {
-      const wing = box(0.38, 0.05, 0.16, C.gold, sx * 0.24, 0.08, 0, GOLD_METAL);
-      wing.rotation.z = sx * 0.45;
-      eagle.add(wing);
-    }
-    eagle.position.set(0, top + 0.2, 0);
-    eagle.scale.setScalar(1.7);
-    g.add(eagle);
+    // El águila en lo alto, el rayo en el frontón y dos columnas con águilas de oro delante
+    const eagle = (k = 1) => {
+      const e = new THREE.Group();
+      e.add(box(0.14, 0.26, 0.14, C.gold, 0, 0, 0, GOLD_METAL));
+      const head = mesh(new THREE.SphereGeometry(0.07, 7, 5), C.gold, GOLD_METAL);
+      head.position.set(0, 0.17, 0.04);
+      e.add(head);
+      for (const sx of [-1, 1]) {
+        const wing = box(0.38, 0.05, 0.16, C.gold, sx * 0.24, 0.08, 0, GOLD_METAL);
+        wing.rotation.z = sx * 0.45;
+        e.add(wing);
+      }
+      e.scale.setScalar(k);
+      return e;
+    };
+    const big = eagle(1.7);
+    big.position.set(0, top + 0.2, 0);
+    g.add(big);
     const bolt = new THREE.Group();
     [[0, 0.12, 0.5], [0.06, 0, -0.5], [0, -0.12, 0.5]].forEach(([x, y, r]) => {
       const seg = box(0.05, 0.16, 0.03, C.gold, x, y, 0, GOLD_METAL);
@@ -2460,6 +2622,21 @@ function templeOfGod(g, god, base, d) {
     });
     bolt.position.set(0, base + 1.85, d / 2 + 0.18);
     g.add(bolt);
+    for (const x of [-1.5, 1.5]) {
+      g.add(column(x, 0, 2.3, 1.0, 0.09), box(0.26, 0.06, 0.26, C.marble, x, 1.0, 2.3));
+      const e = eagle(0.75);
+      e.position.set(x, 1.13, 2.3);
+      e.rotation.y = x > 0 ? -0.4 : 0.4;
+      g.add(e);
+    }
+    // Los robles sagrados de Dodona, detrás
+    for (const x of [-1.9, 1.9]) {
+      g.add(cyl(0.07, 0.1, 0.5, 6, '#5a4632', x, 0, -0.9));
+      const crown = mesh(new THREE.DodecahedronGeometry(0.42), '#4a6a32');
+      crown.position.set(x, 0.85, -0.9);
+      crown.scale.y = 0.8;
+      g.add(crown);
+    }
   }
 }
 
@@ -2480,7 +2657,7 @@ function templo(level, { god = null } = {}) {
   const gold = level >= 5;
   // Frontones a los lados largos: la cumbrera va a lo ancho, como en los templos griegos
   // (consagrado a un dios, con su color)
-  const roof = pedimentRoof(d + 0.3, 0.6, w + 0.4, 0, base + 1.62, 0, look?.roof ?? (gold ? C.gold : C.roofRed));
+  const roof = pedimentRoof(d + 0.3, 0.6, w + 0.4, 0, base + 1.62, 0, look?.roof ?? (gold ? C.gold : C.roofRed), look?.tympanum);
   roof.rotation.y = Math.PI / 2;
   g.add(roof);
   // Altar con fuego sagrado delante del templo
@@ -2490,9 +2667,13 @@ function templo(level, { god = null } = {}) {
   // Estatua del dios desde el nivel 3 (consagrado, del color de su dios)
   const color = look?.statue ?? (gold ? C.gold : C.marble);
   const shine = gold || look ? GOLD_METAL : undefined;
+  // (consagrado: en su lugar, dos estatuas del dios con lo que lo distingue)
+  if (look) {
+    templeOfGod(g, god, base, d, w);
+    return g;
+  }
   if (level >= 3) g.add(statue(1.55, 1.4, color, 1.0, shine));
   if (level >= 7) g.add(statue(-1.55, 1.4, color, 1.0, shine));
-  if (look) templeOfGod(g, god, base, d);
   return g;
 }
 
