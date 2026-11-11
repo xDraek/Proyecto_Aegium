@@ -204,4 +204,8 @@ export default {
   "{0} · se hunde en": "{0} · sinks in",
   "🪝 Recogerlo con {0} {1}": "🪝 Collect it with {0} {1}",
   "Bota algún Kleptes para recogerlo antes de que se hunda o se lo lleve otro.": "Launch some Kleptes to collect it before it sinks or someone else takes it.",
+  "· {0} plazas": "· {0} places",
+  "🌍 De {0} · ⚔️ {1} · ❤️ {2}{3}": "🌍 From {0} · ⚔️ {1} · ❤️ {2}{3}",
+  "🌍 Mercenarios extranjeros": "🌍 Foreign mercenaries",
+  "Guerreros de los pueblos que viven alrededor de los griegos: tracios, ilirios, carios, escitas, persas, baleares, sicilianos, macedonios y gálatas. No se pueden entrenar en el cuartel: solo vienen a sueldo a la taberna.": "Warriors from the peoples living around the Greeks: Thracians, Illyrians, Carians, Scythians, Persians, Balearics, Sicilians, Macedonians and Galatians. They can't be trained in the barracks: they only come to the tavern for pay.",
 }

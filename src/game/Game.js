@@ -1242,6 +1242,7 @@ export class Game extends EventTarget {
     const u = UNITS[id];
     const n = Math.floor(amount);
     if (!u || u.npc) return this.#fail('Unidad desconocida.');
+    if (u.merc || !u.building) return this.#fail(`${u.name}: no se entrena, solo se contrata en la taberna.`);
     if (!(n >= 1 && n <= 100000)) return this.#fail('Indica cuántas unidades quieres.');
     if (this.level(u.building) < 1) return this.#fail(`Necesitas ${BUILDINGS[u.building].name.toLowerCase()}.`);
     if (missingRequirements(this.state, u.requires).length) return this.#fail('No cumples los requisitos.');

@@ -564,4 +564,5 @@ export default {
   "No queda nada del pecio de {0}": "Nothing is left of the wreck at {0}",
   "Tus Kleptes cargan lo que se puede salvar y vuelven a casa.": "Your Kleptes load what can be salvaged and head home.",
   "Alguien se ha llevado ya lo que quedaba (o se ha hundido del todo).": "Someone has already taken what was left (or it has sunk for good).",
+  "{0}: no se entrena, solo se contrata en la taberna.": "{0}: can't be trained, only hired at the tavern.",
 }

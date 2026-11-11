@@ -389,21 +389,31 @@ function mercenarySection(game) {
     .map((c) => `<li><span>${UNITS[c.unit].icon} ${c.count} × ${UNITS[c.unit].name}</span><span class="q-time" data-until="${c.until}"></span></li>`)
     .join('');
   const all = game.mercenaryOffers();
-  const offers = all
-    .filter((o) => !o.locked)
-    .map(
-      (o) => `<div class="card">
-        <div class="card-head">${unitArt(o.unit)}<div class="card-title"><b>${o.name}</b><div class="muted small">${o.count} × ${UNITS[o.unit].name} durante un día</div></div></div>
+  const card = (o) => {
+    const u = UNITS[o.unit];
+    // Los extranjeros: de dónde vienen, cómo luchan y lo que cuenta de ellos la historia
+    const exotic = o.exotic
+      ? `<div class="merc-origin small">🌍 De ${u.origin} · ⚔️ ${u.atk} · ❤️ ${u.hp}${u.size > 1 ? ` · ${u.size} plazas` : ''}</div>${unitRole(o.unit)}<p class="muted small merc-lore">${u.description}</p>`
+      : '';
+    return `<div class="card${o.exotic ? ' merc-exotic' : ''}">
+        <div class="card-head">${unitArt(o.unit)}<div class="card-title"><b>${o.name}</b><div class="muted small">${o.count} × ${u.name} durante un día</div></div></div>
+        ${exotic}
         ${costList(o.cost, game.resources)}
         <button class="primary small" data-action="hire" data-id="${o.id}" data-need='${JSON.stringify(o.cost)}' data-blocked="${o.hired ? 1 : 0}">${o.hired ? 'Contratada hoy' : 'Contratar'}</button>
-      </div>`,
-    )
-    .join('');
+      </div>`;
+  };
+  const open = all.filter((o) => !o.locked);
+  const greek = open.filter((o) => !o.exotic).map(card).join('');
+  const foreign = open.filter((o) => o.exotic).map(card).join('');
   return `<h4>⚔️ Mercenarios</h4>
     <p class="desc small">Soldados a sueldo durante un día: luchan y comen como los tuyos, y al acabar el contrato se van (aunque estén en una flota). Cada compañía se contrata una vez al día.</p>
     ${contracts ? `<ul class="mini-list">${contracts}</ul>` : ''}
-    <div class="cards">${offers}</div>
-    ${nextMercenaries(all)}`;
+    <div class="cards">${greek}</div>
+    ${nextMercenaries(all.filter((o) => !o.exotic))}
+    <h4>🌍 Mercenarios extranjeros</h4>
+    <p class="desc small">Guerreros de los pueblos que viven alrededor de los griegos: tracios, ilirios, carios, escitas, persas, baleares, sicilianos, macedonios y gálatas. No se pueden entrenar en el cuartel: solo vienen a sueldo a la taberna.</p>
+    ${foreign ? `<div class="cards">${foreign}</div>` : ''}
+    ${nextMercenaries(all.filter((o) => o.exotic))}`;
 }
 
 /** Las próximas compañías que llegarán al subir la taberna. */

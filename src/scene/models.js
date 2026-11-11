@@ -4705,6 +4705,147 @@ const TROOPS = {
   } },
 };
 
+// ── Mercenarios extranjeros: los pueblos que convivían con los griegos ──────────
+// Cada uno con lo que lo distinguía: la pelta de media luna de los tracios, el gran escudo de mimbre
+// de los persas, la sarisa macedonia, el escudo largo y el torques de los gálatas…
+
+/** Haz de jabalinas en la mano derecha, inclinadas hacia delante. */
+function javelins(g, n = 3) {
+  for (let k = 0; k < n; k++) {
+    const x = 0.12 + k * 0.012, z = 0.03 + k * 0.012;
+    const a = new THREE.Vector3(x, 0.08, z - 0.06), b = new THREE.Vector3(x + 0.02, 0.62, z + 0.08);
+    tileRod(g, a, b, 0.006, '#7a5a32');
+    const tip = mesh(new THREE.ConeGeometry(0.012, 0.05, 4), IRON);
+    tip.position.copy(b).add(new THREE.Vector3(0.002, 0.025, 0.006));
+    g.add(tip);
+  }
+}
+
+/** La pelta tracia: escudo de mimbre en forma de media luna, con el borde de cuero. */
+function pelta(g, color = '#b88a4a') {
+  const sh = new THREE.Group();
+  const body = mesh(new THREE.TorusGeometry(0.1, 0.055, 4, 14, Math.PI * 1.35), color);
+  body.scale.z = 0.25;
+  body.rotation.z = Math.PI * 1.32;
+  const rim = mesh(new THREE.TorusGeometry(0.155, 0.01, 4, 14, Math.PI * 1.35), LEATHER);
+  rim.rotation.z = Math.PI * 1.32;
+  sh.add(body, rim);
+  sh.position.set(-0.15, 0.3, 0.09);
+  sh.rotation.y = -0.45;
+  g.add(sh);
+}
+
+/** Escudo largo ovalado (el thureos celta o el escudo itálico), de madera pintada con umbo. */
+function ovalShield(g, color = '#3f6a3a', boss = IRON, stripe = '#d8c49a') {
+  const sh = new THREE.Group();
+  const face = mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.024, 16), color);
+  face.rotation.x = Math.PI / 2;
+  face.scale.set(1, 1, 1.75);
+  // (la nervadura del centro, a lo largo)
+  const rib = box(0.02, 0.016, 0.3, stripe, 0, 0.014, 0);
+  rib.rotation.x = Math.PI / 2;
+  sh.add(face, rib);
+  const umbo = mesh(new THREE.SphereGeometry(0.035, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), boss);
+  umbo.rotation.x = Math.PI / 2;
+  umbo.position.z = 0.016;
+  sh.add(umbo);
+  sh.position.set(-0.15, 0.27, 0.09);
+  sh.rotation.y = -0.4;
+  g.add(sh);
+}
+
+/** El spara persa: un gran escudo rectangular de mimbre, apoyado delante. */
+function spara(g) {
+  const sh = new THREE.Group();
+  sh.add(box(0.17, 0.36, 0.02, '#c9a86a', 0, 0, 0));
+  for (const y of [-0.12, -0.04, 0.04, 0.12]) sh.add(box(0.175, 0.012, 0.022, '#9a7a44', 0, y, 0));
+  sh.add(box(0.18, 0.026, 0.026, '#6b4fa0', 0, 0.18, 0));
+  // (al costado izquierdo, girado hacia fuera: deja ver al guerrero)
+  sh.position.set(-0.17, 0.22, 0.06);
+  sh.rotation.y = -0.9;
+  g.add(sh);
+}
+
+/** Espada recta en la mano derecha, de punta al frente. */
+function shortSword(g, blade = '#c9ced6', length = 0.2) {
+  const arm = g.userData.hands.right;
+  arm.rotation.set(-0.9, 0, 0.6);
+  const sword = new THREE.Group();
+  sword.add(cyl(0.011, 0.011, 0.05, 5, '#5e3b1c', 0, -0.03, 0), box(0.05, 0.012, 0.02, BRONZE_C, 0, -0.055, 0));
+  const b = mesh(new THREE.CylinderGeometry(0.01, 0.018, length, 4), blade);
+  b.position.y = -0.06 - length / 2;
+  b.scale.z = 0.25;
+  sword.add(b);
+  inHand(arm, sword, -0.21);
+}
+
+/** La sarisa: una pica larguísima, en alto y algo inclinada hacia delante (como en marcha). */
+function sarissa(g) {
+  const a = new THREE.Vector3(0.135, 0.02, -0.02), b = new THREE.Vector3(0.16, 0.98, 0.22);
+  tileRod(g, a, b, 0.009, '#7a3f22');
+  const dir = b.clone().sub(a).normalize();
+  const tip = mesh(new THREE.ConeGeometry(0.02, 0.1, 4), IRON);
+  tip.position.copy(b).addScaledVector(dir, 0.05);
+  tip.quaternion.setFromUnitVectors(UP, dir);
+  g.add(tip);
+}
+
+/** El torques de oro al cuello de los celtas. */
+function torc(g) {
+  const t = mesh(new THREE.TorusGeometry(0.05, 0.008, 5, 14), '#e2b843');
+  t.rotation.x = Math.PI / 2;
+  t.position.set(0, 0.445, 0.005);
+  g.add(t);
+}
+
+Object.assign(TROOPS, {
+  // Peltasta tracio: túnica roja, la zeira (manto a rayas) y el gorro de piel de zorro; jabalinas y pelta
+  peltasta: { color: '#a8321f', top: '#a8321f', bareArms: true, belt: '#5a3820', helmet: 'gorro', cloak: '#d9a441', beard: true, hair: HAIR[3], arms: ['abajo', 'abajo'], extra: (g) => {
+    for (const y of [0.0, 0.12, 0.24]) g.add(box(0.205, 0.02, 0.028, '#3f5f9a', 0, y, -0.078));
+    for (const sx of [-1, 1]) g.add(cyl(0.03, 0.03, 0.12, 6, '#8a6a44', sx * 0.04, 0.07, 0));
+    javelins(g);
+    pelta(g);
+  } },
+  // Guerrero ilirio: casco de bronce, túnica clara con franjas, la sica curva y el escudo redondo
+  ilirio: { color: '#e0d4b8', bareArms: true, belt: '#5a3820', helmet: 'atico', hair: HAIR[1], beard: true, arms: ['adelante', 'abajo'], extra: (g) => {
+    for (const y of [0.2, 0.24]) g.add(cyl(0.1, 0.1, 0.012, 9, '#7a2a1e', 0, y, 0));
+    shortSword(g, '#b8bcc4', 0.17);
+    woodShield(g, 0.14);
+  } },
+  // Hoplita cario: coraza de lino, casco corintio con el penacho rojo (dicen que lo inventaron ellos),
+  // lanza larga y escudo de bronce con el emblema rojo
+  cario: { color: '#e6dcc4', sleeve: '#e6dcc4', cuirass: true, cuirassColor: '#e9e0c8', pteruges: '#e9e0c8', belt: '#5a3820', greaves: true, helmet: 'corintio', crest: '#a8231a', cloak: '#7a2a1e', arms: ['abajo', 'abajo'], extra: (g) => {
+    longSpear(g, 0.74);
+    aspis(g, BRONZE_C, '#a8231a');
+  } },
+  // Sparabara persa: túnica larga púrpura, gorro blando, barba; el spara de mimbre y una lanza corta
+  sparabara: { color: '#6b4fa0', long: true, skirt: '#5a3f8a', belt: '#c9a24a', helmet: 'gorro', beard: true, hair: '#1f1a17', skin: SKIN[2], arms: ['abajo', 'abajo'], extra: (g) => {
+    spear(g, 0.7);
+    spara(g);
+  } },
+  // Hondero balear: casi sin ropa, con tres hondas (una al cuello, otra en la cintura y la de tirar)
+  balear: { ...TROOPS.hondero, color: '#b89a6a', top: '#b89a6a', skin: SKIN[2] },
+  // Mamertino: infantería itálica de Campania, con plumas en el casco, coraza de discos, espada y escudo largo
+  mamertino: { color: '#c9b48a', cuirass: true, cuirassColor: '#8a7444', belt: '#5a3820', greaves: true, helmet: 'atico', crest: '#f2ede2', hair: HAIR[0], arms: ['adelante', 'abajo'], extra: (g) => {
+    for (const sx of [-1, 1]) g.add(box(0.012, 0.09, 0.01, '#f2ede2', sx * 0.05, 0.62, -0.01));
+    shortSword(g, '#c9ced6', 0.16);
+    ovalShield(g, '#8a2a1e', BRONZE_C, '#e2b843');
+  } },
+  // Falangita macedonio: coraza de lino, casco frigio, la sarisa bajada y el escudo pequeño con el sol de Vergina
+  falangita: { color: '#e6dcc4', sleeve: '#e6dcc4', cuirass: true, cuirassColor: '#e9e0c8', pteruges: '#6b4326', belt: '#5a3820', greaves: true, helmet: 'atico', crest: '#6e2a8a', cloak: '#6e2a8a', arms: ['adelante', 'abajo'], extra: (g) => {
+    sarissa(g);
+    sunShield(g, 0.13);
+  } },
+  // Guerrero gálata: a pecho descubierto, melena rubia y bigote, torques de oro, calzas a cuadros,
+  // espada larga de hierro y el escudo largo pintado
+  galata: { color: '#4f7a3a', skin: SKIN[3], bareArms: true, beard: true, hair: HAIR[4], belt: '#5a3820', arms: ['adelante', 'abajo'], extra: (g) => {
+    torc(g);
+    for (const sx of [-1, 1]) for (const y of [0.06, 0.12]) g.add(cyl(0.03, 0.03, 0.012, 6, '#c9a24a', sx * 0.042, y, 0));
+    shortSword(g, '#9aa0a8', 0.24);
+    ovalShield(g, '#3f6a3a', IRON, '#e2b843');
+  } },
+});
+
 /** La cola de pez de un tritón: de la cintura al suelo, enroscada hacia atrás y con su aleta. */
 function fishTail(g) {
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -5024,6 +5165,8 @@ export function createSoldier(id) {
     g.scale.setScalar(0.85);
     return g;
   }
+  // Los jinetes extranjeros (escitas y hetairos macedonios), con el jinete griego
+  if (id === 'escita' || id === 'hetairo') return createSoldier('caballero');
   if (id === 'caballero') {
     // Jinete griego: caballo castaño de crin y cola negras, calcetines blancos, bridas y pretal de
     // cuero con discos de bronce, y gualdrapa de lana con greca azul. Él, con quitón sin mangas,

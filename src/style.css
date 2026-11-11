@@ -7319,3 +7319,18 @@ kbd {
   background: rgba(200, 90, 70, 0.25);
   color: #7a2414;
 }
+
+/* Mercenarios extranjeros de la taberna */
+.card.merc-exotic {
+  border-color: rgba(192, 140, 220, 0.45);
+}
+
+.merc-origin {
+  margin: 2px 0 4px;
+  font-weight: 600;
+}
+
+.merc-lore {
+  margin: 4px 0 6px;
+  line-height: 1.45;
+}

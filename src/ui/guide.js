@@ -127,7 +127,7 @@ function researchTable() {
 function landTable() {
   return table(
     ['Tropa', '⚔️', '❤️', 'Come', 'Plazas', 'Requisitos'],
-    LAND_UNITS.map((id) => {
+    LAND_UNITS.filter((id) => !UNITS[id].merc).map((id) => {
       const u = UNITS[id];
       const keep = u.pay ? `${RESOURCES.comida.icon} ${u.upkeep}/h<div class="small">${RESOURCES.oro.icon} ${fmtDec(u.pay)}/h</div>` : `${RESOURCES.comida.icon} ${u.upkeep}/h`;
       return [`<b>${unitName(id)}</b><div class="muted small">${u.description}</div>`, u.atk, u.hp, keep, u.size ?? 1, needs(u.requires)];
@@ -263,10 +263,23 @@ function heroTable() {
   );
 }
 
-function mercsTable() {
+function mercsTable(exotic = false) {
   return table(
     ['Compañía', 'Taberna', 'Tropa', 'Cuántos vienen', 'Precio al empezar'],
-    Object.values(MERCENARIES).map((m) => [`${glyphs(m.icon)} <b>${m.name}</b>`, `Nv ${m.taberna}`, unitName(m.unit), `${fmtDec(m.base)} y ${fmtDec(m.per)} más por cada nivel más de taberna`, bag(mercenaryCost(m, m.base))]),
+    Object.values(MERCENARIES)
+      .filter((m) => !!m.exotic === exotic)
+      .map((m) => [`${glyphs(m.icon)} <b>${m.name}</b>`, `Nv ${m.taberna}`, unitName(m.unit), `${fmtDec(m.base)} y ${fmtDec(m.per)} más por cada nivel más de taberna`, bag(mercenaryCost(m, m.base))]),
+  );
+}
+
+/** Los mercenarios extranjeros: de dónde vienen y cómo luchan. */
+function exoticTable() {
+  return table(
+    ['Tropa', 'De', '⚔️', '❤️', 'Clase', 'Plazas'],
+    LAND_UNITS.filter((id) => UNITS[id].merc).map((id) => {
+      const u = UNITS[id];
+      return [`<b>${unitName(id)}</b><div class="muted small">${u.description}</div>`, u.origin, u.atk, u.hp, UNIT_CLASSES[u.cls]?.name ?? '', u.size ?? 1];
+    }),
   );
 }
 
@@ -468,6 +481,9 @@ const TOPICS = {
     title: 'Mercenarios',
     body: () => `<p>En la <b>taberna</b> se contratan compañías de mercenarios durante ${MERCENARY_HOURS} h. Al principio solo vienen milicianos; al subir la taberna llegan compañías mejores, hasta la élite, y de cada una vienen más soldados. Cada compañía se puede contratar una vez al día:</p>
       ${mercsTable()}
+      <p>Y desde la taberna 2 llegan también <b>mercenarios extranjeros</b>: guerreros de los pueblos que convivían con los griegos, que no se pueden entrenar en el cuartel. Solo se contratan aquí:</p>
+      ${mercsTable(true)}
+      ${exoticTable()}
       <p>Cada soldado cobra lo que cuesta entrenarlo, en oro y en el recurso de su compañía; la élite (desde la taberna ${MERC_PRICE.eliteFrom}), un ${Math.round((MERC_PRICE.elite - 1) * 100)} % más. Y cuanto más grande es la compañía, más pide cada uno: un ${Math.round(MERC_PRICE.crowd * 100)} % por cada soldado de más, hasta el doble.</p>
       <p>Pasado el plazo se marchan los que sigan vivos. A veces llegan también <b>mercenarios de paso</b> al puerto que se quedan para siempre a cambio de oro.</p>
       ${tip('Son perfectos para una defensa urgente o un ataque puntual sin cargar con su comida para siempre.')}`,

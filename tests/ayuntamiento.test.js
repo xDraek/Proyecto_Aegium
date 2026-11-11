@@ -37,7 +37,8 @@ test('la taberna atrae mercenarios mejores al subir: al principio solo miliciano
   const { players } = await makeWorld(['Lucio']);
   const [g] = players;
   g.state.buildings.taberna = 1;
-  const open = (game) => game.mercenaryOffers().filter((o) => !o.locked).map((o) => o.unit);
+  // (las compañías de siempre; las extranjeras, en su propio test)
+  const open = (game) => game.mercenaryOffers().filter((o) => !o.locked && !o.exotic).map((o) => o.unit);
   assert.deepEqual(open(g), ['lancero', 'hondero']);
   assert.equal(g.hireMercenaries('hoplitas').ok, false, 'los hoplitas no vienen a una taberna de nivel 1');
   g.state.buildings.taberna = 5;

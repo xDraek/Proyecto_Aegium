@@ -783,4 +783,8 @@ export default {
   "Presbeis": "Presbeis",
   "🕊️ (diplomático) lleva los pactos y también la paz. Solo se puede expulsar a quien tiene menos rango.": "🕊️ (diplomat) handles pacts and also peace. You can only kick someone of lower rank.",
   ": se puede proponer un": ": you can propose a",
+  "Y desde la taberna 2 llegan también": "And from tavern level 2, there are also",
+  "mercenarios extranjeros": "foreign mercenaries",
+  ": guerreros de los pueblos que convivían con los griegos, que no se pueden entrenar en el cuartel. Solo se contratan aquí:": ": warriors from the peoples who lived alongside the Greeks, who can't be trained in the barracks. They can only be hired here:",
+  "De": "From",
 }

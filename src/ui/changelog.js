@@ -7,6 +7,24 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-12a',
+    date: '2026-11-12',
+    title: 'Mercenarios extranjeros en la taberna',
+    items: [
+      '🌍 A la <b>taberna</b> llegan ahora <b>mercenarios extranjeros</b>, de los pueblos que convivían con los griegos. No se pueden entrenar en el cuartel: solo vienen a sueldo, un día cada vez.',
+      '🌙 <b>Peltastas tracios</b> (taberna 2) · 🐺 <b>Guerreros ilirios</b> (3) · 🐂 <b>Hoplitas carios</b> (4) · 🦌 <b>Arqueros a caballo escitas</b> (5) · 🦚 <b>Sparabara persas</b> (6) · ☄️ <b>Honderos baleares</b> (7) · 🐗 <b>Mamertinos de Sicilia</b> (8) · ✴️ <b>Falangitas macedonios</b> (10) · 🌀 <b>Guerreros gálatas</b> (11) · 👑 <b>Hetairos macedonios</b> (13).',
+      '📜 Cada uno con su clase de combate, su aspecto y su historia: en la taberna verás de dónde vienen y cómo luchan, y en la guía, la tabla con todos.',
+    ],
+    en: {
+      title: 'Foreign mercenaries at the tavern',
+      items: [
+        '🌍 The <b>tavern</b> now attracts <b>foreign mercenaries</b>, from the peoples who lived alongside the Greeks. They can’t be trained in the barracks: they only come for pay, one day at a time.',
+        '🌙 <b>Thracian peltasts</b> (tavern 2) · 🐺 <b>Illyrian warriors</b> (3) · 🐂 <b>Carian hoplites</b> (4) · 🦌 <b>Scythian horse archers</b> (5) · 🦚 <b>Persian sparabara</b> (6) · ☄️ <b>Balearic slingers</b> (7) · 🐗 <b>Mamertines of Sicily</b> (8) · ✴️ <b>Macedonian phalangites</b> (10) · 🌀 <b>Galatian warriors</b> (11) · 👑 <b>Macedonian Companions</b> (13).',
+        '📜 Each with its own combat class, look and history: at the tavern you’ll see where they come from and how they fight, and in the guide, the table with all of them.',
+      ],
+    },
+  },
+  {
     id: '2026-11-11e',
     date: '2026-11-11',
     title: 'Los carros ya no se atascan',
