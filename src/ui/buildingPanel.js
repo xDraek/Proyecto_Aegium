@@ -384,10 +384,11 @@ function powerCard(game, id) {
   return `<div class="card${until ? ' active' : ''}${blessed ? ' blessed' : ''}">
     <div class="card-head"><span class="card-icon">${p.icon}</span><div class="card-title"><b>${p.name}</b>
       ${until ? '<span class="card-lvl">activo</span>' : ''}
-      <div class="card-sub">${p.description}</div></div></div>
-    ${divine}
-    ${until ? `<div class="hint ok">Quedan <span data-until="${until}"></span></div>` : ''}
-    ${ready ? `<div class="hint">⏳ Se podrá volver a invocar en <span data-until="${ready}"></span></div>` : `<div class="muted small">Tras invocarla hay que esperar ${p.cooldown} h para volver a hacerlo.</div>`}
+      <div class="card-sub">${p.description}</div>
+      ${divine}
+      ${until ? `<div class="hint ok">Quedan <span data-until="${until}"></span></div>` : ''}
+      ${ready ? `<div class="hint">⏳ Se podrá volver a invocar en <span data-until="${ready}"></span></div>` : `<div class="card-sub">Tras invocarla hay que esperar ${p.cooldown} h para volver a hacerlo.</div>`}
+    </div></div>
     <div class="card-row"><span class="muted small">${blocked}</span>
       <button class="primary small auto" data-action="power" data-id="${id}" data-favor="${p.cost}" data-blocked="${blocked ? 1 : 0}">${FAVOR_ICON} ${p.cost}</button></div>
   </div>`;

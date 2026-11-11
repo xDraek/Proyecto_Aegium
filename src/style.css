@@ -1851,13 +1851,48 @@ body.landing-mode #chat {
   gap: 4px;
 }
 
-.mini-rank li span {
-  display: inline-block;
-  min-width: 70%;
+/* Cada puesto en una sola línea: el nombre (cortado con «…» si no cabe) y la cifra a la derecha,
+   siempre en la misma columna (antes la cifra flotaba y, con un nombre largo, bajaba de línea) */
+.mini-rank li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  /* (la lista es una rejilla: sin esto, un nombre largo estiraba la fila más allá del ancho) */
+  min-width: 0;
 }
 
-.mini-rank b {
-  float: right;
+/* (las que no ponen el puesto ellas mismas, con su número delante: con flex se pierde el de la lista) */
+.mini-rank:not(.contest-list) {
+  counter-reset: rank;
+  padding-left: 0;
+  list-style: none;
+}
+
+.mini-rank:not(.contest-list) li {
+  counter-increment: rank;
+}
+
+.mini-rank:not(.contest-list) li::before {
+  content: counter(rank) '.';
+  flex: none;
+  min-width: 1.6em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.mini-rank li > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-rank li > b {
+  flex: none;
+  margin-left: auto;
+  white-space: nowrap;
+  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
@@ -3921,7 +3956,6 @@ input[type='text'] {
   margin: 4px 0;
 }
 
-.contest-list li.me,
 .hall li {
   display: flex;
   justify-content: space-between;
@@ -7372,5 +7406,17 @@ kbd {
   *::after {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
+  }
+}
+
+/* En los móviles estrechos, la cabecera de las ventanas sin el medallón y con menos hueco: con él y
+   los dos botones, al título y al subtítulo les quedaba una columna de una palabra por línea */
+@media (max-width: 480px) {
+  .modal-card > .panel-head:first-child {
+    gap: 8px;
+  }
+
+  .modal-card > .panel-head:first-child > .panel-icon {
+    display: none;
   }
 }
