@@ -565,4 +565,10 @@ export default {
   "Tus Kleptes cargan lo que se puede salvar y vuelven a casa.": "Your Kleptes load what can be salvaged and head home.",
   "Alguien se ha llevado ya lo que quedaba (o se ha hundido del todo).": "Someone has already taken what was left (or it has sunk for good).",
   "{0}: no se entrena, solo se contrata en la taberna.": "{0}: can't be trained, only hired at the tavern.",
+  "☀️ ¡Los macedonios de {0} zarpan contra tu ciudad! Prepara tus defensas.": "☀️ The Macedonians of {0} set sail against your city! Prepare your defences.",
+  "Los macedonios de {0}": "The Macedonians of {0}",
+  "Rechazas a los macedonios de {0}": "You drive off the Macedonians of {0}",
+  "Los macedonios de {0} se retiran": "The Macedonians of {0} withdraw",
+  "Los macedonios de {0} saquean tu ciudad": "The Macedonians of {0} sack your city",
+  "☀️ {0}{1}": "☀️ {0}{1}",
 }

@@ -6,7 +6,7 @@ import { Game, krakenText, newState, rebuilding } from '../src/game/Game.js';
 import { fmtEs } from '../src/game/num.js';
 import { ABANDON, ACHIEVEMENTS, ALLIANCE_ROLES, BASIC_RELIC_CHANCE, BOARD, BOARD_SECTIONS, BOT_CHECK, WRECK, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, PVP_RANGE, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
 import { merchantCargo, playerCombat, tradeShips, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
-import { BARBARIAN_ARCHERS, BARBARIAN_GARRISONS, CAMP_LOOT, LAIR_GUARDS, coordsOf, distance, nearestImage, wrapRingFor, fixPlaceName, freshPlaceName, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, macedonianCity, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
+import { BARBARIAN_ARCHERS, BARBARIAN_GARRISONS, CAMP_LOOT, LAIR_GUARDS, coordsOf, distance, nearestImage, wrapRingFor, fixPlaceName, freshPlaceName, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, MACEDONIAN_CITY, MACEDONIAN_RAID, macedonianCity, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { hashPassword, newRecoveryCode, newSecret, normalizeCode, verifyPassword } from './auth.js';
 
@@ -176,6 +176,11 @@ export class WorldServer {
     }
     for (const isl of this.islands.values()) {
       if (isl.type !== 'jugador' && !this.islandStates.has(isl.id)) this.islandStates.set(isl.id, freshIslandState(isl, clock.now()));
+    }
+    // Las ciudades macedonias, con la guarnición, la muralla y el botín de ahora
+    for (const isl of this.islands.values()) {
+      if (isl.type !== 'macedonia') continue;
+      Object.assign(isl, { wall: MACEDONIAN_CITY.wall, regenHours: MACEDONIAN_CITY.regenHours, garrison: { ...MACEDONIAN_CITY.garrison }, loot: { ...MACEDONIAN_CITY.loot, mix: { ...MACEDONIAN_CITY.loot.mix } } });
     }
     for (const u of data.users) {
       this.users.set(u.id, { ...u, lastSeen: 0 });
@@ -803,6 +808,65 @@ export class WorldServer {
       }
       if (idle >= ABANDON.abandonDays * day && wall - s.abandonWarn >= ABANDON.graceDays * day) this.abandonCity(uid, now);
     }
+  }
+
+  /**
+   * Cada ciudad macedonia, cuando le toca (MACEDONIAN_RAID.every), manda un ejército contra un jugador
+   * de los de cerca, al azar: que esté activo, sin protección de novato, sin vacaciones y sin otro
+   * ataque macedonio en camino. Devuelve a quién han atacado.
+   */
+  /** Alguien ha atacado una ciudad macedonia: la próxima vez saldrán a por él (ver MACEDONIAN_RAID). */
+  macedonGrudge(islandId, userId, t = clock.now()) {
+    const rt = this.islandStates.get(islandId);
+    if (!rt) return;
+    rt.grudge = { ...(rt.grudge ?? {}), [userId]: t };
+    this.dirtyIslands.add(islandId);
+  }
+
+  macedonianRaids(now = clock.now()) {
+    const out = [];
+    const [lo, hi] = MACEDONIAN_RAID.every;
+    for (const isl of this.islands.values()) {
+      if (isl.type !== 'macedonia') continue;
+      const rt = this.islandStates.get(isl.id);
+      if (!rt) continue;
+      if (!rt.nextRaid) {
+        rt.nextRaid = now + (lo + Math.random() * (hi - lo)) * 3_600_000;
+        this.dirtyIslands.add(isl.id);
+        continue;
+      }
+      if (now < rt.nextRaid) continue;
+      rt.nextRaid = now + (lo + Math.random() * (hi - lo)) * 3_600_000;
+      this.dirtyIslands.add(isl.id);
+      // (si alguien la ha arrasado y aún se está rearmando, no sale)
+      if (rebuilding(isl, rt, now)) continue;
+      const near = [];
+      const avengers = [];
+      // Los agravios de hace demasiado se olvidan
+      const since = now - MACEDONIAN_RAID.grudgeDays * 86_400_000;
+      for (const [k, at] of Object.entries(rt.grudge ?? {})) if (at < since) delete rt.grudge[k];
+      for (const [uid, g] of this.games) {
+        const home = this.islands.get(g.state.home);
+        if (!home || g.state.vacation || g.state.macedon || g.isProtected(now) || this.isInactive(uid)) continue;
+        const d = distance(home, isl);
+        const grudge = rt.grudge?.[uid];
+        if (grudge) avengers.push({ uid, g, d, at: grudge });
+        else if (d <= MACEDONIAN_RAID.range) near.push({ uid, g, d });
+      }
+      // Primero, quien los atacó por última vez (esté donde esté); si nadie, uno de cerca al azar
+      avengers.sort((a, b) => b.at - a.at);
+      const pick = avengers[0] ?? near[Math.floor(Math.random() * near.length)];
+      if (!pick) continue;
+      const { uid, g, d } = pick;
+      if (rt.grudge) delete rt.grudge[uid];
+      g.update(now);
+      if (g.receiveMacedonians({ from: isl.id, fromName: isl.name, distance: d }, now)) {
+        g.dirty = true;
+        this.pendingPush.add(uid);
+        out.push(uid);
+      }
+    }
+    return out;
   }
 
   /**
@@ -2793,6 +2857,11 @@ export class WorldServer {
     this.#updateFeats(now);
     this.#updateKraken(now);
     this.#checkStations(now);
+    // Las ciudades macedonias salen a por algún jugador de vez en cuando (se mira cada diez minutos)
+    if (Date.now() - (this.macedonSweep ?? 0) > 600_000) {
+      this.macedonSweep = Date.now();
+      this.macedonianRaids(now);
+    }
     // Jugadores que no entran: el aviso por correo y, después, su ciudad abandonada (cada hora)
     if (Date.now() - (this.abandonSweep ?? 0) > 3_600_000) {
       this.abandonSweep = Date.now();

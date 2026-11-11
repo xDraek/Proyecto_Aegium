@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-12b',
+    date: '2026-11-12',
+    title: 'Los macedonios atacan',
+    items: [
+      '☀️ Las <b>ciudades macedonias</b> (las de los jugadores que no vuelven) son ahora mucho más poderosas: el doble de guarnición, con <b>falangitas</b> y <b>hetairos</b>, más muralla y hasta 60.000 de botín. Arrasada, tarda <b>3 días</b> en rearmarse.',
+      '⚔️ Y de vez en cuando (cada 2 o 3 días) <b>salen a atacar</b>: primero a quien los haya atacado en la última semana, esté donde esté, y si no, a un jugador de cerca al azar (a 600 leguas como mucho): se les ve venir en la banda de avisos, con lo que traen, y su ejército crece con tus puntos. Si ganan, saquean parte de lo que no tengas a salvo; si los rechazas, dejan oro y bronce. No atacan a quien está de vacaciones o tiene protección de novato.',
+    ],
+    en: {
+      title: 'The Macedonians attack',
+      items: [
+        '☀️ <b>Macedonian cities</b> (those of players who don’t come back) are now far more powerful: twice the garrison, with <b>phalangites</b> and <b>Companions</b>, a stronger wall and up to 60,000 loot. Once razed, it takes <b>3 days</b> to rearm.',
+        '⚔️ And every now and then (every 2 or 3 days) they <b>go out to attack</b>: first whoever attacked them in the last week, wherever they are, and otherwise a random nearby player (600 leagues at most): you see them coming in the notice bar, with what they bring, and their army grows with your points. If they win, they plunder part of what you don’t have safe; if you drive them off, they leave gold and bronze. They don’t attack players on vacation or under newbie protection.',
+      ],
+    },
+  },
+  {
     id: '2026-11-12a',
     date: '2026-11-12',
     title: 'Mercenarios extranjeros en la taberna',

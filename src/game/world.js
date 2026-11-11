@@ -98,11 +98,47 @@ const PIRATE_LORD = {
  */
 export const MACEDONIAN_CITY = {
   tier: 6,
-  garrison: { lancero: 60, hondero: 30, arquero: 40, espadachin: 30, hoplita: 40, caballero: 10, catapulta: 4, trirreme: 10, galeon: 3 },
-  wall: 0.4,
-  regenHours: 24,
-  loot: { max: 40000, rate: 1500, mix: { madera: 0.2, piedra: 0.2, hierro: 0.2, cristal: 0.2, oro: 0.2 } },
+  // (con la falange y los hetairos de Macedonia: de las islas más duras del archipiélago)
+  garrison: { lancero: 80, hondero: 40, arquero: 60, espadachin: 50, hoplita: 70, falangita: 50, caballero: 20, hetairo: 12, catapulta: 8, trirreme: 16, galeon: 6 },
+  wall: 0.5,
+  // (arrasada, tarda tres días en rearmarse: mientras, ni se la ataca ni sale a atacar)
+  regenHours: 72,
+  loot: { max: 60000, rate: 2000, mix: { madera: 0.2, piedra: 0.2, hierro: 0.2, cristal: 0.2, oro: 0.2 } },
 };
+
+/**
+ * Los macedonios salen de vez en cuando de su ciudad, cada `every` horas (entre las dos, al azar):
+ * primero a por quien los ha atacado en los últimos `grudgeDays` días (el último, esté donde esté)
+ * y, si no, a por un jugador cercano al azar (a `range` leguas como mucho). Traen `units` × nivel^`power` soldados (el
+ * nivel, como el de los piratas: según los puntos de la víctima), con el reparto de su guarnición y
+ * las quinquerremes que hagan falta para llevarlos. Se les ve venir `warnMin` minutos antes. Si
+ * ganan se llevan `theft` de lo que no esté a salvo (como mucho `cap` × nivel); si pierden, dejan
+ * `reward` × nivel.
+ */
+export const MACEDONIAN_RAID = {
+  every: [48, 72],
+  grudgeDays: 7,
+  range: 600,
+  units: 10,
+  power: 1.35,
+  warnMin: 45,
+  theft: 0.25,
+  cap: 900,
+  reward: { oro: 150, hierro: 120 },
+};
+
+/** El ejército que mandan los macedonios contra alguien de nivel `tier` (ver MACEDONIAN_RAID). */
+export function macedonianArmy(tier) {
+  const land = Object.entries(MACEDONIAN_CITY.garrison).filter(([id]) => !['trirreme', 'galeon'].includes(id));
+  const total = land.reduce((a, [, n]) => a + n, 0);
+  const want = Math.max(6, Math.round(MACEDONIAN_RAID.units * Math.max(1, tier) ** MACEDONIAN_RAID.power));
+  const army = {};
+  for (const [id, n] of land) {
+    const k = Math.round((want * n) / total);
+    if (k > 0) army[id] = k;
+  }
+  return army;
+}
 
 /** Convierte en macedonia la isla de la ciudad de un jugador (la deja sin dueño). */
 export function macedonianCity(isl) {

@@ -194,7 +194,7 @@ function islandsTable() {
     ['ciudadela', 'Ciudades bárbaras amuralladas de los continentes: mucho botín, y se pueden conquistar.'],
     ['continente', 'Tierras grandes entre sectores, con ciudades bárbaras, valles para colonizar y una maravilla.'],
     ['jugador', 'La ciudad de otro jugador. Si lleva una semana sin entrar sale como inactivo (💤).'],
-    ['macedonia', `La ciudad de un jugador que lleva más de ${ABANDON.abandonDays} días sin entrar: la ocupan los macedonios, con un gran ejército de tropas y barcos como los tuyos, muralla y mucho botín. Se rearma con el tiempo y no se puede conquistar.`],
+    ['macedonia', `La ciudad de un jugador que lleva más de ${ABANDON.abandonDays} días sin entrar: la ocupan los macedonios, con un gran ejército (falange y hetairos incluidos), muralla y mucho botín. Se rearma con el tiempo y no se puede conquistar. Y cada 2 o 3 días <b>sale a atacar</b>: primero a quien la haya atacado, y si no, a algún jugador de cerca. Se les ve venir y, si los rechazas, dejan un premio.`],
   ];
   return table(
     ['Isla', 'Qué hay'],

@@ -1436,6 +1436,7 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
 
   #renderAlert() {
     const raid = this.game.raid;
+    const macedon = this.game.state.macedon ?? null;
     const incoming = this.game.incoming ?? [];
     // Hordas en los continentes donde tienes colonias
     const lands = new Set(this.game.colonies().map((c) => this.game.world.island(c.id)?.land).filter(Boolean));
@@ -1443,7 +1444,7 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
     const s = this.game.state;
     const port = s.occupied ?? s.blockade;
     const feat = this.#featCall();
-    this.alert.hidden = !raid && !incoming.length && !hordes.length && !port && !feat;
+    this.alert.hidden = !raid && !macedon && !incoming.length && !hordes.length && !port && !feat;
     if (this.alert.hidden) {
       this.cache.alert = '';
       this.alertDismissed.clear();
@@ -1453,6 +1454,7 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
     const keys = [
       ...incoming.map((m) => `i${m.id}`),
       raid ? `r${raid.spawn}` : null,
+      macedon ? `m${macedon.spawn}` : null,
       port ? `p${port.until}` : null,
       ...hordes.map((x) => `h${x.id}`),
       feat ? `f${feat.site}-${feat.title}` : null,
@@ -1464,11 +1466,11 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
     this.alert.title = collapsed ? 'Volver a ver los avisos' : '';
     if (collapsed) {
       const n = keys.length;
-      const icon = s.occupied ? '🦅' : s.blockade ? '⛓️' : incoming.length ? '⚔️' : raid ? '🏴‍☠️' : hordes.length ? '🔥' : feat.icon;
+      const icon = s.occupied ? '🦅' : s.blockade ? '⛓️' : incoming.length ? '⚔️' : macedon ? '☀️' : raid ? '🏴‍☠️' : hordes.length ? '🔥' : feat.icon;
       this.#setHtml(this.alert, 'alert', `<span class="alert-icon">${icon}</span><b>${n} ${n === 1 ? 'aviso' : 'avisos'}</b><span class="small">Pulsa para ${n === 1 ? 'verlo' : 'verlos'}</span>`);
       return;
     }
-    this.alertTarget = port ? 'puerto' : raid || incoming.length ? 'muralla' : hordes.length ? hordes[0].id : feat.site;
+    this.alertTarget = port ? 'puerto' : raid || macedon || incoming.length ? 'muralla' : hordes.length ? hordes[0].id : feat.site;
     const lines = [];
     if (s.occupied) lines.push(`<div data-go="puerto"><b>🦅 ¡${escapeHtml(port.name)} ocupa tu ciudad!</b> Se llevan parte de lo que produces · se irán en <span data-until="${port.until}"></span></div>`);
     else if (s.blockade) lines.push(`<div data-go="puerto"><b>⛓️ ¡${escapeHtml(port.name)} bloquea tu puerto!</b> No zarpa ni entra nadie · como mucho <span data-until="${port.until}"></span></div>`);
@@ -1478,6 +1480,7 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
     }
     if (feat) lines.push(`<div data-go="${escapeHtml(feat.site)}"><b>${feat.icon} ${escapeHtml(feat.title)}</b> ${feat.text} <span data-until="${feat.until}"></span></div>`);
     if (raid) lines.push(`<div data-go="muralla"><b>¡Piratas a la vista!</b> Llegan en <span data-until="${raid.arrival}"></span> · ${unitList(raid.army)}</div>`);
+    if (macedon) lines.push(`<div data-go="muralla"><b>☀️ ¡Los macedonios de ${escapeHtml(macedon.fromName)} vienen a por tu ciudad!</b> Llegan en <span data-until="${macedon.arrival}"></span> · ${unitList(macedon.army)}</div>`);
     for (const m of incoming.slice(0, 3)) {
       const what = { invadir: 'Invasión', bloquear: 'Bloqueo' }[m.type] ?? 'Ataque';
       // Qué traen solo se sabe cuando la torre de vigía los distingue
@@ -1491,12 +1494,12 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
       ? 'Pulsa en cada aviso para ir a él'
       : port
       ? 'Pulsa para ver tu puerto y echarlos, o pide tropas de apoyo a tu alianza'
-      : raid || incoming.length
+      : raid || macedon || incoming.length
         ? 'Defiende con tropas en casa, la muralla y la Égida del templo'
         : hordes.length
           ? 'Pulsa para ver la horda y mandar tus tropas contra ella'
           : 'Pulsa para ver la gesta en su continente';
-    const html = `<span class="alert-icon">${s.occupied ? '🦅' : s.blockade ? '⛓️' : incoming.length ? '⚔️' : raid ? '🏴‍☠️' : hordes.length ? '🔥' : feat.icon}</span>
+    const html = `<span class="alert-icon">${s.occupied ? '🦅' : s.blockade ? '⛓️' : incoming.length ? '⚔️' : macedon ? '☀️' : raid ? '🏴‍☠️' : hordes.length ? '🔥' : feat.icon}</span>
       <div>${lines.join('')}<div class="small">${tip}</div></div>
       <span class="alert-close" role="button" aria-label="Ocultar el aviso" title="Ocultar el aviso (se vuelve a abrir con un aviso nuevo)">✕</span>`;
     this.#setHtml(this.alert, 'alert', html);

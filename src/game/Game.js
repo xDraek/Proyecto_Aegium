@@ -62,7 +62,7 @@ import {
   WORK,
 } from './data.js';
 import { featHours, featPower, featProd, forgeRoom, forgeValue } from './feats.js';
-import { distance, withoutGold } from './world.js';
+import { distance, macedonianArmy, MACEDONIAN_RAID, withoutGold } from './world.js';
 import { fmtEs } from './num.js';
 import { assault, attackOf, battle, combineGroups, count, hasCombat, keepAboard, seatsOf, seatsUsed, shareSurvivors, siegeOf, splitBag, splitForces } from './combat.js';
 import {
@@ -364,6 +364,11 @@ export class Game extends EventTarget {
 
   get raid() {
     return this.state.raid;
+  }
+
+  /** El ejército macedonio que viene hacia tu ciudad, si viene alguno. */
+  get macedon() {
+    return this.state.macedon ?? null;
   }
 
   get reports() {
@@ -2473,6 +2478,7 @@ export class Game extends EventTarget {
       consider(m.phase === 'ida' ? m.arrive : m.back, (t) => this.#missionEvent(m, t));
     }
     if (s.raid) consider(s.raid.arrival, (t) => this.#resolveRaid(t));
+    if (s.macedon) consider(s.macedon.arrival, (t) => this.#resolveMacedon(t));
     else if (s.nextRaidAt && !s.vacation) consider(s.nextRaidAt, (t) => this.#spawnRaid(t));
     if (s.visitor) consider(s.visitor.expires, (t) => this.#visitorLeaves(t));
     else if (s.nextVisitAt && !s.vacation) consider(s.nextVisitAt, (t) => this.#spawnVisitor(t));
@@ -3399,6 +3405,8 @@ export class Game extends EventTarget {
     const boost = garrison.kraken ? { kraken: krakenPower(krakenLevel(rt)) } : undefined;
     const result = assault({ units: m.units, atkMul: atkMul + heroAtk, hpMul }, { units: garrison, wallHp: wall, boost });
     this.#wreck(isl.id, result, t);
+    // Los macedonios no olvidan: quien los ataca es el primero a por quien irán
+    if (isl.type === 'macedonia') this.world.macedonGrudge?.(isl.id, this.userId, t);
     if (m.hero) this.#heroXp(result.def.lost, t);
     this.state.stats.kills += count(result.def.lost);
 
@@ -3782,6 +3790,57 @@ export class Game extends EventTarget {
     this.#note(`🏴‍☠️ ${title}${stolen ? ` · se llevan ${fmtBag(stolen)}` : ''}`, outcome === 'derrota' ? 'error' : 'success');
     s.raid = null;
     s.nextRaidAt = t + hours(RAID_MIN_H + Math.random() * (RAID_MAX_H - RAID_MIN_H));
+  }
+
+  // ── Macedonios ─────────────────────────────────────────────────────────────
+
+  /**
+   * Una ciudad macedonia de cerca manda su ejército contra ti (ver MACEDONIAN_RAID): llega en lo que
+   * se tarda en cruzar el mar desde allí, y como poco en MACEDONIAN_RAID.warnMin minutos.
+   */
+  receiveMacedonians({ from, fromName, distance: d = 0 }, t) {
+    const s = this.state;
+    if (s.macedon || s.vacation) return false;
+    const tier = this.raidTier();
+    const army = macedonianArmy(tier);
+    // Las quinquerremes que los llevan (y algo de escolta)
+    const seats = Object.entries(army).reduce((a, [id, n]) => a + n * (UNITS[id].size ?? 1), 0);
+    army.galeon = Math.ceil(seats / UNITS.galeon.capacity) + Math.floor(tier / 3);
+    const sail = Math.max(MACEDONIAN_RAID.warnMin * 60, travelSeconds(s, d, UNITS.galeon.speed));
+    s.macedon = { spawn: t, arrival: t + sail * 1000, army, tier, from, fromName };
+    this.#note(`☀️ ¡Los macedonios de ${fromName} zarpan contra tu ciudad! Prepara tus defensas.`, 'error');
+    this.#dirty = true;
+    return true;
+  }
+
+  #resolveMacedon(t) {
+    const s = this.state;
+    const m = s.macedon;
+    const enemy = `Los macedonios de ${m.fromName}`;
+    const { result, wall } = this.#defend({ units: m.army }, t, enemy);
+    let stolen = null;
+    let reward = null;
+    let outcome;
+    if (result.winner === 'att') {
+      outcome = 'derrota';
+      const bag = {};
+      const safe = protectedAmount(s);
+      for (const res of RESOURCE_KEYS) bag[res] = Math.max(0, s.resources[res] - safe) * MACEDONIAN_RAID.theft;
+      stolen = takeLoot(bag, MACEDONIAN_RAID.cap * m.tier, 1);
+      for (const [res, n] of Object.entries(stolen)) s.resources[res] -= n;
+    } else {
+      outcome = result.winner === 'def' ? 'victoria' : 'empate';
+      reward = outcome === 'victoria' ? Object.fromEntries(Object.entries(MACEDONIAN_RAID.reward).map(([r, n]) => [r, n * m.tier])) : null;
+      if (reward) this.#gain(reward);
+    }
+    const title = {
+      victoria: `Rechazas a los macedonios de ${m.fromName}`,
+      empate: `Los macedonios de ${m.fromName} se retiran`,
+      derrota: `Los macedonios de ${m.fromName} saquean tu ciudad`,
+    }[outcome];
+    this.#report({ t, kind: 'defensa', outcome, title, enemy, text: defenseText(result) || undefined, battle: pick(result), loot: stolen, reward, towers: wall.towers });
+    this.#note(`☀️ ${title}${stolen ? ` · se llevan ${fmtBag(stolen)}` : ''}`, outcome === 'derrota' ? 'error' : 'success');
+    s.macedon = null;
   }
 
   // ── Visitantes ─────────────────────────────────────────────────────────────
