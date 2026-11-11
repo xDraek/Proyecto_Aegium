@@ -7,6 +7,16 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-13a',
+    date: '2026-11-13',
+    title: 'El simulador, en el iPhone',
+    items: ['📱 Arreglado de verdad que el <b>simulador de combate</b> cerrara el juego en el iPhone: Safari dibujaba de golpe los retratos de decenas de tropas y se quedaba sin memoria. Ahora en el móvil el simulador usa los iconos, y los retratos que hagan falta se preparan de uno en uno.'],
+    en: {
+      title: 'The simulator on iPhone',
+      items: ['📱 Properly fixed the <b>combat simulator</b> closing the game on iPhone: Safari drew the portraits of dozens of units at once and ran out of memory. Now on mobile the simulator uses icons, and any portraits needed are prepared one at a time.'],
+    },
+  },
+  {
     id: '2026-11-12c',
     date: '2026-11-12',
     title: 'Consagra tu templo a un dios',

@@ -162,19 +162,41 @@ export function portrait(kind, id, { level = 1, width = 320, height = 180, model
  * se abran al momento. `jobs` es una lista de [kind, id, opciones].
  */
 export function warmPortraits(jobs) {
-  const idle = window.requestIdleCallback ?? ((fn) => setTimeout(() => fn({ timeRemaining: () => 8 }), 60));
-  const queue = [...jobs];
-  const step = (deadline) => {
-    while (queue.length && deadline.timeRemaining() > 6) {
-      const [kind, id, opts] = queue.shift();
-      portrait(kind, id, opts);
-    }
-    if (queue.length && !failed) idle(step);
-  };
-  idle(step);
+  // Una sola cola para todos: si no, cada llamada arrancaba su propio bucle y en Safari se juntaban
+  warmQueue.push(...jobs);
+  if (!warming) {
+    warming = true;
+    idle(warmStep);
+  }
+}
+
+const warmQueue = [];
+let warming = false;
+
+/**
+ * Cuando el navegador está libre. Safari (el de los iPhone) no tiene requestIdleCallback: entonces se
+ * espera un poco y se dibuja UN retrato cada vez (antes decía que siempre sobraba tiempo y los dibujaba
+ * todos de golpe, y el iPhone cerraba la pestaña por falta de memoria).
+ */
+function idle(fn) {
+  if (window.requestIdleCallback) return window.requestIdleCallback(fn, { timeout: 2000 });
+  return setTimeout(() => {
+    let once = true;
+    fn({ timeRemaining: () => (once ? ((once = false), 8) : 0) });
+  }, 120);
+}
+
+function warmStep(deadline) {
+  while (warmQueue.length && deadline.timeRemaining() > 6) {
+    const [kind, id, opts] = warmQueue.shift();
+    portrait(kind, id, opts);
+  }
+  if (warmQueue.length && !failed) idle(warmStep);
+  else warming = false;
 }
 
 /** Las tropas y barcos sin modelo propio: se enseña su emoji (el Kraken no cabe en un retrato, y los hijos de Tifón no tienen modelo). */
+const TOUCH = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 const NO_MODEL = new Set(['kraken', 'sierpe', 'gigante', 'cabeza', 'fenicia', 'inmortal', 'arquero_persa', 'hidra']);
 
 /** URL del retrato de una tropa o barco, o null si no tiene. */
@@ -194,7 +216,8 @@ export function quickUnitIcon(id, cls = 'u-mini') {
   const kind = u?.kind === 'barco' ? 'ship' : 'unit';
   const key = `${kind}|${id}|1|120x120`;
   if (cache.has(key) || !u || NO_MODEL.has(id)) return unitIcon(id, cls);
-  warmPortraits([[kind, id, { width: 120, height: 120 }]]);
+  // (en las pantallas táctiles, ni se preparan: en el simulador son decenas de tropas)
+  if (!TOUCH) warmPortraits([[kind, id, { width: 120, height: 120 }]]);
   return `<span class="${cls} u-emoji" title="${u.name}">${u.icon ?? '?'}</span>`;
 }
 
