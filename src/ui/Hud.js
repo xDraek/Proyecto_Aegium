@@ -30,6 +30,18 @@ const resetCostText = () => Object.entries(HERO.resetCost).map(([r, n]) => `${fm
 
 const $ = (sel) => document.querySelector(sel);
 const CHAT_KEY = 'aegium.chatRead2';
+
+/**
+ * Marca un recuadro que se acaba de desplegar (la lista de edificios, lo que está en marcha) para que
+ * se desenrolle con animación: solo al desplegarlo, no cada vez que se repinta.
+ */
+function unfolding(el) {
+  el.classList.remove('unfolding');
+  void el.offsetWidth;
+  el.classList.add('unfolding');
+  clearTimeout(el.unfoldTimer);
+  el.unfoldTimer = setTimeout(() => el.classList.remove('unfolding'), 900);
+}
 const DOCK_KEY = 'aegium.dockCollapsed';
 const SIDE_KEY = 'aegium.sideCollapsed';
 /** Recargada desde 📰 por una actualización: al volver, se abren las novedades. */
@@ -508,6 +520,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       this.sideCollapsed = !this.sideCollapsed;
       writeFlag(sideKey(), this.sideCollapsed);
       this.#renderSidebar();
+      if (!this.sideCollapsed) unfolding(this.sidebar.parentElement);
     });
     // En el móvil, al elegir un edificio o una isla, la lista se pliega para dejar ver su panel
     this.sidebar.addEventListener('click', (e) => {
@@ -523,6 +536,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       this.dockCollapsed = !this.dockCollapsed;
       writeFlag(DOCK_KEY, this.dockCollapsed);
       this.#renderDock();
+      if (!this.dockCollapsed) unfolding(this.dockBox);
     });
 
     this.render();

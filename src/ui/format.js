@@ -126,8 +126,9 @@ export function unitRole(id) {
 export function unitList(units) {
   const parts = Object.entries(units ?? {})
     .filter(([, n]) => n > 0)
-    .map(([id, n]) => `<span class="bag-item" title="${UNITS[id].name}">${UNITS[id].icon} ${fmtNum(n)}</span>`);
-  return parts.join(' ') || '<span class="muted">ninguna</span>';
+    .map(([id, n]) => `<span class="bag-item" title="${UNITS[id].name}"><i>${UNITS[id].icon}</i>${fmtNum(n)}</span>`);
+  // (en una rejilla ordenada: con muchas, cada una en su casilla y todas del mismo ancho)
+  return parts.length ? `<span class="unit-list${parts.length > 3 ? ' many' : ''}">${parts.join('')}</span>` : '<span class="muted">ninguna</span>';
 }
 
 /**

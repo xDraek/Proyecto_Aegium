@@ -13,7 +13,7 @@ function sideTable(title, side) {
   const rows = Object.entries(side.start)
     .map(([id, n]) => {
       const lost = side.lost[id] ?? 0;
-      return `<tr><td class="u-cell">${unitIcon(id)} ${UNITS[id].name}</td><td>${fmtNum(n)}</td><td class="${lost ? 'bad' : ''}">${lost ? `−${fmtNum(lost)}` : '0'}</td></tr>`;
+      return `<tr><td><span class="u-cell">${unitIcon(id)} ${UNITS[id].name}</span></td><td>${fmtNum(n)}</td><td class="${lost ? 'bad' : ''}">${lost ? `−${fmtNum(lost)}` : '0'}</td></tr>`;
     })
     .join('');
   return `<div class="side"><h5>${title}</h5>${

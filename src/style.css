@@ -498,7 +498,7 @@ button {
 @keyframes slide-in {
   from {
     opacity: 0;
-    transform: translateX(16px);
+    transform: translateX(28px) scale(0.98);
   }
 }
 
@@ -1062,6 +1062,64 @@ select:focus {
 /* Un poco de aire entre un icono con su cifra y el siguiente */
 .bag-item + .bag-item {
   margin-left: 0.4em;
+}
+
+/* Listas de tropas (icono y cifra): en fila, saltando de línea entre una tropa y otra, nunca por medio */
+.unit-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 3px 10px;
+  vertical-align: middle;
+}
+
+.unit-list .bag-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.unit-list .bag-item + .bag-item {
+  margin-left: 0;
+}
+
+.unit-list .bag-item i {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.4em;
+  font-style: normal;
+  line-height: 1;
+}
+
+.unit-list .res-img.unit-img {
+  margin: -0.2em 0;
+  vertical-align: middle;
+}
+
+/* Con muchas tropas, en una fila de recuadros: debajo del título, a todo lo ancho y en columnas iguales */
+.info-row:has(.unit-list.many) {
+  flex-wrap: wrap;
+}
+
+.info-row:has(.unit-list.many) > span:last-child {
+  flex: 1 1 100%;
+  text-align: left;
+}
+
+.info-row .unit-list.many {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.info-row .unit-list.many .bag-item {
+  justify-content: flex-start;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* ── Actividad en curso ─────────────────────────────────────────────────── */
@@ -7139,12 +7197,14 @@ kbd {
 
   #actionbar.more-open > :not(.extra) {
     order: 1;
+    /* (con aire por encima: la última fila del menú no se pega a la raya ni a los de abajo) */
+    margin-top: 12px;
   }
 
   #actionbar.more-open {
     row-gap: 6px;
     background:
-      linear-gradient(to top, transparent 58px, rgba(201, 163, 94, 0.35) 58px, rgba(201, 163, 94, 0.35) 59px, transparent 59px),
+      linear-gradient(to top, transparent 62px, rgba(201, 163, 94, 0.35) 62px, rgba(201, 163, 94, 0.35) 63px, transparent 63px),
       radial-gradient(ellipse at 50% 0%, var(--navy-hi), var(--navy) 70%);
   }
 
@@ -7606,10 +7666,155 @@ kbd {
   }
 }
 
+@keyframes menu-unroll {
+  from {
+    clip-path: inset(0 0 100% 0);
+    opacity: 0.4;
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+}
+
+@keyframes menu-slide {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes menu-rise {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* El chat sube desde su esquina */
+#chat:not([hidden]) {
+  animation: menu-rise 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+  transform-origin: bottom right;
+}
+
+@media (min-width: 801px) {
+  /* En el ordenador, la lista de edificios (o de islas) y lo que está en marcha se desenrollan como
+     un pergamino, y sus filas entran una detrás de otra */
+  #sidebar.unfolding > .scroll,
+  #dock.unfolding > .scroll {
+    animation: menu-unroll 0.36s cubic-bezier(0.3, 0.8, 0.3, 1);
+  }
+
+  #sidebar.unfolding .list li,
+  #dock.unfolding .scroll > * {
+    animation: menu-slide 0.3s ease-out both;
+  }
+
+  #sidebar.unfolding .list li:nth-child(1),
+  #dock.unfolding .scroll > :nth-child(1) {
+    animation-delay: 0ms;
+  }
+  #sidebar.unfolding .list li:nth-child(2),
+  #dock.unfolding .scroll > :nth-child(2) {
+    animation-delay: 22ms;
+  }
+  #sidebar.unfolding .list li:nth-child(3),
+  #dock.unfolding .scroll > :nth-child(3) {
+    animation-delay: 44ms;
+  }
+  #sidebar.unfolding .list li:nth-child(4),
+  #dock.unfolding .scroll > :nth-child(4) {
+    animation-delay: 66ms;
+  }
+  #sidebar.unfolding .list li:nth-child(5),
+  #dock.unfolding .scroll > :nth-child(5) {
+    animation-delay: 88ms;
+  }
+  #sidebar.unfolding .list li:nth-child(6),
+  #dock.unfolding .scroll > :nth-child(6) {
+    animation-delay: 110ms;
+  }
+  #sidebar.unfolding .list li:nth-child(7),
+  #dock.unfolding .scroll > :nth-child(7) {
+    animation-delay: 132ms;
+  }
+  #sidebar.unfolding .list li:nth-child(8),
+  #dock.unfolding .scroll > :nth-child(8) {
+    animation-delay: 154ms;
+  }
+  #sidebar.unfolding .list li:nth-child(9),
+  #dock.unfolding .scroll > :nth-child(9) {
+    animation-delay: 176ms;
+  }
+  #sidebar.unfolding .list li:nth-child(10),
+  #dock.unfolding .scroll > :nth-child(10) {
+    animation-delay: 198ms;
+  }
+  #sidebar.unfolding .list li:nth-child(11),
+  #dock.unfolding .scroll > :nth-child(11) {
+    animation-delay: 220ms;
+  }
+  #sidebar.unfolding .list li:nth-child(12),
+  #dock.unfolding .scroll > :nth-child(12) {
+    animation-delay: 242ms;
+  }
+  #sidebar.unfolding .list li:nth-child(13),
+  #dock.unfolding .scroll > :nth-child(13) {
+    animation-delay: 264ms;
+  }
+  #sidebar.unfolding .list li:nth-child(14),
+  #dock.unfolding .scroll > :nth-child(14) {
+    animation-delay: 286ms;
+  }
+  #sidebar.unfolding .list li:nth-child(15),
+  #dock.unfolding .scroll > :nth-child(15) {
+    animation-delay: 308ms;
+  }
+  #sidebar.unfolding .list li:nth-child(16),
+  #dock.unfolding .scroll > :nth-child(16) {
+    animation-delay: 330ms;
+  }
+  #sidebar.unfolding .list li:nth-child(17),
+  #dock.unfolding .scroll > :nth-child(17) {
+    animation-delay: 352ms;
+  }
+  #sidebar.unfolding .list li:nth-child(18),
+  #dock.unfolding .scroll > :nth-child(18) {
+    animation-delay: 374ms;
+  }
+  #sidebar.unfolding .list li:nth-child(19),
+  #dock.unfolding .scroll > :nth-child(19) {
+    animation-delay: 396ms;
+  }
+  #sidebar.unfolding .list li:nth-child(20),
+  #dock.unfolding .scroll > :nth-child(20) {
+    animation-delay: 418ms;
+  }
+
+  /* El panel del edificio entra desde la derecha con un pequeño impulso */
+  #panel {
+    animation: slide-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .menu:not([hidden]),
   #actionbar.more-open > .extra,
-  #sidebar:not(.collapsed) {
+  #sidebar:not(.collapsed),
+  #chat:not([hidden]),
+  #sidebar.unfolding > .scroll,
+  #dock.unfolding > .scroll,
+  #sidebar.unfolding .list li,
+  #dock.unfolding .scroll > *,
+  #panel {
     animation: none;
   }
 }

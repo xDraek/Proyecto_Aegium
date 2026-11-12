@@ -171,7 +171,7 @@ export function runSimulation(form) {
       .map(([id, n]) => {
         const avg = (lost[id] ?? 0) / RUNS;
         const shown = !avg ? '0' : avg < 0.05 ? '−&lt;0,1' : `−${fmtDec(avg)}`;
-        return `<tr><td class="u-cell">${quickUnitIcon(id)} ${UNITS[id].name}</td><td>${fmtNum(n)}</td><td class="${avg ? 'bad' : 'muted'}">${shown}</td></tr>`;
+        return `<tr><td><span class="u-cell">${quickUnitIcon(id)} ${UNITS[id].name}</span></td><td>${fmtNum(n)}</td><td class="${avg ? 'bad' : 'muted'}">${shown}</td></tr>`;
       })
       .join('') || '<tr><td colspan="3" class="muted">Nadie</td></tr>';
   out.innerHTML = `
