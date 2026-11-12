@@ -7063,10 +7063,11 @@ kbd {
 
 @media (max-width: 800px) {
   /* Cinco botones grandes con su nombre (isla o mapa, ejército, misiones, chat y «Más»); el resto
-     sale al pulsar «Más», en una cuadrícula de cuatro por fila encima de ellos */
+     sale al pulsar «Más», en una cuadrícula de tres por fila encima de ellos (60 columnas: cinco
+     botones de 12 o tres de 20 por fila) */
   #actionbar {
     display: grid;
-    grid-template-columns: repeat(20, minmax(0, 1fr));
+    grid-template-columns: repeat(60, minmax(0, 1fr));
     gap: 4px;
     padding: 5px 6px;
   }
@@ -7074,7 +7075,7 @@ kbd {
   #actionbar > button,
   #actionbar .icon-btn,
   #actionbar .tab-btn {
-    grid-column: span 4;
+    grid-column: span 12;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -7120,7 +7121,7 @@ kbd {
 
   #actionbar > .extra {
     display: none;
-    grid-column: span 5;
+    grid-column: span 20;
     height: 56px;
     border-radius: 10px;
     background: rgba(255, 255, 255, 0.05);
@@ -7130,9 +7131,14 @@ kbd {
     display: flex;
   }
 
-  /* Desplegado, los cinco de siempre se quedan abajo, separados por una raya */
+  /* Desplegado, los cinco de siempre se quedan abajo, separados por una raya (después de todos los
+     demás, sean los que sean: antes se fijaban en la tercera fila y, con nueve, uno quedaba debajo) */
+  #actionbar.more-open > .extra {
+    order: 0;
+  }
+
   #actionbar.more-open > :not(.extra) {
-    grid-row: 3;
+    order: 1;
   }
 
   #actionbar.more-open {
@@ -7172,9 +7178,8 @@ kbd {
     border-radius: 50%;
   }
 
-  /* Con un edificio, una isla o el chat abiertos, la lista de abajo se quita y lo abierto llega
-     hasta la barra */
-  body:has(#panel:not([hidden])) #sidebar,
+  /* Con el chat o las opciones abiertos, el botón de la lista se quita (están donde va él); con un
+     edificio o una isla, se queda arriba para cambiar a otro */
   body:has(#chat:not([hidden])) #sidebar,
   body:has(#menu:not([hidden])) #sidebar {
     display: none;
@@ -7418,5 +7423,193 @@ kbd {
 
   .modal-card > .panel-head:first-child > .panel-icon {
     display: none;
+  }
+}
+
+/*
+ * En el móvil, la lista de edificios (o de islas) ya no va abajo: es un botón redondo arriba a la
+ * izquierda, como los del favor y el regalo de la derecha, que al pulsarlo se despliega hacia abajo.
+ */
+@media (max-width: 800px) {
+  #sidebar {
+    top: calc(var(--top, 170px) - 24px);
+    bottom: auto !important;
+    left: 12px;
+    right: auto;
+    width: min(250px, calc(100vw - 24px));
+    max-height: calc(100dvh - var(--top, 170px) - var(--bottom, 70px) - 4px);
+    /* (por encima del panel del edificio, pero por debajo de las ventanas) */
+    z-index: 5;
+  }
+
+  #sidebar > .scroll {
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: calc(100dvh - var(--top, 170px) - var(--bottom, 70px) - 70px);
+  }
+
+  /* Desplegada: la lista en columna, con los nombres, como en el ordenador */
+  #sidebar .list {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    overflow-x: hidden;
+  }
+
+  #sidebar .b-name {
+    display: block;
+  }
+
+  /* Plegada: solo el botón redondo con el icono (y el martillo si hay obras) */
+  #sidebar.collapsed {
+    width: auto;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  #sidebar.collapsed::before,
+  #sidebar.collapsed::after {
+    display: none;
+  }
+
+  #sidebar.collapsed > .side-head {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(24, 20, 16, 0.88);
+    border: 1px solid var(--panel-border);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+    position: relative;
+  }
+
+  #sidebar.collapsed .side-label,
+  #sidebar.collapsed .side-chevron {
+    display: none;
+  }
+
+  #sidebar.collapsed .side-ico {
+    font-size: 17px;
+    line-height: 1;
+  }
+
+  #sidebar.collapsed .side-busy {
+    position: absolute;
+    right: -6px;
+    bottom: -4px;
+    margin: 0;
+    font-size: 12px;
+  }
+
+  /* Ya no hay nada abajo encima de la barra: el panel, el cuadro de lo que está en marcha y la cámara, más abajo */
+  #sidebar ~ #dock,
+  #sidebar ~ #panel {
+    bottom: calc(var(--bottom) + 16px);
+  }
+
+  #sidebar ~ #cam-controls {
+    bottom: calc(var(--bottom) + 12px);
+  }
+}
+
+/* ── Al desplegar los menús, un poco de vida ──────────────────────────────── */
+
+@keyframes menu-pop {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.82);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.03);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes menu-unfold {
+  from {
+    opacity: 0;
+    transform: scale(0.35, 0.15);
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes menu-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* El menú de opciones cae desde arriba */
+.menu:not([hidden]) {
+  animation: menu-drop 0.22s ease-out;
+  transform-origin: top right;
+}
+
+@media (max-width: 800px) {
+  /* «Más»: los botones saltan desde la barra, uno detrás de otro */
+  #actionbar.more-open > .extra {
+    animation: menu-pop 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  }
+
+  #actionbar.more-open > .extra:nth-child(5) {
+    animation-delay: 0ms;
+  }
+  #actionbar.more-open > .extra:nth-child(6) {
+    animation-delay: 28ms;
+  }
+  #actionbar.more-open > .extra:nth-child(7) {
+    animation-delay: 56ms;
+  }
+  #actionbar.more-open > .extra:nth-child(8) {
+    animation-delay: 84ms;
+  }
+  #actionbar.more-open > .extra:nth-child(9) {
+    animation-delay: 112ms;
+  }
+  #actionbar.more-open > .extra:nth-child(10) {
+    animation-delay: 140ms;
+  }
+  #actionbar.more-open > .extra:nth-child(11) {
+    animation-delay: 168ms;
+  }
+  #actionbar.more-open > .extra:nth-child(12) {
+    animation-delay: 196ms;
+  }
+  #actionbar.more-open > .extra:nth-child(13) {
+    animation-delay: 224ms;
+  }
+
+  /* La lista de edificios crece desde su botón redondo */
+  #sidebar:not(.collapsed) {
+    animation: menu-unfold 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+    transform-origin: 17px 17px;
+  }
+
+  #sidebar > .side-head .side-chevron {
+    transition: transform 0.2s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu:not([hidden]),
+  #actionbar.more-open > .extra,
+  #sidebar:not(.collapsed) {
+    animation: none;
   }
 }

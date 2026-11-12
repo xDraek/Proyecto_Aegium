@@ -7,6 +7,26 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-14b',
+    date: '2026-11-14',
+    title: 'Los anuncios, aparte en el chat',
+    items: ['📢 El chat tiene una pestaña nueva, <b>Anuncios</b>, con todos los avisos del juego: las gestas, el Kraken, las hordas, las temporadas, los anuncios de los moderadores… En la del <b>Archipiélago</b> queda solo lo que escribe la gente.'],
+    en: {
+      title: 'Announcements in their own chat tab',
+      items: ['📢 The chat has a new <b>Announcements</b> tab with all the game notices: feats, the Kraken, hordes, seasons, moderator announcements… The <b>Archipelago</b> tab now only has what people write.'],
+    },
+  },
+  {
+    id: '2026-11-14a',
+    date: '2026-11-14',
+    title: 'Los edificios, arriba en el móvil',
+    items: ['📱 En el móvil, la lista de <b>edificios</b> (o de islas, en el mapa) ya no ocupa una barra abajo: es un botón redondo 🏛️ arriba a la izquierda que se despliega con los nombres, como en el ordenador. Al elegir uno se pliega sola y se queda arriba para cambiar a otro.'],
+    en: {
+      title: 'Buildings at the top on mobile',
+      items: ['📱 On mobile, the <b>buildings</b> list (or islands, on the map) no longer takes up a bar at the bottom: it’s a round 🏛️ button at the top left that unfolds with the names, as on desktop. When you pick one it folds itself away and stays at the top so you can switch to another.'],
+    },
+  },
+  {
     id: '2026-11-13b',
     date: '2026-11-13',
     title: 'El simulador, más corto y ligero',

@@ -374,6 +374,8 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     } catch {
       this.chatRead = { global: 0, alianza: 0, gesta: 0 };
     }
+    // (los anuncios estaban antes en el chat del archipiélago: lo leído allí ya está leído)
+    this.chatRead.anuncios ??= this.chatRead.global;
     this.#syncChatRead();
     this.#pollChat();
 
@@ -491,15 +493,26 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     addEventListener('resize', fitBottom);
     // En el móvil la lista de la izquierda va abajo: lo demás se apila encima según lo que mida
     // (desplegada, plegada o con la cabecera en dos líneas)
+    // (en el móvil la lista es ahora un botón arriba a la izquierda que se despliega: no ocupa sitio abajo;
+    // solo se le deja hueco arriba al panel para que no lo tape)
     const sidebar = $('#sidebar');
-    new ResizeObserver(() => document.documentElement.style.setProperty('--side', `${Math.ceil(sidebar.getBoundingClientRect().height)}px`)).observe(sidebar);
+    const narrow = matchMedia('(max-width: 800px)');
+    new ResizeObserver(() => document.documentElement.style.setProperty('--side', narrow.matches ? '44px' : `${Math.ceil(sidebar.getBoundingClientRect().height)}px`)).observe(sidebar);
 
-    // La lista de la izquierda (edificios o islas) también se pliega, y se recuerda
+    // La lista de la izquierda (edificios o islas) también se pliega, y se recuerda (en el móvil, aparte:
+    // allí empieza plegada, como un botón)
     this.sideHead = $('#sidebar > .side-head');
-    this.sideCollapsed = readFlag(SIDE_KEY, false);
+    const sideKey = () => (narrow.matches ? `${SIDE_KEY}.movil` : SIDE_KEY);
+    this.sideCollapsed = readFlag(sideKey(), narrow.matches);
     this.sideHead.addEventListener('click', () => {
       this.sideCollapsed = !this.sideCollapsed;
-      writeFlag(SIDE_KEY, this.sideCollapsed);
+      writeFlag(sideKey(), this.sideCollapsed);
+      this.#renderSidebar();
+    });
+    // En el móvil, al elegir un edificio o una isla, la lista se pliega para dejar ver su panel
+    this.sidebar.addEventListener('click', (e) => {
+      if (!narrow.matches || this.sideCollapsed || !e.target.closest('[data-id], [data-select]')) return;
+      this.sideCollapsed = true;
       this.#renderSidebar();
     });
 
@@ -835,7 +848,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
 
   /** Abre el chat del archipiélago en el último aviso de que el Kraken ha despertado (y lo hace brillar un momento). */
   showKrakenNotice() {
-    this.toggleChat(true, 'global');
+    this.toggleChat(true, 'anuncios');
     requestAnimationFrame(() => {
       const msg = [...this.chatEl.querySelectorAll('.msg.kraken-wake')].at(-1);
       if (!msg) return;
@@ -976,7 +989,8 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     this.sideHead.setAttribute('aria-expanded', String(!this.sideCollapsed));
     const title = this.view === 'isla' ? '🏛️ Edificios' : '🗺️ Archipiélago';
     const busy = this.view === 'isla' && game.queue ? ` <span class="side-busy" title="En obras: ${escapeHtml(BUILDINGS[game.queue.id].name)}">🔨</span>` : '';
-    this.#setHtml(this.sideHead, 'sideHead', `<span>${title}${busy}</span><span class="side-chevron">${this.sideCollapsed ? '▸' : '▾'}</span>`);
+    const [ico, ...label] = title.split(' ');
+    this.#setHtml(this.sideHead, 'sideHead', `<span class="side-title"><span class="side-ico">${ico}</span><span class="side-label"> ${label.join(' ')}</span>${busy}</span><span class="side-chevron">${this.sideCollapsed ? '▸' : '▾'}</span>`);
     this.sideHead.title = this.sideCollapsed ? 'Desplegar la lista' : 'Plegar la lista';
   }
 
@@ -1623,6 +1637,18 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
     return !!f?.convoked && (f.stage !== 'fin' || this.game.now() < (f.truceUntil ?? f.end));
   }
 
+  /**
+   * Qué sale en cada pestaña del chat: en «Anuncios», los avisos del juego (gestas, el Kraken, hordas,
+   * temporadas, los anuncios de los moderadores…); en «Archipiélago», solo lo que escribe la gente; en
+   * la alianza y la gesta, todo lo de su canal.
+   */
+  #inChatView(m, view) {
+    const ch = m.channel ?? 'global';
+    if (view === 'anuncios') return ch === 'global' && !!m.system;
+    if (view === 'global') return ch === 'global' && !m.system;
+    return ch === view;
+  }
+
   #renderChat(scroll = false) {
     const hasAlliance = !!this.game.alliance;
     const hasFeat = this.#featChatOpen();
@@ -1635,14 +1661,22 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
     }
     const feat = hasFeat ? this.game.featInfo() : null;
     this.chatEl.querySelector('.chat-sub').textContent =
-      ch === 'alianza' ? `Solo para ${this.game.alliance?.name ?? 'tu alianza'}` : ch === 'gesta' ? `Los convocados contra ${feat?.enemy ?? 'la bestia'} en ${feat?.name ?? 'su continente'}` : 'Todo el archipiélago lo lee';
+      ch === 'alianza'
+        ? `Solo para ${this.game.alliance?.name ?? 'tu alianza'}`
+        : ch === 'gesta'
+          ? `Los convocados contra ${feat?.enemy ?? 'la bestia'} en ${feat?.name ?? 'su continente'}`
+          : ch === 'anuncios'
+            ? 'Los avisos del juego, para todos'
+            : 'Todo el archipiélago lo lee';
+    // Los anuncios solo se leen
+    this.chatEl.querySelector('.chat-form').hidden = ch === 'anuncios';
     const log = this.chatEl.querySelector('.chat-log');
     const atBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 30;
-    const shown = this.chatMessages.filter((m) => (m.channel ?? 'global') === ch);
+    const shown = this.chatMessages.filter((m) => this.#inChatView(m, ch));
     // La raya roja antes del primer mensaje que no habías leído (de otros: los tuyos ya los has visto)
     const mark = this.chatMark?.ch === ch && this.chatMark.id > 0 ? this.chatMark.id : Infinity;
     const firstNew = shown.find((m) => m.id > mark && (m.system || m.name !== this.game.username))?.id;
-    log.innerHTML = shown
+    log.innerHTML = (shown.length ? '' : `<div class="muted small chat-empty">${ch === 'anuncios' ? 'Aún no hay anuncios.' : 'Aún no ha escrito nadie.'}</div>`) + shown
       .map((m) => {
         const divider = m.id === firstNew ? '<div class="chat-new"><span>Nuevos</span></div>' : '';
         const time = new Date(m.t).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
@@ -1670,14 +1704,17 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
     else if (scroll || atBottom) log.scrollTop = log.scrollHeight;
     if (!this.chatEl.hidden) this.#markChatRead(ch);
 
-    // Mensajes sin leer de otros jugadores, por canal y en total
+    // Mensajes sin leer de otros jugadores, por canal y en total (y los anuncios nuevos, en su
+    // pestaña, sin contar en el botón del chat)
     let total = 0;
-    for (const channel of ['global', 'alianza', 'gesta']) {
-      const n = this.chatMessages.filter((m) => (m.channel ?? 'global') === channel && m.id > this.chatRead[channel] && !m.system && m.name !== this.game.username).length;
+    for (const channel of ['global', 'anuncios', 'alianza', 'gesta']) {
+      const n = this.chatMessages.filter(
+        (m) => this.#inChatView(m, channel) && m.id > this.chatRead[channel] && (channel === 'anuncios' ? m.system : !m.system && m.name !== this.game.username),
+      ).length;
       const tabBadge = this.chatEl.querySelector(`[data-channel="${channel}"] .badge`);
       tabBadge.hidden = !n;
       tabBadge.textContent = n > 9 ? '9+' : n;
-      total += n;
+      if (channel !== 'anuncios') total += n;
     }
     const badge = this.chatBtn.querySelector('.badge');
     badge.hidden = !total;
@@ -1685,7 +1722,7 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
   }
 
   #markChatRead(channel) {
-    const last = this.chatMessages.filter((m) => (m.channel ?? 'global') === channel).at(-1)?.id ?? 0;
+    const last = this.chatMessages.filter((m) => this.#inChatView(m, channel)).at(-1)?.id ?? 0;
     if (last <= this.chatRead[channel]) return;
     this.chatRead[channel] = last;
     try {

@@ -4409,7 +4409,7 @@ export class WorldServer {
     const seen = (game.state.seen ??= {});
     const ahead = (now, n) => Number.isSafeInteger(n) && n > (now ?? 0);
     let changed = false;
-    for (const ch of ['global', 'alianza', 'gesta']) {
+    for (const ch of ['global', 'anuncios', 'alianza', 'gesta']) {
       if (!ahead(seen.chat?.[ch], chat?.[ch])) continue;
       seen.chat = { ...seen.chat, [ch]: chat[ch] };
       changed = true;
