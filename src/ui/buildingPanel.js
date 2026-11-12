@@ -75,6 +75,10 @@ function upgradeSection(game, id) {
   const next = game.nextUpgrade(id);
   const q = game.queue;
   const busy = game.busyReason(id);
+  // El templo en obras por la consagración (aunque ya no se pueda subir de nivel)
+  if (q?.id === id && q.god) {
+    return `${effectFor(game, id, level, level)}<div class="hint big">${GODS[q.god].icon} Los sacerdotes consagran el templo a ${GODS[q.god].name}: terminan en <span data-until="${q.end}"></span></div>`;
+  }
   if (next.maxed) {
     return `${effectFor(game, id, level, level)}<div class="hint ok big">✨ Terminado: no se puede mejorar más</div>`;
   }
@@ -82,14 +86,18 @@ function upgradeSection(game, id) {
   let label = level === 0 ? 'Construir' : `Mejorar a nivel ${next.level}`;
   let blocked = false;
   let hint = `<div class="hint" data-wait='${JSON.stringify(next.cost)}'></div>`;
-  if (q?.id === id) {
+  if (q?.id === id && q.god) {
+    label = 'Consagrando…';
+    blocked = true;
+    hint = `<div class="hint">Los sacerdotes terminan en <span data-until="${q.end}"></span></div>`;
+  } else if (q?.id === id) {
     label = 'En construcción…';
     blocked = true;
     hint = `<div class="hint">Termina en <span data-until="${q.end}"></span></div>`;
   } else if (q) {
     label = 'Constructores ocupados';
     blocked = true;
-    hint = `<div class="hint">Están trabajando en: ${BUILDINGS[q.id].name}</div>`;
+    hint = `<div class="hint">Están trabajando en: ${q.god ? 'la consagración del templo' : BUILDINGS[q.id].name}</div>`;
   } else if (busy) {
     // Una cosa a la vez: no se mejora mientras investiga o entrena
     label = id === 'academia' ? 'Investigando…' : id === 'puerto' ? 'Botando barcos…' : 'Entrenando tropas…';
@@ -452,11 +460,12 @@ function consecrationSection(game) {
   const pct = (k) => Math.round(Math.abs(k - 1) * 100);
   const about = `<p class="desc small">Consagra el templo a un dios: su poder queda <b>bendecido para siempre</b> (más fuerte: cuánto, según el dios) y los de los demás dioses, un ${pct(CONSECRATION.curse)} % más flojos. Los sacerdotes tardan ${fmtTime(consecrationSeconds(s))} y el templo cambia de aspecto. Cambiar de dios después cuesta el ${CONSECRATION.change === 2 ? 'doble' : `${CONSECRATION.change} veces más`}.</p>`;
   if (lvl < CONSECRATION.level) return `${head}<p class="desc small">🔒 Con el templo a nivel ${CONSECRATION.level} podrás consagrarlo a un dios: Deméter, Apolo, Poseidón, Atenea o Zeus.</p>`;
-  if (s.consecration) {
-    const g = GODS[s.consecration.god];
+  const going = game.queue?.god ? game.queue : s.consecration;
+  if (going) {
+    const g = GODS[going.god];
     return `${head}<div class="card active"><div class="card-head"><span class="card-icon">${g.icon}</span><div class="card-title"><b>Consagrando el templo a ${g.name}</b><div class="card-sub">${g.text}</div></div></div>
-      <div class="god-effect small"><span class="up">▲ ${godEffect(s.consecration.god).up}</span><span class="down">▼ ${godEffect(s.consecration.god).down}</span></div>
-      <div class="hint ok">Termina en <span data-until="${s.consecration.end}"></span></div></div>`;
+      <div class="god-effect small"><span class="up">▲ ${godEffect(going.god).up}</span><span class="down">▼ ${godEffect(going.god).down}</span></div>
+      <div class="hint ok">Termina en <span data-until="${going.end}"></span></div></div>`;
   }
   const cost = consecrationCost(s);
   const cards = Object.entries(GODS)
@@ -467,12 +476,15 @@ function consecrationSection(game) {
         <div class="card-head"><span class="card-icon">${g.icon}</span><div class="card-title"><b>${g.name}</b>${mine ? '<span class="card-lvl">tu dios</span>' : ''}<div class="card-sub">${g.title[0].toUpperCase() + g.title.slice(1)} · ${power.icon} ${power.name}</div></div></div>
         <p class="muted small">${g.text}</p>
         <div class="god-effect small"><span class="up">▲ ${godEffect(id).up}</span><span class="down">▼ ${godEffect(id).down}</span></div>
-        ${mine ? '' : `${costList(cost, game.resources)}<button class="primary small" data-action="consecrate" data-god="${id}" data-need='${JSON.stringify(cost)}'>${s.god ? 'Cambiar a ' : 'Consagrar a '}${g.name}</button>`}
+        ${mine ? '' : `${costList(cost, game.resources)}<button class="primary small" data-action="consecrate" data-god="${id}" data-need='${JSON.stringify(cost)}'${game.queue ? ' data-blocked="1" disabled' : ''}>${s.god ? 'Cambiar a ' : 'Consagrar a '}${g.name}</button>`}
       </div>`;
     })
     .join('');
+  // Es una obra más: con los constructores ocupados no se puede empezar
+  const q = game.queue;
+  const builders = q ? `<p class="hint warn">🔨 Los constructores están con ${BUILDINGS[q.id].name}: podrás consagrar el templo cuando terminen.</p>` : '';
   const now = GODS[s.god] ? `<p class="hint ok">${GODS[s.god].icon} Tu templo está consagrado a <b>${GODS[s.god].name}</b>.</p>` : '';
-  return `${head}${about}${now}<div class="cards">${cards}</div>`;
+  return `${head}${about}${now}${builders}<div class="cards">${cards}</div>`;
 }
 
 function refreshTemple(game, root) {

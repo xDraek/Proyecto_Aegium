@@ -1355,7 +1355,7 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
     const q = game.queue;
     if (q) {
       const b = BUILDINGS[q.id];
-      rows.push(row({ icon: '🔨', title: `${b.name} → nivel ${q.level}`, start: q.start, end: q.end, select: q.id, buttons: '<button class="ghost small" data-action="cancel-build">Cancelar</button>' }));
+      rows.push(row({ icon: q.god ? GODS[q.god].icon : '🔨', title: q.god ? `Templo → ${GODS[q.god].name}` : `${b.name} → nivel ${q.level}`, start: q.start, end: q.end, select: q.id, buttons: '<button class="ghost small" data-action="cancel-build">Cancelar</button>' }));
     }
     const rq = game.researchQueue;
     if (rq) {

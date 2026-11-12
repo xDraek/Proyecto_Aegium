@@ -1220,7 +1220,9 @@ export class Game extends EventTarget {
     this.#advance(now);
     const q = this.state.queue;
     if (!q) return this.#fail('No hay ninguna obra.');
-    this.#refund(q.cost, CANCEL_REFUND);
+    // (la consagración no cuenta como inversión: se devuelve sin tocar los puntos)
+    if (q.god) for (const [res, n] of Object.entries(q.cost)) this.state.resources[res] += Math.floor(n * CANCEL_REFUND);
+    else this.#refund(q.cost, CANCEL_REFUND);
     this.state.queue = null;
     return this.#done();
   }
@@ -1852,21 +1854,30 @@ export class Game extends EventTarget {
     const g = GODS[god];
     if (!g) return this.#fail('Ese dios no existe.');
     if (this.level('templo') < CONSECRATION.level) return this.#fail(`El templo se consagra a un dios a partir del nivel ${CONSECRATION.level}.`);
-    if (s.consecration) return this.#fail(`El templo ya se está consagrando a ${GODS[s.consecration.god].name}.`);
+    const going = s.queue?.god ?? s.consecration?.god;
+    if (going) return this.#fail(`El templo ya se está consagrando a ${GODS[going].name}.`);
     if (s.god === god) return this.#fail(`El templo ya está consagrado a ${g.name}.`);
+    // Es una obra más: ocupa a los constructores (y el templo sale en obras)
+    if (s.queue) return this.#fail('Ya hay una obra en marcha: los constructores tienen que acabarla antes de consagrar el templo.');
     const cost = consecrationCost(s);
     if (!canAfford(s.resources, cost)) return this.#fail('No tienes el oro, el cristal y el bronce que pide la consagración.');
     this.#pay(cost, false);
-    s.consecration = { god, start: now, end: now + consecrationSeconds(s) * 1000 };
+    s.queue = { id: 'templo', level: this.level('templo'), god, start: now, end: now + consecrationSeconds(s) * 1000, cost };
     this.#note(`${g.icon} Los sacerdotes empiezan a consagrar el templo a ${g.name}`, 'success');
     return this.#done();
   }
 
+  /** Las consagraciones de antes, que no ocupaban a los constructores, acaban igual. */
   #finishConsecration(t) {
+    const god = this.state.consecration.god;
+    this.state.consecration = null;
+    this.#consecrated(god, t);
+  }
+
+  #consecrated(god, t) {
     const s = this.state;
-    const g = GODS[s.consecration.god];
-    s.god = s.consecration.god;
-    s.consecration = null;
+    const g = GODS[god];
+    s.god = god;
     this.#report({ t, kind: 'templo', title: `El templo queda consagrado a ${g.name}`, text: `${g.text} Los poderes de los demás dioses, algo más flojos.`, outcome: 'victoria' });
     this.#note(`${g.icon} El templo queda consagrado a ${g.name}: ${POWERS[g.power].name} más fuerte`, 'success');
   }
@@ -2605,6 +2616,12 @@ export class Game extends EventTarget {
 
   #finishBuilding(t) {
     const q = this.state.queue;
+    // (la consagración del templo es una obra más: no sube el nivel, deja el templo a su dios)
+    if (q.god) {
+      this.state.queue = null;
+      this.#consecrated(q.god, t);
+      return;
+    }
     this.state.buildings[q.id] = q.level;
     this.state.queue = null;
     this.state.stats.upgrades = (this.state.stats.upgrades ?? 0) + 1;

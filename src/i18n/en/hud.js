@@ -178,6 +178,7 @@ export default {
   "☀️ ¡Los macedonios de {0} vienen a por tu ciudad!": "☀️ The Macedonians of {0} are coming for your city!",
   "¿Consagrar el templo a {0}? {1} ▲ {2}. ▼ {3}.": "Consecrate the temple to {0}? {1} ▲ {2}. ▼ {3}.",
   "+{0} % a {1}": "+{0}% to {1}",
+  "Templo → {0}": "Temple → {0}",
   "−{0} % a {1} y {2}": "−{0}% to {1} and {2}",
   "Consagrar el templo": "Consecrate the temple",
   "Consagrar": "Consecrate",

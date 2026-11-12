@@ -34,9 +34,14 @@ test('se consagra con el templo 10, pagando; tarda y al acabar queda su dios', a
   assert.equal(g.consecrate('poseidon').ok, true);
   assert.ok(g.state.resources.oro <= oro - CONSECRATION.cost.oro);
   assert.equal(g.consecrate('zeus').ok, false, 'una consagración cada vez');
-  env.until(g.state.consecration.end);
+  // Es una obra: ocupa a los constructores y el templo sale en obras
+  assert.equal(g.state.queue?.id, 'templo');
+  assert.equal(g.state.queue.god, 'poseidon');
+  assert.equal(g.upgrade('granja').ok, false, 'mientras se consagra no se construye nada más');
+  env.until(g.state.queue.end);
   assert.equal(g.state.god, 'poseidon');
-  assert.equal(g.state.consecration, null);
+  assert.equal(g.state.queue, null);
+  assert.equal(g.level('templo'), 10, 'consagrar no sube el nivel');
   // El Viento favorable, más largo con Poseidón
   g.state.favor = 250;
   const t0 = g.now();
@@ -46,6 +51,25 @@ test('se consagra con el templo 10, pagando; tarda y al acabar queda su dios', a
   // Se puede cambiar de dios, volviendo a pagar
   assert.equal(g.consecrate('poseidon').ok, false, 'ya es suyo');
   assert.equal(g.consecrate('atenea').ok, true);
+});
+
+test('con otra obra en marcha no se consagra, y cancelar la consagración devuelve lo pagado', async () => {
+  const env = await makeWorld(['Lucio']);
+  const [g] = env.players;
+  g.state.buildings.templo = 10;
+  Object.assign(g.state.resources, { madera: 1e6, piedra: 1e6, oro: 1e6, cristal: 1e6, hierro: 1e6, comida: 1e6 });
+  g.state.queue = { id: 'granja', level: 2, start: g.now(), end: g.now() + 60_000, cost: {} };
+  assert.equal(g.consecrate('zeus').ok, false, 'los constructores están ocupados');
+  g.state.queue = null;
+  const oro = g.state.resources.oro;
+  const spent = g.state.stats.spent;
+  assert.equal(g.consecrate('zeus').ok, true);
+  assert.ok(g.state.resources.oro < oro);
+  assert.equal(g.cancel().ok, true);
+  assert.equal(g.state.queue, null);
+  assert.equal(g.state.god, null, 'sin consagrar');
+  assert.ok(g.state.resources.oro > oro - CONSECRATION.cost.oro, 'devuelve parte de lo pagado');
+  assert.equal(g.state.stats.spent, spent, 'sin tocar los puntos');
 });
 
 test('cambiar de dios cuesta el doble, y la consagración tarda cuatro veces un nivel de templo', async () => {
