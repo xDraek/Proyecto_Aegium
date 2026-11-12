@@ -53,6 +53,26 @@ function readQuality() {
  * que a 60 Hz salga una de cada dos y no se pierda alguna por unas décimas.
  */
 const LOW_FRAME_MS = 1000 / 30 - 4;
+/**
+ * En calidad alta, con la cámara quieta, no hace falta dibujar más de 60 imágenes por segundo: en
+ * pantallas rápidas se salta siempre el mismo número de fotogramas para quedarse cerca de 60 sin
+ * bajar de ahí (120 Hz: una de cada dos; 144 Hz: 72; 240 Hz: una de cada cuatro; a 60 o 90 Hz,
+ * todas). El mar, los aldeanos y las nubes se ven igual de suaves y la gráfica trabaja la mitad. Al
+ * mover la cámara, todas las que dé la pantalla. Devuelve, para cada fotograma de la pantalla, cuánto
+ * tiene que haber pasado desde la última imagen dibujada.
+ */
+function idleGate() {
+  let prev = 0;
+  let frame = 1000 / 60;
+  return (now) => {
+    const raw = now - prev;
+    prev = now;
+    // (lo que dura un fotograma de esta pantalla, suavizado)
+    if (raw > 2 && raw < 50) frame += (raw - frame) * 0.05;
+    const skip = Math.max(1, Math.floor(1000 / 60 / frame + 0.15));
+    return skip === 1 ? 0 : skip * frame - frame / 2;
+  };
+}
 /** Con una ventana abierta el juego queda detrás, borroso: basta con 15 imágenes por segundo. */
 const COVERED_FRAME_MS = 1000 / 15 - 4;
 const NOTIFY_KEY = 'aegium.notify';
@@ -128,12 +148,14 @@ function startLanding(message, opts = {}) {
   Object.assign(state.units, { lancero: 14, arquero: 8, mercante: 2, trirreme: 1 });
   for (const isl of neutrals) state.known[isl.id] = { explored: true };
   const demo = new Game({ state, world, userId: 0, mode: 'mirror' });
-  const view = new World(scene, demo, { showcase: true });
+  const view = new World(scene, demo, { showcase: true, high: readQuality() });
   view.setDayNight(false);
   view.setQuality(readQuality());
   let last = 0;
+  const idle = idleGate();
   view.renderer.setAnimationLoop((t) => {
-    if (!view.high && t - last < LOW_FRAME_MS) return;
+    const idleGap = idle(t);
+    if (t - last < (view.high ? (view.cameraActive ? 0 : idleGap) : LOW_FRAME_MS)) return;
     const dt = Math.min(0.1, (t - last) / 1000);
     last = t;
     view.update(dt, t / 1000);
@@ -235,7 +257,7 @@ function startGame(game) {
     location.reload();
   };
 
-  const world = new World(scene, game, { onSelect: select });
+  const world = new World(scene, game, { onSelect: select, high: readQuality() });
   world.setDayNight(readDayNight());
   world.setQuality(readQuality());
   // Letreros siempre visibles: lo que eligiera el jugador; si no eligió, sí en pantallas táctiles
@@ -379,8 +401,10 @@ function startGame(game) {
   let last = performance.now();
   let hudTimer = 0;
   const modal = document.getElementById('modal');
+  const idle = idleGate();
   world.renderer.setAnimationLoop((now) => {
-    const gap = !modal.hidden ? COVERED_FRAME_MS : world.high ? 0 : LOW_FRAME_MS;
+    const idleGap = idle(now);
+    const gap = !modal.hidden ? COVERED_FRAME_MS : world.high ? (world.cameraActive ? 0 : idleGap) : LOW_FRAME_MS;
     if (now - last < gap) return;
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;

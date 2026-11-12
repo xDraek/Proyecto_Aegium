@@ -278,8 +278,10 @@ export class World {
    * @param {{ onSelect?: (id: string|null) => void, showcase?: boolean }} options
    *   showcase: escaparate de la pantalla principal (la cámara gira sola y no se puede tocar nada)
    */
-  constructor(container, game, { onSelect = () => {}, showcase = false } = {}) {
+  constructor(container, game, { onSelect = () => {}, showcase = false, high = true } = {}) {
     this.container = container;
+    // (con qué calidad arranca: decide si el lienzo suaviza los bordes por su cuenta, ver #setupRenderer)
+    this.startHigh = high;
     this.game = game;
     // Tu isla no es un círculo: su costa sale de su identificador (la ven igual los demás jugadores)
     this.homeCoast = islandCoast(game.homeIsland ?? { id: 'escaparate', type: 'jugador' });
@@ -419,7 +421,12 @@ export class World {
   // ── Montaje ────────────────────────────────────────────────────────────────
 
   #setupRenderer() {
-    const r = new THREE.WebGLRenderer({ antialias: true });
+    // En calidad alta los bordes ya los suaviza el compositor (que dibuja en su propio búfer con
+    // MSAA): el suavizado del lienzo sería trabajo y memoria de la gráfica para nada. Sin él, si se
+    // baja la calidad sin recargar, se sigue dibujando con el compositor (sin resplandor) para que
+    // los bordes salgan igual de suaves.
+    this.canvasAA = !this.startHigh;
+    const r = new THREE.WebGLRenderer({ antialias: this.canvasAA });
     r.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     r.shadowMap.enabled = true;
     r.shadowMap.type = THREE.PCFShadowMap;
@@ -460,6 +467,15 @@ export class World {
     });
     this.controls = controls;
     this.keys = new Set();
+    // Si la cámara se mueve (o la estás moviendo), se dibuja a la frecuencia de la pantalla; quieta
+    // basta con 60 imágenes por segundo (ver cameraActive)
+    this.camActiveAt = 0;
+    this.camLast = { pos: new THREE.Vector3(), target: new THREE.Vector3() };
+    controls.addEventListener('start', () => (this.interacting = true));
+    controls.addEventListener('end', () => {
+      this.interacting = false;
+      this.camActiveAt = performance.now();
+    });
 
     const resize = () => {
       const { clientWidth: w, clientHeight: h } = this.container;
@@ -551,7 +567,7 @@ export class World {
       this.water.geometry = waterGeometry(segments);
     }
     this.detailAt = null;
-    if (this.high && !this.composer) {
+    if ((this.high || !this.canvasAA) && !this.composer) {
       const { clientWidth: w, clientHeight: h } = this.container;
       const target = new THREE.WebGLRenderTarget(w || 1, h || 1, { type: THREE.HalfFloatType, samples: 4 });
       const composer = new EffectComposer(r, target);
@@ -562,6 +578,8 @@ export class World {
       composer.addPass(new OutputPass());
       this.composer = composer;
     }
+    // (el resplandor, solo en calidad alta)
+    if (this.bloom) this.bloom.enabled = this.high;
     this.#grassDensity();
     if (this.composer) {
       this.composer.setPixelRatio(r.getPixelRatio());
@@ -3220,6 +3238,11 @@ export class World {
 
   // ── Bucle ─────────────────────────────────────────────────────────────────
 
+  /** Si la cámara se está moviendo (o se acaba de mover): entonces conviene dibujar todas las imágenes. */
+  get cameraActive() {
+    return this.interacting || !!this.keys.size || performance.now() - this.camActiveAt < 400;
+  }
+
   update(dt, t) {
     const now = clock.now();
 
@@ -3246,6 +3269,13 @@ export class World {
     }
     this.#moveCamera(dt);
     this.controls.update(dt);
+    // ¿Se ha movido la cámara? (al arrastrar, con el amortiguado, al encuadrar algo o al cambiar de vista)
+    const cl = this.camLast;
+    if (cl.pos.distanceToSquared(this.camera.position) > 1e-6 || cl.target.distanceToSquared(this.controls.target) > 1e-6) {
+      this.camActiveAt = performance.now();
+      cl.pos.copy(this.camera.position);
+      cl.target.copy(this.controls.target);
+    }
     this.#gullSound(dt);
 
     // Niebla según lo lejos que esté la cámara
@@ -3432,7 +3462,7 @@ export class World {
     this.frame = (this.frame ?? 0) + 1;
     if (this.frame % 3 === 0) this.#declutter();
     if (this.high === false && this.frame % SHADOW_EVERY_LOW === 0) this.renderer.shadowMap.needsUpdate = true;
-    if (this.high && this.composer) this.composer.render(dt);
+    if (this.composer && (this.high || !this.canvasAA)) this.composer.render(dt);
     else this.renderer.render(this.scene, this.camera);
     this.labelRenderer.render(this.labelScene, this.camera);
   }
