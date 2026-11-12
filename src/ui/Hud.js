@@ -1,6 +1,6 @@
 import { play } from '../audio.js';
 import { clock, universe } from '../config.js';
-import { BUILDING_KEYS, BUILDINGS, CANCEL_REFUND, FAVOR_ICON, FEAT_THEMES, FEATS, GODS, HERO, HERO_SKILLS, ISLAND_TYPES, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCE_KEYS, RESOURCES, TRAIN_CANCEL_REFUND, UNITS, VISITORS, WORLD_EVENTS } from '../game/data.js';
+import { BUILDING_KEYS, BUILDINGS, CANCEL_REFUND, FAVOR_ICON, FEAT_THEMES, FEATS, GODS, godEffect, HERO, HERO_SKILLS, ISLAND_TYPES, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCE_KEYS, RESOURCES, TRAIN_CANCEL_REFUND, UNITS, VISITORS, WORLD_EVENTS } from '../game/data.js';
 import { HOUR_MS, canAfford, colonyYield, multiplyCost, upcomingWorldEvents } from '../game/rules.js';
 import { featAt, featCycle } from '../game/feats.js';
 import { api } from '../net/api.js';
@@ -1324,7 +1324,7 @@ Si juras y no traes ninguna flota, serás perjuro: ceniza en tu producción y un
       }
       case 'consecrate': {
         const god = GODS[btn.dataset.god];
-        if (!god || !(await askConfirm(`¿Consagrar el templo a ${god.name}? ${god.text} Los poderes de los demás dioses serán algo más flojos.`, { title: 'Consagrar el templo', icon: god.icon, ok: 'Consagrar' }))) break;
+        if (!god || !(await askConfirm(`¿Consagrar el templo a ${god.name}? ${god.text} ▲ ${godEffect(btn.dataset.god).up}. ▼ ${godEffect(btn.dataset.god).down}.`, { title: 'Consagrar el templo', icon: god.icon, ok: 'Consagrar' }))) break;
         await this.#run(btn, () => game.consecrate(btn.dataset.god), null, 'magic');
         break;
       }

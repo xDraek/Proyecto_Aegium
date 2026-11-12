@@ -1452,6 +1452,22 @@ select:focus {
   }
 }
 
+.god-effect {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 2px 0 6px;
+}
+
+.god-effect .up {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.god-effect .down {
+  color: #b4412f;
+}
+
 .ranking tr.me td {
   background: rgba(242, 201, 76, 0.14);
   color: var(--gold);

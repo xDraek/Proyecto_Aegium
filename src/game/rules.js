@@ -160,7 +160,7 @@ export function consecrationSeconds(state) {
 export function powerScale(state, id) {
   const god = GODS[state?.god];
   if (!god) return 1;
-  return god.power === id ? CONSECRATION.bless : CONSECRATION.curse;
+  return god.power === id ? (god.bless ?? CONSECRATION.bless) : CONSECRATION.curse;
 }
 
 /** Multiplicadores de combate de tus tropas. */

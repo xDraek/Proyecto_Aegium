@@ -7,6 +7,24 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-14e',
+    date: '2026-11-14',
+    title: 'Cada dios, a su medida',
+    items: [
+      '🏛️ La bendición del templo consagrado depende ahora del dios, según lo que vale su poder: 🌾 <b>Deméter +100 %</b> (la Cosecha da un 50 % de producción), 🔱 <b>Poseidón +100 %</b> (el Viento dura 3 horas), 🦉 <b>Atenea +50 %</b>, ⚡ <b>Zeus +50 %</b> y ☀️ <b>Apolo +33 %</b> (la Inspiración acorta un 40 %).',
+      '⚖️ Los poderes de los demás dioses quedan un <b>30 % más flojos</b> (antes, un 25 %).',
+      '📜 En cada dios del templo se ve cuánto sube su poder y cuánto bajan los demás.',
+    ],
+    en: {
+      title: 'Each god, tailored',
+      items: [
+        '🏛️ The consecrated temple’s blessing now depends on the god, according to what their power is worth: 🌾 <b>Demeter +100%</b> (Bountiful harvest gives 50% more production), 🔱 <b>Poseidon +100%</b> (Fair wind lasts 3 hours), 🦉 <b>Athena +50%</b>, ⚡ <b>Zeus +50%</b> and ☀️ <b>Apollo +33%</b> (Inspiration cuts 40%).',
+        '⚖️ The other gods’ powers are <b>30% weaker</b> (it was 25%).',
+        '📜 Each god in the temple shows how much their power goes up and how much the others go down.',
+      ],
+    },
+  },
+  {
     id: '2026-11-14d',
     date: '2026-11-14',
     title: 'Bodegas y refugios, algo más baratos',

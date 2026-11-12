@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { CONSECRATION, GODS } from '../src/game/data.js';
+import { CONSECRATION, GODS, godBless } from '../src/game/data.js';
 import { playerCombat, powerScale, productionBonus } from '../src/game/rules.js';
 import { makeWorld } from './world.js';
 
@@ -10,7 +10,8 @@ import { makeWorld } from './world.js';
 test('cada dios bendice su poder y los demás quedan algo más flojos', () => {
   assert.equal(powerScale({}, 'cosecha'), 1, 'sin consagrar, como siempre');
   for (const [god, g] of Object.entries(GODS)) {
-    assert.equal(powerScale({ god }, g.power), CONSECRATION.bless);
+    assert.equal(powerScale({ god }, g.power), godBless(god));
+    assert.ok(godBless(god) > 1);
     for (const other of Object.values(GODS)) if (other !== g) assert.equal(powerScale({ god }, other.power), CONSECRATION.curse);
   }
   // Deméter: la Cosecha da más; Zeus: la Furia, más ataque
@@ -41,7 +42,7 @@ test('se consagra con el templo 10, pagando; tarda y al acabar queda su dios', a
   const t0 = g.now();
   assert.equal(g.castPower('viento').ok, true);
   const hours = (g.state.buffs.viento - t0) / 3_600_000;
-  assert.ok(Math.abs(hours - 1.5 * CONSECRATION.bless) < 0.01, `${hours} h`);
+  assert.ok(Math.abs(hours - 1.5 * godBless('poseidon')) < 0.01, `${hours} h`);
   // Se puede cambiar de dios, volviendo a pagar
   assert.equal(g.consecrate('poseidon').ok, false, 'ya es suyo');
   assert.equal(g.consecrate('atenea').ok, true);

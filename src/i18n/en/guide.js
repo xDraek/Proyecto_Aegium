@@ -794,5 +794,5 @@ export default {
   "Consagración": "Consecration",
   ": con el templo a nivel {0} puedes consagrarlo a un dios. Su poder queda": ": with the temple at level {0} you can consecrate it to a god. Their power is",
   "bendecido para siempre": "blessed forever",
-  "(un {0} % más fuerte) y los de los demás dioses, un {1} % más flojos. Tarda {2} veces lo que subir el templo un nivel más, cuesta {3} y el templo cambia de aspecto. Cambiar de dios después cuesta el doble:": "({0} % stronger) and the other gods’ powers, {1} % weaker. It takes {2} times as long as raising the temple one more level, costs {3} and the temple changes its look. Switching gods afterwards costs twice as much:",
+  "(más fuerte: cuánto, según el dios) y los de los demás dioses, un {0} % más flojos. Tarda {1} veces lo que subir el templo un nivel más, cuesta {2} y el templo cambia de aspecto. Cambiar de dios después cuesta el doble:": "(stronger: how much depends on the god) and the other gods’ powers, {0} % weaker. It takes {1} times as long as raising the temple one more level, costs {2} and the temple changes its look. Switching gods afterwards costs twice as much:",
 }

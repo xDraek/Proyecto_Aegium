@@ -1,4 +1,4 @@
-import { BUILDINGS, CONSECRATION, FAVOR_ICON, GODS, HERO, HERO_SKILLS, OCCUPATION, POWER_KEYS, POWERS, RELIC_RARITY, RELIC_SLOTS, RESEARCH, RESEARCH_KEYS, RESOURCES, TRAIN_SPEED, UNIT_KEYS, UNITS, WORK } from '../game/data.js';
+import { BUILDINGS, CONSECRATION, FAVOR_ICON, GODS, godBless, godEffect, HERO, HERO_SKILLS, OCCUPATION, POWER_KEYS, POWERS, RELIC_RARITY, RELIC_SLOTS, RESEARCH, RESEARCH_KEYS, RESOURCES, TRAIN_SPEED, UNIT_KEYS, UNITS, WORK } from '../game/data.js';
 import { consecrationCost, consecrationSeconds, favorRate, hasWorkers, producerOutput, requirementName, shelterRoom, storageCapacity, townSpeedup, wallBonus, workShare, workTaxes } from '../game/rules.js';
 import { splitForces } from '../game/combat.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
@@ -378,7 +378,7 @@ function powerCard(game, id) {
   const pct = (k) => Math.round(Math.abs(k - 1) * 100);
   const divine = god
     ? blessed
-      ? `<div class="hint ok">${god.icon} Bendecido por ${god.name}: un ${pct(CONSECRATION.bless)} % más fuerte</div>`
+      ? `<div class="hint ok">${god.icon} Bendecido por ${god.name}: un ${pct(godBless(game.state.god))} % más fuerte</div>`
       : `<div class="muted small">${god.icon} El templo es de ${god.name}: este poder, un ${pct(CONSECRATION.curse)} % más flojo</div>`
     : '';
   return `<div class="card${until ? ' active' : ''}${blessed ? ' blessed' : ''}">
@@ -450,11 +450,12 @@ function consecrationSection(game) {
   const lvl = game.level('templo');
   const head = '<h4>🏛️ Consagración</h4>';
   const pct = (k) => Math.round(Math.abs(k - 1) * 100);
-  const about = `<p class="desc small">Consagra el templo a un dios: su poder queda <b>bendecido para siempre</b> (un ${pct(CONSECRATION.bless)} % más fuerte) y los de los demás dioses, un ${pct(CONSECRATION.curse)} % más flojos. Los sacerdotes tardan ${fmtTime(consecrationSeconds(s))} y el templo cambia de aspecto. Cambiar de dios después cuesta el ${CONSECRATION.change === 2 ? 'doble' : `${CONSECRATION.change} veces más`}.</p>`;
+  const about = `<p class="desc small">Consagra el templo a un dios: su poder queda <b>bendecido para siempre</b> (más fuerte: cuánto, según el dios) y los de los demás dioses, un ${pct(CONSECRATION.curse)} % más flojos. Los sacerdotes tardan ${fmtTime(consecrationSeconds(s))} y el templo cambia de aspecto. Cambiar de dios después cuesta el ${CONSECRATION.change === 2 ? 'doble' : `${CONSECRATION.change} veces más`}.</p>`;
   if (lvl < CONSECRATION.level) return `${head}<p class="desc small">🔒 Con el templo a nivel ${CONSECRATION.level} podrás consagrarlo a un dios: Deméter, Apolo, Poseidón, Atenea o Zeus.</p>`;
   if (s.consecration) {
     const g = GODS[s.consecration.god];
     return `${head}<div class="card active"><div class="card-head"><span class="card-icon">${g.icon}</span><div class="card-title"><b>Consagrando el templo a ${g.name}</b><div class="card-sub">${g.text}</div></div></div>
+      <div class="god-effect small"><span class="up">▲ ${godEffect(s.consecration.god).up}</span><span class="down">▼ ${godEffect(s.consecration.god).down}</span></div>
       <div class="hint ok">Termina en <span data-until="${s.consecration.end}"></span></div></div>`;
   }
   const cost = consecrationCost(s);
@@ -465,6 +466,7 @@ function consecrationSection(game) {
       return `<div class="card god-card${mine ? ' blessed' : ''}">
         <div class="card-head"><span class="card-icon">${g.icon}</span><div class="card-title"><b>${g.name}</b>${mine ? '<span class="card-lvl">tu dios</span>' : ''}<div class="card-sub">${g.title[0].toUpperCase() + g.title.slice(1)} · ${power.icon} ${power.name}</div></div></div>
         <p class="muted small">${g.text}</p>
+        <div class="god-effect small"><span class="up">▲ ${godEffect(id).up}</span><span class="down">▼ ${godEffect(id).down}</span></div>
         ${mine ? '' : `${costList(cost, game.resources)}<button class="primary small" data-action="consecrate" data-god="${id}" data-need='${JSON.stringify(cost)}'>${s.god ? 'Cambiar a ' : 'Consagrar a '}${g.name}</button>`}
       </div>`;
     })

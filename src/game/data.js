@@ -1299,16 +1299,40 @@ export const POWER_KEYS = Object.keys(POWERS);
  * `time` veces lo que subir el templo un nivel más (el nivel `level` + 1) y cuesta `cost`; cambiar
  * de dios después cuesta `change` veces más.
  */
-export const CONSECRATION = { level: 10, bless: 1.5, curse: 0.75, time: 16, change: 2, cost: { oro: 60000, cristal: 60000, hierro: 80000 } };
+export const CONSECRATION = { level: 10, bless: 1.5, curse: 0.7, time: 16, change: 2, cost: { oro: 60000, cristal: 60000, hierro: 80000 } };
 
-/** Los dioses a los que se puede consagrar el templo, y el poder de cada uno. */
+/**
+ * Los dioses a los que se puede consagrar el templo, y el poder de cada uno. `bless`: lo que lo
+ * refuerza (si no lo dice, CONSECRATION.bless), según lo que vale el poder: la Inspiración, que se usa
+ * mucho y ahorra horas, algo menos; la Cosecha y el Viento, que valen menos, el doble.
+ */
 export const GODS = {
-  demeter: { name: 'Deméter', icon: '🌾', power: 'cosecha', title: 'diosa de la cosecha', text: 'Campos dorados: la Cosecha abundante da más.' },
-  apolo: { name: 'Apolo', icon: '☀️', power: 'inspiracion', title: 'dios de las artes y la luz', text: 'Sus musas inspiran: la Inspiración acorta más las obras, las investigaciones y el reclutamiento.' },
-  poseidon: { name: 'Poseidón', icon: '🔱', power: 'viento', title: 'señor de los mares', text: 'El mar le obedece: el Viento favorable dura mucho más.' },
+  demeter: { name: 'Deméter', icon: '🌾', power: 'cosecha', bless: 2, title: 'diosa de la cosecha', text: 'Campos dorados: la Cosecha abundante da más.' },
+  apolo: { name: 'Apolo', icon: '☀️', power: 'inspiracion', bless: 4 / 3, title: 'dios de las artes y la luz', text: 'Sus musas inspiran: la Inspiración acorta más las obras, las investigaciones y el reclutamiento.' },
+  poseidon: { name: 'Poseidón', icon: '🔱', power: 'viento', bless: 2, title: 'señor de los mares', text: 'El mar le obedece: el Viento favorable dura mucho más.' },
   atenea: { name: 'Atenea', icon: '🦉', power: 'egida', title: 'diosa de la sabiduría y la guerra', text: 'Su escudo te cubre: la Égida protege más a tus defensores.' },
   zeus: { name: 'Zeus', icon: '⚡', power: 'rayo', title: 'padre de los dioses', text: 'Su rayo arma tu brazo: la Furia de Zeus da más ataque.' },
 };
+
+/**
+ * Lo que sube y lo que baja al consagrar el templo a un dios, con los porcentajes: «+50 % a 🌾 Cosecha
+ * abundante» y «−25 % a ☀️ Inspiración, 🔱 Viento favorable…» (los poderes de los demás dioses).
+ */
+export function godBless(id) {
+  return GODS[id]?.bless ?? CONSECRATION.bless;
+}
+
+export function godEffect(id) {
+  const g = GODS[id];
+  const power = (p) => `${POWERS[p].icon} ${POWERS[p].name}`;
+  const others = Object.values(GODS)
+    .filter((o) => o !== g)
+    .map((o) => power(o.power));
+  return {
+    up: `+${Math.round((godBless(id) - 1) * 100)} % a ${power(g.power)}`,
+    down: `−${Math.round((1 - CONSECRATION.curse) * 100)} % a ${others.slice(0, -1).join(', ')} y ${others.at(-1)}`,
+  };
+}
 
 // ── Misiones (objetivos con recompensa) ──────────────────────────────────────
 // goal(game) → [actual, objetivo]. Se muestran en orden, unas pocas a la vez.

@@ -213,7 +213,7 @@ export default {
   "🏛️ Consagración": "🏛️ Consecration",
   "Consagra el templo a un dios: su poder queda": "Consecrate the temple to a god: their power is",
   "bendecido para siempre": "blessed forever",
-  "(un {0} % más fuerte) y los de los demás dioses, un {1} % más flojos. Los sacerdotes tardan {2} y el templo cambia de aspecto. Cambiar de dios después cuesta el {3}.": "({0} % stronger) and the other gods’ powers, {1} % weaker. The priests take {2} and the temple changes its look. Switching gods afterwards costs {3}.",
+  "(más fuerte: cuánto, según el dios) y los de los demás dioses, un {0} % más flojos. Los sacerdotes tardan {1} y el templo cambia de aspecto. Cambiar de dios después cuesta el {2}.": "(stronger: how much depends on the god) and the other gods’ powers, {0} % weaker. The priests take {1} and the temple changes its look. Switching gods afterwards costs {2}.",
   "🔒 Con el templo a nivel {0} podrás consagrarlo a un dios: Deméter, Apolo, Poseidón, Atenea o Zeus.": "🔒 With the temple at level {0} you’ll be able to consecrate it to a god: Demeter, Apollo, Poseidon, Athena or Zeus.",
   "Consagrando el templo a {0}": "Consecrating the temple to {0}",
   "Consagrar a": "Consecrate to",
