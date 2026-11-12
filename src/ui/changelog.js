@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-14c',
+    date: '2026-11-14',
+    title: 'Investigaciones de final de partida',
+    items: [
+      '🎓 <b>Bodegas ampliadas</b> 📦, <b>Refugios</b> 🛖, <b>Fosos y estacas</b> 🪤 y <b>Cadena del puerto</b> 🔗 pasan a ser investigaciones de final de partida: cuestan <b>cinco veces más</b> en todos sus niveles.',
+      '🏛️ Y piden más <b>academia</b>: Bodegas ampliadas y Refugios, el nivel 8; Fosos y estacas y Cadena del puerto, el nivel 10. Si ya las tenías, conservas tus niveles, pero para subir más hace falta la academia nueva.',
+    ],
+    en: {
+      title: 'Late-game research',
+      items: [
+        '🎓 <b>Enlarged holds</b> 📦, <b>Shelters</b> 🛖, <b>Ditches and stakes</b> 🪤 and <b>Harbour chain</b> 🔗 become late-game research: they cost <b>five times as much</b> at every level.',
+        '🏛️ They also need a higher <b>academy</b>: Enlarged holds and Shelters, level 8; Ditches and stakes and Harbour chain, level 10. If you already have them you keep your levels, but going higher needs the new academy level.',
+      ],
+    },
+  },
+  {
     id: '2026-11-14b',
     date: '2026-11-14',
     title: 'Los anuncios, aparte en el chat',
