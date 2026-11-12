@@ -7,6 +7,16 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-14d',
+    date: '2026-11-14',
+    title: 'Bodegas y refugios, algo más baratos',
+    items: ['📦 <b>Bodegas ampliadas</b> cuesta la mitad de lo que se anunció (dos veces y media lo de antes, no cinco) y 🛖 <b>Refugios</b>, vez y media lo de antes en vez de cinco veces: así compensa investigarlas. Siguen pidiendo la academia a nivel 8.'],
+    en: {
+      title: 'Holds and shelters, a bit cheaper',
+      items: ['📦 <b>Enlarged holds</b> costs half of what was announced (two and a half times the old price, not five) and 🛖 <b>Shelters</b>, one and a half times the old price instead of five: so they’re worth researching. They still need academy level 8.'],
+    },
+  },
+  {
     id: '2026-11-14c',
     date: '2026-11-14',
     title: 'Investigaciones de final de partida',

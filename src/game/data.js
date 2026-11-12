@@ -962,8 +962,8 @@ export const RESEARCH = {
     icon: '📦',
     description: 'Cascos más anchos, ánforas mejor estibadas y redes de carga. Cada nivel deja que tus barcos mercantes carguen más recursos.',
     effect: (n) => `Mercantes: ${UNITS.mercante.cargo + n * MERCHANT_HOLD.per} de carga (+${n * MERCHANT_HOLD.per})`,
-    // (cinco veces lo de una investigación normal: cargar más en cada viaje vale mucho)
-    baseCost: { madera: 2000, piedra: 750, cristal: 1000, oro: 300 },
+    // (dos veces y media lo de una investigación normal: más caro sería peor que hacer más mercantes)
+    baseCost: { madera: 1000, piedra: 375, cristal: 500, oro: 150 },
     baseTime: 300,
     maxLevel: MERCHANT_HOLD.levels,
     requires: { academia: 8, puerto: 3 },
@@ -1014,8 +1014,8 @@ export const RESEARCH = {
     icon: '🛖',
     description: 'Cuevas y sótanos donde esconder a tus tropas de tierra: las que metas en el refugio (desde el cuartel) no defienden la ciudad, pero tampoco mueren ni se pueden mandar. Siguen comiendo y cobrando.',
     effect: (n) => `Sitio para ${n > 0 ? DEFENSE.shelter + DEFENSE.shelterStep * (n - 1) : 0} plazas de tropas`,
-    // (cinco veces lo de una investigación normal: esconder el ejército no sale barato)
-    baseCost: { madera: 3000, piedra: 3000, comida: 1500 },
+    // (vez y media lo de una investigación normal: más caro costaría más que las tropas que esconde)
+    baseCost: { madera: 900, piedra: 900, comida: 450 },
     baseTime: 300,
     maxLevel: 5,
     requires: { academia: 8, cuartel: 3 },

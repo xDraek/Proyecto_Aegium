@@ -1420,6 +1420,38 @@ select:focus {
   text-align: right;
 }
 
+/* La columna del nombre es la que cede (y parte los nombres largos); las cifras, nunca: con un millón
+   de puntos la tabla se salía por la derecha en el móvil */
+.ranking td:nth-child(2) {
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.ranking td:nth-child(n + 3) {
+  white-space: nowrap;
+}
+
+@media (max-width: 800px) {
+  .ranking th,
+  .ranking td {
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+
+  .ranking td:first-child {
+    padding-left: 2px;
+  }
+
+  /* El botón del mapa, pequeño: el sitio es para el nombre */
+  .ranking td .ghost.small {
+    width: auto;
+    min-width: 0;
+    padding: 4px 6px;
+    font-size: 13px;
+    line-height: 1;
+  }
+}
+
 .ranking tr.me td {
   background: rgba(242, 201, 76, 0.14);
   color: var(--gold);
