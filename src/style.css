@@ -7853,9 +7853,128 @@ kbd {
   }
 }
 
+/* ── Al cerrar, la misma animación que al abrir, al revés ──────────────────── */
+
+@keyframes menu-pop-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(18px) scale(0.82);
+  }
+}
+
+@keyframes menu-fold {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.35, 0.15);
+  }
+}
+
+@keyframes menu-roll-up {
+  from {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+  to {
+    clip-path: inset(0 0 100% 0);
+    opacity: 0.4;
+  }
+}
+
+/* El chat, el menú de opciones, el panel y las ventanas: al ocultarse siguen a la vista lo que dura
+   la animación de salida (el navegador espera para quitarlos; en los que no saben, se van al momento) */
+@supports (transition-behavior: allow-discrete) {
+  #chat {
+    transition: opacity 0.2s ease-in, transform 0.2s ease-in, display 0.2s allow-discrete;
+    transform-origin: bottom right;
+  }
+
+  #chat[hidden] {
+    opacity: 0;
+    transform: translateY(22px) scale(0.96);
+    pointer-events: none;
+  }
+
+  .menu {
+    transition: opacity 0.18s ease-in, transform 0.18s ease-in, display 0.18s allow-discrete;
+  }
+
+  .menu[hidden] {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.96);
+    pointer-events: none;
+  }
+
+  #panel {
+    transition: opacity 0.2s ease-in, transform 0.2s ease-in, display 0.2s allow-discrete;
+  }
+
+  #panel[hidden] {
+    opacity: 0;
+    transform: translateX(28px) scale(0.98);
+    pointer-events: none;
+  }
+
+  #modal {
+    transition: opacity 0.18s ease-in, display 0.22s allow-discrete;
+  }
+
+  #modal[hidden] {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  #modal > .modal-card {
+    transition: opacity 0.2s ease-in, transform 0.2s ease-in;
+  }
+
+  #modal[hidden] > .modal-card {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+}
+
+/* La lista de edificios y lo que está en marcha se enrollan al plegarlos (en el ordenador) */
+@media (min-width: 801px) {
+  #sidebar.folding > .scroll,
+  #dock.folding > .scroll {
+    animation: menu-roll-up 0.22s ease-in both;
+  }
+}
+
+@media (max-width: 800px) {
+  /* En el móvil, la lista vuelve a su botón redondo */
+  #sidebar.folding {
+    animation: menu-fold 0.22s ease-in both;
+    transform-origin: 17px 17px;
+  }
+
+  #dock.folding > .scroll {
+    animation: menu-roll-up 0.22s ease-in both;
+  }
+
+  /* «Más»: los botones vuelven a la barra */
+  /* (todos a la vez: sin los retrasos escalonados de cuando salen) */
+  #actionbar.more-open.more-closing > .extra:nth-child(n) {
+    animation: menu-pop-out 0.2s ease-in both;
+    pointer-events: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .menu:not([hidden]),
   #actionbar.more-open > .extra,
+  #actionbar.more-open.more-closing > .extra:nth-child(n),
+  #sidebar.folding,
+  #sidebar.folding > .scroll,
+  #dock.folding > .scroll,
   #sidebar:not(.collapsed),
   #chat:not([hidden]),
   #sidebar.unfolding > .scroll,
@@ -7864,5 +7983,13 @@ kbd {
   #dock.unfolding .scroll > *,
   #panel {
     animation: none;
+  }
+
+  #chat,
+  .menu,
+  #panel,
+  #modal,
+  #modal > .modal-card {
+    transition: none;
   }
 }

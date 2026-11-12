@@ -42,6 +42,27 @@ function unfolding(el) {
   clearTimeout(el.unfoldTimer);
   el.unfoldTimer = setTimeout(() => el.classList.remove('unfolding'), 900);
 }
+
+/**
+ * Lo contrario: el recuadro se recoge con la misma animación al revés (clase `cls`, ver «folding»
+ * en style.css) y, al acabar, `then` lo pliega de verdad. Si se vuelve a abrir antes, no se pliega.
+ * Sin animaciones (o si el sistema pide menos movimiento), al momento.
+ */
+function folding(el, then, cls = 'folding', ms = 220) {
+  if (el.classList.contains(cls)) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return then();
+  el.classList.remove('unfolding');
+  el.classList.add(cls);
+  el.foldTimer = setTimeout(() => {
+    el.classList.remove(cls);
+    then();
+  }, ms);
+}
+
+function cancelFolding(el, cls = 'folding') {
+  clearTimeout(el.foldTimer);
+  el.classList.remove(cls);
+}
 const DOCK_KEY = 'aegium.dockCollapsed';
 const SIDE_KEY = 'aegium.sideCollapsed';
 /** Recargada desde 📰 por una actualización: al volver, se abren las novedades. */
@@ -199,10 +220,17 @@ export class Hud {
     // al pulsar cualquiera de ellos o fuera de la barra
     const moreBtn = $('#more-btn');
     const setMore = (open) => {
-      this.actionbar.classList.toggle('more-open', open);
       moreBtn.setAttribute('aria-expanded', String(open));
+      // (al recogerse, los botones vuelven a la barra con la animación de salir, al revés)
+      if (open) {
+        cancelFolding(this.actionbar, 'more-closing');
+        this.actionbar.classList.add('more-open');
+      } else if (this.actionbar.classList.contains('more-open')) {
+        folding(this.actionbar, () => this.actionbar.classList.remove('more-open'), 'more-closing', 200);
+      }
     };
-    moreBtn.addEventListener('click', () => setMore(!this.actionbar.classList.contains('more-open')));
+    // (mientras se recoge cuenta como cerrado: pulsarlo otra vez lo vuelve a abrir)
+    moreBtn.addEventListener('click', () => setMore(!this.actionbar.classList.contains('more-open') || this.actionbar.classList.contains('more-closing')));
     this.actionbar.addEventListener('click', (e) => e.target.closest('button:not(#more-btn)') && setMore(false), true);
     document.addEventListener('pointerdown', (e) => !e.target.closest('#actionbar') && setMore(false));
     addEventListener('keydown', (e) => e.key === 'Escape' && setMore(false));
@@ -516,27 +544,54 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     this.sideHead = $('#sidebar > .side-head');
     const sideKey = () => (narrow.matches ? `${SIDE_KEY}.movil` : SIDE_KEY);
     this.sideCollapsed = readFlag(sideKey(), narrow.matches);
+    const sideBox = this.sidebar.parentElement;
+    // Plegarla: con la animación de desplegarla, al revés
+    const foldSide = () =>
+      folding(sideBox, () => {
+        this.sideCollapsed = true;
+        this.#renderSidebar();
+      });
     this.sideHead.addEventListener('click', () => {
-      this.sideCollapsed = !this.sideCollapsed;
-      writeFlag(sideKey(), this.sideCollapsed);
+      // (pulsarla mientras se pliega la deja abierta)
+      if (sideBox.classList.contains('folding')) {
+        cancelFolding(sideBox);
+        writeFlag(sideKey(), false);
+        return;
+      }
+      if (!this.sideCollapsed) {
+        writeFlag(sideKey(), true);
+        return foldSide();
+      }
+      this.sideCollapsed = false;
+      writeFlag(sideKey(), false);
       this.#renderSidebar();
-      if (!this.sideCollapsed) unfolding(this.sidebar.parentElement);
+      unfolding(sideBox);
     });
     // En el móvil, al elegir un edificio o una isla, la lista se pliega para dejar ver su panel
     this.sidebar.addEventListener('click', (e) => {
       if (!narrow.matches || this.sideCollapsed || !e.target.closest('[data-id], [data-select]')) return;
-      this.sideCollapsed = true;
-      this.#renderSidebar();
+      foldSide();
     });
 
     // El cuadro de lo que está en marcha se pliega; se recuerda (en el móvil empieza plegado)
     this.dockHead = $('#dock > .dock-head');
     this.dockCollapsed = readFlag(DOCK_KEY, innerWidth < 800);
     this.dockHead.addEventListener('click', () => {
-      this.dockCollapsed = !this.dockCollapsed;
-      writeFlag(DOCK_KEY, this.dockCollapsed);
+      if (this.dockBox.classList.contains('folding')) {
+        cancelFolding(this.dockBox);
+        writeFlag(DOCK_KEY, false);
+        return;
+      }
+      writeFlag(DOCK_KEY, !this.dockCollapsed);
+      if (!this.dockCollapsed) {
+        return folding(this.dockBox, () => {
+          this.dockCollapsed = true;
+          this.#renderDock();
+        });
+      }
+      this.dockCollapsed = false;
       this.#renderDock();
-      if (!this.dockCollapsed) unfolding(this.dockBox);
+      unfolding(this.dockBox);
     });
 
     this.render();
@@ -654,9 +709,13 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
   closeModal() {
     this.modalKind = null;
     this.modal.hidden = true;
-    this.modal.innerHTML = '';
     this.cache.modal = '';
     this.#syncActive();
+    // (lo de dentro se vacía al acabar de irse: mientras, la ventana sale con su animación al revés)
+    clearTimeout(this.modalClearTimer);
+    this.modalClearTimer = setTimeout(() => {
+      if (this.modal.hidden) this.modal.innerHTML = '';
+    }, 300);
   }
 
   /**
