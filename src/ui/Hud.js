@@ -205,7 +205,8 @@ export class Hud {
     this.actionbar.addEventListener(
       'click',
       (e) => {
-        const btn = e.target.closest('#actionbar > button.active');
+        // (el de Mapa / Mi isla no abre nada: cambia de vista, y pulsarlo otra vez vuelve)
+        const btn = e.target.closest('#actionbar > button.active:not(#view-btn)');
         if (!btn) return;
         // Antes que el propio botón: en vez de volver a abrirlo, se cierra
         e.stopPropagation();
@@ -724,7 +725,7 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
    */
   #syncActive() {
     const open = !this.modal.hidden && this.modalKind ? ACTIVE_BUTTON[this.modalKind] : null;
-    for (const btn of this.actionbar.querySelectorAll(':scope > button')) {
+    for (const btn of this.actionbar.querySelectorAll(':scope > button:not(#view-btn)')) {
       const on = btn.id === open || (btn.id === 'chat-btn' && !this.chatEl.hidden) || (btn.id === 'menu-btn' && !this.menu.hidden);
       btn.classList.toggle('active', on);
       btn.setAttribute('aria-pressed', String(on));
