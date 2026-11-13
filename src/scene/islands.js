@@ -482,20 +482,42 @@ export function createIslandFeature(isl, fullLook) {
   return bakeStatic(g);
 }
 
-function mist(g, R, rand) {
-  // Unos cúmulos bajos que tapan la isla; giran despacio todos juntos
-  const material = cloudMaterial(0.9);
+/**
+ * Las nubes de las islas sin explorar: unas pocas formas hechas una vez (para una isla de radio
+ * MIST_R) que comparten todas, giradas y estiradas a la medida de cada isla. Así ponerlas no cuesta
+ * nada y salen al momento al mover el mapa (antes cada isla se hacía las suyas, bola a bola).
+ */
+const MIST_R = 6;
+const MIST_SHAPES = 6;
+const mistShapes = [];
+let mistMaterial = null;
+
+function mistShape(i) {
+  if (mistShapes[i]) return mistShapes[i];
+  const rand = rng(0x5eed + i * 7919);
   const parts = [];
-  for (let i = 0; i < 6; i++) {
+  for (let k = 0; k < 6; k++) {
     const puffs = 4 + Math.floor(rand() * 3);
-    const geo = cloudGeometry(rand, { puffs, width: R * 0.95, depth: R * 0.45, size: R * 0.27 });
-    const p = polar(i ? R * (0.3 + rand() * 0.3) : 0, (i / 5) * 360 + rand() * 30, 1.2 + rand() * 1.6);
+    const geo = cloudGeometry(rand, { puffs, width: MIST_R * 0.95, depth: MIST_R * 0.45, size: MIST_R * 0.27 });
+    const p = polar(k ? MIST_R * (0.3 + rand() * 0.3) : 0, (k / 5) * 360 + rand() * 30, 1.2 + rand() * 1.6);
     geo.rotateY(rand() * Math.PI).translate(p.x, p.y, p.z);
     parts.push(geo);
   }
-  const cloud = new THREE.Mesh(mergeGeometries(parts), material);
+  mistShapes[i] = mergeGeometries(parts);
   for (const geo of parts) geo.dispose();
+  return mistShapes[i];
+}
+
+function mist(g, R, rand) {
+  // Unos cúmulos bajos que tapan la isla; giran despacio todos juntos
+  mistMaterial ??= cloudMaterial(0.9);
+  const cloud = new THREE.Mesh(mistShape(Math.floor(rand() * MIST_SHAPES)), mistMaterial);
+  // (de ancho, a la medida de la isla; de alto, algo menos, que no se hinchen las grandes)
+  const k = R / MIST_R;
+  cloud.scale.set(k, Math.sqrt(k), k);
+  cloud.rotation.y = rand() * Math.PI * 2;
   cloud.userData.spin = { axis: 'y', speed: 0.08 };
+  cloud.userData.shared = true;
   g.add(cloud);
 }
 

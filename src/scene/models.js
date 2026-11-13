@@ -6072,5 +6072,6 @@ export function createScaffold(height) {
 }
 
 export function disposeTree(obj) {
-  obj.traverse((o) => o.geometry?.dispose());
+  // (las piezas compartidas, como las nubes de lo inexplorado, se quedan)
+  obj.traverse((o) => !o.userData.shared && o.geometry?.dispose());
 }

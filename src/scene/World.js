@@ -3084,8 +3084,9 @@ export class World {
       if (e.proxy) e.proxy.visible = shown && (!full || !e.base);
       // El adorno: se construye al acercarse y se suelta al alejarse
       const deco = decorated.has(e);
-      // (las nubes que ya se hicieron vuelven al momento; lo demás, a la cola)
-      if (deco && !e.feature && e.featureArgs && this.mistCache?.has(`${e.isl.id}|${e.featureArgs[1]}`)) this.#buildFeature(e);
+      // (las nubes de lo inexplorado, y las que ya se hicieron, al momento: no cuestan nada; lo
+      // demás, a la cola)
+      if (deco && !e.feature && e.featureArgs && (/^niebla\b/.test(e.featureArgs[1]) || this.mistCache?.has(`${e.isl.id}|${e.featureArgs[1]}`))) this.#buildFeature(e);
       else if (deco && !e.feature && e.featureArgs) this.pendingBases.push({ e, d: e.lodD, feature: true });
       else if (!deco && e.feature) {
         // (se esconde; si hay demasiados escondidos, se sueltan los más lejanos más abajo)
