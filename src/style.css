@@ -1262,6 +1262,74 @@ select:focus {
   font-weight: 600;
 }
 
+/* Anclar y borrar: discretos hasta que pasas por encima (en el móvil, siempre a la vista) */
+.r-tools {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.r-tool {
+  background: none;
+  border: 0;
+  padding: 2px 5px;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.35;
+  filter: grayscale(1);
+  transition: opacity 0.15s, filter 0.15s, background 0.15s;
+}
+
+.report summary:hover .r-tool,
+.r-tool:focus-visible {
+  opacity: 0.75;
+}
+
+.r-tool:hover {
+  opacity: 1;
+  filter: none;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.r-tool.on {
+  opacity: 1;
+  filter: none;
+}
+
+.r-tool:disabled {
+  cursor: wait;
+}
+
+/* El anclado conserva su pergamino: solo un filo de oro alrededor */
+.report.pinned {
+  box-shadow:
+    0 0 0 2px var(--parch-gold, #c49b55),
+    0 2px 10px rgba(196, 155, 85, 0.35);
+}
+
+.report.removing {
+  opacity: 0.35;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.reports-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+@media (hover: none) {
+  .r-tool {
+    opacity: 0.7;
+  }
+}
+
 .r-title {
   flex: 1;
 }
@@ -1288,8 +1356,13 @@ select:focus {
     min-width: 0;
   }
 
+  .report summary .r-tools {
+    order: 1;
+  }
+
   .report summary .r-meta {
     flex-basis: 100%;
+    order: 2;
     white-space: normal;
     text-align: right;
   }

@@ -21,13 +21,25 @@ test('cada pueblo tiene su compañía, su clase y no se entrena en ningún edifi
 test('se contratan en la taberna, no en el cuartel, y se van al acabar el contrato', async () => {
   const env = await makeWorld(['Lucio']);
   const [g] = env.players;
-  g.state.buildings.taberna = 2;
+  g.state.buildings.taberna = 4;
   assert.equal(g.train('peltasta', 1).ok, false, 'no se entrenan');
   const offers = g.mercenaryOffers().filter((o) => o.exotic && !o.locked).map((o) => o.id);
   assert.deepEqual(offers, ['tracios']);
+  // Sin Cartas náuticas no encuentran la taberna
+  g.state.research.cartas = 0;
+  assert.match(g.hireMercenaries('tracios').reason, /Cartas náuticas/);
+  g.state.research.cartas = 1;
   assert.equal(g.hireMercenaries('tracios').ok, true);
   assert.equal(g.state.units.peltasta, 14);
-  assert.equal(g.hireMercenaries('hetairos').ok, false, 'los hetairos piden la taberna 13');
+  assert.equal(g.hireMercenaries('hetairos').ok, false, 'los hetairos piden la taberna 14');
   env.advance(25 * 3_600_000);
   assert.equal(g.state.units.peltasta, 0, 'acabado el contrato, se marchan');
+});
+
+test('los mercenarios griegos no necesitan las Cartas náuticas', async () => {
+  const env = await makeWorld(['Lucio']);
+  const [g] = env.players;
+  g.state.buildings.taberna = 1;
+  g.state.research.cartas = 0;
+  assert.equal(g.hireMercenaries('lanceros').ok, true);
 });

@@ -321,6 +321,36 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       }
       const claim = e.target.closest('[data-action="claim"]');
       if (claim && !claim.disabled) return this.#run(claim, () => game.claimQuest(claim.dataset.id), null, 'coins');
+      const pin = e.target.closest('[data-action="pin-report"]');
+      if (pin) {
+        e.preventDefault(); // (está dentro del <summary>: que no abra ni cierre el informe)
+        const on = pin.getAttribute('aria-pressed') !== 'true';
+        pin.disabled = true;
+        const res = await game.pinReport(Number(pin.dataset.id), on);
+        if (!res?.ok) this.toast(res?.reason ?? 'No se ha podido anclar.', 'error');
+        this.#refreshReports();
+        return;
+      }
+      const del = e.target.closest('[data-action="delete-report"]');
+      if (del) {
+        e.preventDefault();
+        const id = Number(del.dataset.id);
+        if (this.game.reports.find((r) => r.id === id)?.pinned && !(await askConfirm('Este informe está anclado. ¿Lo borras igualmente?', { title: 'Borrar informe', icon: '🗑️', ok: 'Borrar', danger: true }))) return;
+        const card = del.closest('.report');
+        card?.classList.add('removing');
+        const res = await game.deleteReport(id);
+        if (!res?.ok) this.toast(res?.reason ?? 'No se ha podido borrar.', 'error');
+        this.#refreshReports();
+        return;
+      }
+      if (e.target.closest('[data-action="delete-reports"]')) {
+        const n = this.game.reports.filter((r) => !r.pinned).length;
+        if (!(await askConfirm(`¿Borrar ${n} ${n === 1 ? 'informe' : 'informes'}? Los anclados se quedan.`, { title: 'Borrar informes', icon: '🗑️', ok: 'Borrar', danger: true }))) return;
+        const res = await game.deleteReport('all');
+        if (!res?.ok) this.toast(res?.reason ?? 'No se han podido borrar.', 'error');
+        this.#refreshReports();
+        return;
+      }
       const share = e.target.closest('[data-action="share-report"]');
       if (share) {
         // Los informes de una gesta, primero a su chat
@@ -654,6 +684,17 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     wrap.appendChild(el);
     setTimeout(() => el.classList.add('out'), 3800);
     setTimeout(() => el.remove(), 4300);
+  }
+
+  /** Redibuja la lista de informes sin cerrar los que estaban abiertos. */
+  #refreshReports() {
+    if (this.modal.hidden || this.modalKind !== 'reports') return;
+    const open = new Set([...this.modal.querySelectorAll('details.report[open]')].map((d) => Number(d.dataset.id)));
+    const list = this.modal.querySelector('.reports');
+    const scroll = list?.scrollTop ?? 0;
+    this.modal.innerHTML = reportsHtml(this.game.reports, open);
+    const again = this.modal.querySelector('.reports');
+    if (again) again.scrollTop = scroll;
   }
 
   openReports() {

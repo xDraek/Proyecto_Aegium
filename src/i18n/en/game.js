@@ -29,6 +29,7 @@ export default {
   "Construye la taberna para contratar mercenarios.": "Build the tavern to hire mercenaries.",
   "Esa compañía no existe.": "That company doesn't exist.",
   "Esa compañía solo viene a una taberna de nivel {0}.": "That company only comes to a level {0} tavern.",
+  "Los mercenarios extranjeros solo encuentran tu taberna si tienes {0}.": "Foreign mercenaries only find your tavern if you have {0}.",
   "Esa compañía ya está contratada hoy. Mañana habrá otra.": "That company has already been hired today. There'll be another tomorrow.",
   "No tienes con qué pagarles.": "You have nothing to pay them with.",
   "{0} Llegan {1} × {2} a sueldo durante un día": "{0} {1} × {2} arrive, paid for one day",
@@ -580,4 +581,5 @@ export default {
   "El templo queda consagrado a {0}": "The temple is consecrated to {0}",
   "{0} Los poderes de los demás dioses, algo más flojos.": "{0} The other gods’ powers, somewhat weaker.",
   "{0} El templo queda consagrado a {1}: {2} más fuerte": "{0} The temple is consecrated to {1}: {2} stronger",
+  "Solo puedes anclar {0} informes: desancla alguno antes.": "You can only pin {0} reports: unpin one first.",
 }

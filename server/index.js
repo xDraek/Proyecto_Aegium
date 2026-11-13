@@ -141,6 +141,8 @@ const ACTIONS = {
   acceptVisitor: (g) => g.acceptVisitor(),
   dismissVisitor: (g) => g.dismissVisitor(),
   markReportsRead: (g) => g.markReportsRead(),
+  pinReport: (g, [id, on]) => (int(id) >= 0 ? g.pinReport(int(id), on === true) : bad()),
+  deleteReport: (g, [id]) => (id === 'all' ? g.deleteReport('all') : int(id) >= 0 ? g.deleteReport(int(id)) : bad()),
   upgradeColony: (g, [id]) => (typeof id === 'string' ? g.upgradeColony(id) : bad()),
   abandonColony: (g, [id]) => (typeof id === 'string' ? g.abandonColony(id) : bad()),
   watchCity: (g, [id]) => (typeof id === 'string' ? g.watchCity(id) : bad()),
@@ -157,7 +159,7 @@ const ACTIONS = {
 };
 
 /** De vacaciones solo se puede volver, recoger cosas y deshacer lo que estaba en marcha. */
-const VACATION_OK = new Set(['endVacation', 'markReportsRead', 'claimQuest', 'claimDaily', 'cancel', 'cancelResearch', 'cancelTraining', 'dismissVisitor']);
+const VACATION_OK = new Set(['endVacation', 'markReportsRead', 'pinReport', 'deleteReport', 'claimQuest', 'claimDaily', 'cancel', 'cancelResearch', 'cancelTraining', 'dismissVisitor']);
 
 // ── Límites de peticiones ─────────────────────────────────────────────────────
 

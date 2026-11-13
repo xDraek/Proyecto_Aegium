@@ -1,4 +1,4 @@
-import { BUILDINGS, CONSECRATION, FAVOR_ICON, GODS, godBless, godEffect, HERO, HERO_SKILLS, OCCUPATION, POWER_KEYS, POWERS, RELIC_RARITY, RELIC_SLOTS, RESEARCH, RESEARCH_KEYS, RESOURCES, TRAIN_SPEED, UNIT_KEYS, UNITS, WORK } from '../game/data.js';
+import { BUILDINGS, CONSECRATION, EXOTIC_MERC_RESEARCH, FAVOR_ICON, GODS, godBless, godEffect, HERO, HERO_SKILLS, OCCUPATION, POWER_KEYS, POWERS, RELIC_RARITY, RELIC_SLOTS, RESEARCH, RESEARCH_KEYS, RESOURCES, TRAIN_SPEED, UNIT_KEYS, UNITS, WORK } from '../game/data.js';
 import { consecrationCost, consecrationSeconds, favorRate, hasWorkers, producerOutput, requirementName, shelterRoom, storageCapacity, townSpeedup, wallBonus, workShare, workTaxes } from '../game/rules.js';
 import { splitForces } from '../game/combat.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
@@ -423,7 +423,11 @@ function mercenarySection(game) {
   };
   const open = all.filter((o) => !o.locked);
   const greek = open.filter((o) => !o.exotic).map(card).join('');
-  const foreign = open.filter((o) => o.exotic).map(card).join('');
+  const foreign = open.filter((o) => o.exotic && !o.charts).map(card).join('');
+  const charts = RESEARCH[EXOTIC_MERC_RESEARCH];
+  const noCharts = all.some((o) => o.charts)
+    ? `<p class="hint">🔒 Sin ${charts.icon} <b>${charts.name}</b> (en la academia) no encuentran tu taberna: investígalas para contratarlos.</p>`
+    : '';
   return `<h4>⚔️ Mercenarios</h4>
     <p class="desc small">Soldados a sueldo durante un día: luchan y comen como los tuyos, y al acabar el contrato se van (aunque estén en una flota). Cada compañía se contrata una vez al día.</p>
     ${contracts ? `<ul class="mini-list">${contracts}</ul>` : ''}
@@ -431,6 +435,7 @@ function mercenarySection(game) {
     ${nextMercenaries(all.filter((o) => !o.exotic))}
     <h4>🌍 Mercenarios extranjeros</h4>
     <p class="desc small">Guerreros de los pueblos que viven alrededor de los griegos: tracios, ilirios, carios, escitas, persas, baleares, sicilianos, macedonios y gálatas. No se pueden entrenar en el cuartel: solo vienen a sueldo a la taberna.</p>
+    ${noCharts}
     ${foreign ? `<div class="cards">${foreign}</div>` : ''}
     ${nextMercenaries(all.filter((o) => o.exotic))}`;
 }

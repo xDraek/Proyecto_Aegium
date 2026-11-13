@@ -30,6 +30,7 @@ import {
   FEAT_THEMES,
   ISLAND_TYPES,
   MERCENARIES,
+  EXOTIC_MERC_RESEARCH,
   MERCENARY_HOURS,
   JOINT_MAX,
   KRAKEN_RULES,
@@ -120,6 +121,8 @@ import {
 
 export const SAVE_VERSION = 7;
 const MAX_REPORTS = 40;
+/** Informes anclados como máximo (no cuentan para los 40 ni se borran solos). */
+export const MAX_PINNED_REPORTS = 15;
 const MAX_NOTES = 30;
 
 // Piratas: el primer asalto llega un rato después de que el ayuntamiento alcance
@@ -890,7 +893,9 @@ export class Game extends EventTarget {
       const locked = lvl < m.taberna;
       const count = Math.round(m.base + m.per * Math.max(0, lvl - m.taberna));
       const cost = mercenaryCost(m, count);
-      return { id, ...m, count, cost, locked, hired: hired.includes(id) };
+      // Los extranjeros, además, solo llegan con las Cartas náuticas
+      const charts = !!m.exotic && this.researchLevel(EXOTIC_MERC_RESEARCH) < 1;
+      return { id, ...m, count, cost, locked, charts, hired: hired.includes(id) };
     });
   }
 
@@ -900,6 +905,7 @@ export class Game extends EventTarget {
     const offer = this.mercenaryOffers(now).find((o) => o.id === id);
     if (!offer) return this.#fail('Esa compañía no existe.');
     if (offer.locked) return this.#fail(`Esa compañía solo viene a una taberna de nivel ${offer.taberna}.`);
+    if (offer.charts) return this.#fail(`Los mercenarios extranjeros solo encuentran tu taberna si tienes ${RESEARCH[EXOTIC_MERC_RESEARCH].name}.`);
     if (offer.hired) return this.#fail('Esa compañía ya está contratada hoy. Mañana habrá otra.');
     if (!canAfford(this.state.resources, offer.cost)) return this.#fail('No tienes con qué pagarles.');
     this.#pay(offer.cost, false);
@@ -1651,6 +1657,30 @@ export class Game extends EventTarget {
     }
     if (changed) this.#flush(true);
     return { ok: true };
+  }
+
+  /** Ancla (o desancla) un informe: los anclados salen arriba y no se borran solos. */
+  pinReport(id, on = true) {
+    const r = this.state.reports.find((x) => x.id === id);
+    if (!r) return this.#fail('Ese informe ya no existe.');
+    if (!!r.pinned === on) return { ok: true };
+    if (on && this.state.reports.filter((x) => x.pinned).length >= MAX_PINNED_REPORTS)
+      return this.#fail(`Solo puedes anclar ${MAX_PINNED_REPORTS} informes: desancla alguno antes.`);
+    if (on) r.pinned = true;
+    else {
+      delete r.pinned;
+      this.#trimReports();
+    }
+    return this.#done();
+  }
+
+  /** Borra un informe, o con 'all' todos los que no estén anclados. */
+  deleteReport(id) {
+    const before = this.state.reports.length;
+    if (id === 'all') this.state.reports = this.state.reports.filter((r) => r.pinned);
+    else this.state.reports = this.state.reports.filter((r) => r.id !== id);
+    if (this.state.reports.length === before) return id === 'all' ? { ok: true } : this.#fail('Ese informe ya no existe.');
+    return this.#done();
   }
 
   claimQuest(id, now = this.now()) {
@@ -2461,8 +2491,14 @@ export class Game extends EventTarget {
   #report(data) {
     const r = { id: this.state.seq++, read: false, ...data };
     this.state.reports.unshift(r);
-    this.state.reports.length = Math.min(this.state.reports.length, MAX_REPORTS);
+    this.#trimReports();
     return r;
+  }
+
+  /** Se quedan los anclados y los MAX_REPORTS más recientes del resto. */
+  #trimReports() {
+    let loose = 0;
+    this.state.reports = this.state.reports.filter((r) => r.pinned || ++loose <= MAX_REPORTS);
   }
 
   /** Gasto que cuenta para la puntuación (salvo que `invest` sea false). */

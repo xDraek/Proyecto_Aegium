@@ -318,6 +318,14 @@ export class ClientGame extends Game {
     return this.#act('markReportsRead');
   }
 
+  pinReport(id, on) {
+    return this.#act('pinReport', id, on);
+  }
+
+  deleteReport(id) {
+    return this.#act('deleteReport', id);
+  }
+
   fetchRanking() {
     return api('GET', '/api/ranking');
   }

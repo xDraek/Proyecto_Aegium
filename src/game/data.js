@@ -1428,19 +1428,22 @@ export const MERCENARIES = {
   espartanos: { name: 'Espartanos desterrados', icon: '🔺', unit: 'espartano', taberna: 9, base: 5, per: 1, price: { oro: 70, hierro: 25 } },
   cretenses: { name: 'Arqueros de Creta', icon: '🎯', unit: 'sagitario', taberna: 9, base: 5, per: 1, price: { oro: 60, madera: 25 } },
   catafractos: { name: 'Catafractos de Partia', icon: '🏇', unit: 'catafracto', taberna: 12, base: 4, per: 0.8, price: { oro: 140, hierro: 40 } },
-  // Los pueblos que convivían con los griegos (`exotic`): tropas que no se pueden entrenar
-  tracios: { name: 'Peltastas de Tracia', icon: '🌙', unit: 'peltasta', exotic: true, taberna: 2, base: 14, per: 4, price: { oro: 6, madera: 5 } },
-  ilirios: { name: 'Banda iliria', icon: '🐺', unit: 'ilirio', exotic: true, taberna: 3, base: 12, per: 3, price: { oro: 10, hierro: 6 } },
-  carios: { name: 'Hoplitas de Caria', icon: '🐂', unit: 'cario', exotic: true, taberna: 4, base: 12, per: 2.5, price: { oro: 14, hierro: 8 } },
-  escitas: { name: 'Jinetes de la estepa escita', icon: '🦌', unit: 'escita', exotic: true, taberna: 5, base: 8, per: 1.5, price: { oro: 30, comida: 15 } },
-  persas: { name: 'Sparabara del Gran Rey', icon: '🦚', unit: 'sparabara', exotic: true, taberna: 6, base: 12, per: 2.5, price: { oro: 12, madera: 8 } },
-  baleares: { name: 'Honderos de las Baleares', icon: '☄️', unit: 'balear', exotic: true, taberna: 7, base: 10, per: 2, price: { oro: 20, piedra: 10 } },
-  mamertinos: { name: 'Mamertinos de Mesina', icon: '🐗', unit: 'mamertino', exotic: true, taberna: 8, base: 8, per: 1.5, price: { oro: 35, hierro: 15 } },
-  falangitas: { name: 'Falange macedonia', icon: '✴️', unit: 'falangita', exotic: true, taberna: 10, base: 8, per: 1.5, price: { oro: 40, hierro: 20 } },
-  galatas: { name: 'Gálatas de Asia', icon: '🌀', unit: 'galata', exotic: true, taberna: 11, base: 6, per: 1, price: { oro: 50, hierro: 20 } },
-  hetairos: { name: 'Hetairos del rey', icon: '👑', unit: 'hetairo', exotic: true, taberna: 13, base: 4, per: 0.8, price: { oro: 140, comida: 40 } },
+  // Los pueblos que convivían con los griegos (`exotic`): tropas que no se pueden entrenar (y solo
+  // encuentran tu taberna si tienes las Cartas náuticas: ver EXOTIC_MERC_RESEARCH)
+  tracios: { name: 'Peltastas de Tracia', icon: '🌙', unit: 'peltasta', exotic: true, taberna: 4, base: 14, per: 4, price: { oro: 6, madera: 5 } },
+  ilirios: { name: 'Banda iliria', icon: '🐺', unit: 'ilirio', exotic: true, taberna: 5, base: 12, per: 3, price: { oro: 10, hierro: 6 } },
+  carios: { name: 'Hoplitas de Caria', icon: '🐂', unit: 'cario', exotic: true, taberna: 6, base: 12, per: 2.5, price: { oro: 14, hierro: 8 } },
+  escitas: { name: 'Jinetes de la estepa escita', icon: '🦌', unit: 'escita', exotic: true, taberna: 7, base: 8, per: 1.5, price: { oro: 30, comida: 15 } },
+  persas: { name: 'Sparabara del Gran Rey', icon: '🦚', unit: 'sparabara', exotic: true, taberna: 8, base: 12, per: 2.5, price: { oro: 12, madera: 8 } },
+  baleares: { name: 'Honderos de las Baleares', icon: '☄️', unit: 'balear', exotic: true, taberna: 9, base: 10, per: 2, price: { oro: 20, piedra: 10 } },
+  mamertinos: { name: 'Mamertinos de Mesina', icon: '🐗', unit: 'mamertino', exotic: true, taberna: 10, base: 8, per: 1.5, price: { oro: 35, hierro: 15 } },
+  falangitas: { name: 'Falange macedonia', icon: '✴️', unit: 'falangita', exotic: true, taberna: 11, base: 8, per: 1.5, price: { oro: 40, hierro: 20 } },
+  galatas: { name: 'Gálatas de Asia', icon: '🌀', unit: 'galata', exotic: true, taberna: 12, base: 6, per: 1, price: { oro: 50, hierro: 20 } },
+  hetairos: { name: 'Hetairos del rey', icon: '👑', unit: 'hetairo', exotic: true, taberna: 14, base: 4, per: 0.8, price: { oro: 140, comida: 40 } },
 };
 export const MERCENARY_HOURS = 24;
+/** La investigación que hace falta para contratar mercenarios extranjeros. */
+export const EXOTIC_MERC_RESEARCH = 'cartas';
 /**
  * Lo que cobran los mercenarios: cada soldado, lo que vale entrenarlo (`rent` veces, en valor), en
  * oro y en el recurso de su compañía en la proporción de su `price`. La élite (compañías desde

@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-14f',
+    date: '2026-11-14',
+    title: 'Informes anclados y mercenarios de lejos',
+    items: [
+      '📌 Los <b>informes</b> se pueden <b>anclar</b>: salen arriba y no se borran solos (hasta 15). Y con 🗑️ se borra uno, o todos los que no estén anclados de una vez.',
+      '🧭 Los <b>mercenarios extranjeros</b> solo encuentran tu taberna si tienes las <b>Cartas náuticas</b>, y piden algo más de taberna: 🌙 tracios 4 · 🐺 ilirios 5 · 🐂 carios 6 · 🦌 escitas 7 · 🦚 persas 8 · ☄️ baleares 9 · 🐗 mamertinos 10 · ✴️ falangitas 11 · 🌀 gálatas 12 · 👑 hetairos 14.',
+    ],
+    en: {
+      title: 'Pinned reports and far-off mercenaries',
+      items: [
+        '📌 <b>Reports</b> can be <b>pinned</b>: they stay on top and are never deleted automatically (up to 15). And with 🗑️ you delete one, or all the unpinned ones at once.',
+        '🧭 <b>Foreign mercenaries</b> only find your tavern if you have <b>Nautical charts</b>, and they need a somewhat higher tavern: 🌙 Thracians 4 · 🐺 Illyrians 5 · 🐂 Carians 6 · 🦌 Scythians 7 · 🦚 Persians 8 · ☄️ Balearics 9 · 🐗 Mamertines 10 · ✴️ Phalangites 11 · 🌀 Galatians 12 · 👑 Hetairoi 14.',
+      ],
+    },
+  },
+  {
     id: '2026-11-14e',
     date: '2026-11-14',
     title: 'Cada dios, a su medida',

@@ -208,6 +208,8 @@ export default {
   "🌍 De {0} · ⚔️ {1} · ❤️ {2}{3}": "🌍 From {0} · ⚔️ {1} · ❤️ {2}{3}",
   "🌍 Mercenarios extranjeros": "🌍 Foreign mercenaries",
   "Guerreros de los pueblos que viven alrededor de los griegos: tracios, ilirios, carios, escitas, persas, baleares, sicilianos, macedonios y gálatas. No se pueden entrenar en el cuartel: solo vienen a sueldo a la taberna.": "Warriors from the peoples living around the Greeks: Thracians, Illyrians, Carians, Scythians, Persians, Balearics, Sicilians, Macedonians and Galatians. They can't be trained in the barracks: they only come to the tavern for pay.",
+  "🔒 Sin": "🔒 Without",
+  "(en la academia) no encuentran tu taberna: investígalas para contratarlos.": "(at the academy) they can't find your tavern: research them to hire them.",
   "{0} Bendecido por {1}: un {2} % más fuerte": "{0} Blessed by {1}: {2} % stronger",
   "{0} El templo es de {1}: este poder, un {2} % más flojo": "{0} The temple belongs to {1}: this power, {2} % weaker",
   "🏛️ Consagración": "🏛️ Consecration",

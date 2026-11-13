@@ -31,6 +31,7 @@ import {
   JOINT_MAX,
   LAND_UNITS,
   MERCENARIES,
+  EXOTIC_MERC_RESEARCH,
   MERCENARY_HOURS,
   MERC_PRICE,
   MISSION_TYPES,
@@ -491,7 +492,7 @@ const TOPICS = {
     title: 'Mercenarios',
     body: () => `<p>En la <b>taberna</b> se contratan compañías de mercenarios durante ${MERCENARY_HOURS} h. Al principio solo vienen milicianos; al subir la taberna llegan compañías mejores, hasta la élite, y de cada una vienen más soldados. Cada compañía se puede contratar una vez al día:</p>
       ${mercsTable()}
-      <p>Y desde la taberna 2 llegan también <b>mercenarios extranjeros</b>: guerreros de los pueblos que convivían con los griegos, que no se pueden entrenar en el cuartel. Solo se contratan aquí:</p>
+      <p>Y con las <b>${RESEARCH[EXOTIC_MERC_RESEARCH].name}</b> investigadas llegan también <b>mercenarios extranjeros</b> (desde la taberna ${Math.min(...Object.values(MERCENARIES).filter((m) => m.exotic).map((m) => m.taberna))}): guerreros de los pueblos que convivían con los griegos, que no se pueden entrenar en el cuartel. Solo se contratan aquí:</p>
       ${mercsTable(true)}
       ${exoticTable()}
       <p>Cada soldado cobra lo que cuesta entrenarlo, en oro y en el recurso de su compañía; la élite (desde la taberna ${MERC_PRICE.eliteFrom}), un ${Math.round((MERC_PRICE.elite - 1) * 100)} % más. Y cuanto más grande es la compañía, más pide cada uno: un ${Math.round(MERC_PRICE.crowd * 100)} % por cada soldado de más, hasta el doble.</p>

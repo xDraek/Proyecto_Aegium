@@ -169,16 +169,23 @@ export function sharedReportHtml(m) {
   </div>`;
 }
 
-export function reportsHtml(reports) {
-  const items = reports.length
-    ? reports
+export function reportsHtml(reports, open = new Set()) {
+  // Los anclados, arriba (cada grupo, del más nuevo al más viejo)
+  const list = [...reports.filter((r) => r.pinned), ...reports.filter((r) => !r.pinned)];
+  const loose = reports.length - reports.filter((r) => r.pinned).length;
+  const items = list.length
+    ? list
         .map((r) => {
           const where = placeLink(r);
-          return `<details class="report ${r.outcome ?? ''} ${r.read ? '' : 'unread'}">
+          return `<details class="report ${r.outcome ?? ''} ${r.read ? '' : 'unread'} ${r.pinned ? 'pinned' : ''}" data-id="${r.id}"${open.has(r.id) ? ' open' : ''}>
             <summary>
               <span class="r-icon">${reportIcon(r)}</span>
               <span class="r-title">${escapeHtml(r.title)}</span>
               <span class="r-meta">${where} · ${fmtAgo(r.t)}</span>
+              <span class="r-tools">
+                <button type="button" class="r-tool${r.pinned ? ' on' : ''}" data-action="pin-report" data-id="${r.id}" title="${r.pinned ? 'Desanclar' : 'Anclar: sale arriba y no se borra solo'}" aria-pressed="${!!r.pinned}">📌</button>
+                <button type="button" class="r-tool" data-action="delete-report" data-id="${r.id}" title="Borrar el informe">🗑️</button>
+              </span>
             </summary>
             <div class="r-body">${reportBody(r)}</div>
           </details>`;
@@ -188,6 +195,7 @@ export function reportsHtml(reports) {
   return `<div class="modal-card">
     <div class="panel-head"><span class="panel-icon">📜</span><div><h3>Informes</h3><div class="panel-lvl">Combates, exploraciones y colonias</div></div>
     <button class="icon-btn help-btn" data-guide="combate" title="Cómo se combate (guía)">?</button><button class="icon-btn" data-action="close-modal" title="Cerrar">✕</button></div>
+    ${loose ? `<div class="reports-tools"><span class="muted small">📌 Ancla los que quieras guardar: no se borran solos.</span><button type="button" class="ghost small" data-action="delete-reports">🗑️ Borrar los no anclados</button></div>` : ''}
     <div class="reports">${items}</div>
   </div>`;
 }
