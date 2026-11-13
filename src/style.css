@@ -8061,3 +8061,37 @@ kbd {
     transition: none;
   }
 }
+
+/* Medidor de rendimiento (Alt + P) */
+#perf {
+  position: fixed;
+  top: 84px;
+  right: 10px;
+  z-index: 900;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(12, 16, 24, 0.88);
+  border: 1px solid rgba(217, 179, 91, 0.5);
+  color: #e8e2d0;
+  font-size: 11px;
+  line-height: 1.45;
+  cursor: copy;
+  user-select: none;
+}
+#perf b {
+  display: block;
+  margin-bottom: 4px;
+  color: #d9b35b;
+  letter-spacing: 0.04em;
+}
+#perf pre {
+  margin: 0;
+  font: 11px/1.45 ui-monospace, Consolas, monospace;
+}
+#perf.copied {
+  border-color: #7fd18a;
+}
+#perf.copied b::after {
+  content: ' · copiado';
+  color: #7fd18a;
+}

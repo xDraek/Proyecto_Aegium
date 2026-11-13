@@ -16,6 +16,7 @@ import { Hud } from './ui/Hud.js';
 import { showLanding } from './ui/landing.js';
 import { startTranslation } from './i18n/index.js';
 import { showAlert } from './ui/dialog.js';
+import { createPerfMeter } from './ui/perf.js';
 
 const DAYNIGHT_KEY = 'aegium.daynight';
 const LABELS_KEY = 'aegium.labels';
@@ -317,6 +318,11 @@ function startGame(game) {
     // …y el panel de la izquierda también (las cantidades de la flota…): sale del campo y lo cierra
     if (e.key === 'Escape' && e.target.matches?.('input, select, textarea')) e.target.blur();
     else if (e.target.matches?.('input, select, textarea')) return;
+    // Alt + P: el medidor de rendimiento
+    if (e.altKey && e.code === 'KeyP' && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      return perf.toggle();
+    }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const shortcut = SHORTCUTS[Number(e.key) - 1];
     if (shortcut) document.getElementById(shortcut)?.click();
@@ -402,14 +408,17 @@ function startGame(game) {
   let hudTimer = 0;
   const modal = document.getElementById('modal');
   const idle = idleGate();
+  const perf = createPerfMeter(world);
   world.renderer.setAnimationLoop((now) => {
     const idleGap = idle(now);
     const gap = !modal.hidden ? COVERED_FRAME_MS : world.high ? (world.cameraActive ? 0 : idleGap) : LOW_FRAME_MS;
     if (now - last < gap) return;
     const dt = Math.min(0.1, (now - last) / 1000);
     last = now;
+    perf.begin();
     game.update();
     world.update(dt, now / 1000);
+    perf.end();
     hudTimer += dt;
     if (hudTimer > 0.2) {
       hudTimer = 0;
