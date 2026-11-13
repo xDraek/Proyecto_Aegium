@@ -222,6 +222,11 @@ function worldRadius(o) {
 }
 /** Píxeles de la escena en calidad baja: en las tablets, de pantalla grande, se baja la resolución interna. */
 const PIXELS_LOW = 600_000;
+/**
+ * Y en calidad alta, como mucho los de una pantalla de 2560×1440: en un monitor 4K con escalado, los
+ * búferes de la gráfica (MSAA, resplandor) ocuparían el triple, y con gráficos integrados salen de la RAM.
+ */
+const PIXELS_HIGH = 2560 * 1440;
 const SHIP_PRIORITY = ['dromon', 'galeon', 'liburna', 'trirreme', 'brulote', 'mercante', 'kleptes', 'bote'];
 
 // Clima: cada media hora real cambia (igual para todos, sale de la hora). Llueve de vez en cuando:
@@ -534,11 +539,14 @@ export class World {
     scene.add(this.water);
   }
 
-  /** Densidad de píxeles: en calidad baja como mucho 1,25 y, en pantallas grandes, la justa para PIXELS_LOW (nunca menos de 1). */
+  /**
+   * Densidad de píxeles: en calidad baja como mucho 1,25 y, en pantallas grandes, la justa para
+   * PIXELS_LOW; en alta, como mucho 2 y la justa para PIXELS_HIGH (nunca menos de 1).
+   */
   #pixelRatio() {
     const dpr = window.devicePixelRatio || 1;
-    if (this.high) return Math.min(dpr, 2);
     const { clientWidth: w, clientHeight: h } = this.container;
+    if (this.high) return Math.min(dpr, 2, Math.max(1, w && h ? Math.sqrt(PIXELS_HIGH / (w * h)) : 2));
     const fit = w && h ? Math.sqrt(PIXELS_LOW / (w * h)) : 1.25;
     return Math.min(dpr, 1.25, Math.max(1, fit));
   }
@@ -553,7 +561,7 @@ export class World {
     this.high = !!high;
     const r = this.renderer;
     r.setPixelRatio(this.#pixelRatio());
-    const size = this.high ? 4096 : 1024;
+    const size = this.high ? 2048 : 1024;
     if (this.sun.shadow.mapSize.x !== size) {
       this.sun.shadow.mapSize.set(size, size);
       this.sun.shadow.map?.dispose();
@@ -1566,7 +1574,10 @@ export class World {
   #syncVillagers() {
     const n = Math.min(56, 8 + 3 * this.game.level('ayuntamiento'));
     if (n === this.villagers.length) return;
-    for (const v of this.villagers) this.lifeGroup.remove(v);
+    for (const v of this.villagers) {
+      this.lifeGroup.remove(v);
+      disposeTree(v);
+    }
     this.villagers = [];
     const rand = rng(1234);
     for (let i = 0; i < n; i++) {
