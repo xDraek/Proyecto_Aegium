@@ -608,21 +608,20 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     this.dockHead = $('#dock > .dock-head');
     this.dockCollapsed = readFlag(DOCK_KEY, innerWidth < 800);
     this.dockHead.addEventListener('click', () => {
-      if (this.dockBox.classList.contains('folding')) {
-        cancelFolding(this.dockBox);
-        writeFlag(DOCK_KEY, false);
+      // A medio camino, da la vuelta desde donde está
+      const running = this.dockAnim;
+      if (running?.playState === 'running') {
+        running.closing = !running.closing;
+        running.reverse();
+        writeFlag(DOCK_KEY, running.closing);
         return;
       }
       writeFlag(DOCK_KEY, !this.dockCollapsed);
-      if (!this.dockCollapsed) {
-        return folding(this.dockBox, () => {
-          this.dockCollapsed = true;
-          this.#renderDock();
-        });
-      }
+      if (!this.dockCollapsed) return this.#slideDock(false);
       this.dockCollapsed = false;
       this.#renderDock();
       unfolding(this.dockBox);
+      this.#slideDock(true);
     });
 
     this.render();
@@ -684,6 +683,38 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
     wrap.appendChild(el);
     setTimeout(() => el.classList.add('out'), 3800);
     setTimeout(() => el.remove(), 4300);
+  }
+
+  /**
+   * Lo que está en marcha se abre y se cierra cambiando de alto poco a poco: como está pegado abajo,
+   * su cabecera y su marco suben y bajan con la lista (en vez de saltar y luego desenrollarse).
+   */
+  #slideDock(open) {
+    const scroll = this.dockBox.querySelector(':scope > .scroll');
+    const collapse = () => {
+      this.dockCollapsed = true;
+      this.#renderDock();
+    };
+    if (!scroll || !scroll.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return open ? undefined : collapse();
+    const cs = getComputedStyle(scroll);
+    // Plegado, tampoco queda el hueco de encima de la lista (y la cabecera pierde algo de relleno)
+    const gap = (parseFloat(getComputedStyle(this.dockBox).rowGap) || 0) + Math.max(0, (parseFloat(getComputedStyle(this.dockHead).paddingBottom) || 0) - 2);
+    const full = { height: `${scroll.offsetHeight}px`, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, marginTop: '0px', opacity: 1 };
+    const shut = { height: '0px', paddingTop: '0px', paddingBottom: '0px', marginTop: `${-gap}px`, opacity: 0 };
+    scroll.style.overflow = 'hidden';
+    const anim = scroll.animate(open ? [shut, full] : [full, shut], {
+      duration: open ? 320 : 240,
+      easing: open ? 'cubic-bezier(0.3, 0.8, 0.3, 1)' : 'cubic-bezier(0.5, 0, 0.75, 0)',
+      fill: 'both',
+    });
+    anim.closing = !open;
+    this.dockAnim = anim;
+    anim.onfinish = () => {
+      if (anim.closing) collapse();
+      anim.cancel();
+      scroll.style.overflow = '';
+      if (this.dockAnim === anim) this.dockAnim = null;
+    };
   }
 
   /** Redibuja la lista de informes sin cerrar los que estaban abiertos. */

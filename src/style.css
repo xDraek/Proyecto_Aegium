@@ -7829,8 +7829,8 @@ kbd {
 @media (min-width: 801px) {
   /* En el ordenador, la lista de edificios (o de islas) y lo que está en marcha se desenrollan como
      un pergamino, y sus filas entran una detrás de otra */
-  #sidebar.unfolding > .scroll,
-  #dock.unfolding > .scroll {
+  /* (lo que está en marcha crece de alto desde Hud.js: así su marco y su cabecera suben con él) */
+  #sidebar.unfolding > .scroll {
     animation: menu-unroll 0.36s cubic-bezier(0.3, 0.8, 0.3, 1);
   }
 
@@ -8016,8 +8016,7 @@ kbd {
 
 /* La lista de edificios y lo que está en marcha se enrollan al plegarlos (en el ordenador) */
 @media (min-width: 801px) {
-  #sidebar.folding > .scroll,
-  #dock.folding > .scroll {
+  #sidebar.folding > .scroll {
     animation: menu-roll-up 0.22s ease-in both;
   }
 }
@@ -8027,10 +8026,6 @@ kbd {
   #sidebar.folding {
     animation: menu-fold 0.22s ease-in both;
     transform-origin: 17px 17px;
-  }
-
-  #dock.folding > .scroll {
-    animation: menu-roll-up 0.22s ease-in both;
   }
 
   /* «Más»: los botones vuelven a la barra */
