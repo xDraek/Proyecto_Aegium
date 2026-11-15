@@ -144,7 +144,8 @@ function continentSection(game, view) {
   const rows = sites
     .map((s) => {
       const t = ISLAND_TYPES[s.type];
-      const what = !s.explored ? '❔ Sin explorar' : s.colonized ? '🚩 Tu colonia' : s.colonizedBy != null ? `🚩 Colonia de ${escapeHtml(s.colonistName)}` : `${t.icon} ${s.typeName}`;
+      // (una colonia se ve aunque no hayas explorado el sitio: su bandera ondea a la vista, como en el mapa)
+      const what = s.colonized ? '🚩 Tu colonia' : s.colonizedBy != null ? `🚩 Colonia de ${escapeHtml(s.colonistName)}` : !s.explored ? '❔ Sin explorar' : `${t.icon} ${s.typeName}`;
       return `<li data-select="${escapeHtml(s.id)}"><span><b>${escapeHtml(s.name)}</b><div class="muted small">${what}</div></span><span class="muted small">›</span></li>`;
     })
     .join('');

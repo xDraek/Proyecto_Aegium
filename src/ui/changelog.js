@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-15a',
+    date: '2026-11-15',
+    title: 'Colonias a la vista en los continentes',
+    items: [
+      '🚩 En la lista de tierras de un continente, la <b>colonia de otro jugador</b> sale ya con su nombre aunque no hayas explorado el sitio (antes ponía «Sin explorar» y al entrar se veía de quién era). Su guarnición sigue sin verse hasta que mandes un bote.',
+    ],
+    en: {
+      title: 'Colonies in plain sight on continents',
+      items: [
+        '🚩 In a continent’s list of lands, <b>another player’s colony</b> now shows their name even if you haven’t explored the place (it used to say “Unexplored” and opening it showed whose it was). Its garrison still stays hidden until you send a boat.',
+      ],
+    },
+  },
+  {
     id: '2026-11-14f',
     date: '2026-11-14',
     title: 'Informes anclados y mercenarios de lejos',
