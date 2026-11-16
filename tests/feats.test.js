@@ -201,6 +201,9 @@ test('con solo dos juramentos el enemigo vuelve a dormirse y las flotas regresan
   assert.equal(f.stage, 'fin');
   assert.equal(f.result, 'dormido');
   assert.equal(fleetAt(A, site).phase, 'vuelta');
+  // A los convocados se les dice por qué, con un informe
+  const told = players[2].state.reports.find((r) => r.kind === 'gesta' && /vuelve a dormirse/.test(r.title));
+  assert.match(told.text, /juraron 2 de los 3 imperios/);
   // Nadie es perjuro por esto
   assert.ok(!(A.state.perjuryUntil > clock.now()));
 });
@@ -214,6 +217,7 @@ test('una ballena con dos imperios pequeños no despierta al enemigo', async () 
   for (const g of [A, B, C]) assert.equal(g.pledgeFeat(site).ok, true);
   env.until(f.start);
   assert.equal(f.result, 'dormido');
+  assert.match(A.state.reports.find((r) => /vuelve a dormirse/.test(r.title ?? '')).text, /juraron 3 imperios, pero entre todos no sumaban/);
 });
 
 // ── Oleadas ──────────────────────────────────────────────────────────────────

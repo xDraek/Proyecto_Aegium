@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-16a',
+    date: '2026-11-16',
+    title: 'Gestas que no llegan a empezar',
+    items: [
+      '💤 Si una <b>gesta</b> no empieza porque no han jurado bastantes imperios, ahora se dice por qué: cuántos juraron y cuántos hacían falta (o que entre todos no sumaban fuerza bastante). Llega como <b>informe</b> a los convocados y se anuncia en el chat de la zona.',
+    ],
+    en: {
+      title: 'Feats that never get started',
+      items: [
+        '💤 If a <b>feat</b> doesn’t start because not enough empires swore the oath, the game now says why: how many swore and how many were needed (or that together they weren’t strong enough). It arrives as a <b>report</b> to those summoned and is announced in the zone’s chat.',
+      ],
+    },
+  },
+  {
     id: '2026-11-15a',
     date: '2026-11-15',
     title: 'Colonias a la vista en los continentes',

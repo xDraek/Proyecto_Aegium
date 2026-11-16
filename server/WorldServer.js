@@ -1577,8 +1577,15 @@ export class WorldServer {
       f.result = 'dormido';
       f.truceUntil = t;
       this.#releaseFeatFleets(id, t, `${theme.icon} ${cap(theme.enemy)} vuelve a dormirse: tu flota vuelve a casa`);
+      // Se dice por qué: cuántos juraron y cuántos hacían falta (o que entre todos no sumaban bastante)
+      const n = pledged.length;
+      const why =
+        n < FEATS.minPledges
+          ? `${theme.icon} ${cap(theme.enemy)} vuelve a dormirse en ${name}: juraron ${n} de los ${FEATS.minPledges} imperios que hacían falta. Nadie pierde nada.`
+          : `${theme.icon} ${cap(theme.enemy)} vuelve a dormirse en ${name}: juraron ${n} imperios, pero entre todos no sumaban fuerza bastante. Nadie pierde nada.`;
+      this.announce(why, 'global', { highlight: 'gesta', zones: [this.#zoneOf(id)] });
       for (const uid of f.convoked) {
-        this.games.get(uid)?.receiveNews(null, `${theme.icon} No se juntaron bastantes imperios y ${theme.enemy} vuelve a dormirse en ${name}. Nadie pierde nada.`, 'info');
+        this.games.get(uid)?.receiveNews({ t, kind: 'gesta', icon: theme.icon, island: id, islandName: name, enemy: theme.enemy, title: `${cap(theme.enemy)} vuelve a dormirse`, text: why }, why, 'info');
         this.pendingPush.add(uid);
       }
       this.touch(id);
