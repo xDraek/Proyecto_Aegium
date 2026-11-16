@@ -297,12 +297,15 @@ export class Social {
   #noAllianceHtml() {
     const rows = this.alliances
       .map(
-        (a) => `<tr><td>${a.rank}</td><td>${escapeHtml(a.name)} <span class="tag">[${escapeHtml(a.tag)}]</span><div class="muted small">${a.open ? 'Abierta' : 'Con solicitud'}</div></td><td>${a.members}</td><td>${fmtNum(a.points)}</td>
-          <td>${
+        // (en filas y no en tabla: en el móvil no cabían el nombre, las cifras y el botón en una línea)
+        (a) => `<li><span class="ap-rank">${a.rank}</span>
+          <div class="ap-main"><b>${escapeHtml(a.name)}</b> <span class="tag">[${escapeHtml(a.tag)}]</span>
+            <div class="ap-meta muted small"><span>${a.open ? 'Abierta' : 'Con solicitud'}</span><span title="Miembros">👥 ${a.members}</span><span title="Puntos">${fmtNum(a.points)} pts</span></div></div>
+          ${
             a.applied
               ? `<button class="ghost small" data-action="cancel-apply" data-id="${a.id}" title="Retirar la solicitud">⏳ Pedido ✕</button>`
               : `<button class="ghost small" data-action="join" data-id="${a.id}" data-open="${a.open ? 1 : 0}">${a.open ? 'Unirse' : 'Pedir entrar'}</button>`
-          }</td></tr>`,
+          }</li>`,
       )
       .join('');
     return `<div class="modal-card">
@@ -315,7 +318,7 @@ export class Social {
         <button class="primary small auto">Fundar</button>
       </form>
       <h4>Unirse a una</h4>
-      ${rows ? `<table class="ranking"><thead><tr><th>#</th><th>Alianza</th><th>Miembros</th><th>Puntos</th><th></th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="muted">Todavía no hay ninguna. ¡Funda la primera!</p>'}
+      ${rows ? `<ul class="ally-pick">${rows}</ul>` : '<p class="muted">Todavía no hay ninguna. ¡Funda la primera!</p>'}
     </div>`;
   }
 
