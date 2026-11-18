@@ -509,8 +509,12 @@ const NEUTRAL_EXP = 0.36;
  * duros que hacer ejército.
  */
 export function neutralScale(state) {
-  const points = scoreOf(state.stats?.spent ?? 0);
-  return Math.max(1, Math.round((points / NEUTRAL_POINTS) ** NEUTRAL_EXP * 100) / 100);
+  return pointsScale(scoreOf(state.stats?.spent ?? 0));
+}
+
+/** La misma curva para unos puntos cualesquiera (la horda la usa con la media de sus colonos). */
+export function pointsScale(points) {
+  return Math.max(1, Math.round((Math.max(0, points) / NEUTRAL_POINTS) ** NEUTRAL_EXP * 100) / 100);
 }
 
 /** Si el puerto de la ciudad está cerrado por un bloqueo o una ocupación enemiga. */

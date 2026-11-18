@@ -7,6 +7,24 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-18a',
+    date: '2026-11-18',
+    title: 'Bárbaros más fieros y hordas a la medida',
+    items: [
+      '🪓 Los <b>bárbaros</b> pegan y aguantan un <b>50 % más</b>: bárbaro 11 de ataque y 23 de vida, 🪃 arquero bárbaro 17 y 14, 🐻 berserker 48 y 51. Vale para los campamentos, las ciudades bárbaras y las hordas.',
+      '🔥 Las <b>hordas</b> crecen con los <b>puntos de quienes tienen colonias</b> en el continente (con la media: con 1.000 y 10.000 puntos, como con 5.500), igual que crecen para ti los campamentos. Y ya de base traen más: 150 bárbaros, 90 arqueros y 16 berserkers.',
+      '🏆 El <b>botín</b> de la horda crece en la misma medida.',
+    ],
+    en: {
+      title: 'Fiercer barbarians and hordes to match',
+      items: [
+        '🪓 <b>Barbarians</b> hit and endure <b>50% more</b>: barbarian 11 attack and 23 health, 🪃 barbarian archer 17 and 14, 🐻 berserker 48 and 51. This applies to camps, barbarian cities and hordes.',
+        '🔥 <b>Hordes</b> grow with the <b>points of those who have colonies</b> on the continent (by the average: 1,000 and 10,000 points count as 5,500), just as camps grow for you. And even at base they bring more: 150 barbarians, 90 archers and 16 berserkers.',
+        '🏆 The horde’s <b>loot</b> grows by the same amount.',
+      ],
+    },
+  },
+  {
     id: '2026-11-16a',
     date: '2026-11-16',
     title: 'Gestas que no llegan a empezar',

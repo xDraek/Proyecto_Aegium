@@ -395,7 +395,7 @@ export default {
   ", aportando {1} desde el panel del continente. Todos ellos reciben su efecto en todo su imperio:": ", contributing {1} from the continent's panel. All of them receive its effect across their whole empire:",
   "Recursos aportados en total para cada nivel: {3}.": "Total resources contributed for each level: {3}.",
   "Hordas bárbaras 🔥": "Barbarian hordes 🔥",
-  "Cada pocos días desembarca una horda en los continentes con colonias, más grande cuantos más colonos haya. Durante": "Every few days a horde lands on continents with colonies, bigger the more colonists there are. For",
+  "Cada pocos días desembarca una horda en los continentes con colonias, más grande cuantos más colonos haya y cuanto más grandes sean sus imperios (según la media de sus puntos). Durante": "Every few days a horde lands on continents with colonies, bigger the more colonists there are and the larger their empires (by the average of their points). For",
   "cualquiera puede atacarla (es lo único que se puede atacar en un continente). Si cae, el botín ({5}) se reparte según los bárbaros que abatió cada uno, y el mejor puede llevarse una reliquia. Si nadie la detiene, las colonias del continente": "anyone can attack it (it's the only thing that can be attacked on a continent). If it falls, the loot ({5}) is shared according to the barbarians each one slew, and the best may take a relic. If nobody stops it, the continent's colonies",
   "no producen en {6} h": "produce nothing for {6} h",
   "Gestas 🌋": "Feats 🌋",

@@ -9,11 +9,11 @@ import { makeWorld } from './world.js';
 // fuerzas), y los campamentos grandes y las ciudadelas llevan berserkers. Los de un mundo de antes se
 // ponen al día solos al cargarlo.
 
-test('el arquero bárbaro pega y aguanta como el arquero, y forma en la retaguardia', () => {
+test('el arquero bárbaro pega y aguanta más que el arquero, y forma en la retaguardia', () => {
   const a = UNITS.arquero;
   const b = UNITS.arquero_barbaro;
-  assert.equal(b.atk, a.atk);
-  assert.equal(b.hp, a.hp);
+  assert.ok(b.atk > a.atk);
+  assert.ok(b.hp > a.hp);
   assert.equal(b.cls, 'distancia');
   assert.ok(b.npc);
 });

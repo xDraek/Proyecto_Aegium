@@ -714,11 +714,11 @@ export const UNITS = {
   },
 
   // Unidades que solo usan los enemigos
-  barbaro: { name: 'Bárbaro', icon: '🪓', img: '/ui/barbaro.png', kind: 'tierra', npc: true, atk: 7, hp: 15 },
-  // (los arqueros de los campamentos, las ciudadelas y las hordas: como el arquero, con su aspecto)
-  arquero_barbaro: { name: 'Arquero bárbaro', icon: '🪃', img: '/ui/arquero-barbaro.png', kind: 'tierra', npc: true, atk: 11, hp: 9 },
+  barbaro: { name: 'Bárbaro', icon: '🪓', img: '/ui/barbaro.png', kind: 'tierra', npc: true, atk: 11, hp: 23 },
+  // (los arqueros de los campamentos, las ciudadelas y las hordas: algo más duros que el arquero, con su aspecto)
+  arquero_barbaro: { name: 'Arquero bárbaro', icon: '🪃', img: '/ui/arquero-barbaro.png', kind: 'tierra', npc: true, atk: 17, hp: 14 },
   // La élite de los bárbaros: furia con dos hachas, mucho ataque y poca armadura (de espadas: rompe las falanges)
-  berserker: { name: 'Berserker', icon: '🐻', img: '/ui/berserker.png', kind: 'tierra', npc: true, atk: 32, hp: 34 },
+  berserker: { name: 'Berserker', icon: '🐻', img: '/ui/berserker.png', kind: 'tierra', npc: true, atk: 48, hp: 51 },
   pirata: { name: 'Pirata', icon: '🏴‍☠️', kind: 'tierra', npc: true, atk: 11, hp: 17 },
   corsario: { name: 'Barco corsario', icon: '⛵', kind: 'barco', npc: true, atk: 20, hp: 50, capacity: 12 },
   // Los guardianes de las fosas del Kraken: tritones con tridente y sus hipocampos de guerra
@@ -1408,7 +1408,8 @@ export const HORDE = {
   firstHours: [12, 36],
   gapHours: [48, 96],
   ravageHours: 24,
-  garrison: { barbaro: 100, berserker: 11, arquero_barbaro: 60 },
+  // (para un imperio que empieza: crece con los puntos de los colonos, ver WorldServer.hordeScale)
+  garrison: { barbaro: 150, berserker: 16, arquero_barbaro: 90 },
   perColonist: 0.6,
   reward: { oro: 2500, cristal: 1500, hierro: 1500 },
 };

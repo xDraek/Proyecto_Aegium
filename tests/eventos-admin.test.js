@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { clock, universe } from '../src/config.js';
-import { WORLD_EVENTS } from '../src/game/data.js';
-import { worldEventAt } from '../src/game/rules.js';
+import { HORDE, WORLD_EVENTS } from '../src/game/data.js';
+import { pointsScale, worldEventAt } from '../src/game/rules.js';
 import { makeWorld } from './world.js';
 
 // Los comandos de los moderadores para desencadenar eventos: /temporada, /kraken, /horda,
@@ -77,6 +77,28 @@ test('/horda llega al continente con colonias más cercano', async () => {
   assert.match(W.adminEvent(A.userId, 'horda'), /Horda bárbara/);
   assert.ok(W.islandStates.get(land.land).horde);
   assert.throws(() => W.adminEvent(A.userId, 'horda'), /ningún continente/);
+});
+
+test('la horda crece con la media de puntos de los colonos del continente', async () => {
+  const { W, A, B } = await adminWorld();
+  const lands = [...W.islands.values()].filter((i) => i.land);
+  const land = lands[0];
+  const other = lands.find((i) => i.land === land.land && i.id !== land.id) ?? land;
+  A.state.colonies.push({ id: land.id, name: land.name, specialty: 'madera', yield: 1 });
+  B.state.colonies.push({ id: other.id, name: other.name, specialty: 'madera', yield: 1 });
+  // 1.000 y 10.000 puntos: como dos imperios de 5.500
+  A.state.stats.spent = 1000 * 100;
+  B.state.stats.spent = 10000 * 100;
+  const scale = W.hordeScale(new Set([A.userId, B.userId]));
+  assert.equal(scale, pointsScale(5500));
+  assert.ok(scale > 6, `con 5.500 puntos de media, la horda es bastante más grande (${scale})`);
+  W.adminEvent(A.userId, 'horda');
+  const h = W.islandStates.get(land.land).horde;
+  assert.equal(h.scale, scale);
+  const k = (1 + HORDE.perColonist * (h.colonists - 1)) * scale;
+  assert.equal(h.garrison.barbaro, Math.round(HORDE.garrison.barbaro * k));
+  // Un continente de imperios que empiezan, la horda de siempre
+  assert.equal(W.hordeScale(new Set()), 1);
 });
 
 test('/piratas y /visitante llegan a la isla del jugador dicho', async () => {

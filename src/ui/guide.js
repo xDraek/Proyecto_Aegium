@@ -585,7 +585,7 @@ const TOPICS = {
       ${wondersTable()}
       <p class="muted small">Recursos aportados en total para cada nivel: ${WONDER_LEVELS.map((n) => fmtNum(n)).join(' · ')}.</p>
       <h5>Hordas bárbaras 🔥</h5>
-      <p>Cada pocos días desembarca una horda en los continentes con colonias, más grande cuantos más colonos haya. Durante <b>${HORDE.warnHours} h</b> cualquiera puede atacarla (es lo único que se puede atacar en un continente). Si cae, el botín (${bag(HORDE.reward)}) se reparte según los bárbaros que abatió cada uno, y el mejor puede llevarse una reliquia. Si nadie la detiene, las colonias del continente <b>no producen en ${HORDE.ravageHours} h</b>.</p>
+      <p>Cada pocos días desembarca una horda en los continentes con colonias, más grande cuantos más colonos haya y cuanto más grandes sean sus imperios (según la media de sus puntos). Durante <b>${HORDE.warnHours} h</b> cualquiera puede atacarla (es lo único que se puede atacar en un continente). Si cae, el botín (${bag(HORDE.reward)}) se reparte según los bárbaros que abatió cada uno, y el mejor puede llevarse una reliquia. Si nadie la detiene, las colonias del continente <b>no producen en ${HORDE.ravageHours} h</b>.</p>
       <h5>Gestas 🌋</h5>
       <p>De vez en cuando despierta en un continente un enemigo de leyenda que solo cae si combaten juntos muchos imperios: ver ${see('gestas', 'Gestas de la Liga')}.</p>`,
   },

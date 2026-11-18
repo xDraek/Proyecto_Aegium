@@ -5,7 +5,7 @@ import { bossLeft, capByRest, effectiveEmpires, featAt, featBoss, featCoop, feat
 import { Game, krakenText, newState, rebuilding } from '../src/game/Game.js';
 import { fmtEs } from '../src/game/num.js';
 import { ABANDON, ACHIEVEMENTS, ALLIANCE_ROLES, BASIC_RELIC_CHANCE, BOARD, BOARD_SECTIONS, BOT_CHECK, WRECK, CONTEST_CATEGORIES, CONTEST_DAYS, CONTEST_PRIZES, FEATS, FEAT_THEMES, HORDE, KRAKEN_RULES, PROTECTION, PVP_RANGE, QUESTS, UNITS, VISITORS, WONDERS, WORLD_EVENTS, WORLD_EVENT_HOURS } from '../src/game/data.js';
-import { merchantCargo, playerCombat, tradeShips, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
+import { merchantCargo, playerCombat, pointsScale, scoreOf, tradeShips, watchRange, wonderLevel, wonderOf, worldEventAt } from '../src/game/rules.js';
 import { BARBARIAN_ARCHERS, BARBARIAN_GARRISONS, CAMP_LOOT, LAIR_GUARDS, coordsOf, distance, nearestImage, wrapRingFor, fixPlaceName, freshPlaceName, fmtCoords, footprint, freshIslandState, generateContinent, generateSector, homeIsland, KRAKEN_LAIR, MACEDONIAN_CITY, MACEDONIAN_RAID, macedonianCity, sectorCenter, sectorVertices, withoutGold } from '../src/game/world.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { hashPassword, newRecoveryCode, newSecret, normalizeCode, verifyPassword } from './auth.js';
@@ -1172,10 +1172,20 @@ export class WorldServer {
     }
   }
 
+  /**
+   * Lo que crece la horda (y su botín) con quienes tienen colonias en el continente: la curva de las
+   * islas neutrales con la media de sus puntos (con 1.000 y 10.000 puntos, como con 5.500).
+   */
+  hordeScale(uids) {
+    const points = [...uids].map((uid) => scoreOf(this.games.get(uid)?.state.stats?.spent ?? 0));
+    return pointsScale(points.length ? points.reduce((a, b) => a + b, 0) / points.length : 0);
+  }
+
   #spawnHorde(cont, rt, uids, now) {
-    const k = 1 + HORDE.perColonist * (uids.size - 1);
+    const scale = this.hordeScale(uids);
+    const k = (1 + HORDE.perColonist * (uids.size - 1)) * scale;
     const garrison = Object.fromEntries(Object.entries(HORDE.garrison).map(([u, n]) => [u, Math.round(n * k)]));
-    rt.horde = { spawn: now, deadline: now + this.#hoursMs(HORDE.warnHours), garrison, start: { ...garrison }, damage: {}, names: {}, colonists: uids.size };
+    rt.horde = { spawn: now, deadline: now + this.#hoursMs(HORDE.warnHours), garrison, start: { ...garrison }, damage: {}, names: {}, colonists: uids.size, scale };
     this.touch(cont.id);
     const total = Object.values(garrison).reduce((a, b) => a + b, 0);
     this.announce(`🔥 Una horda de ${total} bárbaros desembarca en ${cont.name}: arrasará sus colonias en ${HORDE.warnHours} h si nadie la detiene`, 'global', { highlight: 'horda' });
@@ -1218,7 +1228,7 @@ export class WorldServer {
     const h = rt?.horde;
     if (!h) return;
     const total = Object.values(h.damage).reduce((a, b) => a + b, 0) || 1;
-    const k = 1 + HORDE.perColonist * ((h.colonists ?? 1) - 1);
+    const k = (1 + HORDE.perColonist * ((h.colonists ?? 1) - 1)) * (h.scale ?? 1);
     const ranking = Object.entries(h.damage).sort((a, b) => b[1] - a[1]);
     for (const [uid, n] of ranking) {
       const game = this.games.get(Number(uid));
