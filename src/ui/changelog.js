@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-19b',
+    date: '2026-11-19',
+    title: 'De dónde sale cada recurso',
+    items: [
+      '📊 Pulsa cualquier <b>recurso</b> de la barra de arriba y verás de dónde sale su producción: tu isla, cada edificio con su nivel, la <b>tecnología</b> con su nivel y lo que suma, cada <b>colonia</b>, las <b>bonificaciones</b> (Coloso, poderes, temporada, maravillas, reliquias) y los <b>gastos</b> (comida y paga de las tropas, tributo). Funciona también en el móvil.',
+    ],
+    en: {
+      title: 'Where each resource comes from',
+      items: [
+        '📊 Tap any <b>resource</b> in the top bar to see where its production comes from: your island, each building with its level, the <b>technology</b> with its level and what it adds, each <b>colony</b>, the <b>bonuses</b> (Colossus, powers, season, wonders, relics) and the <b>expenses</b> (troops’ food and pay, tribute). It works on mobile too.',
+      ],
+    },
+  },
+  {
     id: '2026-11-19a',
     date: '2026-11-19',
     title: 'Kleptes desde tus colonias',

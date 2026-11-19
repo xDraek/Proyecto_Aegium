@@ -1,7 +1,7 @@
 import { play } from '../audio.js';
 import { clock, universe } from '../config.js';
 import { BUILDING_KEYS, BUILDINGS, CANCEL_REFUND, FAVOR_ICON, FEAT_THEMES, FEATS, GODS, godEffect, HERO, HERO_SKILLS, ISLAND_TYPES, MISSION_TYPES, PLAYER_UNITS, POWERS, RESEARCH, RESOURCE_KEYS, RESOURCES, TRAIN_CANCEL_REFUND, UNITS, VISITORS, WORLD_EVENTS } from '../game/data.js';
-import { HOUR_MS, canAfford, colonyYield, multiplyCost, upcomingWorldEvents } from '../game/rules.js';
+import { HOUR_MS, canAfford, colonyYield, multiplyCost, productionBreakdown, upcomingWorldEvents } from '../game/rules.js';
 import { featAt, featCycle } from '../game/feats.js';
 import { api } from '../net/api.js';
 import { distance } from '../game/world.js';
@@ -924,6 +924,14 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
           <span class="res-rate"></span>
           <span class="res-bar"><i></i></span>
         </span>`;
+      el.tabIndex = 0;
+      el.setAttribute('role', 'button');
+      el.addEventListener('click', () => this.#toggleResPop(key));
+      el.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        this.#toggleResPop(key);
+      });
       wrap.appendChild(el);
       this.resEls[key] = {
         root: el,
@@ -958,22 +966,74 @@ Dejan de comer y de cobrar, y recuperas el 20 % de la madera, la comida y el bro
       els.bar.style.width = `${Math.min(100, (amount / cap) * 100)}%`;
       els.root.classList.toggle('full', full);
       els.root.classList.toggle('negative', rate < 0 || (key === 'comida' && starving));
-      const lines = [
-        `${RESOURCES[key].name}: ${fmtNum(amount)} / ${fmtNum(cap)}`,
-        `Isla: +${fmtNum(eco.base[key])}/h`,
-        `Edificios: +${fmtNum(eco.buildings[key])}/h`,
-      ];
-      if (eco.research[key]) lines.push(`Investigación: +${fmtNum(eco.research[key])}/h`);
-      if (eco.colonies[key]) lines.push(`Colonias: +${fmtNum(eco.colonies[key])}/h`);
-      else if (eco.closed && game.colonies().some((c) => c.specialty === key)) lines.push('Colonias: nada (tu puerto está en manos enemigas)');
-      if (eco.tribute?.[key]) lines.push(`Tributo para los invasores: −${fmtNum(eco.tribute[key])}/h`);
-      if (key === 'oro' && eco.taxes) lines.push(`Impuestos de los trabajadores libres: +${fmtNum(eco.taxes)}/h`);
-      if (key === 'oro' && eco.pay) lines.push(`Paga de las tropas y los barcos: −${fmtRate(eco.pay)}/h`);
-      if (eco.eventBonus?.[key]) lines.push(`Evento del archipiélago: +${Math.round(eco.eventBonus[key] * 100)} %`);
-      if (key === 'comida' && eco.upkeep) lines.push(`Tropas: −${fmtNum(eco.upkeep)}/h`);
-      if (starving) lines.push('Hambruna: la producción cae a la mitad');
-      els.root.title = lines.join('\n');
+      els.root.title = `${RESOURCES[key].name}: pulsa para ver de dónde sale`;
     }
+    if (this.resPop) this.#renderResPop();
+  }
+
+  /** El menú de un recurso de la barra de arriba: de dónde sale su producción y lo que la multiplica. */
+  #toggleResPop(key) {
+    if (this.resPop?.key === key) return this.#closeResPop();
+    this.#closeResPop();
+    const el = document.createElement('div');
+    el.className = 'res-pop-info';
+    el.setAttribute('role', 'dialog');
+    document.body.appendChild(el);
+    const close = (e) => {
+      if (e.type === 'keydown' ? e.key === 'Escape' : !e.target.closest('.res-pop-info, #resources .res')) this.#closeResPop();
+    };
+    document.addEventListener('pointerdown', close, true);
+    document.addEventListener('keydown', close, true);
+    this.resPopPlace = () => this.#placeResPop();
+    window.addEventListener('resize', this.resPopPlace);
+    this.resPop = { key, el, close, html: '' };
+    this.resEls[key].root.classList.add('open');
+    this.#renderResPop();
+  }
+
+  #closeResPop() {
+    const p = this.resPop;
+    if (!p) return;
+    p.el.remove();
+    document.removeEventListener('pointerdown', p.close, true);
+    document.removeEventListener('keydown', p.close, true);
+    window.removeEventListener('resize', this.resPopPlace);
+    this.resEls[p.key]?.root.classList.remove('open');
+    this.resPop = null;
+  }
+
+  #renderResPop() {
+    const { key, el } = this.resPop;
+    const game = this.game;
+    const r = RESOURCES[key];
+    const b = productionBreakdown(game.state, key, game.now());
+    const cap = game.capacity();
+    const rate = (n) => `${n < 0 ? '−' : '+'}${fmtRate(Math.abs(n))}/h`;
+    const pct = (k) => `${k < 0 ? '−' : '+'}${String(Math.round(Math.abs(k) * 1000) / 10).replace('.', ',')} %`;
+    const row = (x, value, cls = '') => `<li class="${cls}"><span class="rp-icon">${resIcons(x.icon)}</span><span class="rp-label">${escapeHtml(x.label)}${x.note ? `<small>${escapeHtml(x.note)}</small>` : ''}</span><b>${value}</b></li>`;
+    const paused = !!game.state.vacation;
+    const warn = b.starving ? (key === 'comida' ? '🍞 Hambruna: no queda comida para tus tropas.' : '🍞 Hambruna: sin comida, la producción cae a la mitad.') : '';
+    const html = `<div class="rp-head">${r.icon}<div><b>${r.name}</b><small>${fmtNum(game.resources[key])} de ${fmtNum(cap)} en el almacén</small></div></div>
+      <h5>Producción</h5><ul>${b.add.map((x) => row(x, rate(x.value), x.value ? '' : 'zero')).join('')}</ul>
+      ${b.mult.length ? `<h5>Bonificaciones <small>${rate(b.bonus)}</small></h5><ul>${b.mult.map((x) => row(x, pct(x.pct), x.pct < 0 ? 'minus' : '')).join('')}</ul>` : ''}
+      ${b.sub.length ? `<h5>Gastos</h5><ul>${b.sub.map((x) => row(x, rate(-x.value), 'minus')).join('')}</ul>` : ''}
+      ${warn ? `<p class="rp-warn">${warn}</p>` : ''}
+      ${paused ? '<p class="rp-warn">⏸️ De vacaciones tu isla no produce.</p>' : ''}
+      <div class="rp-total"><span>Total</span><b class="${b.net < 0 && !paused ? 'minus' : ''}">${paused ? '0/h' : rate(b.net)}</b></div>`;
+    if (html === this.resPop.html) return;
+    this.resPop.html = html;
+    el.innerHTML = html;
+    this.#placeResPop();
+  }
+
+  /** Debajo del recurso pulsado, sin salirse de la pantalla. */
+  #placeResPop() {
+    const p = this.resPop;
+    if (!p) return;
+    const at = this.resEls[p.key].root.getBoundingClientRect();
+    const w = p.el.offsetWidth;
+    const left = Math.max(8, Math.min(innerWidth - w - 8, at.left + at.width / 2 - w / 2));
+    Object.assign(p.el.style, { left: `${left}px`, top: `${at.bottom + 8}px`, maxHeight: `${Math.max(160, innerHeight - at.bottom - 24)}px` });
   }
 
   /** La temporada del archipiélago, con lo que le queda. */

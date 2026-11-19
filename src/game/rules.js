@@ -495,6 +495,57 @@ export function economy(state, t = state.lastUpdate) {
 }
 
 /**
+ * De dónde sale la producción de un recurso, partida por partida (para el menú de la barra de
+ * arriba). Usa las mismas cuentas que `economy`: `add` (lo que se produce por hora: la isla, cada
+ * edificio, la tecnología, cada colonia, los impuestos), `mult` (los porcentajes que lo multiplican),
+ * `sub` (lo que se va: tributo, comida de las tropas, paga) y el neto.
+ */
+export function productionBreakdown(state, res, t = state.lastUpdate) {
+  const eco = economy(state, t);
+  const add = eco.base[res] ? [{ icon: '🏝️', label: 'Tu isla', value: eco.base[res] }] : [];
+  for (const [id, b] of Object.entries(BUILDINGS)) {
+    const level = state.buildings[id] ?? 0;
+    if (b.produces !== res || level <= 0) continue;
+    const share = hasWorkers(id) ? workShare(state, id) : 1;
+    add.push({ icon: b.icon, label: `${b.name} · nivel ${level}`, value: producerOutput(id, level) * share, note: share < 1 ? `con el ${Math.round(share * 100)} % de los trabajadores` : '' });
+  }
+  const techId = RESOURCE_RESEARCH[res];
+  const tech = RESEARCH[techId];
+  const techLevel = lvl(state, techId);
+  const perLevel = res === 'oro' ? 2.5 : 5;
+  add.push({ icon: tech.icon, label: `${tech.name} · nivel ${techLevel}`, value: eco.research[res], note: `+${String(perLevel).replace('.', ',')} % por nivel a la isla y los edificios${techLevel ? '' : ' (sin investigar)'}` });
+  const closed = eco.closed;
+  for (const col of state.colonies ?? []) {
+    if (col.specialty !== res) continue;
+    const raided = col.raidedUntil > t;
+    add.push({ icon: '🚩', label: `${col.name} · colonia nivel ${col.level ?? 1}`, value: raided || closed ? 0 : colonyYield(col), note: raided ? 'saqueada: no produce por ahora' : closed ? 'tu puerto está en manos enemigas' : '' });
+  }
+  if (res === 'oro' && eco.taxes) add.push({ icon: '👷', label: 'Impuestos de los trabajadores libres', value: eco.taxes });
+  const subtotal = add.reduce((a, r) => a + r.value, 0);
+
+  const mult = [];
+  const coloso = lvl(state, 'coloso');
+  if (coloso) mult.push({ icon: BUILDINGS.coloso.icon, label: `${BUILDINGS.coloso.name} · nivel ${coloso}`, pct: 0.05 * coloso });
+  if ((state.buffs?.cosecha ?? 0) > t) mult.push({ icon: POWERS.cosecha.icon, label: POWERS.cosecha.name, pct: 0.25 * powerScale(state, 'cosecha') });
+  if ((state.buffs?.olimpo ?? 0) > t) mult.push({ icon: '✨', label: 'Bendición del Olimpo', pct: FEATS.reward.blessing });
+  if ((state.buffs?.ceniza ?? 0) > t) mult.push({ icon: '🌫️', label: 'Ceniza del perjuro', pct: -FEATS.perjury.ash });
+  const event = worldEventAt(t).event;
+  if (eco.eventBonus[res]) mult.push({ icon: event.icon, label: event.name, pct: eco.eventBonus[res] });
+  if (res === 'comida' && wonderBonus(state, 'comida')) mult.push({ icon: '🏛️', label: 'Maravillas de tus continentes', pct: wonderBonus(state, 'comida') });
+  for (const r of state.relics ?? []) {
+    const relic = RELICS[r.id];
+    if (r.equipped && relic && (relic.stat === 'produccion' || (relic.stat === res && (res === 'comida' || res === 'oro')))) mult.push({ icon: relic.icon, label: relic.name, pct: relic.value });
+  }
+
+  const sub = [];
+  if (eco.tribute[res]) sub.push({ icon: '🦅', label: 'Tributo para los invasores', value: eco.tribute[res] });
+  if (res === 'comida' && eco.upkeep) sub.push({ icon: '🍖', label: 'Comida de las tropas y los barcos', value: eco.upkeep });
+  if (res === 'oro' && eco.pay) sub.push({ icon: '💰', label: 'Paga de las tropas y los barcos', value: eco.pay });
+  const starving = eco.net.comida < 0 && (state.resources?.comida ?? 0) < 1;
+  return { add, subtotal, mult, bonus: eco.gross[res] - subtotal, gross: eco.gross[res], sub, starving, net: starving ? eco.hungry[res] : eco.net[res] };
+}
+
+/**
  * La curva con la que crecen las islas neutrales: (puntos / NEUTRAL_POINTS) ^ NEUTRAL_EXP. Calibrada
  * para que una ciudad equilibrada las vea como antes, cuando crecían con lo que producen sus edificios
  * (con los productores a nivel 10, unas 6,5 veces).
