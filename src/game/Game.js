@@ -1383,8 +1383,9 @@ export class Game extends EventTarget {
     if (base) {
       const colonyBase = base.type === 'guarnicion';
       const where = colonyBase ? 'una colonia' : 'una ciudad ocupada';
-      if (!OUTPOST_MISSIONS.includes(type)) reason ||= `Desde ${where} solo se puede atacar, espiar, sabotear, bloquear o invadir.`;
-      if (target === base.target) reason ||= colonyBase ? 'Es la colonia desde la que zarpas.' : 'Es la ciudad que ocupas.';
+      if (!OUTPOST_MISSIONS.includes(type)) reason ||= `Desde ${where} solo se puede atacar, espiar, sabotear, bloquear, invadir o recoger un pecio.`;
+      // (el pecio que ha quedado frente a la propia base, sí)
+      if (target === base.target && type !== 'recoger') reason ||= colonyBase ? 'Es la colonia desde la que zarpas.' : 'Es la ciudad que ocupas.';
       if (opts.join) reason ||= `Desde ${where} no puedes unirte a ataques.`;
       if (withHero) reason ||= 'Tu almirante está en tu capital.';
       // Alguien tiene que quedarse guardándola

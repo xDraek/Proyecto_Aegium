@@ -1226,8 +1226,8 @@ export const ANTI_BULLY = {
 };
 /** Misiones contra otro jugador que cuentan para el límite de ataques. */
 export const HOSTILE_MISSIONS = ['atacar', 'invadir', 'bloquear'];
-/** Misiones que se pueden lanzar desde una base: una ciudad ocupada o una colonia con guarnición. */
-export const OUTPOST_MISSIONS = ['atacar', 'explorar', 'sabotaje', 'bloquear', 'invadir'];
+/** Misiones que se pueden lanzar desde una base: una ciudad ocupada o una colonia con guarnición (los Kleptes, a por el pecio que dejan sus ataques). */
+export const OUTPOST_MISSIONS = ['atacar', 'explorar', 'sabotaje', 'bloquear', 'invadir', 'recoger'];
 
 /**
  * Saquear la colonia de otro jugador: si tus tropas desembarcan y vencen a su guarnición, te llevas

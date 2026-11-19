@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-19a',
+    date: '2026-11-19',
+    title: 'Kleptes desde tus colonias',
+    items: [
+      '🪝 Los <b>Kleptes</b> que tengas en una <b>colonia</b> o en una ciudad ocupada ya pueden salir desde allí a <b>recoger un pecio</b>, también el que quede frente a la propia colonia. Vuelven a la base y lo que recogen va a tu capital.',
+    ],
+    en: {
+      title: 'Kleptes from your colonies',
+      items: [
+        '🪝 <b>Kleptes</b> stationed in a <b>colony</b> or an occupied city can now set out from there to <b>salvage a wreck</b>, including one left off the colony itself. They return to the base and what they collect goes to your capital.',
+      ],
+    },
+  },
+  {
     id: '2026-11-18a',
     date: '2026-11-18',
     title: 'Bárbaros más fieros y hordas a la medida',

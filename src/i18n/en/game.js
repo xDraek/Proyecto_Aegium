@@ -95,7 +95,7 @@ export default {
   "No tienes {0} × {1}.": "You don't have {0} × {1}.",
   "Es tu propia isla.": "It's your own island.",
   "una ciudad ocupada": "an occupied city",
-  "Desde {0} solo se puede atacar, espiar, sabotear, bloquear o invadir.": "From {0} you can only attack, spy, sabotage, blockade or invade.",
+  "Desde {0} solo se puede atacar, espiar, sabotear, bloquear, invadir o recoger un pecio.": "From {0} you can only attack, spy, sabotage, blockade, invade or salvage a wreck.",
   "Es la colonia desde la que zarpas.": "It's the colony you're sailing from.",
   "Es la ciudad que ocupas.": "It's the city you're occupying.",
   "Desde {0} no puedes unirte a ataques.": "From {0} you can't join attacks.",

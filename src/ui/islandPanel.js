@@ -633,7 +633,8 @@ function fleetForm(hud, game, view) {
   if (view.type === 'ciudadela' && view.explored && view.colonizedBy == null) types.push('conquistar');
   // Un pecio frente a la isla: lo recogen los Kleptes de cualquiera
   // (o sin pecio, detrás de un ataque: si llegan y no hay nada, vuelven vacíos)
-  if (view.wreck || ((game.units.kleptes ?? 0) > 0 && view.type !== 'brumas')) types.push('recoger');
+  // (los Kleptes de la base desde la que zarpas, si sale de una)
+  if (view.wreck || ((pool.kleptes ?? 0) > 0 && view.type !== 'brumas')) types.push('recoger');
   // Desde una ciudad ocupada solo se lanzan ataques y espías
   const allowed = base ? types.filter((t) => OUTPOST_MISSIONS.includes(t)) : types;
 

@@ -61,6 +61,27 @@ test('desde la colonia se zarpa a atacar y la flota vuelve a ella con el botín 
   assert.ok(A.state.resources.madera > before, 'el botín llega a la capital');
 });
 
+test('los Kleptes de una colonia van a por el pecio de su ataque y lo mandan a la capital', async () => {
+  const { env, W, A, B, col } = await colonyWorld();
+  A.state.units.kleptes = 6;
+  sendAndArrive(env, A, 'guarnicion', col.id, { mercante: 16, trirreme: 10, hoplita: 200, kleptes: 6 });
+  const base = A.garrisons()[0];
+  const enemy = W.islands.get(B.state.home);
+  A.state.known[enemy.id] = { explored: true };
+  W.addWreck(enemy.id, { madera: 900, hierro: 300 }, clock.now());
+  const plan = A.planMission('recoger', enemy.id, { kleptes: 6 }, null, { from: base.id });
+  assert.equal(plan.ok, true, plan.reason);
+  const before = A.state.resources.hierro;
+  const m = sendAndArrive(env, A, 'recoger', enemy.id, { kleptes: 6 }, { from: base.id });
+  assert.equal(m.from, col.id, 'zarpan de la colonia');
+  env.until(m.back);
+  assert.equal(base.units.kleptes, 6, 'los Kleptes vuelven a la colonia');
+  assert.ok(A.state.resources.hierro > before, 'lo recogido llega a la capital');
+  // Y el pecio que quede frente a la propia colonia, también
+  W.addWreck(col.id, { piedra: 200 }, clock.now());
+  assert.equal(A.planMission('recoger', col.id, { kleptes: 2 }, null, { from: base.id }).ok, true);
+});
+
 test('una colonia sin guarnición se puede saquear: botín de unas horas y sin producir un tiempo', async () => {
   const { env, W, A, B, col } = await colonyWorld();
   const plan = B.planMission('atacar', col.id, { mercante: 3, trirreme: 5, hoplita: 30 });
