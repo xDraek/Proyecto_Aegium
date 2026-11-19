@@ -1129,6 +1129,8 @@ export const COLONY_COST = { madera: 1500, piedra: 1000, comida: 800, oro: 300 }
 /** Ampliar una colonia: cada nivel produce un 60 % más de lo que daba al fundarla. */
 export const COLONY = {
   maxLevel: 10,
+  // (todo lo que da una colonia, multiplicado: subió un 25 % cuando la horda empezó a asaltarlas)
+  yieldMul: 1.25,
   yieldPerLevel: 0.6,
   upgradeCost: { madera: 700, piedra: 550, comida: 300, oro: 180 },
   costFactor: 1.6,
@@ -1401,13 +1403,17 @@ export const DAILY_TOWN_BONUS = 0.1;
 
 // ── Invasiones bárbaras ──────────────────────────────────────────────────────
 // De vez en cuando una horda desembarca en un continente con colonias. Si nadie
-// la derrota antes de `warnHours`, saquea las colonias de ese continente.
+// la derrota antes de `warnHours`, asalta una a una las colonias de ese continente:
+// la guarnición de cada una la defiende (con `defenseHp` más de vida, desde su
+// empalizada). La que cae baja `levelLoss` niveles y no produce en `ravageHours`.
 
 export const HORDE = {
   warnHours: 12,
   firstHours: [12, 36],
   gapHours: [48, 96],
-  ravageHours: 24,
+  ravageHours: 72,
+  levelLoss: 1,
+  defenseHp: 0.3,
   // (para un imperio que empieza: crece con los puntos de los colonos, ver WorldServer.hordeScale)
   garrison: { barbaro: 150, berserker: 16, arquero_barbaro: 90 },
   perColonist: 0.6,

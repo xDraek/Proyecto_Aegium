@@ -353,6 +353,33 @@ export function assault(attacker, defender, { rand = Math.random, needLanding = 
   };
 }
 
+/**
+ * Un combate en tierra firme, sin desembarco: para quien ya está en la isla (la horda bárbara que
+ * asalta las colonias de su continente). Devuelve lo mismo que `assault`.
+ */
+export function fieldBattle(attacker, defender, rand = Math.random) {
+  const A = splitForces(attacker.units).land;
+  const D = splitForces(defender.units).land;
+  const land = hasCombat(D)
+    ? battle({ units: A, atkMul: attacker.atkMul ?? 1, hpMul: attacker.hpMul ?? 1 }, { units: D, atkMul: defender.atkMul ?? 1, hpMul: defender.hpMul ?? 1 }, rand)
+    : null;
+  const aLeft = land ? land.att.left : { ...A };
+  const dLeft = land ? land.def.left : { ...D };
+  return {
+    winner: land ? land.winner : 'att',
+    rounds: land?.rounds ?? 0,
+    att: { start: { ...A }, left: aLeft, lost: lossOf(A, aLeft) },
+    def: { start: { ...D }, left: dLeft, lost: lossOf(D, dLeft) },
+    log: [],
+    naval: null,
+    land,
+    drowned: {},
+    trapped: 0,
+    seaWon: true,
+    landed: true,
+  };
+}
+
 // ── Ejércitos de varios jugadores ───────────────────────────────────────────
 
 /**

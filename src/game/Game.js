@@ -12,6 +12,7 @@ import {
   DISMISS_REFUND,
   COLONY,
   COLONY_RAID,
+  HORDE,
   DAILY_REWARDS,
   DAILY_TOWN_BONUS,
   DAILY_TASKS,
@@ -67,7 +68,7 @@ import {
 import { featHours, featPower, featProd, forgeRoom, forgeValue } from './feats.js';
 import { distance, macedonianArmy, MACEDONIAN_RAID, withoutGold } from './world.js';
 import { fmtEs } from './num.js';
-import { assault, attackOf, battle, combineGroups, count, hasCombat, keepAboard, seatsOf, seatsUsed, shareSurvivors, siegeOf, splitBag, splitForces } from './combat.js';
+import { assault, attackOf, battle, combineGroups, count, fieldBattle, hasCombat, keepAboard, seatsOf, seatsUsed, shareSurvivors, siegeOf, splitBag, splitForces } from './combat.js';
 import {
   HOUR_MS,
   buildSeconds,
@@ -3433,6 +3434,49 @@ export class Game extends EventTarget {
     this.#note(`⚔️ ${title}`, outcome === 'derrota' ? 'error' : 'success');
     this.#dirty = true;
     return { result, stolen, raidedUntil };
+  }
+
+  /**
+   * La horda bárbara asalta tu colonia `id` con `units`: su guarnición la defiende, con algo más de
+   * vida (HORDE.defenseHp, desde la empalizada). Si no hay guarnición o cae, la colonia baja de
+   * nivel y deja de producir HORDE.ravageHours. Devuelve { result, saved } o null si ya no es tuya.
+   */
+  receiveHorde(id, units, contName, t) {
+    const col = this.colony(id);
+    if (!col) return null;
+    const posts = this.garrisons().filter((g) => g.target === id);
+    // (la horda ya está en tierra: la esperan las tropas de tierra; los barcos de la guarnición, amarrados, no luchan)
+    const combined = {};
+    for (const p of posts) for (const [u, n] of Object.entries(splitForces(p.units).land)) if (n > 0) combined[u] = (combined[u] ?? 0) + n;
+    const mine = playerCombat(this.state);
+    // (sin nadie que la defienda no hay combate: la horda entra entera y sigue entera)
+    const result = fieldBattle({ units: { ...units } }, { units: combined, atkMul: mine.atkMul, hpMul: mine.hpMul + HORDE.defenseHp });
+    // Las bajas, solo entre las tropas de tierra de la guarnición (los barcos se quedan como estaban)
+    const lefts = shareSurvivors(posts.map((p) => splitForces(p.units).land), result.def.left);
+    posts.forEach((p, i) => (p.units = clean({ ...splitForces(p.units).sea, ...lefts[i] })));
+    this.state.missions = this.state.missions.filter((m) => !posts.includes(m) || count(m.units) > 0);
+    this.#mercsLost(result.def.lost);
+    const killed = count(result.att.lost);
+    this.state.stats.kills += killed;
+    // (si la horda no puede con la guarnición, la colonia se salva: también en tablas)
+    const saved = result.winner !== 'att';
+    const outcome = result.winner === 'def' ? 'victoria' : saved ? 'empate' : 'derrota';
+    let text;
+    if (saved) {
+      text = [defenseText(result), `Tu guarnición abate ${killed} bárbaros y la colonia sigue produciendo.`].filter(Boolean).join(' ');
+    } else {
+      const from = col.level ?? 1;
+      col.level = Math.max(1, from - HORDE.levelLoss);
+      col.raidedUntil = Math.max(col.raidedUntil ?? 0, t + hours(HORDE.ravageHours));
+      const level = col.level < from ? `baja al nivel ${col.level}` : 'sigue en el nivel 1 (no puede bajar más)';
+      const ravaged = `La horda la arrasa: ${level} y no producirá en ${HORDE.ravageHours} h. Deja tropas en ella («Guarnición») para defenderla la próxima vez.`;
+      text = count(combined) ? `${defenseText(result) || ''} ${ravaged}`.trim() : `No tenía guarnición. ${ravaged}`;
+    }
+    const title = { victoria: `Tu guarnición rechaza a la horda en ${col.name}`, empate: `La horda no puede con ${col.name}`, derrota: `La horda arrasa tu colonia ${col.name}` }[outcome];
+    this.#report({ t, kind: 'defensa', outcome, title, text, island: id, islandName: col.name, battle: count(combined) ? pick(result) : undefined, enemy: `Horda de ${contName}` });
+    this.#note(`🔥 ${title}`, saved ? 'success' : 'error');
+    this.#dirty = true;
+    return { result, saved, killed, raidedUntil: saved ? null : col.raidedUntil };
   }
 
   /** Lo que guardan tus tropas en tu colonia `id` (lo que ve un espía). */

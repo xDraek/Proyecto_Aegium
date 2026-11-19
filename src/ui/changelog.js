@@ -7,6 +7,24 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-19c',
+    date: '2026-11-19',
+    title: 'Guarniciones contra la horda',
+    items: [
+      '🔥 La <b>horda</b> que nadie detiene ya no arrasa sin más: <b>asalta una a una las colonias</b> del continente y la <b>guarnición</b> de cada una la defiende, con +30 % de vida desde su empalizada. Si aguanta, la colonia se salva, y lo que abate cuenta para el botín de la horda.',
+      '🏚️ La colonia que cae <b>baja un nivel</b> y <b>no produce en 3 días</b> (antes, uno). Merece la pena dejar tropas en ella.',
+      '🌾 Las <b>colonias producen un 25 % más</b>.',
+    ],
+    en: {
+      title: 'Garrisons against the horde',
+      items: [
+        '🔥 A <b>horde</b> nobody stops no longer just ravages: it <b>assaults the continent’s colonies one by one</b> and each one’s <b>garrison</b> defends it, with +30% health from its palisade. If it holds, the colony is saved, and what it slays counts for the horde’s loot.',
+        '🏚️ A colony that falls <b>drops a level</b> and <b>produces nothing for 3 days</b> (it used to be one). It’s worth leaving troops there.',
+        '🌾 <b>Colonies produce 25% more</b>.',
+      ],
+    },
+  },
+  {
     id: '2026-11-19b',
     date: '2026-11-19',
     title: 'De dónde sale cada recurso',

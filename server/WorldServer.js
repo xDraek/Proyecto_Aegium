@@ -1190,35 +1190,64 @@ export class WorldServer {
     const total = Object.values(garrison).reduce((a, b) => a + b, 0);
     this.announce(`🔥 Una horda de ${total} bárbaros desembarca en ${cont.name}: arrasará sus colonias en ${HORDE.warnHours} h si nadie la detiene`, 'global', { highlight: 'horda' });
     for (const uid of uids) {
-      this.hostNews(uid, `🔥 ¡Una horda bárbara amenaza tus colonias de ${cont.name}! Atácala antes de ${HORDE.warnHours} h`);
+      this.hostNews(uid, `🔥 ¡Una horda bárbara amenaza tus colonias de ${cont.name}! Atácala antes de ${HORDE.warnHours} h o deja una guarnición que las defienda`);
       this.pendingPush.add(uid);
     }
     this.mapCache = null;
   }
 
-  /** La horda no ha caído a tiempo: las colonias del continente se quedan un día sin producir. */
+  /**
+   * La horda no ha caído a tiempo: asalta una a una las colonias del continente, de la peor guardada a
+   * la mejor. Cada guarnición combate con lo que le quede a la horda (y sus bajas cuentan para el
+   * botín); la colonia que cae baja de nivel y no produce en HORDE.ravageHours. Si las guarniciones
+   * acaban con ella, la horda se da por derrotada.
+   */
   #ravage(cont, rt, uids, now) {
-    const until = now + this.#hoursMs(HORDE.ravageHours);
+    const h = rt.horde;
+    const targets = [];
     for (const uid of uids) {
       const game = this.games.get(uid);
+      if (!game) continue;
       game.update(now);
       for (const c of game.state.colonies) {
         if (this.islands.get(c.id)?.land !== cont.id) continue;
-        c.raidedUntil = until;
-        const crt = this.islandStates.get(c.id);
-        if (crt) {
-          crt.raidedUntil = until;
-          this.touch(c.id);
-        }
+        const guard = Object.values(game.garrisonOf(c.id)).reduce((a, n) => a + n, 0);
+        targets.push({ uid, game, id: c.id, guard });
       }
-      game.dirty = true;
-      this.hostNews(uid, `🔥 La horda ha saqueado tus colonias de ${cont.name}: no producirán en ${HORDE.ravageHours} h`);
-      this.pendingPush.add(uid);
     }
-    this.announce(`🔥 Nadie detuvo a la horda: ha arrasado las colonias de ${cont.name}`, 'global', { highlight: 'horda' });
+    targets.sort((a, b) => a.guard - b.guard);
+    let fell = 0;
+    let held = 0;
+    for (const x of targets) {
+      if (!Object.values(h.garrison).some((n) => n > 0)) break;
+      const res = x.game.receiveHorde(x.id, h.garrison, cont.name, now);
+      if (!res) continue;
+      h.garrison = Object.fromEntries(Object.entries(res.result.att.left).filter(([, n]) => n > 0));
+      if (res.killed) {
+        h.damage[x.uid] = (h.damage[x.uid] ?? 0) + res.killed;
+        h.names = { ...(h.names ?? {}), [x.uid]: x.game.state.name };
+      }
+      if (res.saved) held++;
+      else {
+        fell++;
+        const crt = this.islandStates.get(x.id);
+        if (crt) crt.raidedUntil = res.raidedUntil;
+      }
+      this.touch(x.id);
+      x.game.dirty = true;
+      this.pendingPush.add(x.uid);
+    }
+    // Las guarniciones han acabado con ella: botín para quienes lucharon, como si hubiera caído en el mar
+    if (!Object.values(h.garrison).some((n) => n > 0)) {
+      this.touch(cont.id);
+      return this.hordeDefeated(cont.id, now);
+    }
+    const parts = [fell ? `ha arrasado ${fell === 1 ? 'una colonia' : `${fell} colonias`}` : '', held ? `${held === 1 ? 'una ha resistido' : `${held} han resistido`}` : ''].filter(Boolean).join(' y ');
+    this.announce(`🔥 La horda de ${cont.name} asalta sus colonias: ${parts || 'no encuentra a nadie'}`, 'global', { highlight: 'horda' });
     rt.horde = null;
     rt.nextHorde = now + this.#between(HORDE.gapHours);
     this.touch(cont.id);
+    this.mapCache = null;
   }
 
   /** La horda ha caído: botín para todos según los bárbaros que abatió cada uno, y una reliquia posible para el mejor. */

@@ -1,6 +1,14 @@
 // Lo que manda el servidor (server/WorldServer.js, server/index.js): errores, anuncios del chat,
 // gestas, hordas, competición, alianzas, amigos y mercado
 export default {
+  // La horda asalta las colonias
+  "🔥 ¡Una horda bárbara amenaza tus colonias de {0}! Atácala antes de {1} h o deja una guarnición que las defienda": "🔥 A barbarian horde threatens your colonies on {0}! Attack it within {1} h or leave a garrison to defend them",
+  "🔥 La horda de {0} asalta sus colonias: {1}": "🔥 The horde of {0} assaults its colonies: {1}",
+  "ha arrasado una colonia": "it ravaged one colony",
+  "ha arrasado {0} colonias": "it ravaged {0} colonies",
+  "una ha resistido": "one held out",
+  "{0} han resistido": "{0} held out",
+  "no encuentra a nadie": "it finds no one",
   "El nombre debe tener entre 3 y 20 letras o números.": "The name must be 3 to 20 letters or numbers.",
   "El nombre de la ciudad debe tener entre 3 y 20 letras o números.": "The city name must be 3 to 20 letters or numbers.",
   "Ese nombre ya está cogido.": "That name is already taken.",
@@ -27,9 +35,6 @@ export default {
   "🌅 ¡Eres Fundador! Llegaste al archipiélago en su primer mes. Puedes llevarlo de título desde tu perfil.": "🌅 You're a Founder! You arrived in the archipelago in its first month. You can wear it as a title from your profile.",
   "Todas las misiones hechas": "All missions done",
   "🔥 Una horda de {0} bárbaros desembarca en {1}: arrasará sus colonias en {2} h si nadie la detiene": "🔥 A horde of {0} barbarians lands on {1}: it will raze its colonies in {2} h if nobody stops it",
-  "🔥 ¡Una horda bárbara amenaza tus colonias de {0}! Atácala antes de {1} h": "🔥 A barbarian horde threatens your colonies on {0}! Attack it within {1} h",
-  "🔥 La horda ha saqueado tus colonias de {0}: no producirán en {1} h": "🔥 The horde has plundered your colonies on {0}: they won't produce for {1} h",
-  "🔥 Nadie detuvo a la horda: ha arrasado las colonias de {0}": "🔥 Nobody stopped the horde: it has razed the colonies on {0}",
   "🏆 Tu parte del botín de la horda de {0} ({1} % de los bárbaros abatidos)": "🏆 Your share of the loot from the horde on {0} ({1} % of the barbarians slain)",
   "entre los estandartes de la horda de {0}": "among the banners of the horde on {0}",
   "🏆 ¡La horda de {0} ha sido derrotada! Más bárbaros abatidos: {1}": "🏆 The horde on {0} has been defeated! Most barbarians slain: {1}",

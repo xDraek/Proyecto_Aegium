@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BLOCKADE, COLONY, COLONY_RAID, DEFENSE, FEATS, FLEET_COST, FEAT_THEMES, ISLAND_TYPES, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, PVP_RANGE, RESOURCES, RESOURCE_KEYS, SPY_TIERS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
+import { BLOCKADE, COLONY, COLONY_RAID, DEFENSE, FEATS, FLEET_COST, FEAT_THEMES, HORDE, ISLAND_TYPES, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, PVP_RANGE, RESOURCES, RESOURCE_KEYS, SPY_TIERS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
 import { colonyUpgrade, colonyYield, merchantCargo, navalDefense, playerCombat, spyRisk, wallBonus } from '../game/rules.js';
 import { featCoop, forceOf, forgeBonus } from '../game/feats.js';
 import { krakenText, NEWBIE_POINTS, neutralsOf } from '../game/Game.js';
@@ -440,7 +440,7 @@ function hordeSection(view) {
   const top = h.top.map((x) => `<li class="${x.me ? 'me' : ''}"><span>${escapeHtml(x.name)}</span><b>${fmtNum(x.kills)}</b></li>`).join('');
   return `<div class="horde-box">
     <h4>🔥 ¡Horda bárbara!</h4>
-    <p class="desc small">Si no cae antes de que acabe la cuenta atrás, arrasará las colonias de este continente: no producirán durante un día. Todos los que luchen se reparten el botín según los bárbaros que abatan.</p>
+    <p class="desc small">Si no cae antes de que acabe la cuenta atrás, asaltará una a una las colonias de este continente. La guarnición de cada una la defiende (con +${Math.round(HORDE.defenseHp * 100)} % de vida); la que cae baja un nivel y no produce en ${Math.round(HORDE.ravageHours / 24)} días. Todos los que luchen, también las guarniciones, se reparten el botín según los bárbaros que abatan.</p>
     <div class="info-row"><span>Ataca en</span><b class="q-time" data-until="${h.deadline}"></b></div>
     <div class="info-row"><span>Fuerzas</span><span>${unitList(h.garrison)}</span></div>
     <div class="progress horde-bar"><i style="width:${pct}%"></i></div>

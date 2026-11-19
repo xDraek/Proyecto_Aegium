@@ -1,6 +1,16 @@
 // Lo que dice la propia partida (src/game/Game.js): avisos, noticias, informes y por qué no se
 // puede hacer algo. Muchos se escriben en el servidor y llegan ya en español: se traducen al verlos.
 export default {
+  // La horda asalta tus colonias
+  "Tu guarnición abate {0} bárbaros y la colonia sigue produciendo.": "Your garrison slays {0} barbarians and the colony keeps producing.",
+  "baja al nivel {0}": "it drops to level {0}",
+  "sigue en el nivel 1 (no puede bajar más)": "it stays at level 1 (it can't drop any lower)",
+  "La horda la arrasa: {0} y no producirá en {1} h. Deja tropas en ella («Guarnición») para defenderla la próxima vez.": "The horde ravages it: {0} and it won't produce for {1} h. Leave troops there (“Garrison”) to defend it next time.",
+  "No tenía guarnición. {0}": "It had no garrison. {0}",
+  "Tu guarnición rechaza a la horda en {0}": "Your garrison repels the horde at {0}",
+  "La horda no puede con {0}": "The horde can't take {0}",
+  "La horda arrasa tu colonia {0}": "The horde ravages your colony {0}",
+  "Horda de {0}": "Horde of {0}",
   "🎖️ El almirante llega ahora como mucho al nivel {0}: {1} se queda en él y recuperas sus {2} puntos de habilidad para repartirlos de nuevo.": "🎖️ The admiral now goes up to level {0} at most: {1} stays there and you get back his {2} skill points to assign again.",
   "Ese encargo no es de hoy.": "That task isn't from today.",
   "Ya has cobrado ese encargo.": "You've already collected that task.",

@@ -324,7 +324,7 @@ export function researchBonus(state, res) {
 
 /** Lo que da una colonia (o una isla libre si la colonizaras) por hora. */
 export function colonyYield(island) {
-  return island.yield * universe.speed * (1 + COLONY.yieldPerLevel * ((island.level ?? 1) - 1));
+  return island.yield * universe.speed * COLONY.yieldMul * (1 + COLONY.yieldPerLevel * ((island.level ?? 1) - 1));
 }
 
 /** Coste y duración (segundos) de ampliar una colonia de `level` a `level + 1`. */

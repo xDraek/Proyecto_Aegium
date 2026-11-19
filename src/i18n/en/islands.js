@@ -140,7 +140,7 @@ export default {
   "Solo cae si varios imperios combaten juntos, por oleadas cada pocas horas. Si cae, todos los que combatieron se reparten un botín a la medida de lo que producen.": "It only falls if several empires fight together, in waves every few hours. If it falls, everyone who fought shares out loot to the measure of what they produce.",
   "Más bárbaros abatidos": "Most barbarians slain",
   "🔥 ¡Horda bárbara!": "🔥 Barbarian horde!",
-  "Si no cae antes de que acabe la cuenta atrás, arrasará las colonias de este continente: no producirán durante un día. Todos los que luchen se reparten el botín según los bárbaros que abatan.": "If it doesn't fall before the countdown ends, it will raze the colonies on this continent: they won't produce for a day. Everyone who fights shares the loot according to the barbarians they slay.",
+  "Si no cae antes de que acabe la cuenta atrás, asaltará una a una las colonias de este continente. La guarnición de cada una la defiende (con +{0} % de vida); la que cae baja un nivel y no produce en {1} días. Todos los que luchen, también las guarniciones, se reparten el botín según los bárbaros que abatan.": "If it doesn't fall before the countdown ends, it will assault the colonies of this continent one by one. Each one's garrison defends it (with +{0}% health); the one that falls drops a level and produces nothing for {1} days. Everyone who fights, garrisons included, shares the loot according to the barbarians they slay.",
   "Ataca en": "Attacks in",
   "Fuerzas": "Forces",
   "Quedan {3} de {4} bárbaros": "{3} of {4} barbarians remain",
