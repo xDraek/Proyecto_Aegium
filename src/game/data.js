@@ -82,7 +82,7 @@ export const BUILDINGS = {
     produces: 'cristal',
     baseProduction: 25,
     baseCost: { madera: 120, piedra: 80 },
-    costFactor: 1.6,
+    costFactor: 1.5, // (como los demás productores: con 1,6 dejaban de compensar desde el nivel 10)
     baseTime: 60,
     requires: { ayuntamiento: 2 },
   },
@@ -93,7 +93,7 @@ export const BUILDINGS = {
     produces: 'hierro',
     baseProduction: 25,
     baseCost: { madera: 140, piedra: 110 },
-    costFactor: 1.6,
+    costFactor: 1.5, // (como los demás productores: con 1,6 dejaban de compensar desde el nivel 10)
     baseTime: 65,
     requires: { ayuntamiento: 2, cantera: 2 },
   },

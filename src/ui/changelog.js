@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-20b',
+    date: '2026-11-20',
+    title: 'Minas y fundiciones más baratas',
+    items: [
+      '⛏️ La <b>mina de cristal</b> y la <b>fundición</b> encarecen cada nivel como los demás productores (×1,5 en vez de ×1,6). El nivel 10 cuesta casi la mitad que antes y el nivel 15, menos de la mitad: subirlas vuelve a compensar en vez de cambiar madera en el mercado.',
+    ],
+    en: {
+      title: 'Cheaper mines and foundries',
+      items: [
+        '⛏️ The <b>crystal mine</b> and the <b>foundry</b> now get pricier per level like the other producers (×1.5 instead of ×1.6). Level 10 costs almost half as much as before and level 15 less than half: upgrading them is worth it again instead of trading wood at the market.',
+      ],
+    },
+  },
+  {
     id: '2026-11-20a',
     date: '2026-11-20',
     title: 'Sirenas en las fosas del Kraken',
