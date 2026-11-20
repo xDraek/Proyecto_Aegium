@@ -7,6 +7,24 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-20a',
+    date: '2026-11-20',
+    title: 'Sirenas en las fosas del Kraken',
+    items: [
+      '🧜‍♀️ Las fosas del Kraken tienen nuevas guardianas: las <b>sirenas</b>, que disparan desde las ruinas con sus arcos de coral (como los arqueros, desde atrás y antes que nadie, pero más fuertes: 18 de ataque y 15 de vida).',
+      '🔱 Los <b>tritones</b> (17 y 26) y los <b>hipocampos</b> (30 y 75) pegan y aguantan un 50 % más, y los hipocampos luchan en su guarida con <b>+25 % de ataque y vida</b>.',
+      '🪸 Una <b>barrera de coral</b> frena a los barcos que entran: −6 % de ataque, como la cadena del puerto a nivel 1. Las fosas son ahora bastante más duras: llévate un buen ejército.',
+    ],
+    en: {
+      title: 'Sirens in the Kraken’s trenches',
+      items: [
+        '🧜‍♀️ The Kraken’s trenches have new guardians: the <b>sirens</b>, who shoot from the ruins with their coral bows (like archers, from the back and before anyone else, but stronger: 18 attack and 15 health).',
+        '🔱 <b>Tritons</b> (17 and 26) and <b>hippocampi</b> (30 and 75) hit and endure 50% more, and hippocampi fight in their lair with <b>+25% attack and health</b>.',
+        '🪸 A <b>coral reef</b> slows down the ships that enter: −6% attack, like a level 1 harbour chain. Trenches are now much tougher: bring a good army.',
+      ],
+    },
+  },
+  {
     id: '2026-11-19c',
     date: '2026-11-19',
     title: 'Guarniciones contra la horda',

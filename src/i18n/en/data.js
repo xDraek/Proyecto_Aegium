@@ -96,6 +96,7 @@ export default {
   "Bárbaro": "Barbarian",
   "Pirata": "Pirate",
   "Barco corsario": "Corsair ship",
+  "Sirena": "Siren",
   "Tritón": "Triton",
   "Hipocampo": "Hippocampus",
   "Kraken": "Kraken",

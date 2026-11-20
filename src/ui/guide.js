@@ -193,7 +193,7 @@ function islandsTable() {
     ['piratas', 'Más gente, barcos corsarios y fortificación. Lleva catapultas para abrir brecha.'],
     ['ruinas', 'Un tesoro para el primero que llegue: basta con explorarlas. A veces esconden una reliquia.'],
     ['libre', 'Tierra deshabitada donde fundar una colonia que produce un recurso.'],
-    ['kraken', `Una isla con un golfo de aguas negras y las ruinas de una ciudad hundida, donde viven los tritones y sus hipocampos. El único Kraken de los mares despierta a veces en una de ellas (ver ${see('archipielago', 'el Kraken')}).`],
+    ['kraken', `Una isla con un golfo de aguas negras y las ruinas de una ciudad hundida, donde viven los tritones, las sirenas y sus hipocampos (que luchan con ventaja en su guarida; una barrera de coral frena a los barcos que entran, como una cadena del puerto). El único Kraken de los mares despierta a veces en una de ellas (ver ${see('archipielago', 'el Kraken')}).`],
     ['brumas', 'El Mar de las Brumas: solo se va de expedición.'],
     ['ciudadela', 'Ciudades bárbaras amuralladas de los continentes: mucho botín, y se pueden conquistar.'],
     ['continente', 'Tierras grandes entre sectores, con ciudades bárbaras, valles para colonizar y una maravilla.'],
@@ -439,7 +439,7 @@ const TOPICS = {
             Object.entries(COUNTERS[k] ?? {}).map(([t, b]) => `${UNIT_CLASSES[t].icon} ${UNIT_CLASSES[t].name} (+${Math.round(b * 100)} %)`).join(', ') || '—',
           ]),
       )}
-      <p>Los bárbaros, los piratas, los tritones y los inmortales son infantería; los berserkers, la élite de los bárbaros, son espadas (cuidado con tus lanzas); los arqueros bárbaros, distancia; y los monstruos (el Kraken, las cabezas de Tifón y de la Hidra) no tienen clase. En los informes verás la ventaja que más pesó de cada bando.</p>
+      <p>Los bárbaros, los piratas, los tritones y los inmortales son infantería; los berserkers, la élite de los bárbaros, son espadas (cuidado con tus lanzas); los arqueros bárbaros y las sirenas, distancia; y los monstruos (el Kraken, las cabezas de Tifón y de la Hidra) no tienen clase. En los informes verás la ventaja que más pesó de cada bando.</p>
       <h5>Qué te hace más fuerte</h5>
       ${table(
         ['Mejora', 'Efecto'],

@@ -4380,6 +4380,8 @@ function horse(g, color = '#7a5230', saddle = '#a8231a') {
 
 /** Los colores de los tritones de las fosas. */
 const TRITON = { skin: '#7fb5a6', hair: '#24584c', scale: '#2f7f74', belly: '#b9d4b0', fin: '#3aa894' };
+/** Y los de sus sirenas: piel nacarada, melena de coral y cola de escamas violetas. */
+const SIREN = { skin: '#e9d6c8', hair: '#c4374f', scale: '#5b44a8', scale2: '#7a5fc4', belly: '#d9cdf0', fin: '#9d7ee0', coral: '#f07a6a' };
 
 /**
  * Lo que tienen en común los bárbaros (el guerrero y el arquero): la pintura de guerra roja, el ceño
@@ -5020,6 +5022,80 @@ const TROOPS = {
     g.add(conch);
     trident(g, 0.74);
   } },
+  // Sirena, la arquera de las fosas: piel nacarada, larga melena roja como el coral cayendo por la
+  // espalda, diadema de conchas, collar de perlas, el pecho cubierto con dos conchas, cola de pez
+  // violeta y un arco de coral rosa con la flecha montada
+  sirena: { color: SIREN.skin, skin: SIREN.skin, female: true, bareArms: true, tail: true, hair: SIREN.hair, belt: '#e8d9a8', arms: ['abajo', 'abajo'], extra: (g) => {
+    fishTail(g, { scale: SIREN.scale, scale2: SIREN.scale2, belly: SIREN.belly, fin: SIREN.fin });
+    const V = (x, y, z) => new THREE.Vector3(x, y, z);
+    const down = V(0, -1, 0);
+    // La melena, larga hasta la cintura, y unos mechones sobre los hombros
+    g.add(box(0.12, 0.24, 0.035, SIREN.hair, 0, 0.4, -0.058), box(0.1, 0.08, 0.03, SIREN.hair, 0, 0.27, -0.06));
+    for (const sx of [-1, 1]) g.add(box(0.02, 0.13, 0.05, SIREN.hair, sx * 0.064, 0.45, -0.01));
+    // Diadema de conchas y collar de perlas
+    for (let k = 0; k < 5; k++) {
+      const a = (k - 2) * 0.45;
+      const shell = mesh(new THREE.ConeGeometry(0.012, 0.03, 5), k % 2 ? '#f6dfe6' : '#f2b8c6');
+      shell.position.set(Math.sin(a) * 0.06, 0.585, Math.cos(a) * 0.045);
+      g.add(shell);
+    }
+    for (let k = 0; k < 7; k++) {
+      const a = (k - 3) * 0.32;
+      const pearl = mesh(new THREE.SphereGeometry(0.008, 5, 4), '#f8f4ec');
+      pearl.position.set(Math.sin(a) * 0.05, 0.455 - Math.abs(k - 3) * 0.004, 0.035 + Math.cos(a) * 0.012);
+      g.add(pearl);
+    }
+    // Las dos conchas del pecho, violetas como la cola, con su cordón de perlas
+    for (const sx of [-1, 1]) {
+      const c = mesh(new THREE.SphereGeometry(0.036, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), SIREN.scale2);
+      c.rotation.x = Math.PI / 2;
+      c.scale.set(1, 1, 0.55);
+      c.position.set(sx * 0.034, 0.39, 0.05);
+      g.add(c);
+    }
+    g.add(box(0.11, 0.008, 0.012, '#f8f4ec', 0, 0.39, 0.048));
+    // El arco de coral: el brazo estirado hacia delante y el otro tensando la cuerda junto a la cara
+    const hands = g.userData.hands;
+    const grip = V(-0.1, 0.44, 0.21);
+    const draw = V(0.0, 0.46, 0.05);
+    for (const [armG, to] of [[hands.left, grip], [hands.right, draw]]) {
+      const dir = to.clone().sub(armG.position);
+      armG.rotation.set(0, 0, 0);
+      armG.quaternion.setFromUnitVectors(down, dir.clone().normalize());
+      armG.scale.y = dir.length() / 0.21;
+    }
+    const aim = grip.clone().sub(draw).normalize();
+    const bow = new THREE.Group();
+    const R = 0.19;
+    const span = 1.05;
+    const limb = mesh(new THREE.TorusGeometry(R, 0.012, 5, 18, span * 2), SIREN.coral);
+    limb.rotation.set(0, -Math.PI / 2, -span, 'YXZ');
+    limb.position.z = -R;
+    bow.add(limb);
+    const at = (a, r = R) => V(0, Math.sin(a) * r, -R + Math.cos(a) * r);
+    // Ramitas de coral en las puntas y una perla en la empuñadura
+    for (const a of [-span, span]) {
+      const twig = mesh(new THREE.ConeGeometry(0.01, 0.05, 4), SIREN.coral);
+      twig.position.copy(at(a, R + 0.02));
+      twig.quaternion.setFromUnitVectors(UP, V(0, Math.sin(a), Math.cos(a)));
+      bow.add(twig);
+    }
+    const knob = mesh(new THREE.SphereGeometry(0.016, 6, 5), '#f8f4ec');
+    knob.position.copy(at(0));
+    bow.add(knob);
+    bow.position.copy(grip);
+    bow.quaternion.setFromUnitVectors(V(0, 0, 1), aim);
+    g.add(bow);
+    bow.updateMatrix();
+    for (const a of [-span, span]) tileRod(g, at(a).applyMatrix4(bow.matrix), draw, 0.003, '#e8f0f0');
+    // La flecha: asta de caña y punta de concha afilada
+    const tip = grip.clone().addScaledVector(aim, 0.1);
+    tileRod(g, draw, tip, 0.005, '#c9b98a');
+    const head = mesh(new THREE.ConeGeometry(0.013, 0.045, 4), '#f6dfe6');
+    head.position.copy(tip).addScaledVector(aim, 0.022);
+    head.quaternion.setFromUnitVectors(UP, aim);
+    g.add(head);
+  } },
 };
 
 // ── Mercenarios extranjeros: los pueblos que convivían con los griegos ──────────
@@ -5164,20 +5240,20 @@ Object.assign(TROOPS, {
 });
 
 /** La cola de pez de un tritón: de la cintura al suelo, enroscada hacia atrás y con su aleta. */
-function fishTail(g) {
+function fishTail(g, pal = { scale: TRITON.scale, scale2: '#3a8f80', belly: TRITON.belly, fin: TRITON.fin }) {
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
   const spine = [[V(0, 0.29, 0), 0.074], [V(0, 0.18, 0.02), 0.07], [V(0, 0.08, -0.01), 0.058], [V(0, 0.03, -0.1), 0.045], [V(0, 0.04, -0.19), 0.033], [V(0, 0.09, -0.26), 0.02]];
   for (let k = 0; k < spine.length; k++) {
     const [p, r] = spine[k];
-    const joint = mesh(new THREE.SphereGeometry(r, 9, 7), k % 2 ? TRITON.scale : '#3a8f80');
+    const joint = mesh(new THREE.SphereGeometry(r, 9, 7), k % 2 ? pal.scale : pal.scale2);
     joint.position.copy(p);
     g.add(joint);
-    if (k) tileRod(g, spine[k - 1][0], p, spine[k - 1][1], k % 2 ? '#3a8f80' : TRITON.scale, r);
+    if (k) tileRod(g, spine[k - 1][0], p, spine[k - 1][1], k % 2 ? pal.scale2 : pal.scale, r);
   }
   // El vientre más claro, por delante, y unas aletas a las caderas
-  g.add(box(0.07, 0.16, 0.02, TRITON.belly, 0, 0.12, 0.06));
+  g.add(box(0.07, 0.16, 0.02, pal.belly, 0, 0.12, 0.06));
   for (const sx of [-1, 1]) {
-    const fin = mesh(new THREE.ConeGeometry(0.03, 0.09, 3), TRITON.fin);
+    const fin = mesh(new THREE.ConeGeometry(0.03, 0.09, 3), pal.fin);
     fin.position.set(sx * 0.07, 0.17, -0.01);
     fin.rotation.z = sx * 2.3;
     fin.scale.z = 0.3;
@@ -5185,7 +5261,7 @@ function fishTail(g) {
   }
   // La aleta de la cola, abierta en dos lóbulos
   for (const sx of [-1, 1]) {
-    const lobe = mesh(new THREE.ConeGeometry(0.035, 0.11, 3), TRITON.fin);
+    const lobe = mesh(new THREE.ConeGeometry(0.035, 0.11, 3), pal.fin);
     lobe.position.set(sx * 0.04, 0.13, -0.29);
     lobe.rotation.set(-0.5, 0, sx * -0.75);
     lobe.scale.z = 0.25;

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BLOCKADE, COLONY, COLONY_RAID, DEFENSE, FEATS, FLEET_COST, FEAT_THEMES, HORDE, ISLAND_TYPES, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, PVP_RANGE, RESOURCES, RESOURCE_KEYS, SPY_TIERS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
+import { BLOCKADE, COLONY, COLONY_RAID, DEFENSE, FEATS, FLEET_COST, FEAT_THEMES, HORDE, ISLAND_TYPES, LAIR_DEFENSE, MISSION_TYPES, OCCUPATION, OUTPOST_MISSIONS, PLAYER_UNITS, PROTECTION, PVP_RANGE, RESOURCES, RESOURCE_KEYS, SPY_TIERS, UNITS, WONDERS, WONDER_LEVELS, WONDER_RESOURCES } from '../game/data.js';
 import { colonyUpgrade, colonyYield, merchantCargo, navalDefense, playerCombat, spyRisk, wallBonus } from '../game/rules.js';
 import { featCoop, forceOf, forgeBonus } from '../game/feats.js';
 import { krakenText, NEWBIE_POINTS, neutralsOf } from '../game/Game.js';
@@ -326,6 +326,7 @@ export function citySimPreset(game, view, attacker, withHero = false) {
     landing: view?.type === 'jugador',
   };
   if (view?.type === 'continente') return { ...preset, defender: { ...(view.horde?.garrison ?? {}) } };
+  if (view?.type === 'kraken') return { ...preset, defender: { ...(view?.intel?.garrison ?? {}) }, wall: view?.wall ?? 0, kraken: view?.intel?.kraken, chain: DEFENSE.chain * LAIR_DEFENSE.coral, hippo: LAIR_DEFENSE.hippo };
   if (view?.type !== 'jugador') return { ...preset, defender: { ...(view?.intel?.garrison ?? {}) }, wall: view?.wall ?? 0, kraken: view?.intel?.kraken };
   const intel = view.intel;
   const level = intel?.level ?? 0;
@@ -544,11 +545,15 @@ function infoSectionFor(game, view, t) {
     else lines.push('<p class="desc small">Con el tiempo se rearman y juntan más botín: envía un bote explorador para ver cómo están ahora.</p>');
   }
   if (view.wall) lines.push(`<div class="info-row"><span>🏰 Fortificación</span><b>+${Math.round(view.wall * 100)} % de vida</b></div>`);
+  if (view.type === 'kraken') {
+    lines.push(`<div class="info-row"><span>🪸 Barrera de coral</span><b>−${Math.round(DEFENSE.chain * LAIR_DEFENSE.coral * 100)} % de ataque a tus barcos</b></div>`);
+    lines.push(`<div class="info-row"><span>🌊 Hipocampos en su guarida</span><b>+${Math.round((LAIR_DEFENSE.hippo - 1) * 100)} % de ataque y vida</b></div>`);
+  }
   const flavor = {
     barbaros: 'Una tribu de bárbaros ha levantado aquí su campamento. Acumulan lo que roban y se rearman con el tiempo.',
     ciudadela: 'Una ciudad bárbara amurallada tierra adentro: muchos guerreros y mucho botín. Lleva catapultas para abrir brecha en su empalizada.',
     piratas: 'Guarida de piratas bien fortificada. Las catapultas ayudan a abrir brecha en sus muros.',
-    kraken: 'Una isla en forma de media luna que abraza un golfo de aguas negras y hondas: la guarida del Kraken. En el fondo del golfo, medio sepultadas por el agua, las ruinas de una ciudad que se tragó el mar, donde viven los tritones con sus tridentes y sus hipocampos de guerra. Solo hay un Kraken en todos los mares: despierta de vez en cuando en una de estas fosas, y nadie sabe cuándo ni en cuál; si nadie lo derrota, al cabo de unas horas se sumerge y asoma en otra. Envía un bote explorador para saber si está aquí.',
+    kraken: 'Una isla en forma de media luna que abraza un golfo de aguas negras y hondas: la guarida del Kraken. En el fondo del golfo, medio sepultadas por el agua, las ruinas de una ciudad que se tragó el mar, donde viven los tritones con sus tridentes, las sirenas con sus arcos de coral y sus hipocampos de guerra, que luchan en su guarida. Una barrera de coral frena a los barcos que entran. Solo hay un Kraken en todos los mares: despierta de vez en cuando en una de estas fosas, y nadie sabe cuándo ni en cuál; si nadie lo derrota, al cabo de unas horas se sumerge y asoma en otra. Envía un bote explorador para saber si está aquí.',
   }[view.type];
   return `<p class="desc">${flavor}</p>${lines.join('')}
     <p class="desc small">Se rearman por completo en unas ${fmtNum(view.regenHours)} h de juego. Solo te llevas el botín si acabas con toda la guarnición.</p>

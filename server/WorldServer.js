@@ -162,6 +162,11 @@ export class WorldServer {
     for (const [id, st] of Object.entries(data.islandStates)) this.islandStates.set(id, st);
     // Las fosas las guardaban corsarios; ahora, tritones e hipocampos (los que quedaban, igual)
     for (const isl of this.islands.values()) if (isl.type === 'kraken') renameGuards(this.islandStates.get(isl.id)?.garrison);
+    // Las sirenas llegaron después: en las fosas que ya había, están todas desde el principio
+    for (const isl of this.islands.values()) {
+      const g = isl.type === 'kraken' ? this.islandStates.get(isl.id)?.garrison : null;
+      if (g && g.sirena == null) g.sirena = KRAKEN_LAIR.garrison.sirena;
+    }
     // Los arqueros de los campamentos, las ciudadelas y las hordas bárbaras son ahora arqueros bárbaros
     for (const isl of this.islands.values()) {
       const rt = this.islandStates.get(isl.id);

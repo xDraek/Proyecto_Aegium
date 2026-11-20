@@ -60,6 +60,7 @@ export function simulatorHtml(preset = {}) {
         <label><span>🔗 Cadena del puerto: ataque que pierden tus barcos %</span><input type="number" name="d-chain" value="${Math.round((preset.chain ?? 0) * 100)}" /></label>
         <label><span>🪔 Faro: vida de sus barcos %</span><input type="number" name="d-naval" value="${Math.round((preset.naval ?? 0) * 100)}" /></label>
         <label data-kraken-level${preset.defender?.kraken > 0 ? '' : ' hidden'}><span>🐙 Nivel del Kraken</span><input type="number" name="d-kraken-level" min="1" value="${preset.kraken || 1}" /></label>
+        <label><span>🌊 Hipocampos en su guarida: ataque y vida %</span><input type="number" name="d-hippo" value="${Math.round(((preset.hippo ?? 1) - 1) * 100)}" /></label>
       </fieldset>
       ${preset.note ? `<p class="hint small">${preset.note}</p>` : ''}
       <button class="primary">Simular ${RUNS} combates</button>
@@ -137,7 +138,7 @@ export function runSimulation(form) {
     navalHpMul: (Number(data['d-naval']) || 0) / 100,
     traps: Math.min(1, Math.max(0, (Number(data['d-traps']) || 0) / 100)),
     chain: Math.min(1, Math.max(0, (Number(data['d-chain']) || 0) / 100)),
-    boost: { kraken: krakenPower(Number(data['d-kraken-level']) || 1) },
+    boost: { kraken: krakenPower(Number(data['d-kraken-level']) || 1), hipocampo: Math.max(0.01, 1 + (Number(data['d-hippo']) || 0) / 100) },
   };
   // Lo que para la muralla baja con ella cuando las catapultas la rebajan
   const wallFull = (Number(data['d-wall']) || 0) / 100;

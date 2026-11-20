@@ -147,7 +147,7 @@ export function macedonianCity(isl) {
   return { ...rest, ...MACEDONIAN_CITY, type: 'macedonia', bannerColor: '#6e2a8a', garrison: { ...MACEDONIAN_CITY.garrison }, loot: { ...MACEDONIAN_CITY.loot, mix: { ...MACEDONIAN_CITY.loot.mix } } };
 }
 
-export const KRAKEN_LAIR = { garrison: { triton: 130, hipocampo: 26 }, wall: 0.4, regenHours: 36 };
+export const KRAKEN_LAIR = { garrison: { triton: 130, sirena: 60, hipocampo: 26 }, wall: 0.4, regenHours: 36 };
 /** Quiénes guardaban antes las fosas y quiénes las guardan ahora (para los mundos de antes). */
 export const LAIR_GUARDS = { pirata: 'triton', corsario: 'hipocampo' };
 /** Los arqueros de los bárbaros eran los del jugador: ahora tienen los suyos. */

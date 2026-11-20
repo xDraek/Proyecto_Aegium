@@ -722,8 +722,10 @@ export const UNITS = {
   pirata: { name: 'Pirata', icon: '🏴‍☠️', kind: 'tierra', npc: true, atk: 11, hp: 17 },
   corsario: { name: 'Barco corsario', icon: '⛵', kind: 'barco', npc: true, atk: 20, hp: 50, capacity: 12 },
   // Los guardianes de las fosas del Kraken: tritones con tridente y sus hipocampos de guerra
-  triton: { name: 'Tritón', icon: '🔱', kind: 'tierra', npc: true, atk: 11, hp: 17 },
-  hipocampo: { name: 'Hipocampo', icon: '🌊', kind: 'barco', npc: true, atk: 20, hp: 50, capacity: 12 },
+  triton: { name: 'Tritón', icon: '🔱', kind: 'tierra', npc: true, atk: 17, hp: 26 },
+  // (las que disparan desde las ruinas, detrás de los tritones: más fuertes que un arquero)
+  sirena: { name: 'Sirena', icon: '🧜‍♀️', kind: 'tierra', npc: true, atk: 18, hp: 15 },
+  hipocampo: { name: 'Hipocampo', icon: '🌊', kind: 'barco', npc: true, atk: 30, hp: 75, capacity: 12 },
   kraken: { name: 'Kraken', icon: '🐙', img: '/ui/kraken.png', kind: 'barco', npc: true, atk: 260, hp: 2600 },
   // Los hijos de Tifón (gestas): su número y sus multiplicadores dependen de quién les plante cara
   sierpe: { name: 'Sierpe marina', icon: '🐍', kind: 'barco', npc: true, atk: 14, hp: 300 },
@@ -737,7 +739,7 @@ export const UNITS = {
 };
 // Las tropas con `img` tienen de icono una imagen: `icon` pasa a ser el HTML y `emoji` se queda con
 // el carácter (único, que no use nada más), que es lo que va en los textos sin formato y que
-// glyphs()/richText() cambian por la imagen al pintarlos. 🪖 milicia con lanza, 👝 hondero, 🤺 espadachín, 🪶 arquero, 🥏 hoplita, 🐴 jinete, 🏇 catafracto, 🔺 espartano, 🎯 arquero cretense, 🦣 elefante, 🛳 dromón, ⛴️ liburna, 🚤 quinquerreme, 🧨 brulote, 🚣‍♂️ trirreme, 🛥 mercante, 🛶 bote, 🐙 Kraken, 🪓 bárbaro, 🐻 berserker, 🪃 arquero bárbaro.
+// glyphs()/richText() cambian por la imagen al pintarlos. 🪖 milicia con lanza, 👝 hondero, 🤺 espadachín, 🪶 arquero, 🥏 hoplita, 🐴 jinete, 🏇 catafracto, 🔺 espartano, 🎯 arquero cretense, 🦣 elefante, 🛳 dromón, ⛴️ liburna, 🚤 quinquerreme, 🧨 brulote, 🚣‍♂️ trirreme, 🛥 mercante, 🛶 bote, 🐙 Kraken, 🪓 bárbaro, 🐻 berserker, 🪃 arquero bárbaro, 🧜‍♀️ sirena.
 for (const u of Object.values(UNITS)) {
   u.emoji ??= u.icon;
   if (u.img) u.icon = `<img class="res-img unit-img" src="${u.img}" alt="" draggable="false" />`;
@@ -802,7 +804,7 @@ for (const [id, cls] of Object.entries({
   lancero: 'lanza', hoplita: 'lanza', espartano: 'lanza',
   espadachin: 'espada', berserker: 'espada',
   caballero: 'caballeria', catafracto: 'caballeria', elefante: 'caballeria',
-  hondero: 'distancia', arquero: 'distancia', sagitario: 'distancia', arquero_persa: 'distancia', arquero_barbaro: 'distancia',
+  hondero: 'distancia', arquero: 'distancia', sagitario: 'distancia', arquero_persa: 'distancia', arquero_barbaro: 'distancia', sirena: 'distancia',
   catapulta: 'asedio',
   // (los mercenarios extranjeros)
   cario: 'lanza', falangita: 'lanza',
@@ -1522,6 +1524,13 @@ export const BASIC_RELIC_CHANCE = 0.2;
 // nadie lo derrota, se sumerge y vuelve a asomar en otra fosa al cabo de `diveHours`
 // más un momento cualquiera de la ventana. Cada vez que cae despierta más fuerte: su
 // nivel sube uno y cada nivel le suma `growth` de ataque y de vida.
+/**
+ * Lo que defiende las fosas además de su guarnición: los hipocampos luchan en su guarida (su ataque y
+ * su vida, ×`hippo`) y la barrera de coral frena a los barcos que entran (como la cadena del puerto
+ * a nivel `coral`).
+ */
+export const LAIR_DEFENSE = { hippo: 1.25, coral: 1 };
+
 export const KRAKEN_RULES = { regenHours: 36, windowHours: 2, relicChance: 0.55, hintCells: 4, stayHours: 6, diveHours: 1, growth: 0.5 };
 
 /** Lo que se multiplican el ataque y la vida del Kraken a un nivel (el 1, los de UNITS.kraken). */

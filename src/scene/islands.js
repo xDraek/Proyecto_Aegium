@@ -2317,6 +2317,14 @@ function lair(g, isl, R, rand, alive) {
     t.rotation.y = toSea + (rand() - 0.5) * 0.9;
     g.add(t);
   }
+  // Y sus sirenas, con el arco, en lo alto de las ruinas y en las rocas de la orilla
+  for (const [deg, k, y] of [[back + 22, 1.02, 0.0], [back - 24, 1.0, 0.0], [back - 52, 0.9, BEACH], [back + 76, 0.9, BEACH]]) {
+    const s = createSoldier('sirena');
+    s.scale.setScalar(1.9);
+    s.position.copy(at(deg, k, y));
+    s.rotation.y = toSea + (rand() - 0.5) * 0.7;
+    g.add(s);
+  }
   // Sus hipocampos, nadando por el golfo
   for (let i = 0; i < 3; i++) {
     const deg = back + (i - 1) * 75 + (rand() - 0.5) * 20;

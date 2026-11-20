@@ -11,7 +11,7 @@ import { makeWorld, sendAndArrive } from './world.js';
 // El Kraken: uno solo para todos los mares, que despierta cuando nadie sabe en una de las fosas.
 
 const lairsOf = (W) => [...W.islands.values()].filter((i) => i.type === 'kraken');
-const BIG = { dromon: 80, hoplita: 900, espadachin: 400 };
+const BIG = { dromon: 120, hoplita: 1500, espadachin: 700 };
 
 test('las coordenadas del mapa: casillas de 50 leguas con [50:50] en el centro', () => {
   assert.deepEqual(coordsOf(0, 0), [50, 50]);
