@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { C, box, colonnade, column, createShip, createSoldier, cyl, cypress, dome, figure, gableRoof, greekKey, hipRoof, makeFire, mat, mediterraneanTree, mesh, olive, palmTree, smokeColumn, stonePine, stylobate, WINDOW_GLOW } from './models.js';
+import { C, bannerMaterial, box, colonnade, column, createShip, createSoldier, cyl, cypress, dome, figure, gableRoof, greekKey, hipRoof, makeFire, mat, mediterraneanTree, mesh, olive, palmTree, smokeColumn, stonePine, stylobate, WINDOW_GLOW } from './models.js';
 import { wonderLevel, wonderOf } from '../game/rules.js';
 import { FEAT_THEMES } from '../game/data.js';
 import { Batch, bakeStatic, cloudGeometry, cloudMaterial, hashString, mountainGeometry, paintByNormal, plateauGeometry, polar, rng } from './util.js';
@@ -452,8 +452,8 @@ export function createIslandFeature(isl, fullLook) {
     ciudadela: () => citadel(g, R, rand),
     // La ciudad abandonada de un jugador, que ahora ocupan los macedonios
     macedonia: () => city(g, isl, R, rand, 3),
-    'ciudadela-propia': () => citadel(g, R, rand, isl.bannerColor ?? C.cloth[0]),
-    'ciudadela-otro': () => citadel(g, R, rand, ownerColor(isl)),
+    'ciudadela-propia': () => citadel(g, R, rand, isl.bannerColor ?? C.cloth[0], isl.bannerEmblem),
+    'ciudadela-otro': () => citadel(g, R, rand, ownerColor(isl), isl.bannerEmblem),
     piratas: () => fort(g, isl, R, rand),
     ruinas: () => ruins(g, R, rand, true),
     'ruinas-saqueadas': () => ruins(g, R, rand, false),
@@ -1513,6 +1513,8 @@ function city(g, isl, R, rand, size) {
   g.add(dome(0.7, C.roofBlue, 0, y0 + 1.8, 0, 0.3));
   g.add(cyl(0.05, 0.05, 1.4, 6, C.dark, 0, y0 + 2.9, 0));
   const flag = box(1.0, 0.6, 0.03, ownerColor(isl), 0, 0, 0);
+  // (con el emblema de su estandarte)
+  if (isl.bannerEmblem) flag.material = bannerMaterial(ownerColor(isl), isl.bannerEmblem, 1.0 / 0.6);
   flag.geometry.translate(0.5, 0, 0);
   flag.position.y = y0 + 4.0;
   flag.userData.wave = true;
@@ -1564,7 +1566,9 @@ function colony(g, isl, R, rand, flagColor) {
   flag.position.y = 2.8;
   flag.userData.wave = true;
   g.add(flag);
-  g.add(box(0.5, 0.5, 0.04, C.gold, 0.55, 2.8, 0.03));
+  // El emblema del estandarte de su dueño (sin él, el escudo dorado de siempre)
+  if (isl.bannerEmblem) flag.material = bannerMaterial(flagColor, isl.bannerEmblem, 1.1 / 0.7);
+  else g.add(box(0.5, 0.5, 0.04, C.gold, 0.55, 2.8, 0.03));
   const ship = createShip('mercante');
   ship.scale.setScalar(2);
   ship.position.copy(polar(R * 1.3, 20, SEA));
@@ -1590,17 +1594,25 @@ const CIT = {
 };
 
 /** Estandarte con la calavera de toro (blanca) sobre el color dado, colgado de una vara; la cara a +Z. */
-function skullBanner(w, h, color) {
+function skullBanner(w, h, color, emblem = null) {
   const g = new THREE.Group();
   const rod = cyl(0.035, 0.035, w + 0.2, 5, CIT.stakeDark, 0, 0, 0);
   rod.rotation.z = Math.PI / 2;
   rod.position.y = 0;
-  g.add(rod, box(w, h * 0.82, 0.04, color, 0, -h * 0.82, 0));
+  const cloth = box(w, h * 0.82, 0.04, color, 0, -h * 0.82, 0);
+  g.add(rod, cloth);
   const tip = mesh(new THREE.ConeGeometry(w * 0.5, h * 0.2, 4), color);
   tip.rotation.set(0, Math.PI / 4, Math.PI);
   tip.scale.z = 0.06;
   tip.position.set(0, -h * 0.91, 0);
   g.add(tip);
+  // Conquistada: el emblema de su nuevo dueño en vez de la calavera
+  if (emblem) {
+    cloth.material = bannerMaterial(color, emblem, w / (h * 0.82));
+    // (aparte: si se fundiera con el resto de la ciudadela perdería el dibujo)
+    cloth.userData.solo = true;
+    return g;
+  }
   // La calavera: el cráneo, el morro y los cuernos abiertos
   const y = -h * 0.42;
   g.add(box(w * 0.3, w * 0.26, 0.02, CIT.bone, 0, y - w * 0.08, 0.03), box(w * 0.18, w * 0.2, 0.02, CIT.bone, 0, y - w * 0.3, 0.03));
@@ -1778,7 +1790,7 @@ function greatHall(g, x, z, color) {
   g.add(t);
 }
 
-function citadel(g, R, rand, owner = null) {
+function citadel(g, R, rand, owner = null, emblem = null) {
   const k = R / CITADEL_R;
   const f = new THREE.Group();
   f.scale.setScalar(k);
@@ -1823,7 +1835,7 @@ function citadel(g, R, rand, owner = null) {
     f.add(tusk);
   }
   f.add(box(2.9, 0.38, 0.45, CIT.plank, 0, 1.95, gz), box(2.95, 0.08, 0.5, CIT.iron, 0, 2.05, gz));
-  const gateBanner = skullBanner(0.95, 1.4, color);
+  const gateBanner = skullBanner(0.95, 1.4, color, owner ? emblem : null);
   gateBanner.position.set(0, 1.9, gz + 0.26);
   f.add(gateBanner);
 

@@ -2,6 +2,7 @@ import { BUILDINGS, CONSECRATION, EXOTIC_MERC_RESEARCH, FAVOR_ICON, GODS, godBle
 import { consecrationCost, consecrationSeconds, favorRate, hasWorkers, producerOutput, requirementName, shelterRoom, storageCapacity, townSpeedup, wallBonus, workShare, workTaxes } from '../game/rules.js';
 import { splitForces } from '../game/combat.js';
 import { portrait, unitIcon } from '../scene/portraits.js';
+import { bannerMaterial, createBuilding } from '../scene/models.js';
 import { bag, costList, escapeHtml, fmtDec, fmtNum, fmtTime, glyphs, resIcons, unitList, unitRole } from './format.js';
 import { resPicker } from './resPicker.js';
 
@@ -608,10 +609,20 @@ function refreshWork(game, id, root) {
 }
 
 /** Ilustración del edificio a su nivel (o como quedará, si aún no está construido). */
-function buildingArt(id, level) {
+function buildingArt(id, level, banner = null) {
   // La muralla rodea toda la isla: no cabe en un retrato
   if (id === 'muralla') return '';
-  const url = portrait('building', id, { level: Math.max(1, level), width: 340, height: 170 });
+  // El ayuntamiento, con tu estandarte (su color y su emblema) en la bandera
+  const flag = id === 'ayuntamiento' && banner?.color ? banner : null;
+  const lvl = Math.max(1, level);
+  const model = flag
+    ? () => {
+        const g = createBuilding(id, lvl);
+        g.traverse((o) => o.isMesh && o.userData.banner && (o.material = bannerMaterial(flag.color, flag.emblem, o.userData.banner)));
+        return g;
+      }
+    : null;
+  const url = portrait('building', flag ? `${id}|${flag.color}|${flag.emblem ?? ''}` : id, { level: lvl, width: 340, height: 170, model });
   if (!url) return '';
   const tag = level > 0 ? `Nivel ${level}` : 'Así quedará';
   return `<div class="building-art${level > 0 ? '' : ' unbuilt'}"><img src="${url}" alt="" draggable="false" /><span class="art-tag">${tag}</span></div>`;
@@ -661,7 +672,7 @@ export function buildingPanel(hud, id) {
       <button class="icon-btn help-btn" data-action="guide" data-topic="${BUILDING_GUIDE[id] ?? 'edificios'}" title="Qué es esto (guía)">?</button>
       <button class="icon-btn" data-action="close" title="Cerrar">✕</button>
     </div>
-    ${buildingArt(id, level)}
+    ${buildingArt(id, level, game.state.occupied ? null : game.state.banner)}
     <p class="desc">${b.description}</p>
     ${upgradeSection(game, id)}
     ${hasWorkers(id) && level ? `<div class="section">${workSection(game, id)}</div>` : ''}

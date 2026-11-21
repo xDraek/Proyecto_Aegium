@@ -40,6 +40,55 @@ export function mat(color, extra = {}) {
   return materials.get(key);
 }
 
+/** Emblemas que no son un emoji sino una imagen (el yelmo con laureles de los Fundadores). */
+const EMBLEM_IMAGES = { '🌅': '/ui/fundador.png' };
+const bannerMaterials = new Map();
+
+/**
+ * El paño de una bandera del color del estandarte con su emblema en el centro y un ribete dorado.
+ * `aspect`: ancho / alto del paño, para que el emblema no salga estirado. Se comparte entre todas
+ * las banderas iguales (no se tira al rehacer un edificio).
+ */
+export function bannerMaterial(color, emblem, aspect = 1.6) {
+  if (!emblem || typeof document === 'undefined') return mat(color);
+  const key = `${color}|${emblem}|${aspect.toFixed(2)}`;
+  let m = bannerMaterials.get(key);
+  if (m) return m;
+  const W = 256;
+  const H = Math.max(64, Math.round(W / aspect));
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, W, H);
+  const edge = Math.max(5, Math.round(Math.min(W, H) * 0.06));
+  ctx.strokeStyle = 'rgba(226, 186, 96, 0.95)';
+  ctx.lineWidth = edge;
+  ctx.strokeRect(edge / 2, edge / 2, W - edge, H - edge);
+  const size = Math.min(W, H) * 0.64;
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  if (EMBLEM_IMAGES[emblem]) {
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, W / 2 - size / 2, H / 2 - size / 2, size, size);
+      tex.needsUpdate = true;
+    };
+    img.src = EMBLEM_IMAGES[emblem];
+  } else {
+    ctx.font = `${Math.round(size)}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(emblem, W / 2, H / 2 + size * 0.06);
+  }
+  m = new THREE.MeshStandardMaterial({ map: tex, flatShading: true, roughness: 0.9, metalness: 0 });
+  m.userData.shared = true;
+  bannerMaterials.set(key, m);
+  return m;
+}
+
 export function mesh(geo, color, extra) {
   const m = new THREE.Mesh(geo, mat(color, extra));
   m.castShadow = true;
@@ -627,6 +676,8 @@ function ayuntamiento(level) {
   flag.geometry.translate(0.35, 0, 0);
   flag.position.set(0, peak + 0.95, 0);
   flag.userData.wave = true;
+  // (el estandarte del jugador: su color y su emblema, ver paintBanner en World.js; el valor, ancho / alto)
+  flag.userData.banner = 0.7 / 0.4;
   g.add(flag);
   return g;
 }

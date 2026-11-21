@@ -7,6 +7,20 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-21b',
+    date: '2026-11-21',
+    title: 'Tu emblema en las banderas',
+    items: [
+      '🚩 La bandera del <b>ayuntamiento</b>, la de tus <b>colonias</b> y la de las <b>ciudades bárbaras</b> que conquistes llevan ahora el color de tu estandarte con tu <b>emblema</b> en el centro. Las de los demás, con el suyo. Cámbialo desde tu perfil.',
+    ],
+    en: {
+      title: 'Your emblem on the flags',
+      items: [
+        '🚩 The flag on your <b>town hall</b>, on your <b>colonies</b> and on the <b>barbarian cities</b> you conquer now show your banner colour with your <b>emblem</b> in the middle. Other players’ flags show theirs. Change it from your profile.',
+      ],
+    },
+  },
+  {
     id: '2026-11-21a',
     date: '2026-11-21',
     title: 'Fosos y cadena, más caros y algo más flojos',

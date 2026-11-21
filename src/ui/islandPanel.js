@@ -803,13 +803,14 @@ function islandArt(game, view) {
   if (!isl || view.type === 'brumas') return '';
   const ownerId = view.type === 'jugador' ? view.owner : view.colonizedBy;
   const bannerColor = ownerId === game.userId ? game.state.banner?.color : game.world.playerInfo(ownerId)?.banner?.color;
-  const look = `${islandLook(view)}|${bannerColor ?? ''}`;
+  const bannerEmblem = ownerId === game.userId ? game.state.banner?.emblem : game.world.playerInfo(ownerId)?.banner?.emblem;
+  const look = `${islandLook(view)}|${bannerColor ?? ''}|${bannerEmblem ?? ''}`;
   const url = portrait('island', `${view.id}|${look}`, {
     width: 340,
     height: 150,
     model: () => {
       const g = new THREE.Group();
-      g.add(createIslandBase(isl), createIslandFeature({ ...isl, colonizedBy: view.colonizedBy, bannerColor }, look));
+      g.add(createIslandBase(isl), createIslandFeature({ ...isl, colonizedBy: view.colonizedBy, bannerColor, bannerEmblem }, look));
       return g;
     },
   });

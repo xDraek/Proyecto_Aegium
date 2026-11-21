@@ -24,6 +24,7 @@ import {
   stylobate,
   WINDOW_GLOW,
   disposeTree,
+  bannerMaterial,
   fishingPier,
   smokeColumn,
   gableRoof,
@@ -2355,6 +2356,11 @@ export class World {
     return this.game.state.banner?.color;
   }
 
+  /** El emblema del estandarte de tu ciudad (ocupada, ninguno: ondea el color de quien la ocupa). */
+  #homeEmblem() {
+    return this.game.state.occupied ? null : (this.game.state.banner?.emblem ?? null);
+  }
+
   /**
    * Flota enemiga anclada frente a la bocana de tu puerto mientras te bloquean u ocupan: cuatro
    * barcos de guerra de costado que se mecen con las olas.
@@ -2389,7 +2395,7 @@ export class World {
       const building = q?.id === id;
       // (el templo, además, según el dios al que esté consagrado)
       const god = id === 'templo' ? (this.game.state.god ?? '') : '';
-      const key = `${level}|${building}|${this.#homeBanner() ?? ''}|${god}`;
+      const key = `${level}|${building}|${this.#homeBanner() ?? ''}|${id === 'ayuntamiento' ? (this.#homeEmblem() ?? '') : ''}|${god}`;
       if (slot.key === key) continue;
       const leveledUp = slot.key !== null && Number(slot.key.split('|')[0]) < level;
       slot.key = key;
@@ -2405,7 +2411,7 @@ export class World {
       slot.extrasKey = null;
 
       slot.building = createBuilding(id, level, { god: god || null });
-      paintBanner(slot.building, this.#homeBanner());
+      paintBanner(slot.building, this.#homeBanner(), id === 'ayuntamiento' ? this.#homeEmblem() : null);
       slot.building.position.y = id === 'ayuntamiento' ? 0.04 : id === 'puerto' || id === 'muralla' ? 0 : 0.12;
       slot.baseScale = slot.building.scale.x;
       slot.root.add(slot.building);
@@ -2530,12 +2536,14 @@ export class World {
       const port = view.type === 'jugador' ? view.port : null;
       const occupier = port?.kind === 'invadir' ? (port.by === this.game.userId ? this.game.state.banner?.color : port.banner) ?? ownerColor({ owner: port.by }) : null;
       const bannerColor = occupier ?? (ownerId === this.game.userId ? this.game.state.banner?.color : this.game.world.playerInfo(ownerId)?.banner?.color);
-      const look = `${islandLook(view)}|${bannerColor ?? ''}`;
+      // (y su emblema, en la bandera de la ciudad y de las colonias; una ciudad ocupada, sin él)
+      const bannerEmblem = occupier ? null : ownerId === this.game.userId ? this.game.state.banner?.emblem : this.game.world.playerInfo(ownerId)?.banner?.emblem;
+      const look = `${islandLook(view)}|${bannerColor ?? ''}|${bannerEmblem ?? ''}`;
       if (entry.look !== look) {
         entry.look = look;
         // En un continente, la gesta busca sitio entre sus asentamientos
         const siteAngles = entry.isl.type === 'continente' ? this.#siteAngles(entry.isl) : undefined;
-        entry.featureArgs = [{ ...entry.isl, colonizedBy: view.colonizedBy, bannerColor, siteAngles }, look];
+        entry.featureArgs = [{ ...entry.isl, colonizedBy: view.colonizedBy, bannerColor, bannerEmblem, siteAngles }, look];
         // El adorno solo existe si la isla está cerca (#islandDetail): si ya estaba, se rehace
         if (entry.feature) {
           this.#dropFeature(entry);
@@ -3950,10 +3958,12 @@ function anchoredShip(type, p, scale, i) {
   return ship;
 }
 
-function paintBanner(root, color) {
+function paintBanner(root, color, emblem = null) {
   if (!color) return;
   const base = mat(C.cloth[0]);
   root.traverse((o) => {
-    if (o.isMesh && o.userData.wave && o.material === base) o.material = mat(color);
+    // El estandarte del ayuntamiento lleva, además, el emblema del jugador
+    if (o.isMesh && o.userData.banner) o.material = bannerMaterial(color, emblem, o.userData.banner);
+    else if (o.isMesh && o.userData.wave && o.material === base) o.material = mat(color);
   });
 }
