@@ -3546,7 +3546,7 @@ export class Game extends EventTarget {
     // En la fosa, los hipocampos luchan en su guarida y la barrera de coral frena a los barcos
     const lair = isl.type === 'kraken';
     if (lair) boost.hipocampo = LAIR_DEFENSE.hippo;
-    const result = assault({ units: m.units, atkMul: atkMul + heroAtk, hpMul }, { units: garrison, wallHp: wall, boost, chain: lair ? DEFENSE.chain * LAIR_DEFENSE.coral : 0 });
+    const result = assault({ units: m.units, atkMul: atkMul + heroAtk, hpMul }, { units: garrison, wallHp: wall, boost, chain: lair ? LAIR_DEFENSE.coral : 0 });
     this.#wreck(isl.id, result, t);
     // Los macedonios no olvidan: quien los ataca es el primero a por quien irán
     if (isl.type === 'macedonia') this.world.macedonGrudge?.(isl.id, this.userId, t);

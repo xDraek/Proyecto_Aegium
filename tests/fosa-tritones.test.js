@@ -51,5 +51,5 @@ test('las sirenas disparan desde atrás y pegan más que un arquero; los hipocam
   assert.ok(sirena.atk > UNITS.arquero.atk && sirena.hp > UNITS.arquero.hp);
   assert.ok(KRAKEN_LAIR.garrison.sirena > 0);
   assert.ok(LAIR_DEFENSE.hippo > 1);
-  assert.equal(LAIR_DEFENSE.coral, 1, 'como la cadena del puerto a nivel 1');
+  assert.equal(LAIR_DEFENSE.coral, 0.06, 'la barrera de coral quita un 6 % de ataque a los barcos');
 });

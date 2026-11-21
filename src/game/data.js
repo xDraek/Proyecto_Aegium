@@ -798,7 +798,7 @@ export const FLEET_COST = { per: 100, ship: 2, seat: 0.5, paces: [1, 0.9, 0.8, 0
  * cadena quita `chain` de ataque a los barcos que atacan; y el refugio esconde `shelter` plazas en el
  * nivel 1 y `shelterStep` más por cada nivel siguiente.
  */
-export const DEFENSE = { wallHp: 0.1, wallAbsorb: 0.02, wallAbsorbMax: 0.4, towers: 25, watch: 0.04, watchMax: 0.8, traps: 0.04, chain: 0.06, shelter: 50, shelterStep: 20 };
+export const DEFENSE = { wallHp: 0.1, wallAbsorb: 0.02, wallAbsorbMax: 0.4, towers: 25, watch: 0.04, watchMax: 0.8, traps: 0.03, chain: 0.04, shelter: 50, shelterStep: 20 };
 
 for (const [id, cls] of Object.entries({
   lancero: 'lanza', hoplita: 'lanza', espartano: 'lanza',
@@ -994,9 +994,9 @@ export const RESEARCH = {
     name: 'Fosos y estacas',
     icon: '🪤',
     description: 'Zanjas, estacas afiladas y cepos al pie de la muralla: una parte de los que desembarcan para asaltar tu ciudad cae antes de luchar.',
-    effect: (n) => `${n * 4} % de los que desembarcan caen antes de luchar`,
-    // (las defensas de la muralla, caras: cinco veces lo de una investigación normal)
-    baseCost: { madera: 2500, piedra: 3500, hierro: 1000 },
+    effect: (n) => `${Math.round(n * DEFENSE.traps * 100)} % de los que desembarcan caen antes de luchar`,
+    // (las defensas de la muralla, muy caras: diez veces lo de una investigación normal)
+    baseCost: { madera: 5000, piedra: 7000, hierro: 2000 },
     baseTime: 400,
     maxLevel: 5,
     requires: { academia: 10, muralla: 3 },
@@ -1005,8 +1005,9 @@ export const RESEARCH = {
     name: 'Cadena del puerto',
     icon: '🔗',
     description: 'Una cadena de bronce cierra la bocana: los barcos que atacan tu ciudad entran a trompicones y pegan menos en la batalla naval.',
-    effect: (n) => `−${n * 6} % de ataque a los barcos que atacan tu ciudad`,
-    baseCost: { madera: 2000, hierro: 3000, cristal: 1000 },
+    effect: (n) => `−${Math.round(n * DEFENSE.chain * 100)} % de ataque a los barcos que atacan tu ciudad`,
+    // (como los fosos: el doble de caras que al principio)
+    baseCost: { madera: 4000, hierro: 6000, cristal: 2000 },
     baseTime: 450,
     maxLevel: 5,
     requires: { academia: 10, puerto: 5, faro: 1 },
@@ -1526,10 +1527,10 @@ export const BASIC_RELIC_CHANCE = 0.2;
 // nivel sube uno y cada nivel le suma `growth` de ataque y de vida.
 /**
  * Lo que defiende las fosas además de su guarnición: los hipocampos luchan en su guarida (su ataque y
- * su vida, ×`hippo`) y la barrera de coral frena a los barcos que entran (como la cadena del puerto
- * a nivel `coral`).
+ * su vida, ×`hippo`) y la barrera de coral frena a los barcos que entran: les quita `coral` de su
+ * ataque (como la cadena del puerto, pero con su propia cifra: no cambia si cambia la cadena).
  */
-export const LAIR_DEFENSE = { hippo: 1.25, coral: 1 };
+export const LAIR_DEFENSE = { hippo: 1.25, coral: 0.06 };
 
 export const KRAKEN_RULES = { regenHours: 36, windowHours: 2, relicChance: 0.55, hintCells: 4, stayHours: 6, diveHours: 1, growth: 0.5 };
 

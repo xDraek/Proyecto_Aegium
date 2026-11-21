@@ -326,7 +326,7 @@ export function citySimPreset(game, view, attacker, withHero = false) {
     landing: view?.type === 'jugador',
   };
   if (view?.type === 'continente') return { ...preset, defender: { ...(view.horde?.garrison ?? {}) } };
-  if (view?.type === 'kraken') return { ...preset, defender: { ...(view?.intel?.garrison ?? {}) }, wall: view?.wall ?? 0, kraken: view?.intel?.kraken, chain: DEFENSE.chain * LAIR_DEFENSE.coral, hippo: LAIR_DEFENSE.hippo };
+  if (view?.type === 'kraken') return { ...preset, defender: { ...(view?.intel?.garrison ?? {}) }, wall: view?.wall ?? 0, kraken: view?.intel?.kraken, chain: LAIR_DEFENSE.coral, hippo: LAIR_DEFENSE.hippo };
   if (view?.type !== 'jugador') return { ...preset, defender: { ...(view?.intel?.garrison ?? {}) }, wall: view?.wall ?? 0, kraken: view?.intel?.kraken };
   const intel = view.intel;
   const level = intel?.level ?? 0;
@@ -546,7 +546,7 @@ function infoSectionFor(game, view, t) {
   }
   if (view.wall) lines.push(`<div class="info-row"><span>🏰 Fortificación</span><b>+${Math.round(view.wall * 100)} % de vida</b></div>`);
   if (view.type === 'kraken') {
-    lines.push(`<div class="info-row"><span>🪸 Barrera de coral</span><b>−${Math.round(DEFENSE.chain * LAIR_DEFENSE.coral * 100)} % de ataque a tus barcos</b></div>`);
+    lines.push(`<div class="info-row"><span>🪸 Barrera de coral</span><b>−${Math.round(LAIR_DEFENSE.coral * 100)} % de ataque a tus barcos</b></div>`);
     lines.push(`<div class="info-row"><span>🌊 Hipocampos en su guarida</span><b>+${Math.round((LAIR_DEFENSE.hippo - 1) * 100)} % de ataque y vida</b></div>`);
   }
   const flavor = {

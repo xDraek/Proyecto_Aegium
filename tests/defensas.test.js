@@ -69,6 +69,6 @@ test('una ciudad con fosos y cadena se defiende mejor, y el informe lo cuenta', 
   Object.assign(B.state.research, { fosos: 5, cadena: 5 });
   B.state.units = { hoplita: 60 };
   const res = B.receiveAttack({ attackerName: 'Prueba', units: { mercante: 40, hoplita: 100 }, atkMul: 1, hpMul: 1 }, B.now());
-  assert.equal(res.result.trapped, 20);
+  assert.equal(res.result.trapped, Math.round(100 * DEFENSE.traps * 5));
   assert.match(B.state.reports[0].text, /fosos/);
 });

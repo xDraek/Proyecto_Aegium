@@ -7,6 +7,22 @@ import { escapeHtml, resIcons } from './format.js';
 
 export const CHANGELOG = [
   {
+    id: '2026-11-21a',
+    date: '2026-11-21',
+    title: 'Fosos y cadena, más caros y algo más flojos',
+    items: [
+      '🪤 <b>Fosos y estacas</b> y 🔗 <b>Cadena del puerto</b> cuestan ahora <b>el doble</b> en todos los niveles.',
+      '⚖️ Y pesan un poco menos: los fosos tumban un <b>3 %</b> por nivel de los que desembarcan (15 % a nivel 5; antes, 20 %) y la cadena quita un <b>4 %</b> de ataque por nivel a los barcos que atacan (20 % a nivel 5; antes, 30 %). Quien ya las tenga conserva sus niveles.',
+    ],
+    en: {
+      title: 'Ditches and chain, pricier and somewhat weaker',
+      items: [
+        '🪤 <b>Ditches and stakes</b> and 🔗 <b>Harbour chain</b> now cost <b>twice as much</b> at every level.',
+        '⚖️ And they weigh a little less: ditches fell <b>3%</b> per level of those who land (15% at level 5; it was 20%) and the chain takes <b>4%</b> attack per level from attacking ships (20% at level 5; it was 30%). Anyone who already has them keeps their levels.',
+      ],
+    },
+  },
+  {
     id: '2026-11-20b',
     date: '2026-11-20',
     title: 'Minas y fundiciones más baratas',
